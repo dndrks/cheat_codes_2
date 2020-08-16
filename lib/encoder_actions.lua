@@ -627,7 +627,7 @@ function encoder_actions.init(n,d)
           if page.time_page_sel[page.time_sel] <= 4 then
             local id = page.time_sel-3
             local val = page.time_page_sel[page.time_sel]
-            test_arc_pat[id][val].time_factor = util.clamp(test_arc_pat[id][val].time_factor + d/10,0.1,10)
+            arc_pat[id][val].time_factor = util.clamp(arc_pat[id][val].time_factor + d/10,0.1,10)
           end
         end
       end

@@ -570,21 +570,21 @@ function main_menu.init()
           end
           screen.move((j==1 or j==3) and 10 or 75,(j==1 or j==2) and 40 or 50)
           screen.level(focus == j and 15 or 3)
-          local pattern = test_arc_pat[id][j]
+          local pattern = arc_pat[id][j]
           screen.text(param_options[j]..": ")
           screen.move((j==1 or j==3) and 45 or 100,(j==1 or j==2) and 40 or 50)
           if not key1_hold then
-            if (test_arc_pat[id][j].rec == 0 and test_arc_pat[id][j].play == 0 and test_arc_pat[id][j].count == 0) then
+            if (arc_pat[id][j].rec == 0 and arc_pat[id][j].play == 0 and arc_pat[id][j].count == 0) then
               screen.text("none")
-            elseif test_arc_pat[id][j].play == 1 then
+            elseif arc_pat[id][j].play == 1 then
               screen.text("active")
-            elseif test_arc_pat[id][j].rec == 1 then
+            elseif arc_pat[id][j].rec == 1 then
               screen.text("rec")
-            elseif (test_arc_pat[id][j].rec == 0 and test_arc_pat[id][j].play == 0 and test_arc_pat[id][j].count > 0) then
+            elseif (arc_pat[id][j].rec == 0 and arc_pat[id][j].play == 0 and arc_pat[id][j].count > 0) then
               screen.text("idle")
             end
           else
-            screen.text(string.format("%.1f",test_arc_pat[id][j].time_factor).."x")
+            screen.text(string.format("%.1f",arc_pat[id][j].time_factor).."x")
           end
         end
         for i = 5,7 do

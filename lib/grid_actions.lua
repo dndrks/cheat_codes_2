@@ -251,18 +251,18 @@ function grid_actions.init(x,y,z)
           a_p = arc_param[current] - 2
         end
         if grid.alt == 1 then
-          test_arc_pat[current][a_p]:rec_stop()
-          test_arc_pat[current][a_p]:stop()
-          test_arc_pat[current][a_p]:clear()
-        elseif test_arc_pat[current][a_p].rec == 1 then
-          test_arc_pat[current][a_p]:rec_stop()
-          test_arc_pat[current][a_p]:start()
-        elseif test_arc_pat[current][a_p].count == 0 then
-          test_arc_pat[current][a_p]:rec_start()
-        elseif test_arc_pat[current][a_p].play == 1 then
-          test_arc_pat[current][a_p]:stop()
+          arc_pat[current][a_p]:rec_stop()
+          arc_pat[current][a_p]:stop()
+          arc_pat[current][a_p]:clear()
+        elseif arc_pat[current][a_p].rec == 1 then
+          arc_pat[current][a_p]:rec_stop()
+          arc_pat[current][a_p]:start()
+        elseif arc_pat[current][a_p].count == 0 then
+          arc_pat[current][a_p]:rec_start()
+        elseif arc_pat[current][a_p].play == 1 then
+          arc_pat[current][a_p]:stop()
         else
-          test_arc_pat[current][a_p]:start()
+          arc_pat[current][a_p]:start()
         end
         if menu == 11 then
           help_menu = "arc patterns"
