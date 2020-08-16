@@ -349,11 +349,11 @@ function main_menu.init()
       screen.move(128,10)
       if page.delay_section == 3 and focused_menu == 1 then
         if page.delay[page.delay_focus].menu_sel[focused_menu] == 1 or page.delay[page.delay_focus].menu_sel[focused_menu] == 2 then
-          screen.text_right("e3: fine-tune")
+          screen.text_right(page.delay[page.delay_focus].menu_sel[focused_menu] == 1 and "enc3: fine-tune" or "enc2+3: fine-tune")
         end
       elseif page.delay_section == 3 and focused_menu == 3 then
         if page.delay[page.delay_focus].menu_sel[focused_menu] < 4 then
-          screen.text_right("e3: map to all in bank")
+          screen.text_right("map changes to bank")
         end
       end
     end
