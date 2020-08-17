@@ -1011,13 +1011,25 @@ function init()
     cheat(i,bank[i].id)
   end
   
-  hardware_redraw = metro.init(
-    function()
-      grid_redraw()
-      arc_redraw()
+  -- hardware_redraw = metro.init(
+  --   function()
+  --     grid_redraw()
+  --     arc_redraw()
+  --   end
+  --   , 0.02, -1)
+  -- hardware_redraw:start()
+
+  grid_dirty = true
+
+  function draw_grid()
+    while true do
+      clock.sleep(1/30)
+      if grid_dirty then
+        grid_redraw()
+        grid_dirty = false
+      end
     end
-    , 0.02, -1)
-  hardware_redraw:start()
+  end
   
   softcut.poll_start_phase()
   
@@ -1202,12 +1214,23 @@ function init()
 
   rytm.init()
 
-  if g then grid_redraw() end
+  -- if g then grid_redraw() end
+  if g then grid_dirty = true end
   
   all_loaded = true
   
   metro_persistent_state_restore = metro.init(persistent_state_restore, 0.1, 1)
   metro_persistent_state_restore:start()
+
+  clock.run(draw_grid)
+
+  hardware_redraw = metro.init(
+    function()
+      -- grid_redraw()
+      arc_redraw()
+    end
+    , 1/30, -1)
+  hardware_redraw:start()
 
 end
 
@@ -1666,7 +1689,7 @@ function globally_clocked()
     if menu == 7 then
       redraw()
     end
-    grid_redraw()
+    -- grid_redraw()
     update_tempo()
     step_sequence()
     for i = 1,3 do
@@ -1694,6 +1717,7 @@ function globally_clocked()
         internal_clocking_tightened(i)
       end
     end
+    grid_dirty = true
   end
 end
 
@@ -2004,6 +2028,7 @@ function step_sequence()
       end
     end
   end
+  grid_dirty = true
 end
 
 function sixteen_slices(x)
@@ -2932,7 +2957,8 @@ function grid_entry(e)
       lit[e.id] = nil
     end
   end
-  grid_redraw()
+  -- grid_redraw()
+  grid_dirty = true
 end
 
 function grid_redraw()
@@ -3424,7 +3450,8 @@ function grid_pattern_execute(entry)
           end
         end
       end
-      grid_redraw()
+      -- grid_redraw()
+      grid_dirty = true
       redraw()
     end
   end
@@ -3447,6 +3474,7 @@ function new_arc_pattern_execute(entry)
             selected[id].y = 8-((bank[id].id-1)%4)
             cheat(id,arc_pat[i][j].event[arc_pat[i][j].step].pad)
             slew_filter(id,entry.prev_tilt,entry.tilt,bank[id][bank[id].id].q,bank[id][bank[id].id].q,15)
+            grid_dirty = true
           end
         end
       elseif arc_pat[i][j].step == 1 then
@@ -3456,6 +3484,7 @@ function new_arc_pattern_execute(entry)
           selected[id].y = 8-((bank[id].id-1)%4)
           cheat(id,arc_pat[i][j].event[arc_pat[i][j].step].pad)
           slew_filter(id,arc_pat[i][j].event[arc_pat[i][j].count].tilt,entry.tilt,bank[id][bank[id].id].q,bank[id][bank[id].id].q,15)
+          grid_dirty = true
         end
       end 
     elseif arc_pat[i][j].step == 0 then
@@ -3466,6 +3495,7 @@ function new_arc_pattern_execute(entry)
         selected[id].y = 8-((bank[id].id-1)%4)
         cheat(id,arc_pat[i][j].event[arc_pat[i][j].step].pad)
         slew_filter(id,arc_pat[i][j].event[arc_pat[i][j].count].tilt,entry.tilt,bank[id][bank[id].id].q,bank[id][bank[id].id].q,15)
+        grid_dirty = true
       end
     end
     
@@ -3510,7 +3540,8 @@ end
 function zilchmo(k,i)
   rightangleslice.init(k,i)
   lit = {}
-  grid_redraw()
+  -- grid_redraw()
+  grid_dirty = true
   redraw()
 end
 

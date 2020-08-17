@@ -309,7 +309,7 @@ function grid_actions.init(x,y,z)
         end
       end
       redraw()
-      grid_redraw()
+      -- grid_redraw()
     end
     
     if y == 4 or y == 3 or y == 2 then
@@ -679,7 +679,7 @@ function grid_actions.init(x,y,z)
       if x == 16 and y == 8 then
         grid.alt_pp = z
         redraw()
-        grid_redraw()
+        -- grid_redraw()
       end
     
     elseif grid.loop_mod == 1 then
@@ -714,7 +714,7 @@ function grid_actions.init(x,y,z)
     if x == 16 and y == 2 then
       grid.loop_mod = z
       redraw()
-      grid_redraw()
+      -- grid_redraw()
     end
     
     if menu == 11 then
@@ -869,6 +869,8 @@ function grid_actions.init(x,y,z)
       --clk:reset()
     end
   end
+
+  grid_dirty = true
     
 end
 
