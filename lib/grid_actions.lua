@@ -574,10 +574,9 @@ function grid_actions.init(x,y,z)
       for i = 1,11,5 do
         for j = 1,8 do
           if x == i and y == j then
-            local saved_already;
             local current = math.floor(x/5)+1
             if z == 1 then
-              saved_already = pattern_saver[current].saved[9-y]
+              saved_pat = pattern_saver[current].saved[9-y] -- hate that this is global...
               if step_seq[current].held == 0 then
                 pattern_saver[current].source = math.floor(x/5)+1
                 pattern_saver[current].save_slot = 9-y
@@ -593,7 +592,7 @@ function grid_actions.init(x,y,z)
             elseif z == 0 then
               if step_seq[current].held == 0 then
                 pattern_saver[math.floor(x/5)+1].active = false
-                if grid.alt_pp == 0 and saved_already == 1 then
+                if grid.alt_pp == 0 and saved_pat == 1 then
                   if pattern_saver[current].saved[9-y] == 1 then
                     pattern_saver[current].load_slot = 9-y
                     test_load((9-y)+(8*(current-1)),current)

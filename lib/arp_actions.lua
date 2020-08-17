@@ -62,6 +62,7 @@ function arp_actions.arpeggiate(target)
         end
         arp[target].playing = true
         arp_actions.cheat(target,arp[target].step)
+        grid_dirty = true
       else
         arp[target].playing = false
       end
