@@ -517,7 +517,7 @@ function grid_actions.init(x,y,z)
                     arp[i].pause = true
                     arp[i].playing = false
                   else
-                    arp[i].step = arp[i].start_point
+                    arp[i].step = arp[i].start_point-1
                     arp[i].pause = false
                     arp[i].playing = true
                   end
@@ -580,7 +580,8 @@ function grid_actions.init(x,y,z)
               if step_seq[current].held == 0 then
                 pattern_saver[current].source = math.floor(x/5)+1
                 pattern_saver[current].save_slot = 9-y
-                clock.run(test_save,current)
+                pattern_saver[current].clock = clock.run(test_save,current)
+                -- print("starting save "..pattern_saver[current].clock)
               else
                 --if there's a pattern saved there...
                 if pattern_saver[current].saved[9-y] == 1 then
@@ -591,6 +592,12 @@ function grid_actions.init(x,y,z)
               end
             elseif z == 0 then
               if step_seq[current].held == 0 then
+                if pattern_saver[math.floor(x/5)+1].clock then
+                  clock.cancel(pattern_saver[math.floor(x/5)+1].clock)
+                  clock.cancel(pattern_saver[math.floor(x/5)+1].clock-1)
+                  clock.cancel(pattern_saver[math.floor(x/5)+1].clock-2)
+                  -- print("killing save "..pattern_saver[math.floor(x/5)+1].clock)
+                end
                 pattern_saver[math.floor(x/5)+1].active = false
                 if grid.alt_pp == 0 and saved_pat == 1 then
                   if pattern_saver[current].saved[9-y] == 1 then

@@ -104,6 +104,7 @@ for i = 1,3 do
   pattern_saver[i].save_slot = nil
   pattern_saver[i].load_slot = 0
   pattern_saver[i].saved = {}
+  pattern_saver[i].clock = nil
   for j = 1,8 do
     pattern_saver[i].saved[j] = 0
   end
@@ -4129,7 +4130,7 @@ end
 function test_save(i)
   pattern_saver[i].active = true
   clock.sleep(1)
-  if pattern_saver[i].active then
+  -- if pattern_saver[i].active then
     if grid.alt_pp == 0 then
       if grid_pat[i].count > 0 and grid_pat[i].rec == 0 then
         copy_entire_pattern(i)
@@ -4149,6 +4150,7 @@ function test_save(i)
         g:led(math.floor((i-1)*5)+1,9-pattern_saver[i].save_slot,0)
         -- g:refresh()
       end
+      pattern_saver[i].clock = nil
       grid_dirty = true
     else
       if pattern_saver[i].saved[pattern_saver[i].save_slot] == 1 then
@@ -4159,7 +4161,7 @@ function test_save(i)
         print("no pattern data to delete")
       end
     end
-  end
+  -- end
   pattern_saver[i].active = false
 end
 
@@ -4172,7 +4174,7 @@ function test_load(slot,destination)
       arp[destination].playing = false
     elseif grid_pat[destination].tightened_start == 1 then -- not relevant?
       grid_pat[destination].tightened_start = 0
-      grid_pat[destination].step = grid_pat[destination].start_point
+      grid_pat[destination].step = grid_pat[destination].start_point-1
       quantized_grid_pat[destination].current_step = grid_pat[destination].start_point
       quantized_grid_pat[destination].sub_step = 1
     end
@@ -4180,7 +4182,7 @@ function test_load(slot,destination)
     if grid_pat[destination].count > 0 then
       start_pattern(grid_pat[destination])
     elseif #arp[destination].notes > 0 then
-      arp[destination].step = arp[destination].start_point
+      arp[destination].step = arp[destination].start_point-1
       arp[destination].pause = false
       arp[destination].playing = true
     end
@@ -4713,7 +4715,7 @@ function load_pattern(slot,destination)
       end
       --/new stuff, quantum and time_beats!
     else
-      print("it's an arp!")
+      -- print("it's an arp!")
       arp[destination] = tab.load(_path.data .. "cheat_codes/pattern"..selected_coll.."_"..slot..".data")
       ignore_external_timing = true
     end
