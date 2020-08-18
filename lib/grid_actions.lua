@@ -853,19 +853,38 @@ function grid_actions.init(x,y,z)
   end
   
   if x == 16 and y == 1 and z == 1 then
-    if grid.alt == 0 then
-      grid_page = (grid_page + 1)%3
-      if menu == 11 then
-        if grid_page == 1 then
-          help_menu = "meta page"
-        elseif grid_page == 0 then
-          help_menu = "welcome"
+    if grid_page == 0 then
+      if grid.alt == 0 then
+        grid_page = 1
+        if menu == 11 then
+          if grid_page == 1 then
+            help_menu = "meta page"
+          elseif grid_page == 0 then
+            help_menu = "welcome"
+          end
+          redraw()
         end
-        redraw()
+      else
+        grid_page = 2
+        grid.alt_delay = true
+        grid.alt = 0
       end
-    elseif grid.alt == 1 then
-      --clk_midi:stop()
-      --clk:reset()
+    elseif grid_page == 1 then
+      if grid.alt_pp == 0 then
+        grid_page = 2
+      else
+        grid_page = 0
+        grid.alt = 1
+        grid.alt_pp = 0
+      end
+    elseif grid_page == 2 then
+      if not grid.alt_delay then
+        grid_page = 0
+      else
+        grid_page = 1
+        grid.alt_pp = 1
+        grid.alt_delay = false
+      end
     end
   end
 
