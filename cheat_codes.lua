@@ -2622,9 +2622,9 @@ function key(n,z)
     elseif menu == 8 then
 
       if key1_hold then
-        rytm.reset_pattern()
+        rytm.track[rytm.track_edit].pos = 0
       else
-        rytm.track[rytm.track_edit].pos = 1
+        rytm.screen_focus = rytm.screen_focus == "left" and "right" or "left"
       end
 
     elseif menu == 9 then
@@ -2633,27 +2633,16 @@ function key(n,z)
         arps.clear(page.arp_page_sel)
       end
     elseif menu == 10 then
-      if page.rnd_page_section == 1 then
-        if key1_hold then
-          for i = 1,#rnd.targets do
-            rnd.transport(page.rnd_page,i,"off")
-            rnd.restore_default(page.rnd_page,i)
-          end
-        else
-          page.rnd_page_section = 2
+      if key1_hold then
+        local rnd_bank = page.rnd_page
+        local rnd_slot = page.rnd_page_sel[rnd_bank]
+        local state = tostring(rnd[rnd_bank][rnd_slot].playing)
+        rnd.transport(rnd_bank,rnd_slot,state == "false" and "on" or "off")
+        if state == "true" then
+          rnd.restore_default(rnd_bank,rnd_slot)
         end
-      elseif page.rnd_page_section == 2 then
-        if key1_hold then
-          local rnd_bank = page.rnd_page
-          local rnd_slot = page.rnd_page_sel[rnd_bank]
-          local state = tostring(rnd[rnd_bank][rnd_slot].playing)
-          rnd.transport(rnd_bank,rnd_slot,state == "false" and "on" or "off")
-          if state == "true" then
-            rnd.restore_default(rnd_bank,rnd_slot)
-          end
-        else
-          page.rnd_page_section = 3
-        end
+      else
+        page.rnd_page_section = page.rnd_page_section == 1 and 2 or 1
       end
     end
 
@@ -2665,12 +2654,17 @@ function key(n,z)
         menu = 1
       end
     elseif menu == 8 then
-      menu = 1
+      if key1_hold then
+        rytm.reset_pattern()
+      else
+        menu = 1
+      end
     elseif menu == 10 then
-      if page.rnd_page_section == 2 then
-        page.rnd_page_section = 1
-      elseif page.rnd_page_section == 3 then
-        page.rnd_page_section = 2
+      if key1_hold then
+        for i = 1,#rnd.targets do
+          rnd.transport(page.rnd_page,i,"off")
+          rnd.restore_default(page.rnd_page,i)
+        end
       else
         menu = 1
       end
@@ -2702,7 +2696,7 @@ function key(n,z)
     else
       menu = 1
     end
-    if menu ~= 2 then
+    if menu ~= 2 and menu ~= 8 then
       if key1_hold == true then key1_hold = false end
     end
   end
@@ -2718,16 +2712,6 @@ function key(n,z)
       key1_hold = true
     elseif menu == 8 then
       key1_hold = true
-      --[[
-      if page.track_page_section[page.track_page] == 1 and page.track_page < 4 then
-        trackers.transport(page.track_page)
-      elseif page.track_page_section[page.track_page] == 3 and page.track_page < 4 then
-        tracker[page.track_page].recording = not tracker[page.track_page].recording
-        key1_hold = true
-      elseif page.track_page_section[page.track_page] == 4 then
-        key1_hold = true
-      end
-      -]]
     elseif menu == 9 then
       key1_hold = true
       page.arp_param_group[page.arp_page_sel] = (page.arp_param_group[page.arp_page_sel] % 2) + 1
