@@ -612,7 +612,8 @@ function main_menu.init()
     if key1_hold then
       screen.level(15)
       screen.move(40,10)
-      screen.text(rytm.track_edit.." mode: "..rytm.track[rytm.track_edit].mode)
+      local track_edit_to_banks = {"a","b","c"}
+      screen.text(track_edit_to_banks[rytm.track_edit].." mode: "..rytm.track[rytm.track_edit].mode)
       screen.move(40,20)
       local divs_to_frac =
       { ["0.25"] = "1/16"
@@ -622,19 +623,19 @@ function main_menu.init()
       , ["4"] = "1"
       }
       local lookup = string.format("%.4g",rytm.track[rytm.track_edit].clock_div)
-      screen.text(rytm.track_edit.." rate: "..divs_to_frac[lookup])
+      screen.text(track_edit_to_banks[rytm.track_edit].." rate: "..divs_to_frac[lookup])
     end
     local labels = {"(k","n)","o","+/-"}
     local spaces = {5,20,105,120}
     for i = 1,2 do
-      screen.level((key1_hold and rytm.screen_focus == "left") and 15 or 3)
+      screen.level((not key1_hold and rytm.screen_focus == "left") and 15 or 3)
       screen.move(spaces[i],20)
       screen.text_center(labels[i])
       screen.move(13,20)
       screen.text_center(",")
     end
     for i = 3,4 do
-      screen.level((key1_hold and rytm.screen_focus == "right") and 15 or 3)
+      screen.level((not key1_hold and rytm.screen_focus == "right") and 15 or 3)
       screen.move(spaces[i],20)
       screen.text_center(labels[i])
     end
@@ -669,7 +670,7 @@ function main_menu.init()
     screen.move(0,10)
     screen.level(3)
     screen.text("arp")
-    local header = {"1","2","3"}
+    local header = {"a","b","c"}
     for i = 1,3 do
       screen.level(page.arp_page_sel == i and 15 or 3)
       screen.move(75+(i*15),10)
@@ -723,14 +724,15 @@ function main_menu.init()
     screen.move(0,10)
     screen.level(3)
     screen.text("rnd")
-    local header = {"1","2","3"}
-    screen.level(page.rnd_page_section == 1 and 15 or 3)
+    local header = {"a","b","c"}
+    -- screen.move(30,10)
+    -- screen.text("E1: sel bank")
     for i = 1,3 do
-      screen.level(page.rnd_page_section == 1 and (page.rnd_page == i and 15) or 3)
+      screen.level(page.rnd_page == i and 15 or 3)
       screen.move(75+(i*15),10)
       screen.text(header[i])
     end
-    screen.level(page.rnd_page_section == 1 and (page.rnd_page == page.rnd_page and 15) or 3)
+    screen.level(page.rnd_page == page.rnd_page and 15 or 3)
     screen.move(75+(page.rnd_page*15),13)
     screen.text("_")
     screen.level(3)
@@ -744,51 +746,68 @@ function main_menu.init()
           break
         end
       end
-      screen.text(tostring(some_playing[page.rnd_page]) == "true" and ("K1+K3 to kill all active in "..page.rnd_page) or "")
+      -- screen.text(tostring(some_playing[page.rnd_page]) == "true" and ("K1+K3 to kill all active in "..page.rnd_page) or "")
     end
     screen.level(3)
-    screen.level(page.rnd_page_section == 2 and 15 or 3)
+    screen.level(page.rnd_page_section == 1 and 15 or 3)
     screen.font_size(40)
     screen.move(0,50)
     screen.text(page.rnd_page_sel[page.rnd_page])
     local current = rnd[page.rnd_page][page.rnd_page_sel[page.rnd_page]]
-    local edit_line = page.rnd_page_edit[page.rnd_page]
+    local edit_line = page.rnd_page_edit[page.rnd_page] -- this is key!
     screen.font_size(8)
     screen.move(0,60)
     screen.text(tostring(current.playing) == "true" and "active" or "")
     screen.level(3)
     screen.move(0,20)
-    if page.rnd_page_section == 2 then
-      screen.text(tostring(current.playing) == "false" and "K1+K3: run / K3: edit / E1: <->" or "K1+K3: kill / K3: edit / E1: <->")
-    elseif page.rnd_page_section == 3 then
-      if edit_line < 3 then
-        screen.text("E1: nav / E2: mod / K2: back")
-      else
-        screen.text("E2: mod L / E3: mod R")
-      end 
+    if page.rnd_page_section == 1 then
+      screen.text(tostring(current.playing) == "false" and "E2: sel / K3: edit / K1+K3: run" or "K1+K3: kill / K3: edit / E2: sel")
+    elseif page.rnd_page_section == 2 then
+      screen.text("E2: nav / E3: mod / K3: <-")
     end
     screen.font_size(8)
     screen.move(30,30)
-    screen.level(page.rnd_page_section == 3 and (edit_line == 1 and 15 or 3) or 3)
+    screen.level(page.rnd_page_section == 2 and (edit_line == 1 and 15 or 3) or 3)
     screen.text("param: "..current.param)
     screen.move(30,40)
-    screen.level(page.rnd_page_section == 3 and (edit_line == 2 and 15 or 3) or 3)
+    screen.level(page.rnd_page_section == 2 and (edit_line == 2 and 15 or 3) or 3)
     screen.text("mode: "..current.mode)
     screen.move(30,50)
-    screen.level(page.rnd_page_section == 3 and (edit_line == 3 and 15 or 3) or 3)
-    screen.text("clock: "..current.num.."/"..current.denom)
-    screen.move(30,60)
-    screen.level(page.rnd_page_section == 3 and (edit_line == 4 and 15 or 3) or 3)
-    local params_to_lims =
-    { ["pan"] = {"min: "..(current.pan_min < 0 and "L " or "R ")..math.abs(current.pan_min), "max: "..(current.pan_max > 0 and "R " or "L ")..math.abs(current.pan_max)}
-    , ["rate"] = {"min: "..current.rate_min, "max: "..current.rate_max}
-    , ["rate slew"] = {"min: "..string.format("%.1f",current.rate_slew_min), "max: "..string.format("%.1f",current.rate_slew_max)}
-    , ["delay send"] = {"",""}
-    , ["loop"] = {"",""}
-    , ["semitone offset"] = {current.offset_scale:lower(),""}
-    , ["filter tilt"] = {"min: "..string.format("%.2f",current.filter_min), "max: "..string.format("%.2f",current.filter_max)}
+    screen.level(page.rnd_page_section == 2 and ((edit_line == 3 or edit_line == 4) and 15 or 3) or 3)
+    screen.text("clock: ")
+    screen.level(page.rnd_page_section == 2 and (edit_line == 3 and 15 or 3) or 3)
+    screen.move(55,50)
+    screen.text(current.num)
+    screen.move_rel(1,0)
+    screen.level(page.rnd_page_section == 2 and ((edit_line == 3 or edit_line == 4) and 15 or 3) or 3)
+    screen.text("/")
+    screen.level(page.rnd_page_section == 2 and (edit_line == 4 and 15 or 3) or 3)
+    screen.move_rel(1,0)
+    screen.text(current.denom)
+    local params_to_mins =
+    { ["pan"] = {"min: "..(current.pan_min < 0 and "L " or "R ")..math.abs(current.pan_min)}
+    , ["rate"] = {"min: "..current.rate_min}
+    , ["rate slew"] = {"min: "..string.format("%.1f",current.rate_slew_min)}
+    , ["delay send"] = {""}
+    , ["loop"] = {""}
+    , ["semitone offset"] = {current.offset_scale:lower()}
+    , ["filter tilt"] = {"min: "..string.format("%.2f",current.filter_min)}
     }
-    screen.text(params_to_lims[current.param][1].." "..params_to_lims[current.param][2])
+    local params_to_maxs = 
+    { ["pan"] = {"max: "..(current.pan_max > 0 and "R " or "L ")..math.abs(current.pan_max)}
+    , ["rate"] = {"max: "..current.rate_max}
+    , ["rate slew"] = {"max: "..string.format("%.1f",current.rate_slew_max)}
+    , ["delay send"] = {""}
+    , ["loop"] = {""}
+    , ["semitone offset"] = {""}
+    , ["filter tilt"] = {"max: "..string.format("%.2f",current.filter_max)}
+    }
+    screen.level(page.rnd_page_section == 2 and (edit_line == 5 and 15 or 3) or 3)
+    screen.move(30,60)
+    screen.text(params_to_mins[current.param][1])
+    screen.move_rel(5,0)
+    screen.level(page.rnd_page_section == 2 and (edit_line == 6 and 15 or 3) or 3)
+    screen.text(params_to_maxs[current.param][1])
 
   elseif menu == 11 then
     screen.move(0,10)

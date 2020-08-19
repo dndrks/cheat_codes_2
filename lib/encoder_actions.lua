@@ -5,7 +5,9 @@ ea.sc = {}
 
 function encoder_actions.init(n,d)
   if n == 1 then
-    if menu == 2 then
+    if menu == 1 then
+      page.main_sel = util.clamp(page.main_sel+d,1,10)
+    elseif menu == 2 then
       local id = page.loops_sel + 1
       if id ~= 4 then
         if page.loops_page == 1 then
@@ -45,15 +47,17 @@ function encoder_actions.init(n,d)
       page.time_sel = util.clamp(page.time_sel+d,1,6)
     elseif menu == 8 then
 
-      if key1_hold then
-        if d > 0 then
-          rytm.screen_focus = "right"
-        elseif d < 0 then
-          rytm.screen_focus = "left"
-        end
-      else
-        rytm.track_edit = util.clamp(rytm.track_edit+d,1,3)
-      end
+      rytm.track_edit = util.clamp(rytm.track_edit+d,1,3)
+
+      -- if key1_hold then
+      --   if d > 0 then
+      --     rytm.screen_focus = "right"
+      --   elseif d < 0 then
+      --     rytm.screen_focus = "left"
+      --   end
+      -- else
+      --   rytm.track_edit = util.clamp(rytm.track_edit+d,1,3)
+      -- end
 
       --[==[
       if page.track_page_section[page.track_page] == 1 then
@@ -93,14 +97,15 @@ function encoder_actions.init(n,d)
         page.arp_page_sel = util.clamp(page.arp_page_sel+d,1,3)
       end
     elseif menu == 10 then
-      if page.rnd_page_section == 1 then
-        page.rnd_page = util.clamp(page.rnd_page+d,1,3)
-      elseif page.rnd_page_section == 3 then
-        local selected_slot = page.rnd_page_sel[page.rnd_page]
-        local current_param = rnd[page.rnd_page][selected_slot].param
-        local reasonable_max = (current_param == "loop" or current_param == "delay send") and 3 or 4
-        page.rnd_page_edit[page.rnd_page] = util.clamp(page.rnd_page_edit[page.rnd_page]+d,1,reasonable_max)
-      end
+      page.rnd_page = util.clamp(page.rnd_page+d,1,3)
+      -- if page.rnd_page_section == 1 then
+      --   page.rnd_page = util.clamp(page.rnd_page+d,1,3)
+      -- elseif page.rnd_page_section == 2 then
+      --   local selected_slot = page.rnd_page_sel[page.rnd_page]
+      --   local current_param = rnd[page.rnd_page][selected_slot].param
+      --   local reasonable_max = (current_param == "loop" or current_param == "delay send") and 3 or 4
+      --   page.rnd_page_edit[page.rnd_page] = util.clamp(page.rnd_page_edit[page.rnd_page]+d,1,reasonable_max)
+      -- end
     end
   end
   if n == 2 then
@@ -376,67 +381,14 @@ function encoder_actions.init(n,d)
       end
     elseif menu == 10 then
       local selected_slot = page.rnd_page_sel[page.rnd_page]
-      if page.rnd_page_section == 2 then
+      if page.rnd_page_section == 1 then
         page.rnd_page_sel[page.rnd_page] = util.clamp(selected_slot+d,1,#rnd[page.rnd_page])
         page.rnd_page_edit[page.rnd_page] = 1
-      elseif page.rnd_page_section == 3 then
-        local current = rnd[page.rnd_page][page.rnd_page_sel[page.rnd_page]]
-        if page.rnd_page_edit[page.rnd_page] == 1 then
-          if not current.playing then
-            --[[
-            local pre_change = find_the_key(rnd.targets,current.param)
-            rnd.restore_default(page.rnd_page,pre_change)
-            print(page.rnd_page,pre_change, rnd[page.rnd_page][pre_change].param)
-          end
-          --]]
-            current.param = rnd.targets[util.clamp(find_the_key(rnd.targets,current.param)+d,1,#rnd.targets)]
-          end
-        elseif page.rnd_page_edit[page.rnd_page] == 2 then
-          if d > 0 then
-            current.mode = "destructive"
-          elseif d < 0 then
-            current.mode = "non-destructive"
-          end
-        elseif page.rnd_page_edit[page.rnd_page] == 3 then
-          current.num = util.clamp(current.num+d,1,32)
-          --[[
-          if key1_hold then
-            current.denom = util.clamp(current.denom+d,1,32)
-          else
-            current.num = util.clamp(current.num+d,1,32)
-          end
-          --]]
-          current.time = current.num / current.denom
-        elseif page.rnd_page_edit[page.rnd_page] == 4 then
-          if current.param == "pan" then
-            current.pan_min = util.clamp(current.pan_min+d,-100,current.pan_max-1)
-          elseif current.param == "rate" then
-            local rates_to_mins = 
-            { [0.125] = 1
-            , [0.25] = 2
-            , [0.5] = 3
-            , [1] = 4
-            , [2] = 5
-            , [4] = 6
-            }
-            local working = util.clamp(rates_to_mins[current.rate_min]+d,1,rates_to_mins[current.rate_max])
-            local mins_to_rates = {0.125,0.25,0.5,1,2,4}
-            current.rate_min = mins_to_rates[working]
-          elseif current.param == "rate slew" then
-            current.rate_slew_min = util.clamp(current.rate_slew_min+d/10,0,current.rate_slew_max-0.1)
-          elseif current.param == "semitone offset" then
-            local which_scale = nil
-            for i = 1,#MusicUtil.SCALES do
-              if MusicUtil.SCALES[i].name == current.offset_scale then
-                which_scale = i
-              end
-            end
-            local working = util.clamp(which_scale+d,1,#MusicUtil.SCALES)
-            current.offset_scale = MusicUtil.SCALES[working].name
-          elseif current.param == "filter tilt" then
-            current.filter_min = util.clamp(current.filter_min+d/100,-1,current.filter_max-0.01)
-          end
-        end
+      elseif page.rnd_page_section == 2 then
+        local selected_slot = page.rnd_page_sel[page.rnd_page]
+        local current_param = rnd[page.rnd_page][selected_slot].param
+        local reasonable_max = (current_param == "loop" or current_param == "delay send") and 4 or 6
+        page.rnd_page_edit[page.rnd_page] = util.clamp(page.rnd_page_edit[page.rnd_page]+d,1,reasonable_max)
       end
     end
   end
@@ -688,13 +640,54 @@ function encoder_actions.init(n,d)
       end
     elseif menu == 10 then
       local current = rnd[page.rnd_page][page.rnd_page_sel[page.rnd_page]]
-      if page.rnd_page_section == 3 then
+      if page.rnd_page_section == 2 then
+
         if page.rnd_page_edit[page.rnd_page] == 1 then
-          --current.param = rnd.targets[util.clamp(find_the_key(rnd.targets,current.param)+d,1,#rnd.targets)]
+          if not current.playing then
+            current.param = rnd.targets[util.clamp(find_the_key(rnd.targets,current.param)+d,1,#rnd.targets)]
+          end
+        elseif page.rnd_page_edit[page.rnd_page] == 2 then
+          if d > 0 then
+            current.mode = "destructive"
+          elseif d < 0 then
+            current.mode = "non-destructive"
+          end
         elseif page.rnd_page_edit[page.rnd_page] == 3 then
-          current.denom = util.clamp(current.denom+d,1,32)
+          current.num = util.clamp(current.num+d,1,32)
           current.time = current.num / current.denom
         elseif page.rnd_page_edit[page.rnd_page] == 4 then
+          current.denom = util.clamp(current.denom+d,1,32)
+          current.time = current.num / current.denom
+        elseif page.rnd_page_edit[page.rnd_page] == 5 then
+          if current.param == "pan" then
+            current.pan_min = util.clamp(current.pan_min+d,-100,current.pan_max-1)
+          elseif current.param == "rate" then
+            local rates_to_mins = 
+            { [0.125] = 1
+            , [0.25] = 2
+            , [0.5] = 3
+            , [1] = 4
+            , [2] = 5
+            , [4] = 6
+            }
+            local working = util.clamp(rates_to_mins[current.rate_min]+d,1,rates_to_mins[current.rate_max])
+            local mins_to_rates = {0.125,0.25,0.5,1,2,4}
+            current.rate_min = mins_to_rates[working]
+          elseif current.param == "rate slew" then
+            current.rate_slew_min = util.clamp(current.rate_slew_min+d/10,0,current.rate_slew_max-0.1)
+          elseif current.param == "semitone offset" then
+            local which_scale = nil
+            for i = 1,#MusicUtil.SCALES do
+              if MusicUtil.SCALES[i].name == current.offset_scale then
+                which_scale = i
+              end
+            end
+            local working = util.clamp(which_scale+d,1,#MusicUtil.SCALES)
+            current.offset_scale = MusicUtil.SCALES[working].name
+          elseif current.param == "filter tilt" then
+            current.filter_min = util.clamp(current.filter_min+d/100,-1,current.filter_max-0.01)
+          end
+        elseif page.rnd_page_edit[page.rnd_page] == 6 then
           if current.param == "pan" then
             current.pan_max = util.clamp(current.pan_max+d,current.pan_min+1,100)
           elseif current.param == "rate" then
@@ -712,7 +705,6 @@ function encoder_actions.init(n,d)
           elseif current.param == "rate slew" then
             current.rate_slew_max = util.clamp(current.rate_slew_max+d/10,current.rate_slew_min+0.1,20)
           elseif current.param == "semitone offset" then
-            -- nothing!
           elseif current.param == "filter tilt" then
             current.filter_max = util.clamp(current.filter_max+d/100,current.filter_min+0.01,1)
           end

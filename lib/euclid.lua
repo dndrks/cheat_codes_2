@@ -77,7 +77,7 @@ end
 
 function euclid.reset_pattern()
   euclid.reset = true
-  for i=1,3 do euclid.track[i].pos = 1 end
+  for i=1,3 do euclid.track[i].pos = 0 end
   euclid.reset = false
 end
 

@@ -309,7 +309,7 @@ function grid_actions.init(x,y,z)
         end
       end
       redraw()
-      grid_redraw()
+      -- grid_redraw()
     end
     
     if y == 4 or y == 3 or y == 2 then
@@ -517,7 +517,7 @@ function grid_actions.init(x,y,z)
                     arp[i].pause = true
                     arp[i].playing = false
                   else
-                    arp[i].step = arp[i].start_point
+                    arp[i].step = arp[i].start_point-1
                     arp[i].pause = false
                     arp[i].playing = true
                   end
@@ -574,14 +574,14 @@ function grid_actions.init(x,y,z)
       for i = 1,11,5 do
         for j = 1,8 do
           if x == i and y == j then
-            local saved_already;
             local current = math.floor(x/5)+1
             if z == 1 then
-              saved_already = pattern_saver[current].saved[9-y]
+              saved_pat = pattern_saver[current].saved[9-y] -- hate that this is global...
               if step_seq[current].held == 0 then
                 pattern_saver[current].source = math.floor(x/5)+1
                 pattern_saver[current].save_slot = 9-y
-                clock.run(test_save,current)
+                pattern_saver[current].clock = clock.run(test_save,current)
+                -- print("starting save "..pattern_saver[current].clock)
               else
                 --if there's a pattern saved there...
                 if pattern_saver[current].saved[9-y] == 1 then
@@ -592,8 +592,14 @@ function grid_actions.init(x,y,z)
               end
             elseif z == 0 then
               if step_seq[current].held == 0 then
+                if pattern_saver[math.floor(x/5)+1].clock then
+                  clock.cancel(pattern_saver[math.floor(x/5)+1].clock)
+                  clock.cancel(pattern_saver[math.floor(x/5)+1].clock-1)
+                  clock.cancel(pattern_saver[math.floor(x/5)+1].clock-2)
+                  -- print("killing save "..pattern_saver[math.floor(x/5)+1].clock)
+                end
                 pattern_saver[math.floor(x/5)+1].active = false
-                if grid.alt_pp == 0 and saved_already == 1 then
+                if grid.alt_pp == 0 and saved_pat == 1 then
                   if pattern_saver[current].saved[9-y] == 1 then
                     pattern_saver[current].load_slot = 9-y
                     test_load((9-y)+(8*(current-1)),current)
@@ -679,7 +685,7 @@ function grid_actions.init(x,y,z)
       if x == 16 and y == 8 then
         grid.alt_pp = z
         redraw()
-        grid_redraw()
+        -- grid_redraw()
       end
     
     elseif grid.loop_mod == 1 then
@@ -714,7 +720,7 @@ function grid_actions.init(x,y,z)
     if x == 16 and y == 2 then
       grid.loop_mod = z
       redraw()
-      grid_redraw()
+      -- grid_redraw()
     end
     
     if menu == 11 then
@@ -854,21 +860,42 @@ function grid_actions.init(x,y,z)
   end
   
   if x == 16 and y == 1 and z == 1 then
-    if grid.alt == 0 then
-      grid_page = (grid_page + 1)%3
-      if menu == 11 then
-        if grid_page == 1 then
-          help_menu = "meta page"
-        elseif grid_page == 0 then
-          help_menu = "welcome"
+    if grid_page == 0 then
+      if grid.alt == 0 then
+        grid_page = 1
+        if menu == 11 then
+          if grid_page == 1 then
+            help_menu = "meta page"
+          elseif grid_page == 0 then
+            help_menu = "welcome"
+          end
+          redraw()
         end
-        redraw()
+      else
+        grid_page = 2
+        grid.alt_delay = true
+        grid.alt = 0
       end
-    elseif grid.alt == 1 then
-      --clk_midi:stop()
-      --clk:reset()
+    elseif grid_page == 1 then
+      if grid.alt_pp == 0 then
+        grid_page = 2
+      else
+        grid_page = 0
+        grid.alt = 1
+        grid.alt_pp = 0
+      end
+    elseif grid_page == 2 then
+      if not grid.alt_delay then
+        grid_page = 0
+      else
+        grid_page = 1
+        grid.alt_pp = 1
+        grid.alt_delay = false
+      end
     end
   end
+
+  grid_dirty = true
     
 end
 
