@@ -690,6 +690,7 @@ function init()
   rec.end_point = 9
   rec.loop = 1
   rec.clear = 0
+  rec.rate_offset = 1.0
   
   params:add_separator("cheat codes params")
   
@@ -854,8 +855,9 @@ function init()
   
   page = {}
   page.main_sel = 1
-  page.loops_sel = 0
+  page.loops_sel = 1
   page.loops_page = 0
+  page.loops_view = {1,1,1,1}
   page.levels_sel = 0
   page.panning_sel = 1
   page.filtering_sel = 0
@@ -2376,6 +2378,7 @@ function buff_flush()
 end
 
 function toggle_buffer(i)
+  grid_dirty = true
   softcut.level_slew_time(1,0.5)
   softcut.fade_time(1,0.01)
   
@@ -2493,11 +2496,33 @@ function key(n,z)
       end
     elseif menu == 2 then
       if not key1_hold then
-        local loop_nav = (page.loops_sel + 1)%4
-        page.loops_sel = loop_nav
+        page.loops_view[page.loops_sel] = (page.loops_view[page.loops_sel] % 2) + 1
       else
-        page.loops_page = (page.loops_page+1)%2
+        if page.loops_sel < 4 then
+          local id = page.loops_sel
+          bank[id][bank[id].id].loop = not bank[id][bank[id].id].loop
+          if bank[id][bank[id].id].loop then
+            softcut.loop(id+1,1)
+            softcut.position(id+1,bank[id][bank[id].id].start_point)
+          else
+            softcut.loop(id+1,0)
+          end
+          grid_dirty = true
+        elseif page.loops_sel == 4 then
+          toggle_buffer(rec.clip)
+          -- if params:get("rec_loop") == 1 then
+          --   rec.state = math.abs((rec.state % 2) - 1)
+          --   softcut.rec_level(1,rec.state)
+          -- else
+          --   softcut.position(1,rec.start_point)
+          --   rec.state = 1
+          --   softcut.rec_level(1,rec.state)
+          -- end
+
+        end
       end
+
+
     elseif menu == 3 then
       local level_nav = (page.levels_sel + 1)%3
       page.levels_sel = level_nav
@@ -2678,18 +2703,7 @@ function key(n,z)
       end
     elseif menu == 2 then
       if key1_hold then
-        if page.loops_page == 0 then
-          if page.loops_sel < 3 then
-            local id = page.loops_sel+1
-            bank[id][bank[id].id].loop = not bank[id][bank[id].id].loop
-            if bank[id][bank[id].id].loop then
-              softcut.loop(id+1,1)
-              softcut.position(id+1,bank[id][bank[id].id].start_point)
-            else
-              softcut.loop(id+1,0)
-            end
-          end
-        end
+        --
       else
         menu = 1
       end

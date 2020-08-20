@@ -527,7 +527,7 @@ function grid_actions.init(x,y,z)
               if key1_hold == true then key1_hold = false end
               if y == 4 then
                 menu = 2
-                page.loops_sel = math.floor((x/4)-1)
+                page.loops_sel = math.floor((x/4))
               end
               redraw()
             end

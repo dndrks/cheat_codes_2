@@ -39,71 +39,94 @@ function main_menu.init()
       screen.text_right("no midi device!")
     end
   elseif menu == 2 then
+
     screen.move(0,10)
     screen.level(3)
     screen.text("loops")
-    local rate_to_frac =
-    { ["-4.0"] = "-4"
-    , ["-3.0"] = "-3"
-    , ["-2.5"] = "-2.5"
-    , ["-2.0"] = "-2"
-    , ["-1.5"] = "-1.5"
-    , ["-1.0"] = "-1"
-    , ["-0.75"] = "-3/4"
-    , ["-0.5"] = "-1/2"
-    , ["-0.375"] = "-3/8"
-    , ["-0.25"] = "-1/4"
-    , ["-0.188"] = "-3/16"
-    , ["-0.125"] = "-1/8"
-    , ["0.125"] = "1/8"
-    , ["0.188"] = "3/16"
-    , ["0.25"] = "1/4"
-    , ["0.375"] = "3/8"
-    , ["0.5"] = "1/2"
-    , ["0.75"] = "3/4"
-    , ["1.0"] = "1"
-    , ["1.5"] = "1.5"
-    , ["2.0"] = "2"
-    , ["2.5"] = "2.5"
-    , ["3.0"] = "3"
-    , ["4.0"] = "4"
-    }
-    local bank_a = rate_to_frac[tostring(util.round(bank[1][bank[1].id].rate, 0.001))]
-    local bank_b = rate_to_frac[tostring(util.round(bank[2][bank[2].id].rate, 0.001))]
-    local bank_c = rate_to_frac[tostring(util.round(bank[3][bank[3].id].rate, 0.001))]
-    if page.loops_page == 0 then
-      screen.move(120,10)
-      screen.text_right(bank_a.."x \\ "..bank_b.."x \\ "..bank_c.."x")
+    local bank_rate = {}
+    for i = 1,3 do
+      bank_rate[i] = string.format("%.4g",bank[i][bank[i].id].rate)
     end
-    --if key1_hold then
-    if page.loops_page == 1 then
-      local id = page.loops_sel+1
-      local focused_pad = nil
-      if grid.alt == 1 then
-        screen.move(0,20)
-        screen.level(6)
-        screen.text("(grid-ALT sets offset for all)")
+    screen.move(120,10)
+    screen.text_right(bank_rate[1].."x | "..bank_rate[2].."x | "..bank_rate[3].."x")
+
+    for i = 1,3 do
+      local which_pad = nil
+      screen.line_width(1)
+      if bank[i].focus_hold == false then
+        which_pad = bank[i].id
+      else
+        which_pad = bank[i].focus_pad
       end
-      for i = 1,3 do
+      screen.move(0,8+(i*14))
+      screen.level(page.loops_sel == i and 15 or 3)
+
+      -- local loops_to_screen_options = {"a", "b", "c"}
+      -- screen.text(loops_to_screen_options[i]..""..which_pad)
+
+      if grid.alt == 0 then
+        local loops_to_screen_options = {"a", "b", "c"}
+        screen.text(loops_to_screen_options[i]..""..which_pad)
+      else
+        local loops_to_screen_options = {"(a)","(b)","(c)"}
+        screen.text(loops_to_screen_options[i])
+      end
+
+
+      if page.loops_view[i] == 1 then
+        screen.move(15,8+(i*14))
+        screen.line(120,8+(i*14))
+        screen.close()
+        screen.stroke()
+        if bank[i].focus_hold == false then
+          which_pad = bank[i].id
+        else
+          which_pad = bank[i].focus_pad
+        end
+        screen.level(page.loops_sel == i and 15 or 3)
+        local duration = bank[i][which_pad].mode == 1 and 8 or clip[bank[i][which_pad].clip].sample_length
+        local s_p = bank[i][which_pad].mode == 1 and live[bank[i][which_pad].clip].min or clip[bank[i][which_pad].clip].min
+        local e_p = bank[i][which_pad].mode == 1 and live[bank[i][which_pad].clip].max or clip[bank[i][which_pad].clip].max
+        local start_to_screen = util.linlin(s_p,e_p,15,120,bank[i][which_pad].start_point)
+        screen.move(start_to_screen,21+(14*(i-1)))
+        screen.text("|")
+        local end_to_screen = util.linlin(s_p,e_p,15,120,bank[i][which_pad].end_point)
+        screen.move(end_to_screen,27+(14*(i-1)))
+        screen.text("|")
+        if bank[i].focus_hold == false or bank[i].id == bank[i].focus_pad then
+          local current_to_screen = util.linlin(s_p,e_p,15,120,poll_position_new[i+1])
+          screen.move(current_to_screen,24+(14*(i-1)))
+          screen.text("|")
+        end
+      elseif page.loops_view[i] == 2 then
+        screen.move(15,8+(i*14))
+        local id = page.loops_sel
+        local focused_pad = nil
+        -- if grid.alt == 1 then
+        --   screen.move(0,20)
+        --   screen.level(6)
+        --   screen.text("(grid-ALT sets offset for all)")
+        -- end
+      
         if grid_pat[i].play == 0 and grid_pat[i].tightened_start == 0 and not arp[i].playing and midi_pat[i].play == 0 then
           focused_pad = bank[i].id
         else
           focused_pad = bank[i].focus_pad
         end
-        if page.loops_sel == i-1 then
-          if page.loops_sel < 3 and focused_pad == 16 and grid.alt == 0 then
-            screen.move(0,20)
-            screen.level(6)
-            screen.text("(pad 16 overwrites bank!)")
-          end
-          if grid_pat[i].play == 1 or grid_pat[i].tightened_start == 1 or arp[i].playing or midi_pat[i].play == 1 then
-            screen.move(0,10)
-            screen.level(3)
-            screen.text("loops: bank "..i.." is pad-locked")
-          end
-        end
-        screen.move(0,20+(i*10))
-        screen.level(page.loops_sel == i-1 and 15 or 3)
+        -- if page.loops_sel == i-1 then
+        --   if page.loops_sel < 3 and focused_pad == 16 and grid.alt == 0 then
+        --     screen.move(0,20)
+        --     screen.level(6)
+        --     screen.text("(pad 16 overwrites bank!)")
+        --   end
+        --   if grid_pat[i].play == 1 or grid_pat[i].tightened_start == 1 or arp[i].playing or midi_pat[i].play == 1 then
+        --     screen.move(0,10)
+        --     screen.level(3)
+        --     screen.text("loops: bank "..i.." is pad-locked")
+        --   end
+        -- end
+        screen.move(0,8+(i*14))
+        screen.level(page.loops_sel == i and 15 or 3)
         if grid.alt == 0 then
           local loops_to_screen_options = {"a", "b", "c"}
           screen.text(loops_to_screen_options[i]..""..focused_pad)
@@ -111,89 +134,49 @@ function main_menu.init()
           local loops_to_screen_options = {"(a)","(b)","(c)"}
           screen.text(loops_to_screen_options[i])
         end
-        screen.move(20,20+(i*10))
-        screen.text((bank[i][focused_pad].mode == 1 and "Live" or "Clip")..":")
-        screen.move(40,20+(i*10))
-        screen.text(bank[i][focused_pad].clip)
-        screen.move(55,20+(i*10))
+        screen.move(25,8+(i*14))
+        screen.text((bank[i][focused_pad].mode == 1 and "Live" or "Clip")..": "..bank[i][focused_pad].clip)
+        screen.move(60,8+(i*14))
         screen.text("offset: "..string.format("%.0f",((math.log(bank[i][focused_pad].offset)/math.log(0.5))*-12)).." st")
-      end
-      screen.level(page.loops_sel == 3 and 15 or 3)
-      screen.move(0,60)
-      screen.text("L"..rec.clip)
-      screen.move(20,60)
-      screen.text(rec.state == 1 and "recording" or "not recording")
-      screen.move(88,60)
-      local rate_options = {"8 s","16 s","32 s"}
-      screen.text(rate_options[params:get"live_buff_rate"])
-      screen.move(111,60)
-      screen.level(3)
-      screen.text(string.format("%0.f",util.linlin(rec.start_point-(8*(rec.clip-1)),rec.end_point-(8*(rec.clip-1)),0,100,(poll_position_new[1] - (8*(rec.clip-1))))).."%")
-    else
-      local which_pad = nil
-      screen.line_width(1)
-      for i = 1,3 do
-        if bank[i].focus_hold == false then
-          which_pad = bank[i].id
-        else
-          which_pad = bank[i].focus_pad
-        end
-        screen.move(0,10+(i*15))
-        screen.level(page.loops_sel == i-1 and 15 or 3)
-        local loops_to_screen_options = {"a", "b", "c"}
-        screen.text(loops_to_screen_options[i]..""..which_pad)
-        screen.move(15,10+(i*15))
-        screen.line(120,10+(i*15))
-        screen.close()
-        screen.stroke()
-      end
-      for i = 1,3 do
-        if bank[i].focus_hold == false then
-          which_pad = bank[i].id
-        else
-          which_pad = bank[i].focus_pad
-        end
-        screen.level(page.loops_sel == i-1 and 15 or 3)
-        local duration = bank[i][which_pad].mode == 1 and 8 or clip[bank[i][which_pad].clip].sample_length
-        local s_p = bank[i][which_pad].mode == 1 and live[bank[i][which_pad].clip].min or clip[bank[i][which_pad].clip].min
-        local e_p = bank[i][which_pad].mode == 1 and live[bank[i][which_pad].clip].max or clip[bank[i][which_pad].clip].max
         
-        --local start_to_screen = util.linlin(1,(duration+1),15,120,(bank[i][which_pad].start_point - (duration*(bank[i][which_pad].clip-1))))
-        local start_to_screen = util.linlin(s_p,e_p,15,120,bank[i][which_pad].start_point)
-        screen.move(start_to_screen,24+(15*(i-1)))
-        screen.text("|")
-        --local end_to_screen = util.linlin(1,(duration+1),15,120,bank[i][which_pad].end_point - (duration*(bank[i][which_pad].clip-1)))
-        local end_to_screen = util.linlin(s_p,e_p,15,120,bank[i][which_pad].end_point)
-        screen.move(end_to_screen,30+(15*(i-1)))
-        screen.text("|")
-        if bank[i].focus_hold == false or bank[i].id == bank[i].focus_pad then
-          --local current_to_screen = util.linlin(1,(duration+1),15,120,(poll_position_new[i+1] - (duration*(bank[i][bank[i].id].clip-1))))
-          local current_to_screen = util.linlin(s_p,e_p,15,120,poll_position_new[i+1])
-          screen.move(current_to_screen,27+(15*(i-1)))
-          screen.text("|")
-        end
       end
-      screen.level(page.loops_sel == 3 and 15 or 3)
+    end
+
+    screen.level(page.loops_sel == 4 and 15 or 3)
+    if page.loops_view[4] == 1 then
       local recording_playhead = util.linlin(1,9,15,120,(poll_position_new[1] - (8*(rec.clip-1))))
       if rec.state == 1 then
-        screen.move(recording_playhead,64)
-        screen.text(".")
+        screen.font_size(4)
+        screen.move(recording_playhead,62)
+        screen.text(">")
+        screen.font_size(8)
       elseif rec.state == 0 then
-        screen.move(recording_playhead,67)
-        screen.text_center("||")
+        screen.font_size(8)
+        screen.move(recording_playhead,62)
+        screen.text_center(".")
+        screen.font_size(8)
       end
       local recording_start = util.linlin(1,9,15,120,(rec.start_point - (8*(rec.clip-1))))
-      screen.move(recording_start,66)
+      screen.move(recording_start,62)
       screen.text("|")
       local recording_end = util.linlin(1,9,15,120,rec.end_point - (8*(rec.clip-1)))
-      screen.move(recording_end,66)
+      screen.move(recording_end,62)
       screen.text("|")
-      screen.move(123,64)
-      screen.text(rec.clip)
+      screen.move(0,62)
+      screen.text("L"..rec.clip)
+    elseif page.loops_view[4] == 2 then
+      screen.move(0,62)
+      screen.text("L"..rec.clip)
+      screen.move(15,62)
+      local rate_options = {"8 s","16 s","32 s"}
+      screen.text(rate_options[params:get"live_buff_rate"])
+      screen.move(45,62)
+      screen.text("offset: "..string.format("%.0f",((math.log(rec.rate_offset)/math.log(0.5))*-12)).." st")
+      screen.move(111,62)
+      screen.level(3)
+      screen.text(string.format("%0.f",util.linlin(rec.start_point-(8*(rec.clip-1)),rec.end_point-(8*(rec.clip-1)),0,100,(poll_position_new[1] - (8*(rec.clip-1))))).."%")
     end
-    screen.level(3)
-    screen.move(0,64)
-    screen.text("...")
+    
   elseif menu == 3 then
     screen.move(0,10)
     screen.level(3)

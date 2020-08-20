@@ -8,30 +8,38 @@ function encoder_actions.init(n,d)
     if menu == 1 then
       page.main_sel = util.clamp(page.main_sel+d,1,10)
     elseif menu == 2 then
-      local id = page.loops_sel + 1
+      local id = page.loops_sel
+      if not key1_hold then
+        page.loops_sel = util.clamp(page.loops_sel+d,1,4)
+        id = page.loops_sel
+      end
       if id ~= 4 then
-        if page.loops_page == 1 then
-          ea.change_pad(id,d)
-        else
-          local which_pad = nil
-          if bank[id].focus_hold == false then
-            which_pad = bank[id].id
-          else
-            which_pad = bank[id].focus_pad
+        if key1_hold then
+          if page.loops_view[id] == 2 then
+            ea.change_pad(id,d)
+          elseif page.loops_view[id] == 1 then
+            local which_pad = nil
+            if bank[id].focus_hold == false then
+              which_pad = bank[id].id
+            else
+              which_pad = bank[id].focus_pad
+            end
+            local resolution = loop_enc_resolution
+            ea.move_play_window(bank[id][which_pad],d/resolution)
+            if bank[id].focus_hold == false then
+              ea.sc.move_play_window(id)
+            end
           end
-          local resolution = loop_enc_resolution * (key1_hold and 10 or 1)
-          ea.move_play_window(bank[id][which_pad],d/resolution)
-        end
-        if bank[id].focus_hold == false then
-          ea.sc.move_play_window(id)
         end
       elseif id == 4 then
-        if page.loops_page == 1 then
-          ea.change_buffer(rec,d)
-        else
-          ea.move_rec_window(rec,d)
-        end
+        if key1_hold then
+          if page.loops_view[id] == 2 then
+            ea.change_buffer(rec,d)
+          else
+            ea.move_rec_window(rec,d)
+          end
           ea.sc.move_rec_window(rec)
+        end
       end
     elseif menu == 6 then
       if page.delay_section == 1 then
@@ -46,48 +54,7 @@ function encoder_actions.init(n,d)
     elseif menu == 7 then
       page.time_sel = util.clamp(page.time_sel+d,1,6)
     elseif menu == 8 then
-
       rytm.track_edit = util.clamp(rytm.track_edit+d,1,3)
-
-      -- if key1_hold then
-      --   if d > 0 then
-      --     rytm.screen_focus = "right"
-      --   elseif d < 0 then
-      --     rytm.screen_focus = "left"
-      --   end
-      -- else
-      --   rytm.track_edit = util.clamp(rytm.track_edit+d,1,3)
-      -- end
-
-      --[==[
-      if page.track_page_section[page.track_page] == 1 then
-        page.track_page = util.clamp(page.track_page+d,1,4)
-        for i = 1,3 do
-          tracker[i].recording = false
-        end
-      elseif page.track_page_section[page.track_page] == 3 then
-        if page.track_page < 4 then
-          local reasonable_max = nil
-          for i = 1,tracker[page.track_page].max_memory do
-            if tracker[page.track_page][i].pad ~= nil then
-              reasonable_max = i
-            end
-          end
-          if reasonable_max ~= nil then
-            page.track_sel[page.track_page] = util.clamp(page.track_sel[page.track_page]+d,1,reasonable_max+1)
-          end
-        end
-      elseif page.track_page_section[page.track_page] == 4 then
-        if key1_hold == false then
-          if tracker[page.track_page][page.track_sel[page.track_page]].pad ~= nil then
-            page.track_param_sel[page.track_page] = util.clamp(page.track_param_sel[page.track_page] + d,1,11)
-          end
-        else
-          page.track_sel[page.track_page] = util.clamp(page.track_sel[page.track_page] + d,tracker[page.track_page].start_point,tracker[page.track_page].end_point)
-        end
-      end
-      -]==]
-
     elseif menu == 9 then
       if key1_hold then
         local working = arp[page.arp_page_sel].retrigger and 1 or 0
@@ -98,25 +65,17 @@ function encoder_actions.init(n,d)
       end
     elseif menu == 10 then
       page.rnd_page = util.clamp(page.rnd_page+d,1,3)
-      -- if page.rnd_page_section == 1 then
-      --   page.rnd_page = util.clamp(page.rnd_page+d,1,3)
-      -- elseif page.rnd_page_section == 2 then
-      --   local selected_slot = page.rnd_page_sel[page.rnd_page]
-      --   local current_param = rnd[page.rnd_page][selected_slot].param
-      --   local reasonable_max = (current_param == "loop" or current_param == "delay send") and 3 or 4
-      --   page.rnd_page_edit[page.rnd_page] = util.clamp(page.rnd_page_edit[page.rnd_page]+d,1,reasonable_max)
-      -- end
     end
   end
   if n == 2 then
     if menu == 1 then
       page.main_sel = util.clamp(page.main_sel+d,1,10)
     elseif menu == 2 then
-      local id = page.loops_sel + 1
+      local id = page.loops_sel
       if id ~=4 then
-        if page.loops_page == 1 then
+        if page.loops_view[id] == 2 then
           ea.change_pad_clip(id,d)
-        else
+        elseif page.loops_view[id] == 1 then
           local which_pad = nil
           if bank[id].focus_hold == false then
             which_pad = bank[id].id
@@ -130,21 +89,9 @@ function encoder_actions.init(n,d)
           end
         end
       elseif id == 4 then
-        if page.loops_page == 1 then
-          local preadjust = rec.state
-          rec.state = util.clamp(rec.state+d,0,1)
-          if preadjust ~= rec.state then
-            softcut.recpre_slew_time(1,0.5)
-            softcut.level_slew_time(1,0.5)
-            softcut.fade_time(1,0.01)
-            softcut.rec_level(1,rec.state)
-            if rec.state == 1 then
-              softcut.pre_level(1,params:get("live_rec_feedback"))
-            else
-              softcut.pre_level(1,1)
-            end
-          end
-        else
+        if page.loops_view[id] == 2 then
+          params:delta("live_buff_rate",d)
+        elseif page.loops_view[id] == 1 then
           local lbr = {1,2,4}
           if d >= 0 and util.round(rec.start_point + ((d/rec_loop_enc_resolution)/lbr[params:get("live_buff_rate")]),0.01) < util.round(rec.end_point,0.01) then
             rec.start_point = util.clamp(rec.start_point+((d/rec_loop_enc_resolution)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.clip-1))),(8.9+(8*(rec.clip-1))))
@@ -394,9 +341,9 @@ function encoder_actions.init(n,d)
   end
   if n == 3 then
     if menu == 2 then
-      local id = page.loops_sel + 1
+      local id = page.loops_sel
       if id ~= 4 then
-        if page.loops_page == 1 then
+        if page.loops_view[id] == 2 then
           local focused_pad = nil
           if grid_pat[id].play == 0 and grid_pat[id].tightened_start == 0 and not arp[id].playing and midi_pat[id].play == 0 then
             focused_pad = bank[id].id
@@ -422,7 +369,7 @@ function encoder_actions.init(n,d)
               bank[id][i].offset = bank[id][focused_pad].offset
             end
           end
-        else
+        elseif page.loops_view[id] == 1 then
           local which_pad = nil
           if bank[id].focus_hold == false then
             which_pad = bank[id].id
@@ -436,8 +383,8 @@ function encoder_actions.init(n,d)
           end
         end
       elseif id == 4 then
-        if page.loops_page == 1 then
-          params:delta("live_buff_rate",d)
+        if page.loops_view[id] == 2 then
+          
         else
           local lbr = {1,2,4}
           if d <= 0 and util.round(rec.start_point,0.01) < util.round(rec.end_point + ((d/rec_loop_enc_resolution)/lbr[params:get("live_buff_rate")]),0.01) then
@@ -916,6 +863,7 @@ function ea.change_pad(target,delta)
   else
     pad.focus_pad = util.clamp(pad.focus_pad + delta,1,16)
   end
+  grid_dirty = true
 end
 
 function ea.change_buffer(target,delta)
@@ -924,6 +872,7 @@ function ea.change_buffer(target,delta)
   target.clip = util.clamp(target.clip+delta,1,3)
   target.start_point = target.start_point - ((pre_adjust - target.clip)*8)
   target.end_point = target.start_point + current_difference
+  grid_dirty = true
 end
 
 function ea.change_pad_clip(target,delta)
@@ -960,6 +909,7 @@ function ea.change_pad_clip(target,delta)
       bank[target][i].end_point = bank[target][i].start_point + current_difference
     end
   end
+  grid_dirty = true
 end
 
 function ea.move_start(target,delta)

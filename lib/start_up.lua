@@ -77,7 +77,7 @@ function start_up.init()
   params:add_separator("clips")
   
   for i = 1,3 do
-    params:add_file("clip "..i.." sample", "clip "..i.." sample")
+    params:add_file("clip "..i.." sample", "clip "..i.." sample", "/home/we/dust/audio/")
     params:set_action("clip "..i.." sample", function(file) load_sample(file,i) end)
   end
 
