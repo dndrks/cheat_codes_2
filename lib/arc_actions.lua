@@ -174,7 +174,7 @@ function aa.sc.change_pan(enc, target)
 end
 
 function aa.sc.change_level(enc, target)
-  softcut.level(enc+1,target.level)
+  softcut.level(enc+1,target.level*bank[enc].global_level)
 end
 
 aa.actions =

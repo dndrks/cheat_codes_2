@@ -205,7 +205,9 @@ function delays.set_value(target,index,param)
           bank[delay_grid.bank][i].left_delay_level = send_levels[index]
         end
       end
-      softcut.level_cut_cut(delay_grid.bank+1,5,util.linlin(-1,1,0,1,b.pan)*(b.left_delay_level*b.level))
+      softcut.level_slew_time(5,0.25)
+      -- softcut.level_cut_cut(delay_grid.bank+1,5,util.linlin(-1,1,0,1,b.pan)*(b.left_delay_level*b.level))
+      softcut.level_cut_cut(delay_grid.bank+1,5,(b.left_delay_level*b.level)*bank[delay_grid.bank].global_level)
     else
       if param == "send" then
         b.right_delay_level = send_levels[index]
@@ -214,7 +216,9 @@ function delays.set_value(target,index,param)
           bank[delay_grid.bank][i].right_delay_level = send_levels[index]
         end
       end
-      softcut.level_cut_cut(delay_grid.bank+1,6,util.linlin(-1,1,1,0,b.pan)*(b.right_delay_level*b.level))
+      softcut.level_slew_time(6,0.25)
+      -- softcut.level_cut_cut(delay_grid.bank+1,6,util.linlin(-1,1,1,0,b.pan)*(b.right_delay_level*b.level))
+      softcut.level_cut_cut(delay_grid.bank+1,6,(b.right_delay_level*b.level)*bank[delay_grid.bank].global_level)
     end
   end
 end

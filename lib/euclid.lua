@@ -24,6 +24,7 @@ function euclid.trig(target)
       end
       cheat(target,euclid.rotate_pads(euclid.track[target].pos + euclid.track[target].pad_offset))
     end
+    grid_dirty = true
   end
 end
 

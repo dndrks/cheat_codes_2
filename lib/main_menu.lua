@@ -99,6 +99,29 @@ function main_menu.init()
           screen.text("|")
         end
       elseif page.loops_view[i] == 2 then
+
+        local id = page.loops_sel
+        local focused_pad = nil
+        if grid_pat[i].play == 0 and grid_pat[i].tightened_start == 0 and not arp[i].playing and midi_pat[i].play == 0 then
+          focused_pad = bank[i].id
+        else
+          focused_pad = bank[i].focus_pad
+        end
+        screen.move(0,8+(i*14))
+        screen.level(page.loops_sel == i and 15 or 3)
+        if grid.alt == 0 then
+          local loops_to_screen_options = {"a", "b", "c"}
+          screen.text(loops_to_screen_options[i]..""..focused_pad)
+        else
+          local loops_to_screen_options = {"(a)","(b)","(c)"}
+          screen.text(loops_to_screen_options[i])
+        end
+        screen.move(20,8+(i*14))
+        screen.text("rate: "..string.format("%.4g",bank[i][bank[i].id].rate).."x")
+        screen.move(75,8+(i*14))
+        screen.text("slew: "..string.format("%.1f",bank[i][bank[i].id].rate_slew).."s")
+
+      elseif page.loops_view[i] == 3 then
         screen.move(15,8+(i*14))
         local id = page.loops_sel
         local focused_pad = nil
@@ -138,7 +161,6 @@ function main_menu.init()
         screen.text((bank[i][focused_pad].mode == 1 and "Live" or "Clip")..": "..bank[i][focused_pad].clip)
         screen.move(60,8+(i*14))
         screen.text("offset: "..string.format("%.0f",((math.log(bank[i][focused_pad].offset)/math.log(0.5))*-12)).." st")
-        
       end
     end
 
@@ -182,7 +204,7 @@ function main_menu.init()
     screen.level(3)
     screen.text("levels")
     screen.line_width(1)
-    local level_options = {"levels","envelope enable","decay"}
+    local level_options = {"levels","envelope enable","loop","time"}
     local focused_pad = nil
     for i = 1,3 do
       if bank[i].focus_hold == true then
@@ -203,32 +225,41 @@ function main_menu.init()
         screen.text(level_to_screen_options[i]..""..focused_pad)
       end
       screen.move(35+(20*(i-1)),57)
-      local level_to_screen = util.linlin(0,2,0,40,bank[i][focused_pad].level)
+      local level_to_screen = ((key1_hold or grid.alt == 1) and util.linlin(0,2,0,40,bank[i].global_level) or util.linlin(0,2,0,40,bank[i][focused_pad].level))
       screen.line(35+(20*(i-1)),57-level_to_screen)
       screen.close()
       screen.stroke()
       screen.level(level_options[page.levels_sel+1] == "envelope enable" and 15 or 3)
-      screen.move(90,10)
+      screen.move(85,10)
       screen.text("env?")
       screen.move(90+((i-1)*15),20)
+      local shapes = {"\\","/","/\\"}
       if bank[i][focused_pad].enveloped then
-        screen.text("|\\")
+        screen.text_center(shapes[bank[i][focused_pad].envelope_mode])
       else
-        screen.text("-")
+        screen.text_center("-")
       end
-      screen.level(level_options[page.levels_sel+1] == "decay" and 15 or 3)
-      screen.move(90,30)
-      screen.text("decay")
-      screen.move(90,30+((i)*10))
+      screen.level(level_options[page.levels_sel+1] == "loop" and 15 or 3)
+      screen.move(90+((i-1)*15),30)
+      if bank[i][focused_pad].envelope_loop then
+        screen.text_center("∞")
+      else
+        screen.text_center("-")
+      end
+      
+      screen.level(level_options[page.levels_sel+1] == "time" and 15 or 3)
+      -- screen.move(85,30)
+      -- screen.text("time")
+      screen.move(85,34+((i)*10))
       local envelope_to_screen_options = {"a", "b", "c"}
       if key1_hold or grid.alt == 1 then
         screen.text("("..envelope_to_screen_options[i]..")")
       else
         screen.text(envelope_to_screen_options[i]..""..focused_pad)
       end
-      screen.move(110,30+((i)*10))
+      screen.move(105,34+((i)*10))
       if bank[i][focused_pad].enveloped then
-        screen.text(string.format("%.1f", bank[i][focused_pad].envelope_time))
+        screen.text(string.format("%.2g", bank[i][focused_pad].envelope_time).."s")
       else
         screen.text("---")
       end
@@ -662,46 +693,47 @@ function main_menu.init()
     screen.level(page.arp_page_sel == page.arp_page_sel and 15 or 3)
     screen.move(75+(page.arp_page_sel*15),13)
     screen.text("_")
-    if key1_hold then
-      screen.move(0,20)
-      screen.level(15)
-      screen.text("retrigger: "..(tostring(focus_arp.retrigger) == "true" and "yes" or "no"))
-    end
     screen.move(100,10)
     screen.move(0,60)
     screen.font_size(15)
     screen.level(15)
-    screen.text(focus_arp.hold and "hold" or "")
+    screen.text((focus_arp.hold and focus_arp.playing) and "hold" or ((focus_arp.hold and not focus_arp.playing) and "pause" or ""))
     
     screen.font_size(40)
     screen.move(50,50)
     screen.text(#focus_arp.notes > 0 and focus_arp.notes[focus_arp.step] or "...")
 
     screen.font_size(8)
-    if page.arp_param_group[page.arp_page_sel] == 2 then
-      screen.move(125,50)
-      screen.text_right("s: "..focus_arp.start_point)
-      screen.move(125,60)
-      screen.text_right("e: "..focus_arp.end_point)
-    else
-      screen.move(125,50)
-      local deci_to_frac =
-      { ["0.125"] = "1/32"
-      , ["0.1667"] = "1/16t"
-      , ["0.25"] = "1/16"
-      , ["0.3333"] = "1/8t"
-      , ["0.5"] = "1/8"
-      , ["0.6667"] = "1/4t"
-      , ["1.0"] = "1/4"
-      , ["1.3333"] = "1/2t"
-      , ["2.0"] = "1/2"
-      , ["2.6667"] = "1t"
-      , ["4.0"] = "1"
-      }
-      screen.text_right(deci_to_frac[tostring(util.round(focus_arp.time, 0.0001))])
-      screen.move(125,60)
-      screen.text_right(focus_arp.mode)
-    end
+    local deci_to_frac =
+    { ["0.125"] = "1/32"
+    , ["0.1667"] = "1/16t"
+    , ["0.25"] = "1/16"
+    , ["0.3333"] = "1/8t"
+    , ["0.5"] = "1/8"
+    , ["0.6667"] = "1/4t"
+    , ["1.0"] = "1/4"
+    , ["1.3333"] = "1/2t"
+    , ["2.0"] = "1/2"
+    , ["2.6667"] = "1t"
+    , ["4.0"] = "1"
+    }
+    screen.move(125,20)
+    screen.level(page.arp_param[page.arp_page_sel] == 1 and 15 or 3)
+    local banks = {"a","b","c"}
+    local pad = tostring(banks[page.arp_page_sel]..bank[page.arp_page_sel].id)
+    screen.text_right((page.arp_alt[page.arp_page_sel] and (pad..": ") or "")..deci_to_frac[tostring(util.round(focus_arp.time, 0.0001))])
+    screen.move(125,30)
+    screen.level(page.arp_param[page.arp_page_sel] == 2 and 15 or 3)
+    screen.text_right(focus_arp.mode)
+    screen.move(125,40)
+    screen.level(page.arp_param[page.arp_page_sel] == 3 and 15 or 3)
+    screen.text_right("s: "..focus_arp.start_point)
+    screen.move(125,50)
+    screen.level(page.arp_param[page.arp_page_sel] == 4 and 15 or 3)
+    screen.text_right("e: "..(focus_arp.end_point > 0 and focus_arp.end_point or "1"))
+    screen.move(125,60)
+    screen.level(page.arp_param[page.arp_page_sel] == 5 and 15 or 3)
+    screen.text_right("retrig: "..(tostring(focus_arp.retrigger) == "true" and "y" or "n"))
 
   elseif menu == 10 then
     screen.move(0,10)

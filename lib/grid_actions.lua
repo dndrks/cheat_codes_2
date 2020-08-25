@@ -456,7 +456,7 @@ function grid_actions.init(x,y,z)
             end
           elseif grid.alt == 1 then
             if y == 8 then
-              sixteen_slices(x/5)
+              -- sixteen_slices(x/5)
             elseif y == 7 then
               rec_to_pad(x/5)
             elseif y == 6 then

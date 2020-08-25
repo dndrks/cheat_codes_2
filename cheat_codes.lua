@@ -115,6 +115,8 @@ for i = 1,3 do
   env_counter[i] = metro.init()
   env_counter[i].time = 0.01
   env_counter[i].butt = 1
+  env_counter[i].stage = nil
+  -- env_counter[i].mode = 1 -- this needs to be per pad!!
   env_counter[i].event = function() envelope(i) end
 end
 
@@ -893,6 +895,8 @@ function init()
     page.track_param_sel[i] = 1
   end
   page.arp_page_sel = 1
+  page.arp_param = {1,1,1}
+  page.arp_alt = {false,false,false}
   page.arp_param_group = {}
   for i = 1,3 do
     page.arp_param_group[i] = 1
@@ -1166,7 +1170,7 @@ function init()
                 slew_filter(i,slew_counter[i].prev_tilt,pad.tilt,pad.q,pad.q,15)
               elseif d.cc == 4 then
                 pad.level = util.linlin(0,127,0,2,d.val)
-                softcut.level(i+1,pad.level)
+                softcut.level(i+1,pad.level*bank[i].global_level)
               end
             end
           end
@@ -2075,6 +2079,7 @@ function reset_all_banks( banks )
     b.quantize_press = 0
     b.quantize_press_div = 1
     b.alt_lock = false
+    b.global_level = 1.0
     for k = 1,16 do
 -- TODO suggest nesting tables for delay,filter,tilt etc
       b[k] = {}
@@ -2118,7 +2123,9 @@ function reset_all_banks( banks )
       pad.cf_exp_dry        = 1
       pad.filter_type       = 4
       pad.enveloped         = false
+      pad.envelope_mode     = 0
       pad.envelope_time     = 3.0
+      pad.envelope_loop     = false
       pad.clock_resolution  = 4
       pad.offset            = 1.0
       pad.crow_pad_execute  = 1
@@ -2147,40 +2154,36 @@ end
 function cheat(b,i)
   env_counter[b]:stop()
   local pad = bank[b][i]
+  softcut.rate_slew_time(b+1,pad.rate_slew)
   if pad.enveloped then
-    env_counter[b].butt = pad.level
-    softcut.level(b+1,pad.level)
-    if not delay[1].send_mute then
-      if pad.left_delay_thru then
-        softcut.level_cut_cut(b+1,5,util.linlin(-1,1,0,1,pad.pan)*(pad.left_delay_level))
-      else
-        softcut.level_cut_cut(b+1,5,util.linlin(-1,1,0,1,pad.pan)*(pad.left_delay_level*pad.level))
-      end
-    end
-    if not delay[2].send_mute then
-      if pad.right_delay_thru then
-        softcut.level_cut_cut(b+1,6,util.linlin(-1,1,1,0,pad.pan)*(pad.right_delay_level))
-      else
-        softcut.level_cut_cut(b+1,6,util.linlin(-1,1,1,0,pad.pan)*(pad.right_delay_level*pad.level))
-      end
+    if pad.envelope_mode == 1 then
+      env_counter[b].butt = pad.level
+      softcut.level_slew_time(b+1,0.01)
+      softcut.level(b+1,pad.level*bank[b].global_level)
+    elseif pad.envelope_mode == 2 or pad.envelope_mode == 3 then
+      softcut.level_slew_time(b+1,0.1)
+      softcut.level(b+1,0*bank[b].global_level)
+      softcut.level_cut_cut(b+1,5,0)
+      softcut.level_cut_cut(b+1,6,0)
+      env_counter[b].butt = 0
     end
     env_counter[b].time = (pad.envelope_time/(pad.level/0.05))
     env_counter[b]:start()
   else
     softcut.level_slew_time(b+1,0.1)
-    softcut.level(b+1,pad.level)
+    softcut.level(b+1,pad.level*bank[b].global_level)
     if not delay[1].send_mute then
       if pad.left_delay_thru then
-        softcut.level_cut_cut(b+1,5,util.linlin(-1,1,0,1,pad.pan)*(pad.left_delay_level))
+        softcut.level_cut_cut(b+1,5,pad.left_delay_level)
       else
-        softcut.level_cut_cut(b+1,5,util.linlin(-1,1,0,1,pad.pan)*(pad.left_delay_level*pad.level))
+        softcut.level_cut_cut(b+1,5,(pad.left_delay_level*pad.level)*bank[b].global_level)
       end
     end
     if not delay[2].send_mute then
       if pad.right_delay_thru then
-        softcut.level_cut_cut(b+1,6,util.linlin(-1,1,1,0,pad.pan)*(pad.right_delay_level))
+        softcut.level_cut_cut(b+1,6,pad.right_delay_level)
       else
-        softcut.level_cut_cut(b+1,6,util.linlin(-1,1,1,0,pad.pan)*(pad.right_delay_level*pad.level))
+        softcut.level_cut_cut(b+1,6,(pad.right_delay_level*pad.level)*bank[b].global_level)
       end
     end
   end
@@ -2261,19 +2264,81 @@ function cheat(b,i)
 end
 
 function envelope(i)
-  softcut.level_slew_time(i+1,0.01)
-  env_counter[i].butt = env_counter[i].butt - 0.05
+  softcut.level_slew_time(i+1,0.1)
+  if bank[i][bank[i].id].envelope_mode == 1 then
+    falling_envelope(i)
+  elseif bank[i][bank[i].id].envelope_mode == 2 then
+    rising_envelope(i)
+  elseif bank[i][bank[i].id].envelope_mode == 3 then
+    if env_counter[i].stage == nil then env_counter[i].stage = "rising" end
+    if env_counter[i].stage == "rising" then
+      rising_envelope(i)
+    elseif env_counter[i].stage == "falling" then
+      falling_envelope(i)
+    end
+  end
+end
+
+function falling_envelope(i)
+  if env_counter[i].butt > 0.05 then
+    env_counter[i].butt = env_counter[i].butt - 0.05
+  else
+    env_counter[i].butt = 0
+  end
+  -- print(env_counter[i].butt)
   if env_counter[i].butt > 0 then
-    softcut.level(i+1,env_counter[i].butt)
-    softcut.level_cut_cut(i+1,5,env_counter[i].butt*bank[i][bank[i].id].left_delay_level)
-    softcut.level_cut_cut(i+1,6,env_counter[i].butt*bank[i][bank[i].id].right_delay_level)
+    softcut.level(i+1,env_counter[i].butt*bank[i].global_level)
+    softcut.level_cut_cut(i+1,5,env_counter[i].butt*(bank[i][bank[i].id].left_delay_level*bank[i].global_level))
+    softcut.level_cut_cut(i+1,6,env_counter[i].butt*(bank[i][bank[i].id].right_delay_level*bank[i].global_level))
   else
     env_counter[i]:stop()
-    softcut.level(i+1,0)
+    softcut.level(i+1,0*bank[i].global_level)
     env_counter[i].butt = bank[i][bank[i].id].level
     softcut.level_cut_cut(i+1,5,0)
     softcut.level_cut_cut(i+1,6,0)
     softcut.level_slew_time(i+1,1.0)
+    if bank[i][bank[i].id].envelope_mode == 3 then
+      env_counter[i].stage = nil
+      env_counter[i].butt = 0
+    end
+    if bank[i][bank[i].id].envelope_loop == true then
+      env_counter[i]:start()
+    end
+  end
+end
+
+function rising_envelope(i)
+  env_counter[i].butt = env_counter[i].butt + 0.05
+  -- print(env_counter[i].butt, env_counter[i].time)
+  if env_counter[i].butt < bank[i][bank[i].id].level then
+    softcut.level(i+1,env_counter[i].butt*bank[i].global_level)
+    softcut.level_cut_cut(i+1,5,env_counter[i].butt*(bank[i][bank[i].id].left_delay_level*bank[i].global_level))
+    softcut.level_cut_cut(i+1,6,env_counter[i].butt*(bank[i][bank[i].id].right_delay_level*bank[i].global_level))
+  else
+    -- print("stopping")
+    env_counter[i]:stop()
+    softcut.level(i+1,bank[i][bank[i].id].level*bank[i].global_level)
+    env_counter[i].butt = 0
+    if bank[i][bank[i].id].left_delay_thru then
+      softcut.level_cut_cut(i+1,5,bank[i][bank[i].id].left_delay_level)
+    else
+      softcut.level_cut_cut(i+1,5,(bank[i][bank[i].id].left_delay_level*bank[i][bank[i].id].level)*bank[i].global_level)
+    end
+    if bank[i][bank[i].id].right_delay_thru then
+      softcut.level_cut_cut(i+1,6,bank[i][bank[i].id].left_delay_level)
+    else
+      softcut.level_cut_cut(i+1,6,(bank[i][bank[i].id].left_delay_level*bank[i][bank[i].id].level)*bank[i].global_level)
+    end
+    softcut.level_slew_time(i+1,1.0)
+    if bank[i][bank[i].id].envelope_mode == 3 then
+      env_counter[i].stage = "falling"
+      env_counter[i].butt = bank[i][bank[i].id].level*bank[i].global_level
+      env_counter[i].time = (bank[i][bank[i].id].envelope_time/(bank[i][bank[i].id].level/0.05))
+      env_counter[i]:start()
+    end
+    if bank[i][bank[i].id].envelope_loop == true then
+      env_counter[i]:start()
+    end
   end
 end
 
@@ -2496,7 +2561,7 @@ function key(n,z)
       end
     elseif menu == 2 then
       if not key1_hold then
-        page.loops_view[page.loops_sel] = (page.loops_view[page.loops_sel] % 2) + 1
+        page.loops_view[page.loops_sel] = (page.loops_view[page.loops_sel] % 3) + 1
       else
         if page.loops_sel < 4 then
           local id = page.loops_sel
@@ -2524,7 +2589,7 @@ function key(n,z)
 
 
     elseif menu == 3 then
-      local level_nav = (page.levels_sel + 1)%3
+      local level_nav = (page.levels_sel + 1)%4
       page.levels_sel = level_nav
     elseif menu == 5 then
       local filter_nav = (page.filtering_sel + 1)%3
@@ -2653,10 +2718,38 @@ function key(n,z)
       end
 
     elseif menu == 9 then
-      arp[page.arp_page_sel].hold = not arp[page.arp_page_sel].hold
-      if not arp[page.arp_page_sel].hold then
-        arps.clear(page.arp_page_sel)
+      -- arp[page.arp_page_sel].hold = not arp[page.arp_page_sel].hold
+      local id = page.arp_page_sel
+      if not arp[id].hold then
+        if not arp[id].enabled then
+          arp[id].enabled = true
+        end
+        if #arp[id].notes > 0 then
+          arp[id].hold = true
+        else
+          arp[id].enabled = false
+        end
+      else
+        if #arp[id].notes > 0 then
+          if arp[id].playing == true then
+            arp[id].hold = not arp[id].hold
+            if not arp[id].hold then
+              arps.clear(id)
+            end
+            arp[id].enabled = false
+          -- else
+          --   arp[id].step = arp[id].start_point-1
+          --   arp[id].pause = false
+          --   arp[id].playing = true
+          end
+        end
       end
+      grid_dirty = true
+
+
+      -- if not arp[page.arp_page_sel].hold then
+      --   arps.clear(page.arp_page_sel)
+      -- end
     elseif menu == 10 then
       if key1_hold then
         local rnd_bank = page.rnd_page
@@ -2728,10 +2821,7 @@ function key(n,z)
       key1_hold = true
     elseif menu == 9 then
       key1_hold = true
-      page.arp_param_group[page.arp_page_sel] = (page.arp_param_group[page.arp_page_sel] % 2) + 1
-      if not arp[page.arp_page_sel].hold then
-        arps.clear(page.arp_page_sel)
-      end
+      page.arp_alt[page.arp_page_sel] = not page.arp_alt[page.arp_page_sel]
     else
       key1_hold = true
     end
@@ -3496,7 +3586,7 @@ function new_arc_pattern_execute(entry)
     elseif entry.param == 5 then
       bank[id][which_pad].level = (entry.level + arc_offset)
       if bank[id].id == which_pad then
-        softcut.level(id+1, (entry.level + arc_offset))
+        softcut.level(id+1, (entry.level + arc_offset)*bank[id].global_level)
       end
     elseif entry.param == 6 then
       bank[id][which_pad].pan = (entry.pan + arc_offset)
@@ -3677,6 +3767,93 @@ function persistent_state_restore()
     end
     io.close(file)
   end
+end
+
+function testsavestate()
+  
+  local dirname = _path.data.."cheat_codes2/"
+  local collection = params:get("collection")
+  if os.rename(dirname, dirname) == nil then
+    os.execute("mkdir " .. dirname)
+  end
+  
+  local dirname = _path.data.."cheat_codes2/collection-"..collection.."/"
+  if os.rename(dirname, dirname) == nil then
+    os.execute("mkdir " .. dirname)
+  end
+
+  local dirnames = {"banks/","params/","arc-pat/","grid-pat/","step-seq/","arps/","euclid/","rnd/","delays/"}
+  for i = 1,#dirnames do
+    -- print(_path.data.."cheat_codes2/collection-"..collection.."/"..dirnames[i])
+    local directory = _path.data.."cheat_codes2/collection-"..collection.."/"..dirnames[i]
+    if os.rename(directory, directory) == nil then
+      os.execute("mkdir " .. directory)
+    end
+  end
+
+  for i = 1,3 do
+    tab.save(bank[i],_path.data .. "cheat_codes2/collection-"..collection.."/banks/"..i..".data")
+    tab.save(arc_pat[i],_path.data .. "cheat_codes2/collection-"..collection.."/arc-pat/"..i..".data")
+    tab.save(step_seq[i],_path.data .. "cheat_codes2/collection-"..collection.."/step-seq/"..i..".data")
+    -- tab.save(grid_pat[i],_path.data .. "cheat_codes2/collection-"..collection.."/grid-pat/"..i..".data")
+    tab.save(arp[i],_path.data .. "cheat_codes2/collection-"..collection.."/arps/"..i..".data")
+    tab.save(rytm.track[i],_path.data .. "cheat_codes2/collection-"..collection.."/euclid/euclid"..i..".data")
+  end
+  for i = 1,2 do
+    tab.save(delay[i],_path.data .. "cheat_codes2/collection-"..collection.."/delays/delay"..(i == 1 and "L" or "R")..".data")
+  end
+  params:write(_path.data.."cheat_codes2/collection-"..collection.."/params/all.pset")
+
+  for i = 1,3 do
+    tab.save(rnd[i],_path.data .. "cheat_codes2/collection-"..collection.."/rnd/"..i..".data")
+  end
+
+end
+
+
+function testloadstate()
+  local collection = params:get("collection")
+  params:read(_path.data.."cheat_codes2/collection-"..collection.."/params/all.pset")
+  -- params:bang()
+  for i = 1,3 do
+    if tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/banks/"..i..".data") ~= nil then
+      bank[i] = tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/banks/"..i..".data")
+    end
+    -- if tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/arc-pat/"..i..".data") ~= nil then
+    --   arc_pat[i] = tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/arc-pat/"..i..".data")
+    -- end
+    if tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/step-seq/"..i..".data") ~= nil then
+      step_seq[i] = tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/step-seq/"..i..".data")
+    end
+    -- if tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/grid-pat/"..i..".data") ~= nil then
+    --   grid_pat[i] = tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/grid-pat/"..i..".data")
+    -- end
+    if tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/arps/"..i..".data") ~= nil then
+      arp[i] = tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/arps/"..i..".data")
+    end
+    if tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/rnd/"..i..".data") ~= nil then
+      rnd[i] = tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/rnd/"..i..".data")
+      for j = 1,#rnd[i] do
+        rnd[i][j].clock = nil
+        if rnd[i][j].playing then
+          rnd[i][j].clock = clock.run(rnd.advance, i, j)
+        end
+      end
+    end
+    if tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/euclid/euclid"..i..".data") ~= nil then
+      rytm.track[i] = tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/euclid/euclid"..i..".data")
+    end
+    rytm.reset_pattern()
+  end
+
+  for i = 1,2 do
+    if tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/delays/delay"..(i == 1 and "L" or "R")..".data") ~= nil then
+      delay[i] = tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/delays/delay"..(i == 1 and "L" or "R")..".data")
+    end
+  end
+
+  grid_dirty = true
+
 end
 
 function savestate()
@@ -4123,6 +4300,7 @@ function loadstate()
     end
   end
   del.loadstate(selected_coll)
+  grid_dirty = true
 end
 
 function test_save(i)
