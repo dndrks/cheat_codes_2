@@ -71,7 +71,7 @@ function zilchmos.level_inc( pad, delta )
   if not bank[which_bank].alt_lock and grid.alt == 0 then
     pad.level = util.clamp( pad.level + delta, 0, 2 )
   else
-    if pad.pad_id == 1 then
+    if pad.pad_id == 1 then -- only do this once...
       bank[which_bank].global_level = util.clamp( bank[which_bank].global_level + delta, 0, 2)
     end
   end

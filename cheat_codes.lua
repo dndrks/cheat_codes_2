@@ -3713,10 +3713,15 @@ arc_redraw = function()
       end
     end
     if arc_param[i] == 5 then
-      local level_to_led = bank[i][bank[i].id].level
-        for j = 1,17 do
-          a:led(i,(math.floor(util.linlin(0,2,5,70,(level_to_led)-(1/8*j))))+16,15)
-        end
+      local level_to_led;
+      if not key1_hold and not bank[i].alt_lock and grid.alt == 0 then
+        level_to_led = bank[i][bank[i].id].level
+      else
+        level_to_led = bank[i].global_level
+      end
+      for j = 1,17 do
+        a:led(i,(math.floor(util.linlin(0,2,5,70,(level_to_led)-(1/8*j))))+16,15)
+      end
     end
     if arc_param[i] == 6 then
       local pan_to_led = bank[i][bank[i].id].pan

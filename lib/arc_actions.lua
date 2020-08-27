@@ -17,13 +17,13 @@ function aa.init(n,d)
     local this_pad = this_bank[which_pad]
     local p_action = aa.actions[arc_param[n]][1]
     local sc_action = aa.actions[arc_param[n]][2]
-    if grid.alt == 0 then
+    if not this_bank.alt_lock and grid.alt == 0 then
       if arc_param[n] ~= 4 then
         p_action(this_pad,d)
       else
         aa.map(p_action, this_bank, d/1000, n)
       end
-    else
+    elseif this_bank.alt_lock or grid.alt == 1 then
       if arc_param[n] ~= 4 then
         aa.map(p_action,this_bank,d)
       else
@@ -161,7 +161,13 @@ function aa.change_pan(target, delta)
 end
 
 function aa.change_level(target, delta)
-  target.level = util.clamp(target.level + delta/1000,0,2)
+  if not bank[target.bank_id].alt_lock and grid.alt == 0 then
+    target.level = util.clamp(target.level + delta/1000,0,2)
+  else
+    if target.pad_id == 1 then
+      bank[target.bank_id].global_level = util.clamp(bank[target.bank_id].global_level + delta/1000,0,2)
+    end
+  end
 end
 
 function aa.sc.move_window(enc, target)
