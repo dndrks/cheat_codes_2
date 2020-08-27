@@ -1,5 +1,7 @@
 local main_menu = {}
 
+local dots = "."
+
 function main_menu.init()
   if menu == 1 then
     screen.move(0,10)
@@ -875,7 +877,81 @@ function main_menu.init()
     screen.move(0,64)
     screen.text("...")
   
+  elseif menu == "load screen" then
+    screen.level(15)
+    screen.move(62,15)
+    screen.font_size(10)
+    if collection_loaded then
+      screen.text_center("loading collection "..selected_coll)
+      screen.font_size(40)
+      screen.move(62,50)
+      screen.text_center(dots)
+      screen.font_size(8)
+    else
+      screen.move(62,40)
+      screen.font_size(20)
+      screen.text_center("no data!")
+      screen.font_size(8)
+    end
+  elseif menu == "save screen" then
+    screen.level(15)
+    screen.move(62,15)
+    screen.font_size(10)
+    screen.text_center("saving collection "..tonumber(string.format("%.0f",params:get("collection"))))
+    screen.font_size(40)
+    screen.move(62,50)
+    screen.text_center(dots)
+    screen.move(10,64)
+    screen.font_size(10)
+    if dots ~= "saved!" then
+      screen.text("K2 or K3 to cancel")
+    end
+    screen.font_size(8)
+  elseif menu == "canceled screen" then
+    screen.level(15)
+    screen.move(62,30)
+    screen.font_size(20)
+    screen.text_center("save")
+    screen.move(62,50)
+    screen.text_center("canceled")
   end
+end
+
+function load_screen()
+  dots = "..."
+  menu = "load screen"
+  clock.sleep(0.33)
+  dots = ".."
+  clock.sleep(0.33)
+  dots = "."
+  clock.sleep(0.33)
+  dots = "ready!"
+  clock.sleep(0.75)
+  menu = 1
+  if not collection_loaded then
+    _norns.key(1,1)
+    _norns.key(1,0)
+  end
+end
+
+function save_screen()
+  dots = "3"
+  menu = "save screen"
+  clock.sleep(0.75)
+  dots = "2"
+  clock.sleep(0.75)
+  dots = "1"
+  clock.sleep(0.75)
+  dots = "saved!"
+  clock.sleep(0.33)
+  savestate()
+  menu = 1
+end
+
+function canceled_save()
+  menu = "canceled screen"
+  clock.sleep(0.75)
+  menu = 1
 end
 
 return main_menu
