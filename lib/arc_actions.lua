@@ -37,9 +37,10 @@ function aa.init(n,d)
       aa.record(n)
     end
   else
-    local side = (arc.alt == nil or arc.alt == 0) and "L" or "R"
-    aa.delay_rate(d,side)
-    aa.record_delay(side)
+    -- local side = (arc.alt == nil or arc.alt == 0) and "L" or "R"
+    -- aa.delay_rate(d,side)
+    -- aa.record_delay(side)
+    aa.change_param_focus(d)
   end
   redraw()
 end
@@ -79,28 +80,39 @@ function aa.map(fn, bank, delta, enc)
   end
 end
 
-function aa.delay_rate(d,side)
-  local chan = side == "L" and 1 or 2
-  delay[chan].arc_rate_tracker = util.clamp(delay[chan].arc_rate_tracker + d/10,1,13)
-  delay[chan].arc_rate = math.floor(delay[chan].arc_rate_tracker)
-  params:set("delay "..side..": rate",math.floor(delay[chan].arc_rate_tracker))
+function aa.change_param_focus(d)
+  local start = util.round(arc_meta_focus)
+  arc_meta_focus = util.clamp(arc_meta_focus+d/33,1,6)
+  if start ~= util.round(arc_meta_focus) then
+    for i = 1,3 do
+      arc_param[i] = util.round(arc_meta_focus)
+    end
+    grid_dirty = true
+  end
 end
+
+-- function aa.delay_rate(d,side)
+--   local chan = side == "L" and 1 or 2
+--   delay[chan].arc_rate_tracker = util.clamp(delay[chan].arc_rate_tracker + d/10,1,13)
+--   delay[chan].arc_rate = math.floor(delay[chan].arc_rate_tracker)
+--   params:set("delay "..side..": rate",math.floor(delay[chan].arc_rate_tracker))
+-- end
 
 function aa.record(enc)
   aa.new_pattern_watch(enc)
 end
 
-function aa.record_delay(side)
-  arc_p[side] = {}
-  arc_p[side].i = side
-  if grid.alt == 0 then
-    arc_p[side].delay_focus = "L"
-    arc_p[side].left_delay_value = params:get("delay L: rate")
-  else
-    arc_p[side].delay_focus = "R"
-    arc_p[side].right_delay_value = params:get("delay R: rate")
-  end
-end
+-- function aa.record_delay(side)
+--   arc_p[side] = {}
+--   arc_p[side].i = side
+--   if grid.alt == 0 then
+--     arc_p[side].delay_focus = "L"
+--     arc_p[side].left_delay_value = params:get("delay L: rate")
+--   else
+--     arc_p[side].delay_focus = "R"
+--     arc_p[side].right_delay_value = params:get("delay R: rate")
+--   end
+-- end
 
 function aa.move_window(target, delta)
   local duration = target.mode == 1 and 8 or clip[target.clip].sample_length

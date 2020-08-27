@@ -120,24 +120,24 @@ end
 
 function delays.savestate(source,collection)
   local del_name = source == 1 and "L" or "R"
-  local dirname = _path.data.."cheat_codes/delays/"
+  local dirname = _path.data.."cheat_codes2/delays/"
   if os.rename(dirname, dirname) == nil then
     os.execute("mkdir " .. dirname)
   end
   
-  local dirname = _path.data.."cheat_codes/delays/collection-"..collection.."/"
+  local dirname = _path.data.."cheat_codes2/delays/collection-"..collection.."/"
   if os.rename(dirname, dirname) == nil then
     os.execute("mkdir " .. dirname)
   end
 
-  tab.save(delay_bundle[source],_path.data .. "cheat_codes/delays/collection-"..collection.."/"..del_name..".data")
+  tab.save(delay_bundle[source],_path.data .. "cheat_codes2/delays/collection-"..collection.."/"..del_name..".data")
 end
 
 function delays.loadstate(collection)
   local del_name = {"L","R"}
   for i = 1,2 do
-    if tab.load(_path.data .. "cheat_codes/delays/collection-"..collection.."/"..del_name[i]..".data") ~= nil then
-      delay_bundle[i] = tab.load(_path.data .. "cheat_codes/delays/collection-"..collection.."/"..del_name[i]..".data")
+    if tab.load(_path.data .. "cheat_codes2/delays/collection-"..collection.."/"..del_name[i]..".data") ~= nil then
+      delay_bundle[i] = tab.load(_path.data .. "cheat_codes2/delays/collection-"..collection.."/"..del_name[i]..".data")
     end
   end
 end
@@ -297,12 +297,12 @@ end
 
 
 function delays.save_delay(source)
-  local dirname = _path.dust.."audio/cc_saved_delays/"
+  local dirname = _path.dust.."audio/cc2_saved-delays/"
   if os.rename(dirname, dirname) == nil then
     os.execute("mkdir " .. dirname)
   end
 
-  local dirname = _path.dust.."audio/cc_saved_delays/"..os.date("%y%m%d").."/"
+  local dirname = _path.dust.."audio/cc2_saved-delays/"..os.date("%y%m%d").."/"
   if os.rename(dirname, dirname) == nil then
     os.execute("mkdir " .. dirname)
   end
@@ -310,7 +310,7 @@ function delays.save_delay(source)
   local id = os.date("%X")
   local name = id.."-"..(source == 1 and "L-" or "R-")..params:get("bpm")..".wav"
   local duration = delay[source].mode == "clocked" and delay[source].end_point-delay[source].start_point or delay[source].free_end_point-delay[source].start_point
-  softcut.buffer_write_mono(_path.dust.."audio/cc_saved_delays/"..os.date("%y%m%d").."/"..name,delay[source].start_point,duration,1)
+  softcut.buffer_write_mono(_path.dust.."audio/cc2_saved-delays/"..os.date("%y%m%d").."/"..name,delay[source].start_point,duration,1)
 end
 
 function delays.load_delay(file,destination)
