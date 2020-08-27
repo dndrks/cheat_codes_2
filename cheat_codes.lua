@@ -3594,6 +3594,7 @@ function new_arc_pattern_execute(entry)
       end
     elseif entry.param == 5 then
       bank[id][which_pad].level = (entry.level + arc_offset)
+      bank[id].global_level = (entry.global_level + arc_offset)
       if bank[id].id == which_pad then
         softcut.level(id+1, (entry.level + arc_offset)*bank[id].global_level)
       end
@@ -4923,6 +4924,7 @@ function save_arc_pattern(which)
       io.write("event "..i.." tilt: "..arc_pat[which][j].event[i].tilt .. "\n")
       io.write("event "..i.." pan: "..arc_pat[which][j].event[i].pan .. "\n")
       io.write("event "..i.." level: "..arc_pat[which][j].event[i].level .. "\n")
+      io.write("event "..i.." global level: "..arc_pat[which][j].event[i].global_level .. "\n")
     end
     io.write("recording "..j.." props time: "..arc_pat[which][j].metro.props.time .. "\n")
     io.write("recording "..j.." prev time: "..arc_pat[which][j].prev_time .. "\n")
@@ -4954,6 +4956,7 @@ function load_arc_pattern(which)
           arc_pat[which][j].event[i].tilt = {}
           arc_pat[which][j].event[i].pan = {}
           arc_pat[which][j].event[i].level = {}
+          arc_pat[which][j].event[i].global_level = {}
           --
           arc_pat[which][j].event[i].i1 = tonumber(string.match(io.read(), ': (.*)'))
           arc_pat[which][j].event[i].i2 = tonumber(string.match(io.read(), ': (.*)'))
@@ -4965,6 +4968,7 @@ function load_arc_pattern(which)
           arc_pat[which][j].event[i].tilt = tonumber(string.match(io.read(), ': (.*)'))
           arc_pat[which][j].event[i].pan = tonumber(string.match(io.read(), ': (.*)'))
           arc_pat[which][j].event[i].level = tonumber(string.match(io.read(), ': (.*)'))
+          arc_pat[which][j].event[i].global_level = tonumber(string.match(io.read(), ': (.*)'))
         end
         arc_pat[which][j].metro.props.time = tonumber(string.match(io.read(), ': (.*)'))
         arc_pat[which][j].prev_time = tonumber(string.match(io.read(), ': (.*)'))

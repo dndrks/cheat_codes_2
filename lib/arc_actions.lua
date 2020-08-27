@@ -70,6 +70,7 @@ function aa.new_pattern_watch(enc)
   --new new!
   arc_p[enc][a_p].pan = bank[id][bank[id].id].pan
   arc_p[enc][a_p].level = bank[id][bank[id].id].level
+  arc_p[enc][a_p].global_level = bank[id].global_level
   --/new new!
   arc_pat[enc][a_p]:watch(arc_p[enc][a_p])
 end
