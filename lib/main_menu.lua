@@ -45,12 +45,40 @@ function main_menu.init()
     screen.move(0,10)
     screen.level(3)
     screen.text("loops")
-    local bank_rate = {}
-    for i = 1,3 do
-      bank_rate[i] = string.format("%.4g",bank[i][bank[i].id].rate)
-    end
+
+    -- local bank_rate = {}
+    -- for i = 1,3 do
+    --   bank_rate[i] = string.format("%.4g",bank[i][bank[i].id].rate)
+    -- end
+    -- screen.move(120,10)
+    -- screen.text_right(bank_rate[1].."x | "..bank_rate[2].."x | "..bank_rate[3].."x")
+
     screen.move(120,10)
-    screen.text_right(bank_rate[1].."x | "..bank_rate[2].."x | "..bank_rate[3].."x")
+    if page.loops_sel ~= 4 then
+      local pad = bank[page.loops_sel][bank[page.loops_sel].id]
+      local s_p = pad.mode == 1 and live[pad.clip].min or clip[pad.clip].min
+      local e_p = pad.mode == 1 and live[pad.clip].max or clip[pad.clip].max
+      local dur = e_p-s_p
+
+      -- if pad.mode == 1 then
+      --   --slice within bounds
+      --   dur = rec.end_point-rec.start_point
+      --   s_p = (rec.start_point+((duration/16) * (pad.pad_id-1)))+((pad.clip-1)*8)
+      --   e_p = (rec.start_point+((duration/16) * (pad.pad_id)))+((pad.clip-1)*8)
+      -- else
+      --   duration = pad.mode == 1 and 8 or clip[pad.clip].sample_length
+      --   pad.start_point = ((duration/16)*(pad.pad_id-1)) + clip[pad.clip].min
+      --   pad.end_point = pad.start_point + (duration/16)
+      --   print(duration, pad.start_point, pad.end_point)
+      -- end
+
+      local off = pad.mode == 1 and (((pad.clip-1)*8)+1) or clip[pad.clip].min
+      local display_end = pad.mode == 1 and (pad.end_point == 8.99 and 9 or pad.end_point) or pad.end_point
+      screen.text_right("s: "..string.format("%.4g",(pad.start_point)-off).."s | e: "..string.format("%.4g",(display_end)-off).."s")
+    else
+      local off = ((rec.clip-1)*8)+1
+      screen.text_right("s: "..string.format("%.4g",rec.start_point-off).."s | e: "..string.format("%.4g",rec.end_point-off).."s")
+    end
 
     for i = 1,3 do
       local which_pad = nil
@@ -259,7 +287,7 @@ function main_menu.init()
       else
         screen.text(envelope_to_screen_options[i]..""..focused_pad)
       end
-      screen.move(105,34+((i)*10))
+      screen.move(103,34+((i)*10))
       if bank[i][focused_pad].enveloped then
         screen.text(string.format("%.2g", bank[i][focused_pad].envelope_time).."s")
       else
@@ -882,29 +910,36 @@ function main_menu.init()
     screen.move(62,15)
     screen.font_size(10)
     if collection_loaded then
-      screen.text_center("loading collection "..selected_coll)
-      screen.font_size(40)
-      screen.move(62,50)
+      screen.text_center("loading collection")
+      screen.font_size(30)
+      screen.move(62,43)
+      screen.text_center(selected_coll)
+      screen.font_size(15)
+      screen.move(62,60)
       screen.text_center(dots)
       screen.font_size(8)
-    else
-      screen.move(62,40)
-      screen.font_size(20)
-      screen.text_center("no data!")
-      screen.font_size(8)
     end
+  elseif menu == "load fail screen" then
+    screen.level(15)
+    screen.move(62,30)
+    screen.font_size(20)
+    screen.text_center("no data!")
+    screen.move(62,60)
+    screen.font_size(15)
+    screen.text_center("try another...")
+    screen.font_size(8)
   elseif menu == "save screen" then
     screen.level(15)
     screen.move(62,15)
     screen.font_size(10)
-    screen.text_center("saving collection "..tonumber(string.format("%.0f",params:get("collection"))))
+    screen.text_center("saving collection")
     screen.font_size(40)
     screen.move(62,50)
     screen.text_center(dots)
-    screen.move(10,64)
+    screen.move(62,64)
     screen.font_size(10)
     if dots ~= "saved!" then
-      screen.text("K2 or K3 to cancel")
+      screen.text_center("K2 or K3 to cancel")
     end
     screen.font_size(8)
   elseif menu == "canceled screen" then
@@ -925,7 +960,7 @@ function load_screen()
   clock.sleep(0.33)
   dots = "."
   clock.sleep(0.33)
-  dots = "ready!"
+  dots = "loaded!"
   clock.sleep(0.75)
   menu = 1
   if not collection_loaded then
@@ -934,7 +969,17 @@ function load_screen()
   end
 end
 
-function save_screen()
+function load_fail_screen()
+  menu = "load fail screen"
+  clock.sleep(1)
+  menu = 1
+  if not collection_loaded then
+    _norns.key(1,1)
+    _norns.key(1,0)
+  end
+end
+
+function save_screen(text)
   dots = "3"
   menu = "save screen"
   clock.sleep(0.75)
@@ -944,7 +989,7 @@ function save_screen()
   clock.sleep(0.75)
   dots = "saved!"
   clock.sleep(0.33)
-  savestate()
+  named_savestate(text)
   menu = 1
 end
 

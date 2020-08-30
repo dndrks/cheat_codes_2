@@ -533,11 +533,7 @@ function grid_actions.init(x,y,z)
             end
           elseif bank[i].alt_lock or grid.alt == 1 then
             if y == 2 then
-              if grid_pat[math.ceil(x/4)].playmode == 3 or grid_pat[math.ceil(x/4)].playmode == 4 then
-                clock.run(random_grid_pat, math.ceil(x/4), 3)
-              else
-                random_grid_pat(math.ceil(x/4),3)
-              end
+              random_grid_pat(math.ceil(x/4),3)
             end
             if y == 3 then
               page.arp_page_sel = i

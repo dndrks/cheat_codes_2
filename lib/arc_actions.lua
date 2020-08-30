@@ -18,16 +18,20 @@ function aa.init(n,d)
     local p_action = aa.actions[arc_param[n]][1]
     local sc_action = aa.actions[arc_param[n]][2]
     if not this_bank.alt_lock and grid.alt == 0 then
-      if arc_param[n] ~= 4 then
+      -- if arc_param[n] ~= 4 then
+      -- if arc_param[n] < 4 then
+      if arc_param[n] ~= 4 and arc_param[n] ~= 5 then
         p_action(this_pad,d)
       else
-        aa.map(p_action, this_bank, d/1000, n)
+        aa.map(p_action, this_bank, arc_param[n] == 4 and d/1000 or d, n)
       end
     elseif this_bank.alt_lock or grid.alt == 1 then
-      if arc_param[n] ~= 4 then
+      -- if arc_param[n] ~= 4 then
+      -- if arc_param[n] < 4 then
+      if arc_param[n] ~= 4 and arc_param[n] ~= 5 then
         aa.map(p_action,this_bank,d)
       else
-        p_action(this_pad,d/1000, n)
+        p_action(this_pad, arc_param[n] == 4 and d/1000 or d, n)
       end
     end
     if this_bank.focus_hold == false or this_bank.focus_pad == this_bank.id then
@@ -163,11 +167,11 @@ end
 
 function aa.change_level(target, delta)
   if not bank[target.bank_id].alt_lock and grid.alt == 0 then
-    target.level = util.clamp(target.level + delta/1000,0,2)
-  else
     if target.pad_id == 1 then
       bank[target.bank_id].global_level = util.clamp(bank[target.bank_id].global_level + delta/1000,0,2)
     end
+  else
+    target.level = util.clamp(target.level + delta/1000,0,2)
   end
 end
 

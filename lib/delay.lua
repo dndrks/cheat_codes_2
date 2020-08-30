@@ -167,15 +167,24 @@ function delays.quick_action(target,param)
       softcut.pre_level(target+4,params:get(target == 1 and "delay L: feedback" or "delay R: feedback")/100)
     end
   elseif param == "send mute" then
+    -- softcut.level_slew_time(target+4,0.25)
+    local pad = bank[delay_grid.bank][bank[delay_grid.bank].id]
     delay[target].send_mute = not delay[target].send_mute
     if delay[target].send_mute then
-      if (target == 1 and bank[delay_grid.bank][bank[delay_grid.bank].id].left_delay_level or bank[delay_grid.bank][bank[delay_grid.bank].id].right_delay_level) == 0 then
-        softcut.level_cut_cut(delay_grid.bank+1,target+4,1)
+      if (target == 1 and pad.left_delay_level or pad.right_delay_level) == 0 then
+        if pad.enveloped then
+        else
+          softcut.level_cut_cut(delay_grid.bank+1,target+4,1)
+        end
       else
-        softcut.level_cut_cut(delay_grid.bank+1,target+4,0)
+        if not pad.enveloped then
+          softcut.level_cut_cut(delay_grid.bank+1,target+4,0)
+        end
       end
     else
-      softcut.level_cut_cut(delay_grid.bank+1,target+4,target == 1 and bank[delay_grid.bank][bank[delay_grid.bank].id].left_delay_level or bank[delay_grid.bank][bank[delay_grid.bank].id].right_delay_level)
+      if not pad.eveloped then
+        softcut.level_cut_cut(delay_grid.bank+1,target+4,target == 1 and bank[delay_grid.bank][bank[delay_grid.bank].id].left_delay_level or bank[delay_grid.bank][bank[delay_grid.bank].id].right_delay_level)
+      end
     end
   elseif param == "clear" then
     softcut.level(target+4,0)
@@ -271,7 +280,7 @@ function delays.sync_clock_to_length(source)
       derived_bpm = derived_bpm/2
       if derived_bpm <= 70 then break end
     end
-    params:set("bpm",derived_bpm)
+    params:set("clock_tempo",derived_bpm)
   end
 end
 

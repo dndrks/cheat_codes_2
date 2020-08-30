@@ -9,6 +9,7 @@
 
 local pattern_time = include 'lib/cc_pattern_time'
 fileselect = require 'fileselect'
+textentry = require 'textentry'
 help_menus = include 'lib/help_menus'
 main_menu = include 'lib/main_menu'
 encoder_actions = include 'lib/encoder_actions'
@@ -116,6 +117,8 @@ for i = 1,3 do
   env_counter[i] = metro.init()
   env_counter[i].time = 0.01
   env_counter[i].butt = 1
+  env_counter[i].l_del_butt = 0
+  env_counter[i].r_del_butt = 0
   env_counter[i].stage = nil
   -- env_counter[i].mode = 1 -- this needs to be per pad!!
   env_counter[i].event = function() envelope(i) end
@@ -268,6 +271,11 @@ local snakes =
 function random_grid_pat(which,mode)
 
   local pattern = grid_pat[which]
+
+  -- if pattern.playmode == 1 then
+  --   pattern.playmode = 2
+  --   pattern.rec_clock_time = 8
+  -- end
   
   if mode == 1 then
     for i = #pattern.time,2,-1 do
@@ -305,6 +313,9 @@ function random_grid_pat(which,mode)
     local auto_pat = params:get("random_patterning_"..which)
     if auto_pat ~= 1 then
       params:set("pattern_"..which.."_quantization", 2)
+      local vals_to_dur = {4,8,16,32,64,math.random(4,32)}
+      local note_val = params:get("rand_pattern_"..which.."_note_length")
+      pattern.rec_clock_time = vals_to_dur[note_val]
     end
     if pattern.playmode == 3 or pattern.playmode == 4 then
       --clock.sync(1/4)
@@ -312,7 +323,9 @@ function random_grid_pat(which,mode)
       pattern.playmode = 2
       -- /new stuff!
     end
-    local count = auto_pat == 1 and math.random(2,24) or 16
+    local potential_total = pattern.rec_clock_time*4
+    -- local count = auto_pat == 1 and math.random(2,24) or 16
+    local count = auto_pat == 1 and (pattern.rec_clock_time * 4) or 16
     if pattern.count > 0 or pattern.rec == 1 then
       pattern:rec_stop()
       stop_pattern(pattern)
@@ -364,14 +377,14 @@ function random_grid_pat(which,mode)
       end
       constructed.action = "pads"
       constructed.i = which
+
       local tempo = clock.get_beat_sec()
       local divisors = { 4,2,1,0.5,0.25,math.pow(2,math.random(-2,2)) }
       local note_length = (tempo / divisors[params:get("rand_pattern_"..which.."_note_length")])
       pattern.time[i] = note_length
-      --new stuff!
       pattern.time_beats[i] = pattern.time[i] / tempo
       pattern:calculate_quantum(i)
-      --/new stuff!
+
     end
     pattern.count = count
     pattern.start_point = 1
@@ -471,60 +484,32 @@ function snap_to_bars_midi(bank,bar_count)
   end
 end
 
-function save_external_timing(bank,slot)
-  
-  local dirname = _path.data.."cheat_codes2/external-timing/"
-  if os.rename(dirname, dirname) == nil then
-    os.execute("mkdir " .. dirname)
-  end
-  
-  local file = io.open(_path.data .. "cheat_codes2/external-timing/pattern"..selected_coll.."_"..slot.."_external-timing.data", "w+")
-  io.output(file)
-  io.write("external clock timing for stored pad pattern: collection "..selected_coll.." + slot "..slot.."\n")
-  local total_entry_count = 0
-  local number_of_events = #quantized_grid_pat[bank].event
-  for i = 1,number_of_events do
-    total_entry_count = total_entry_count + #quantized_grid_pat[bank].event[i]
-  end
-  io.write(total_entry_count.."\n")
-  io.write(number_of_events.."\n")
-  for i = 1,number_of_events do
-    io.write("event: "..i.."\n")
-    io.write("total entries: "..#quantized_grid_pat[bank].event[i].."\n")
-    for j = 1,#quantized_grid_pat[bank].event[i] do
-      io.write(quantized_grid_pat[bank].event[i][j].."\n")
-    end
-  end
-  io.close(file)
-  print("saved external timing for pattern "..bank.." to slot "..slot)
-end
-
-function load_external_timing(bank,slot)
-  local file = io.open(_path.data .. "cheat_codes2/external-timing/pattern"..selected_coll.."_"..slot.."_external-timing.data", "r")
-  if file then
-    io.input(file)
-    if io.read() == "external clock timing for stored pad pattern: collection "..selected_coll.." + slot "..slot then
-      quantized_grid_pat[bank].event = {}
-      local total_entry_count = tonumber(io.read())
-      local number_of_events = tonumber(io.read())
-      for i = 1,number_of_events do
-        local event_id = tonumber(string.match(io.read(), '%d+'))
-        local entry_count = tonumber(string.match(io.read(), '%d+'))
-        quantized_grid_pat[bank].event[i] = {}
-        for j = 1,entry_count do
-          quantized_grid_pat[bank].event[i][j] = io.read()
-        end
-      end
-    end
-    print("unpacking old quantized table")
-    unpack_quantized_table(bank)
-    io.close(file)
-  else
-    print("creating external timing file...")
-    midi_clock_linearize(bank)
-    save_external_timing(bank,slot)
-  end
-end
+-- function load_external_timing(bank,slot)
+--   local file = io.open(_path.data .. "cheat_codes2/external-timing/pattern"..selected_coll.."_"..slot.."_external-timing.data", "r")
+--   if file then
+--     io.input(file)
+--     if io.read() == "external clock timing for stored pad pattern: collection "..selected_coll.." + slot "..slot then
+--       quantized_grid_pat[bank].event = {}
+--       local total_entry_count = tonumber(io.read())
+--       local number_of_events = tonumber(io.read())
+--       for i = 1,number_of_events do
+--         local event_id = tonumber(string.match(io.read(), '%d+'))
+--         local entry_count = tonumber(string.match(io.read(), '%d+'))
+--         quantized_grid_pat[bank].event[i] = {}
+--         for j = 1,entry_count do
+--           quantized_grid_pat[bank].event[i][j] = io.read()
+--         end
+--       end
+--     end
+--     print("unpacking old quantized table")
+--     unpack_quantized_table(bank)
+--     io.close(file)
+--   else
+--     print("creating external timing file...")
+--     midi_clock_linearize(bank)
+--     save_external_timing(bank,slot)
+--   end
+-- end
 
 function copy_entire_pattern(bank)
   original_pattern = {}
@@ -699,16 +684,30 @@ function init()
   
   params:add_separator("cheat codes params")
   
-  params:add_group("collections",4)
+  params:add_group("collections",8)
   
-  params:add_number("collection", "collection", 1,100,1)
-  params:add{type = "trigger", id = "load", name = "load", action = loadstate}
+  -- params:add_number("collection", "collection", 1,100,1)
+  -- params:add{type = "trigger", id = "load", name = "load", action = loadstate}
+  -- params:add_option("collect_live","collect Live buffers?",{"no","yes"})
+  -- params:add{type = "trigger", id = "save", name = "save", action = function()
+  --   collection_save_clock = clock.run(save_screen)
+  --   _norns.key(1,1)
+  --   _norns.key(1,0)
+  -- end}
+  params:add_separator("prefs")
   params:add_option("collect_live","collect Live buffers?",{"no","yes"})
-  params:add{type = "trigger", id = "save", name = "save", action = function()
-    collection_save_clock = clock.run(save_screen)
-    _norns.key(1,1)
-    _norns.key(1,0)
-  end}
+  params:add_separator("save/load")
+  params:add_trigger("save", "save new collection")
+  params:set_action("save", function(x)
+    textentry.enter(pre_save)
+  end)
+  params:add_trigger("load", "load collection")
+  params:set_action("load", function(x) fileselect.enter(_path.data.."cheat_codes2/names/", named_loadstate) end)
+  params:add_separator("danger zone!")
+  params:add_trigger("overwrite_coll", "overwrite collection")
+  params:set_action("overwrite_coll", function(x) fileselect.enter(_path.data.."cheat_codes2/names/", named_overwrite) end)
+  params:add_trigger("delete_coll", "delete collection")
+  params:set_action("delete_coll", function(x) fileselect.enter(_path.data.."cheat_codes2/names/", named_delete) end)
   
   menu = 1
   
@@ -1257,6 +1256,23 @@ function init()
 end
 
 ---
+
+function sync_clock_to_loop(source)
+  -- if delay[source].mode == "free" and delay[source].free_end_point-delay[source].start_point > 0.1 then
+    local duration = source.end_point-source.start_point
+    local quarter = duration/4
+    local derived_bpm = 60/quarter
+    while derived_bpm < 70 do
+      derived_bpm = derived_bpm * 2
+      if derived_bpm > 160 then break end
+    end
+    while derived_bpm > 160 do
+      derived_bpm = derived_bpm/2
+      if derived_bpm <= 70 then break end
+    end
+    params:set("clock_tempo",util.round(derived_bpm,0.01))
+  -- end
+end
 
 function midi_pattern_watch(target,note)
   if note ~= "pause" then
@@ -2172,14 +2188,20 @@ function cheat(b,i)
   if pad.enveloped then
     if pad.envelope_mode == 1 then
       env_counter[b].butt = pad.level
-      softcut.level_slew_time(b+1,0.01)
+      env_counter[b].l_del_butt = pad.left_delay_level
+      env_counter[b].r_del_butt = pad.right_delay_level
+      softcut.level_slew_time(b+1,0.05)
       softcut.level(b+1,pad.level*bank[b].global_level)
+      softcut.level_cut_cut(b+1,5,(pad.level*bank[b].global_level)*bank[i][bank[i].id].left_delay_level)
+      softcut.level_cut_cut(i+1,6,(pad.level*bank[b].global_level)*bank[i][bank[i].id].right_delay_level)
     elseif pad.envelope_mode == 2 or pad.envelope_mode == 3 then
-      softcut.level_slew_time(b+1,0.1)
+      softcut.level_slew_time(b+1,0)
       softcut.level(b+1,0*bank[b].global_level)
       softcut.level_cut_cut(b+1,5,0)
       softcut.level_cut_cut(b+1,6,0)
       env_counter[b].butt = 0
+      env_counter[b].l_del_butt = 0
+      env_counter[b].r_del_butt = 0
     end
     env_counter[b].time = (pad.envelope_time/(pad.level/0.05))
     env_counter[b]:start()
@@ -2207,6 +2229,7 @@ function cheat(b,i)
   if pad.end_point == 9 or pad.end_point == 17 or pad.end_point == 25 then
     pad.end_point = pad.end_point-0.01
   end
+  softcut.fade_time(b+1,0.01)
   softcut.loop_start(b+1,pad.start_point)
   softcut.loop_end(b+1,pad.end_point)
   softcut.buffer(b+1,pad.mode)
@@ -2220,7 +2243,6 @@ function cheat(b,i)
   else
     softcut.loop(b+1,1)
   end
-  softcut.fade_time(b+1,0.01)
   if pad.rate > 0 then
       softcut.position(b+1,pad.start_point+0.05)
   elseif pad.rate < 0 then
@@ -2278,7 +2300,7 @@ function cheat(b,i)
 end
 
 function envelope(i)
-  softcut.level_slew_time(i+1,0.1)
+  -- softcut.level_slew_time(i+1,0.1)
   if bank[i][bank[i].id].envelope_mode == 1 then
     falling_envelope(i)
   elseif bank[i][bank[i].id].envelope_mode == 2 then
@@ -2299,18 +2321,36 @@ function falling_envelope(i)
   else
     env_counter[i].butt = 0
   end
-  -- print(env_counter[i].butt)
   if env_counter[i].butt > 0 then
+    softcut.level_slew_time(i+1,0.05)
     softcut.level(i+1,env_counter[i].butt*bank[i].global_level)
-    softcut.level_cut_cut(i+1,5,env_counter[i].butt*(bank[i][bank[i].id].left_delay_level*bank[i].global_level))
-    softcut.level_cut_cut(i+1,6,env_counter[i].butt*(bank[i][bank[i].id].right_delay_level*bank[i].global_level))
+    -- softcut.level_cut_cut(i+1,5,(env_counter[i].butt*bank[i].global_level)*bank[i][bank[i].id].left_delay_level)
+    -- softcut.level_cut_cut(i+1,6,(env_counter[i].butt*bank[i].global_level)*bank[i][bank[i].id].right_delay_level)
+    if delay[1].send_mute then
+      if bank[i][bank[i].id].left_delay_level == 0 then
+        softcut.level_cut_cut(i+1,5,(env_counter[i].butt*bank[i].global_level)*1)
+      else
+        softcut.level_cut_cut(i+1,5,(env_counter[i].butt*bank[i].global_level)*0)
+      end
+    else
+      softcut.level_cut_cut(i+1,5,(env_counter[i].butt*bank[i].global_level)*bank[i][bank[i].id].left_delay_level)
+    end
+    if delay[2].send_mute then
+      if bank[i][bank[i].id].right_delay_level == 0 then
+        softcut.level_cut_cut(i+1,6,(env_counter[i].butt*bank[i].global_level)*1)
+      else
+        softcut.level_cut_cut(i+1,6,(env_counter[i].butt*bank[i].global_level)*0)
+      end
+    else
+      softcut.level_cut_cut(i+1,6,(env_counter[i].butt*bank[i].global_level)*bank[i][bank[i].id].right_delay_level)
+    end
   else
     env_counter[i]:stop()
+    softcut.level_slew_time(i+1,1.0)
     softcut.level(i+1,0*bank[i].global_level)
     env_counter[i].butt = bank[i][bank[i].id].level
     softcut.level_cut_cut(i+1,5,0)
     softcut.level_cut_cut(i+1,6,0)
-    softcut.level_slew_time(i+1,1.0)
     if bank[i][bank[i].id].envelope_mode == 3 then
       env_counter[i].stage = nil
       env_counter[i].butt = 0
@@ -2323,13 +2363,31 @@ end
 
 function rising_envelope(i)
   env_counter[i].butt = env_counter[i].butt + 0.05
-  -- print(env_counter[i].butt, env_counter[i].time)
   if env_counter[i].butt < bank[i][bank[i].id].level then
+    softcut.level_slew_time(i+1,0.1)
     softcut.level(i+1,env_counter[i].butt*bank[i].global_level)
-    softcut.level_cut_cut(i+1,5,env_counter[i].butt*(bank[i][bank[i].id].left_delay_level*bank[i].global_level))
-    softcut.level_cut_cut(i+1,6,env_counter[i].butt*(bank[i][bank[i].id].right_delay_level*bank[i].global_level))
+    -- softcut.level_cut_cut(i+1,5,env_counter[i].butt*(bank[i][bank[i].id].left_delay_level*bank[i].global_level))
+    -- softcut.level_cut_cut(i+1,6,env_counter[i].butt*(bank[i][bank[i].id].right_delay_level*bank[i].global_level))
+    if delay[1].send_mute then
+      if bank[i][bank[i].id].left_delay_level == 0 then
+        softcut.level_cut_cut(i+1,5,(env_counter[i].butt*bank[i].global_level)*1)
+      else
+        softcut.level_cut_cut(i+1,5,(env_counter[i].butt*bank[i].global_level)*0)
+      end
+    else
+      softcut.level_cut_cut(i+1,5,(env_counter[i].butt*bank[i].global_level)*bank[i][bank[i].id].left_delay_level)
+    end
+    if delay[2].send_mute then
+      if bank[i][bank[i].id].right_delay_level == 0 then
+        softcut.level_cut_cut(i+1,6,(env_counter[i].butt*bank[i].global_level)*1)
+      else
+        softcut.level_cut_cut(i+1,6,(env_counter[i].butt*bank[i].global_level)*0)
+      end
+    else
+      softcut.level_cut_cut(i+1,6,(env_counter[i].butt*bank[i].global_level)*bank[i][bank[i].id].right_delay_level)
+    end
   else
-    -- print("stopping")
+    print("stopping")
     env_counter[i]:stop()
     softcut.level(i+1,bank[i][bank[i].id].level*bank[i].global_level)
     env_counter[i].butt = 0
@@ -2346,7 +2404,8 @@ function rising_envelope(i)
     softcut.level_slew_time(i+1,1.0)
     if bank[i][bank[i].id].envelope_mode == 3 then
       env_counter[i].stage = "falling"
-      env_counter[i].butt = bank[i][bank[i].id].level*bank[i].global_level
+      softcut.level_slew_time(i+1,0.05)
+      env_counter[i].butt = bank[i][bank[i].id].level
       env_counter[i].time = (bank[i][bank[i].id].envelope_time/(bank[i][bank[i].id].level/0.05))
       env_counter[i]:start()
     end
@@ -2542,18 +2601,18 @@ function save_sample(i)
   softcut.buffer_write_mono(_path.dust.."/audio/cc2_saved_samples/"..name,1+(8*save_pos),8,1)
 end
 
-function collect_samples(i) -- this works!!!
+function collect_samples(i,collection) -- this works!!!
   local dirname = _path.dust.."audio/cc2_live-audio/"
   if os.rename(dirname, dirname) == nil then
     os.execute("mkdir " .. dirname)
   end
-  local dirname = _path.dust.."audio/cc2_live-audio/"..params:get("collection").."/"
+  local dirname = _path.dust.."audio/cc2_live-audio/"..collection.."/"
   if os.rename(dirname, dirname) == nil then
     os.execute("mkdir " .. dirname)
   end
-  local name = "cc2_"..params:get("collection").."-"..i..".wav"
+  local name = "cc2_"..collection.."-"..i..".wav"
   local save_pos = i - 1
-  softcut.buffer_write_mono(_path.dust.."audio/cc2_live-audio/"..params:get("collection").."/"..name,1+(8*save_pos),8,1)
+  softcut.buffer_write_mono(_path.dust.."audio/cc2_live-audio/"..collection.."/"..name,1+(8*save_pos),8,1)
 end
 
 function reload_collected_samples(file,sample)
@@ -2584,7 +2643,7 @@ function key(n,z)
         end
       elseif menu == 2 then
         if not key1_hold then
-          page.loops_view[page.loops_sel] = (page.loops_view[page.loops_sel] % 3) + 1
+          page.loops_view[page.loops_sel] = (page.loops_view[page.loops_sel] % (page.loops_sel ~= 4 and 3 or 2)) + 1
         else
           if page.loops_sel < 4 then
             local id = page.loops_sel
@@ -2672,11 +2731,7 @@ function key(n,z)
           elseif page.time_page_sel[time_nav] == 5 then
             if not key1_hold then
               if g.device ~= nil then
-                if grid_pat[id].playmode == 3 or grid_pat[id].playmode == 4 then
-                  clock.run(random_grid_pat, id, 3)
-                else
-                  random_grid_pat(id,3)
-                end
+                random_grid_pat(id,3)
               else
                 random_midi_pat(id)
               end
@@ -2819,7 +2874,7 @@ function key(n,z)
         end
       elseif menu == 2 then
         if key1_hold then
-          --
+          sync_clock_to_loop(bank[page.loops_sel][bank[page.loops_sel].id])
         else
           menu = 1
         end
@@ -3731,9 +3786,9 @@ arc_redraw = function()
     if arc_param[i] == 5 then
       local level_to_led;
       if not key1_hold and not bank[i].alt_lock and grid.alt == 0 then
-        level_to_led = bank[i][bank[i].id].level
-      else
         level_to_led = bank[i].global_level
+      else
+        level_to_led = bank[i][bank[i].id].level
       end
       for j = 1,17 do
         a:led(i,(math.floor(util.linlin(0,2,5,70,(level_to_led)-(1/8*j))))+16,15)
@@ -3805,6 +3860,126 @@ function persistent_state_restore()
   end
 end
 
+function named_overwrite(path)
+  if path ~= 'cancel' then
+    local file = io.open(path, "r")
+    if file then
+      io.input(file)
+      local collection = io.read()
+      io.close(file)
+      pre_save(collection)
+    end
+  end
+end
+
+function named_delete(path)
+  if path ~= 'cancel' then
+    local file = io.open(path, "r")
+    if file then
+      io.input(file)
+      os.remove(path)
+      io.close(file)
+    end
+  end
+end
+
+function pre_save(text)
+  if text then
+    collection_save_clock = clock.run(save_screen,text)
+    _norns.key(1,1)
+    _norns.key(1,0)
+  else
+    print("nothing saved")
+  end
+end
+
+function named_savestate(text)
+  
+  local collection = text
+  local dirname = _path.data.."cheat_codes2/"
+  -- local collection = tonumber(string.format("%.0f",params:get("collection")))
+  if os.rename(dirname, dirname) == nil then
+    os.execute("mkdir " .. dirname)
+  end
+
+  local dirname = _path.data.."cheat_codes2/names/"
+  if os.rename(dirname, dirname) == nil then
+    os.execute("mkdir " .. dirname)
+  end
+  local name_file = io.open(_path.data .. "cheat_codes2/names/"..collection..".cc2", "w+")
+  io.output(name_file)
+  io.write(collection)
+  io.close(name_file)
+  
+  local dirname = _path.data.."cheat_codes2/collection-"..collection.."/"
+  if os.rename(dirname, dirname) == nil then
+    os.execute("mkdir " .. dirname)
+  end
+
+  local dirnames = {"banks/","params/","arc-rec/","patterns/","step-seq/","arps/","euclid/","rnd/","delays/","rec/","misc/"}
+  for i = 1,#dirnames do
+    local directory = _path.data.."cheat_codes2/collection-"..collection.."/"..dirnames[i]
+    if os.rename(directory, directory) == nil then
+      os.execute("mkdir " .. directory)
+    end
+  end
+
+  for i = 1,3 do
+    tab.save(bank[i],_path.data .. "cheat_codes2/collection-"..collection.."/banks/"..i..".data")
+    tab.save(step_seq[i],_path.data .. "cheat_codes2/collection-"..collection.."/step-seq/"..i..".data")
+    tab.save(arp[i],_path.data .. "cheat_codes2/collection-"..collection.."/arps/"..i..".data")
+    tab.save(rytm.track[i],_path.data .. "cheat_codes2/collection-"..collection.."/euclid/euclid"..i..".data")
+    tab.save(rnd[i],_path.data .. "cheat_codes2/collection-"..collection.."/rnd/"..i..".data")
+    if params:get("collect_live") == 2 then
+      collect_samples(i,collection)
+    end
+  end
+
+  for i = 1,2 do
+    tab.save(delay[i],_path.data .. "cheat_codes2/collection-"..collection.."/delays/delay"..(i == 1 and "L" or "R")..".data")
+  end
+  
+  params:write(_path.data.."cheat_codes2/collection-"..collection.."/params/all.pset")
+  tab.save(rec,_path.data .. "cheat_codes2/collection-"..collection.."/rec/rec.data")
+
+  -- GRID pattern save
+  if selected_coll ~= collection then
+    meta_copy_coll(selected_coll,collection)
+  end
+  meta_shadow(collection)
+
+  selected_coll = collection
+  --/ GRID pattern save
+
+  -- MIDI pattern save
+  for i = 1,3 do
+    save_midi_pattern(i)
+  end
+  --/ MIDI pattern save
+
+  -- ARC rec save
+  local arc_rec_dirty = {false,false,false}
+  for i = 1,3 do
+    for j = 1,4 do
+      if arc_pat[i][j].count > 0 then
+        arc_rec_dirty[i] = true
+      end
+    end
+    if arc_rec_dirty[i] then
+      save_arc_pattern(i)
+    else
+      local file = io.open(_path.data .. "cheat_codes2/collection-"..selected_coll.."/arc-rec/encoder-"..i..".data", "r")
+      if file then
+        io.input(file)
+        os.remove(_path.data .. "cheat_codes2/collection-"..selected_coll.."/arc-rec/encoder-"..i..".data")
+        io.close(file)
+      end
+    end
+  end
+  --/ ARC rec save
+
+end
+
 function savestate()
   
   local dirname = _path.data.."cheat_codes2/"
@@ -3818,7 +3993,7 @@ function savestate()
     os.execute("mkdir " .. dirname)
   end
 
-  local dirnames = {"banks/","params/","arc-rec/","patterns/","step-seq/","arps/","euclid/","rnd/","delays/","rec/"}
+  local dirnames = {"banks/","params/","arc-rec/","patterns/","step-seq/","arps/","euclid/","rnd/","delays/","rec/","misc/"}
   for i = 1,#dirnames do
     local directory = _path.data.."cheat_codes2/collection-"..collection.."/"..dirnames[i]
     if os.rename(directory, directory) == nil then
@@ -3881,6 +4056,91 @@ function savestate()
 
 end
 
+function named_loadstate(path)
+
+  print("loading...")
+  print(path)
+  local file = io.open(path, "r")
+  if file then
+    io.input(file)
+    local collection = io.read()
+    io.close(file)
+    selected_coll = collection
+    collection_loaded = true
+    _norns.key(1,1)
+    _norns.key(1,0)
+    clock.run(load_screen)
+    redraw()
+    params:read(_path.data.."cheat_codes2/collection-"..collection.."/params/all.pset")
+    if tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/rec/rec.data") ~= nil then
+      rec = tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/rec/rec.data")
+    end
+    -- params:bang()
+    for i = 1,3 do
+      if tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/banks/"..i..".data") ~= nil then
+        bank[i] = tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/banks/"..i..".data")
+      end
+      if tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/step-seq/"..i..".data") ~= nil then
+        step_seq[i] = tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/step-seq/"..i..".data")
+      end
+      if tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/arps/"..i..".data") ~= nil then
+        arp[i] = tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/arps/"..i..".data")
+      end
+      if tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/rnd/"..i..".data") ~= nil then
+        rnd[i] = tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/rnd/"..i..".data")
+        for j = 1,#rnd[i] do
+          rnd[i][j].clock = nil
+          if rnd[i][j].playing then
+            rnd[i][j].clock = clock.run(rnd.advance, i, j)
+          end
+        end
+      end
+
+      if params:get("collect_live") == 2 then
+        reload_collected_samples(_path.dust.."audio/cc2_live-audio/"..collection.."/".."cc2_"..collection.."-"..i..".wav",i)
+      end
+      
+      if tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/euclid/euclid"..i..".data") ~= nil then
+        rytm.track[i] = tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/euclid/euclid"..i..".data")
+      end
+      rytm.reset_pattern()
+    end
+
+    for i = 1,2 do
+      if tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/delays/delay"..(i == 1 and "L" or "R")..".data") ~= nil then
+        delay[i] = tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/delays/delay"..(i == 1 and "L" or "R")..".data")
+      end
+    end
+
+    -- GRID pattern restore
+    if selected_coll ~= collection then
+      meta_shadow(selected_coll)
+    elseif selected_coll == collection then
+      cleanup()
+    end
+    one_point_two()
+    -- / GRID pattern restore
+
+    for i = 1,3 do
+      load_arc_pattern(i)
+    end
+
+    for i = 1,3 do
+      local dirname = _path.data .. "cheat_codes2/collection-"..selected_coll.."/patterns/midi"..i..".data"
+      if os.rename(dirname, dirname) ~= nil then
+        load_midi_pattern(i)
+      end
+    end
+  else
+    _norns.key(1,1)
+    _norns.key(1,0)
+    collection_loaded = false
+    clock.run(load_fail_screen)
+  end
+
+  grid_dirty = true
+
+end
 
 function loadstate()
     
@@ -3955,7 +4215,10 @@ function loadstate()
       end
     end
   else
+    _norns.key(1,1)
+    _norns.key(1,0)
     collection_loaded = false
+    clock.run(load_fail_screen)
   end
 
   grid_dirty = true
@@ -4889,14 +5152,20 @@ function load_pattern(slot,destination)
 
     io.close(file)
     if not ignore_external_timing then
-      load_external_timing(destination,slot)
+      print("see load_external_timing")
+      -- load_external_timing(destination,slot)
     end
   else
-    print("nofile")
+    print("no grid patterns to load!")
   end
 end
 
 function cleanup()
+
+  for i = 1,3 do
+    env_counter[i]:stop()
+  end
+
   clear_zero()
   for i = 1,3 do
     for j = 1,8 do
@@ -4928,6 +5197,7 @@ function cleanup()
     end
   end
   clear_empty_shadows(selected_coll)
+
 end
 
 -- arc pattern stuff!
@@ -5005,7 +5275,7 @@ function load_arc_pattern(which)
     io.close(file)
     grid_dirty = true
   else
-    print("nofile")
+    print("no arc patterns to load")
   end
 end
 
@@ -5055,6 +5325,6 @@ function load_midi_pattern(which)
     end
     io.close(file)
   else
-    print("nofile")
+    print("no midi patterns to load")
   end
 end
