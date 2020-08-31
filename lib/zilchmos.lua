@@ -151,6 +151,9 @@ function zilchmos.start_random( pad )
     else
       min_start = math.floor(rec.start_point * 100) -- this sucks...
     end
+  elseif pad.mode == 2 then
+    max_end = math.floor(pad.end_point * 100)
+    min_start = math.floor(clip[pad.clip].min * 100)
   else
     --duration = math.modf(clip[pad.clip].sample_length)
     duration = pad.mode == 1 and 8 or math.modf(clip[pad.clip].sample_length)
@@ -179,6 +182,9 @@ function zilchmos.end_random( pad )
     else
       min_start = math.floor(rec.start_point * 100)
     end
+  elseif pad.mode == 2 then
+    max_end = math.floor(clip[pad.clip].max * 100)
+    min_start = math.floor(pad.start_point * 100)
   else
     duration = util.round(clip[pad.clip].sample_length)
     max_end = math.floor(((duration*pad.clip)+1) * 100)
@@ -222,6 +228,17 @@ function zilchmos.start_end_random( pad )
       else
         case2(8)
       end
+    end
+  elseif pad.mode == 2 then
+    local s_p = math.floor(clip[pad.clip].min * 100)
+    local e_p = math.floor(clip[pad.clip].max * 100)
+    local j = math.random(s_p, e_p) / 100
+    if j + current_difference >= clip[pad.clip].max then
+      pad.end_point = clip[pad.clip].max
+      pad.start_point = pad.end_point - current_difference
+    else
+      pad.start_point = j
+      pad.end_point = pad.start_point + current_difference
     end
   else
     case2(pad.mode == 1 and 8 or math.modf(clip[pad.clip].sample_length))

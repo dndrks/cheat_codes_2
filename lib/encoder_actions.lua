@@ -615,7 +615,7 @@ function encoder_actions.init(n,d)
       focused_pad = bank[n].id
     end
     if page.levels_sel == 0 then
-      if key1_hold or grid.alt == 1 then
+      if key1_hold or grid.alt == 1 or bank[n].alt_lock then
         -- for i = 1,16 do
         --   bank[n][i].level = util.clamp(bank[n][i].level+d/10,0,2)
         -- end
@@ -636,7 +636,7 @@ function encoder_actions.init(n,d)
       end
     elseif page.levels_sel == 1 then
 
-      if key1_hold or grid.alt == 1 then
+      if key1_hold or grid.alt == 1 or bank[n].alt_lock then
         for j = 1,16 do
           local pre_enveloped = bank[n][j].enveloped
           local pre_mode = bank[n][j].envelope_mode
@@ -703,7 +703,7 @@ function encoder_actions.init(n,d)
       end
 
     elseif page.levels_sel == 2 then
-      if key1_hold or grid.alt == 1 then
+      if key1_hold or grid.alt == 1 or bank[n].alt_lock then
         for j = 1,16 do
           if bank[n][j].enveloped then
             if d>0 then
@@ -730,7 +730,7 @@ function encoder_actions.init(n,d)
       end
 
     elseif page.levels_sel == 3 then
-      if key1_hold or grid.alt == 1 then
+      if key1_hold or grid.alt == 1 or bank[n].alt_lock then
         for j = 1,16 do
           if bank[n][j].enveloped then
             bank[n][j].envelope_time = util.explin(0.1,60,0.1,60,bank[n][j].envelope_time)
@@ -823,15 +823,32 @@ function encoder_actions.init(n,d)
 end
 
 function ea.move_play_window(target,delta)
+  -- local duration = target.mode == 1 and 8 or clip[target.clip].sample_length
+  -- local current_difference = (target.end_point - target.start_point)
+  -- local s_p = target.mode == 1 and live[target.clip].min or clip[target.clip].min
+  -- local current_clip = duration*(target.clip-1)
+  -- if target.start_point + current_difference <= s_p+duration then
+  --   target.start_point = util.clamp(target.start_point + delta, s_p, s_p+duration)
+  --   target.end_point = target.start_point + current_difference
+  -- else
+  --   target.end_point = s_p+duration
+  --   target.start_point = target.end_point - current_difference
+  -- end
+
   local duration = target.mode == 1 and 8 or clip[target.clip].sample_length
   local current_difference = (target.end_point - target.start_point)
   local s_p = target.mode == 1 and live[target.clip].min or clip[target.clip].min
   local current_clip = duration*(target.clip-1)
-  if target.start_point + current_difference <= s_p+duration then
-    target.start_point = util.clamp(target.start_point + delta, s_p, s_p+duration)
+  local reasonable_max = target.mode == 1 and 9 or clip[target.clip].max+1
+  if target.start_point + current_difference <= reasonable_max then
+    target.start_point = util.clamp(target.start_point + delta, s_p, reasonable_max)
     target.end_point = target.start_point + current_difference
   else
-    target.end_point = s_p+duration
+    target.end_point = reasonable_max
+    target.start_point = target.end_point - current_difference
+  end
+  if target.end_point > reasonable_max then
+    target.end_point = reasonable_max
     target.start_point = target.end_point - current_difference
   end
 end

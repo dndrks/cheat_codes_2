@@ -249,13 +249,13 @@ function main_menu.init()
       screen.move(10+(i*20),64)
       screen.level(level_options[page.levels_sel+1] == "levels" and 15 or 3)
       local level_to_screen_options = {"a", "b", "c"}
-      if key1_hold or grid.alt == 1 then
+      if key1_hold or grid.alt == 1 or bank[i].alt_lock then
         screen.text("("..level_to_screen_options[i]..")")
       else
         screen.text(level_to_screen_options[i]..""..focused_pad)
       end
       screen.move(35+(20*(i-1)),57)
-      local level_to_screen = ((key1_hold or grid.alt == 1) and util.linlin(0,2,0,40,bank[i].global_level) or util.linlin(0,2,0,40,bank[i][focused_pad].level))
+      local level_to_screen = ((key1_hold or grid.alt == 1 or bank[i].alt_lock) and util.linlin(0,2,0,40,bank[i].global_level) or util.linlin(0,2,0,40,bank[i][focused_pad].level))
       screen.line(35+(20*(i-1)),57-level_to_screen)
       screen.close()
       screen.stroke()
@@ -282,7 +282,7 @@ function main_menu.init()
       -- screen.text("time")
       screen.move(85,34+((i)*10))
       local envelope_to_screen_options = {"a", "b", "c"}
-      if key1_hold or grid.alt == 1 then
+      if key1_hold or grid.alt == 1 or bank[i].alt_lock then
         screen.text("("..envelope_to_screen_options[i]..")")
       else
         screen.text(envelope_to_screen_options[i]..""..focused_pad)

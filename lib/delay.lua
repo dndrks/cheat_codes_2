@@ -172,8 +172,7 @@ function delays.quick_action(target,param)
     delay[target].send_mute = not delay[target].send_mute
     if delay[target].send_mute then
       if (target == 1 and pad.left_delay_level or pad.right_delay_level) == 0 then
-        if pad.enveloped then
-        else
+        if not pad.enveloped then
           softcut.level_cut_cut(delay_grid.bank+1,target+4,1)
         end
       else
@@ -182,7 +181,9 @@ function delays.quick_action(target,param)
         end
       end
     else
-      if not pad.eveloped then
+      if not pad.enveloped then
+        print(pad.enveloped)
+        print("sending 185")
         softcut.level_cut_cut(delay_grid.bank+1,target+4,target == 1 and bank[delay_grid.bank][bank[delay_grid.bank].id].left_delay_level or bank[delay_grid.bank][bank[delay_grid.bank].id].right_delay_level)
       end
     end
@@ -214,9 +215,11 @@ function delays.set_value(target,index,param)
           bank[delay_grid.bank][i].left_delay_level = send_levels[index]
         end
       end
-      softcut.level_slew_time(5,0.25)
-      -- softcut.level_cut_cut(delay_grid.bank+1,5,util.linlin(-1,1,0,1,b.pan)*(b.left_delay_level*b.level))
-      softcut.level_cut_cut(delay_grid.bank+1,5,(b.left_delay_level*b.level)*bank[delay_grid.bank].global_level)
+      if not b.enveloped then
+        softcut.level_slew_time(5,0.25)
+        -- softcut.level_cut_cut(delay_grid.bank+1,5,util.linlin(-1,1,0,1,b.pan)*(b.left_delay_level*b.level))
+        softcut.level_cut_cut(delay_grid.bank+1,5,(b.left_delay_level*b.level)*bank[delay_grid.bank].global_level)
+      end
     else
       if param == "send" then
         b.right_delay_level = send_levels[index]
@@ -225,9 +228,11 @@ function delays.set_value(target,index,param)
           bank[delay_grid.bank][i].right_delay_level = send_levels[index]
         end
       end
-      softcut.level_slew_time(6,0.25)
-      -- softcut.level_cut_cut(delay_grid.bank+1,6,util.linlin(-1,1,1,0,b.pan)*(b.right_delay_level*b.level))
-      softcut.level_cut_cut(delay_grid.bank+1,6,(b.right_delay_level*b.level)*bank[delay_grid.bank].global_level)
+      if not b.enveloped then
+        softcut.level_slew_time(6,0.25)
+        -- softcut.level_cut_cut(delay_grid.bank+1,6,util.linlin(-1,1,1,0,b.pan)*(b.right_delay_level*b.level))
+        softcut.level_cut_cut(delay_grid.bank+1,6,(b.right_delay_level*b.level)*bank[delay_grid.bank].global_level)
+      end
     end
   end
 end
@@ -295,8 +300,8 @@ function delays.change_rate(target,param)
     end
   elseif param == "wobble" then
     local bump = {params:get("delay L: rate bump"), params:get("delay R: rate bump")}
-    local wobble = bump[target] == 1 and 0.5 or math.random(-75,75)/1000
-    softcut.rate(target+4,params:get(rate[target])+wobble)
+    local wobble = bump[target] == 1 and (params:get(rate[target]) * 1.5) or (params:get(rate[target])+math.random(-75,75)/1000)
+    softcut.rate(target+4,wobble)
     delay[target].wobble_hold = true
   elseif param == "restore" then
     softcut.rate(target+4,params:get(rate[target]))

@@ -684,7 +684,7 @@ function init()
   
   params:add_separator("cheat codes params")
   
-  params:add_group("collections",8)
+  params:add_group("collections",7)
   
   -- params:add_number("collection", "collection", 1,100,1)
   -- params:add{type = "trigger", id = "load", name = "load", action = loadstate}
@@ -694,15 +694,14 @@ function init()
   --   _norns.key(1,1)
   --   _norns.key(1,0)
   -- end}
-  params:add_separator("prefs")
+  params:add_separator("load/save")
+  params:add_trigger("load", "load collection")
+  params:set_action("load", function(x) fileselect.enter(_path.data.."cheat_codes2/names/", named_loadstate) end)
   params:add_option("collect_live","collect Live buffers?",{"no","yes"})
-  params:add_separator("save/load")
   params:add_trigger("save", "save new collection")
   params:set_action("save", function(x)
     textentry.enter(pre_save)
   end)
-  params:add_trigger("load", "load collection")
-  params:set_action("load", function(x) fileselect.enter(_path.data.."cheat_codes2/names/", named_loadstate) end)
   params:add_separator("danger zone!")
   params:add_trigger("overwrite_coll", "overwrite collection")
   params:set_action("overwrite_coll", function(x) fileselect.enter(_path.data.."cheat_codes2/names/", named_overwrite) end)
@@ -2182,8 +2181,22 @@ function find_the_key(t,val)
 end
 
 function cheat(b,i)
-  env_counter[b]:stop()
   local pad = bank[b][i]
+  if env_counter[b].is_running then
+    -- if pad.enveloped then
+    --   if pad.envelope_mode == 2 or pad.envelope_mode == 3 then
+    --     print("should not clip")
+    --     softcut.level_slew_time(b+1,0.5)
+    --     softcut.level(b+1,0*bank[b].global_level)
+    --     softcut.level_cut_cut(b+1,5,0)
+    --     softcut.level_cut_cut(b+1,6,0)
+    --     env_counter[b].butt = 0
+    --     env_counter[b].l_del_butt = 0
+    --     env_counter[b].r_del_butt = 0
+    --   end
+    -- end
+    env_counter[b]:stop()
+  end
   softcut.rate_slew_time(b+1,pad.rate_slew)
   if pad.enveloped then
     if pad.envelope_mode == 1 then
@@ -2192,16 +2205,17 @@ function cheat(b,i)
       env_counter[b].r_del_butt = pad.right_delay_level
       softcut.level_slew_time(b+1,0.05)
       softcut.level(b+1,pad.level*bank[b].global_level)
-      softcut.level_cut_cut(b+1,5,(pad.level*bank[b].global_level)*bank[i][bank[i].id].left_delay_level)
-      softcut.level_cut_cut(i+1,6,(pad.level*bank[b].global_level)*bank[i][bank[i].id].right_delay_level)
+      softcut.level_cut_cut(b+1,5,(pad.level*bank[b].global_level)*pad.left_delay_level)
+      softcut.level_cut_cut(i+1,6,(pad.level*bank[b].global_level)*pad.right_delay_level)
     elseif pad.envelope_mode == 2 or pad.envelope_mode == 3 then
-      softcut.level_slew_time(b+1,0)
+      softcut.level_slew_time(b+1,0.01)
       softcut.level(b+1,0*bank[b].global_level)
       softcut.level_cut_cut(b+1,5,0)
       softcut.level_cut_cut(b+1,6,0)
       env_counter[b].butt = 0
       env_counter[b].l_del_butt = 0
       env_counter[b].r_del_butt = 0
+      if pad.envelope_mode == 3 then env_counter[b].stage = "rising" end
     end
     env_counter[b].time = (pad.envelope_time/(pad.level/0.05))
     env_counter[b]:start()
@@ -2387,7 +2401,6 @@ function rising_envelope(i)
       softcut.level_cut_cut(i+1,6,(env_counter[i].butt*bank[i].global_level)*bank[i][bank[i].id].right_delay_level)
     end
   else
-    print("stopping")
     env_counter[i]:stop()
     softcut.level(i+1,bank[i][bank[i].id].level*bank[i].global_level)
     env_counter[i].butt = 0
@@ -3785,7 +3798,7 @@ arc_redraw = function()
     end
     if arc_param[i] == 5 then
       local level_to_led;
-      if not key1_hold and not bank[i].alt_lock and grid.alt == 0 then
+      if key1_hold or bank[i].alt_lock or grid.alt == 1 then
         level_to_led = bank[i].global_level
       else
         level_to_led = bank[i][bank[i].id].level
