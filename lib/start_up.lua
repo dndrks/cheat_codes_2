@@ -278,9 +278,9 @@ function start_up.init()
     params:set_action("level "..i, function(x)
       bank[i][bank[i].id].level = x
       if not bank[i][bank[i].id].enveloped then
-        softcut.level(i+1,x)
-        softcut.level_cut_cut(i+1,5,util.linlin(-1,1,0,1,bank[i][bank[i].id].pan)*(bank[i][bank[i].id].left_delay_level*bank[i][bank[i].id].level))
-        softcut.level_cut_cut(i+1,6,util.linlin(-1,1,1,0,bank[i][bank[i].id].pan)*(bank[i][bank[i].id].right_delay_level*bank[i][bank[i].id].level))
+        softcut.level(i+1,x*bank[i].global_level)
+        softcut.level_cut_cut(i+1,5,(bank[i][bank[i].id].left_delay_level*bank[i][bank[i].id].level)*bank[i].global_level)
+        softcut.level_cut_cut(i+1,6,(bank[i][bank[i].id].right_delay_level*bank[i][bank[i].id].level)*bank[i].global_level)
       end
       redraw()
       end)
@@ -437,7 +437,7 @@ function start_up.init()
     params:add_control("delay L: ("..banks[i]..") send", "delay L: ("..banks[i]..") send", controlspec.new(0,1,'lin',0.1,0,""))
     params:set_action("delay L: ("..banks[i]..") send", function(x)
       if bank[i][bank[i].id].enveloped == false then
-        softcut.level_cut_cut(i+1,5,x*bank[i][bank[i].id].level)
+        softcut.level_cut_cut(i+1,5,(x*bank[i][bank[i].id].level)*bank[i].global_level)
       end
       for j = 1,16 do
         bank[i][j].left_delay_level = x
@@ -446,7 +446,7 @@ function start_up.init()
     params:add_control("delay R: ("..banks[i]..") send", "delay R: ("..banks[i]..") send", controlspec.new(0,1,'lin',0.1,0,""))
     params:set_action("delay R: ("..banks[i]..") send", function(x)
       if bank[i][bank[i].id].enveloped == false then
-        softcut.level_cut_cut(i+1,6,x*bank[i][bank[i].id].level)
+        softcut.level_cut_cut(i+1,6,(x*bank[i][bank[i].id].level)*bank[i].global_level)
       end
       for j = 1,16 do
         bank[i][j].right_delay_level = x

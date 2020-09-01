@@ -83,6 +83,7 @@ function delays.build_bundle(target,slot)
     delay[target].selected_bundle = slot
   end
   delay[target].saver_active = false
+  grid_dirty = true
 end
 
 function delays.restore_bundle(target,slot)
@@ -120,24 +121,24 @@ end
 
 function delays.savestate(source,collection)
   local del_name = source == 1 and "L" or "R"
-  local dirname = _path.data.."cheat_codes/delays/"
+  local dirname = _path.data.."cheat_codes2/delays/"
   if os.rename(dirname, dirname) == nil then
     os.execute("mkdir " .. dirname)
   end
   
-  local dirname = _path.data.."cheat_codes/delays/collection-"..collection.."/"
+  local dirname = _path.data.."cheat_codes2/delays/collection-"..collection.."/"
   if os.rename(dirname, dirname) == nil then
     os.execute("mkdir " .. dirname)
   end
 
-  tab.save(delay_bundle[source],_path.data .. "cheat_codes/delays/collection-"..collection.."/"..del_name..".data")
+  tab.save(delay_bundle[source],_path.data .. "cheat_codes2/delays/collection-"..collection.."/"..del_name..".data")
 end
 
 function delays.loadstate(collection)
   local del_name = {"L","R"}
   for i = 1,2 do
-    if tab.load(_path.data .. "cheat_codes/delays/collection-"..collection.."/"..del_name[i]..".data") ~= nil then
-      delay_bundle[i] = tab.load(_path.data .. "cheat_codes/delays/collection-"..collection.."/"..del_name[i]..".data")
+    if tab.load(_path.data .. "cheat_codes2/delays/collection-"..collection.."/"..del_name[i]..".data") ~= nil then
+      delay_bundle[i] = tab.load(_path.data .. "cheat_codes2/delays/collection-"..collection.."/"..del_name[i]..".data")
     end
   end
 end
@@ -167,15 +168,23 @@ function delays.quick_action(target,param)
       softcut.pre_level(target+4,params:get(target == 1 and "delay L: feedback" or "delay R: feedback")/100)
     end
   elseif param == "send mute" then
+    -- softcut.level_slew_time(target+4,0.25)
+    local pad = bank[delay_grid.bank][bank[delay_grid.bank].id]
     delay[target].send_mute = not delay[target].send_mute
     if delay[target].send_mute then
-      if (target == 1 and bank[delay_grid.bank][bank[delay_grid.bank].id].left_delay_level or bank[delay_grid.bank][bank[delay_grid.bank].id].right_delay_level) == 0 then
-        softcut.level_cut_cut(delay_grid.bank+1,target+4,1)
+      if (target == 1 and pad.left_delay_level or pad.right_delay_level) == 0 then
+        if not pad.enveloped then
+          softcut.level_cut_cut(delay_grid.bank+1,target+4,1)
+        end
       else
-        softcut.level_cut_cut(delay_grid.bank+1,target+4,0)
+        if not pad.enveloped then
+          softcut.level_cut_cut(delay_grid.bank+1,target+4,0)
+        end
       end
     else
-      softcut.level_cut_cut(delay_grid.bank+1,target+4,target == 1 and bank[delay_grid.bank][bank[delay_grid.bank].id].left_delay_level or bank[delay_grid.bank][bank[delay_grid.bank].id].right_delay_level)
+      if not pad.enveloped then
+        softcut.level_cut_cut(delay_grid.bank+1,target+4,target == 1 and bank[delay_grid.bank][bank[delay_grid.bank].id].left_delay_level or bank[delay_grid.bank][bank[delay_grid.bank].id].right_delay_level)
+      end
     end
   elseif param == "clear" then
     softcut.level(target+4,0)
@@ -205,7 +214,11 @@ function delays.set_value(target,index,param)
           bank[delay_grid.bank][i].left_delay_level = send_levels[index]
         end
       end
-      softcut.level_cut_cut(delay_grid.bank+1,5,util.linlin(-1,1,0,1,b.pan)*(b.left_delay_level*b.level))
+      if not b.enveloped then
+        softcut.level_slew_time(5,0.25)
+        -- softcut.level_cut_cut(delay_grid.bank+1,5,util.linlin(-1,1,0,1,b.pan)*(b.left_delay_level*b.level))
+        softcut.level_cut_cut(delay_grid.bank+1,5,(b.left_delay_level*b.level)*bank[delay_grid.bank].global_level)
+      end
     else
       if param == "send" then
         b.right_delay_level = send_levels[index]
@@ -214,7 +227,11 @@ function delays.set_value(target,index,param)
           bank[delay_grid.bank][i].right_delay_level = send_levels[index]
         end
       end
-      softcut.level_cut_cut(delay_grid.bank+1,6,util.linlin(-1,1,1,0,b.pan)*(b.right_delay_level*b.level))
+      if not b.enveloped then
+        softcut.level_slew_time(6,0.25)
+        -- softcut.level_cut_cut(delay_grid.bank+1,6,util.linlin(-1,1,1,0,b.pan)*(b.right_delay_level*b.level))
+        softcut.level_cut_cut(delay_grid.bank+1,6,(b.right_delay_level*b.level)*bank[delay_grid.bank].global_level)
+      end
     end
   end
 end
@@ -267,7 +284,7 @@ function delays.sync_clock_to_length(source)
       derived_bpm = derived_bpm/2
       if derived_bpm <= 70 then break end
     end
-    params:set("bpm",derived_bpm)
+    params:set("clock_tempo",derived_bpm)
   end
 end
 
@@ -282,8 +299,8 @@ function delays.change_rate(target,param)
     end
   elseif param == "wobble" then
     local bump = {params:get("delay L: rate bump"), params:get("delay R: rate bump")}
-    local wobble = bump[target] == 1 and 0.5 or math.random(-75,75)/1000
-    softcut.rate(target+4,params:get(rate[target])+wobble)
+    local wobble = bump[target] == 1 and (params:get(rate[target]) * 1.5) or (params:get(rate[target])+math.random(-75,75)/1000)
+    softcut.rate(target+4,wobble)
     delay[target].wobble_hold = true
   elseif param == "restore" then
     softcut.rate(target+4,params:get(rate[target]))
@@ -293,12 +310,12 @@ end
 
 
 function delays.save_delay(source)
-  local dirname = _path.dust.."audio/cc_saved_delays/"
+  local dirname = _path.dust.."audio/cc2_saved-delays/"
   if os.rename(dirname, dirname) == nil then
     os.execute("mkdir " .. dirname)
   end
 
-  local dirname = _path.dust.."audio/cc_saved_delays/"..os.date("%y%m%d").."/"
+  local dirname = _path.dust.."audio/cc2_saved-delays/"..os.date("%y%m%d").."/"
   if os.rename(dirname, dirname) == nil then
     os.execute("mkdir " .. dirname)
   end
@@ -306,7 +323,7 @@ function delays.save_delay(source)
   local id = os.date("%X")
   local name = id.."-"..(source == 1 and "L-" or "R-")..params:get("bpm")..".wav"
   local duration = delay[source].mode == "clocked" and delay[source].end_point-delay[source].start_point or delay[source].free_end_point-delay[source].start_point
-  softcut.buffer_write_mono(_path.dust.."audio/cc_saved_delays/"..os.date("%y%m%d").."/"..name,delay[source].start_point,duration,1)
+  softcut.buffer_write_mono(_path.dust.."audio/cc2_saved-delays/"..os.date("%y%m%d").."/"..name,delay[source].start_point,duration,1)
 end
 
 function delays.load_delay(file,destination)

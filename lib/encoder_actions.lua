@@ -6,32 +6,40 @@ ea.sc = {}
 function encoder_actions.init(n,d)
   if n == 1 then
     if menu == 1 then
-      page.main_sel = util.clamp(page.main_sel+d,1,10)
+      page.main_sel = util.clamp(page.main_sel+d,1,9)
     elseif menu == 2 then
-      local id = page.loops_sel + 1
+      local id = page.loops_sel
+      if not key1_hold then
+        page.loops_sel = util.clamp(page.loops_sel+d,1,4)
+        id = page.loops_sel
+      end
       if id ~= 4 then
-        if page.loops_page == 1 then
-          ea.change_pad(id,d)
-        else
-          local which_pad = nil
-          if bank[id].focus_hold == false then
-            which_pad = bank[id].id
+        if key1_hold then
+          if page.loops_view[id] > 1 then
+            ea.change_pad(id,d)
           else
-            which_pad = bank[id].focus_pad
+            local which_pad = nil
+            if bank[id].focus_hold == false then
+              which_pad = bank[id].id
+            else
+              which_pad = bank[id].focus_pad
+            end
+            local resolution = loop_enc_resolution
+            ea.move_play_window(bank[id][which_pad],d/resolution)
+            if bank[id].focus_hold == false then
+              ea.sc.move_play_window(id)
+            end
           end
-          local resolution = loop_enc_resolution * (key1_hold and 10 or 1)
-          ea.move_play_window(bank[id][which_pad],d/resolution)
-        end
-        if bank[id].focus_hold == false then
-          ea.sc.move_play_window(id)
         end
       elseif id == 4 then
-        if page.loops_page == 1 then
-          ea.change_buffer(rec,d)
-        else
-          ea.move_rec_window(rec,d)
-        end
+        if key1_hold then
+          if page.loops_view[id] == 2 then
+            ea.change_buffer(rec,d)
+          else
+            ea.move_rec_window(rec,d)
+          end
           ea.sc.move_rec_window(rec)
+        end
       end
     elseif menu == 6 then
       if page.delay_section == 1 then
@@ -46,77 +54,40 @@ function encoder_actions.init(n,d)
     elseif menu == 7 then
       page.time_sel = util.clamp(page.time_sel+d,1,6)
     elseif menu == 8 then
-
       rytm.track_edit = util.clamp(rytm.track_edit+d,1,3)
-
-      -- if key1_hold then
-      --   if d > 0 then
-      --     rytm.screen_focus = "right"
-      --   elseif d < 0 then
-      --     rytm.screen_focus = "left"
-      --   end
-      -- else
-      --   rytm.track_edit = util.clamp(rytm.track_edit+d,1,3)
-      -- end
-
-      --[==[
-      if page.track_page_section[page.track_page] == 1 then
-        page.track_page = util.clamp(page.track_page+d,1,4)
-        for i = 1,3 do
-          tracker[i].recording = false
-        end
-      elseif page.track_page_section[page.track_page] == 3 then
-        if page.track_page < 4 then
-          local reasonable_max = nil
-          for i = 1,tracker[page.track_page].max_memory do
-            if tracker[page.track_page][i].pad ~= nil then
-              reasonable_max = i
-            end
-          end
-          if reasonable_max ~= nil then
-            page.track_sel[page.track_page] = util.clamp(page.track_sel[page.track_page]+d,1,reasonable_max+1)
-          end
-        end
-      elseif page.track_page_section[page.track_page] == 4 then
-        if key1_hold == false then
-          if tracker[page.track_page][page.track_sel[page.track_page]].pad ~= nil then
-            page.track_param_sel[page.track_page] = util.clamp(page.track_param_sel[page.track_page] + d,1,11)
-          end
-        else
-          page.track_sel[page.track_page] = util.clamp(page.track_sel[page.track_page] + d,tracker[page.track_page].start_point,tracker[page.track_page].end_point)
-        end
-      end
-      -]==]
-
     elseif menu == 9 then
-      if key1_hold then
-        local working = arp[page.arp_page_sel].retrigger and 1 or 0
-        working = util.clamp(working+d,0,1)
-        arp[page.arp_page_sel].retrigger = (working == 1 and true or false)
-      else
-        page.arp_page_sel = util.clamp(page.arp_page_sel+d,1,3)
-      end
+      page.arp_page_sel = util.clamp(page.arp_page_sel+d,1,3)
     elseif menu == 10 then
       page.rnd_page = util.clamp(page.rnd_page+d,1,3)
-      -- if page.rnd_page_section == 1 then
-      --   page.rnd_page = util.clamp(page.rnd_page+d,1,3)
-      -- elseif page.rnd_page_section == 2 then
-      --   local selected_slot = page.rnd_page_sel[page.rnd_page]
-      --   local current_param = rnd[page.rnd_page][selected_slot].param
-      --   local reasonable_max = (current_param == "loop" or current_param == "delay send") and 3 or 4
-      --   page.rnd_page_edit[page.rnd_page] = util.clamp(page.rnd_page_edit[page.rnd_page]+d,1,reasonable_max)
-      -- end
     end
   end
   if n == 2 then
     if menu == 1 then
-      page.main_sel = util.clamp(page.main_sel+d,1,10)
+      page.main_sel = util.clamp(page.main_sel+d,1,9)
     elseif menu == 2 then
-      local id = page.loops_sel + 1
+      local id = page.loops_sel
       if id ~=4 then
-        if page.loops_page == 1 then
+        if page.loops_view[id] == 2 then
+          local focused_pad = nil
+          if grid_pat[id].play == 0 and grid_pat[id].tightened_start == 0 and not arp[id].playing and midi_pat[id].play == 0 then
+            focused_pad = bank[id].id
+          else
+            focused_pad = bank[id].focus_pad
+          end
+          params:delta("rate "..id,d)
+          if focused_pad == 16 then
+            for i = 1,15 do
+              bank[id][i].rate = bank[id][16].rate
+            end
+          end
+          if grid.alt then
+            for i = 1,16 do
+              bank[id][i].rate = bank[id][focused_pad].rate
+            end
+          end
+        elseif page.loops_view[id] == 3 then
           ea.change_pad_clip(id,d)
-        else
+        elseif page.loops_view[id] == 1 then
           local which_pad = nil
           if bank[id].focus_hold == false then
             which_pad = bank[id].id
@@ -130,21 +101,9 @@ function encoder_actions.init(n,d)
           end
         end
       elseif id == 4 then
-        if page.loops_page == 1 then
-          local preadjust = rec.state
-          rec.state = util.clamp(rec.state+d,0,1)
-          if preadjust ~= rec.state then
-            softcut.recpre_slew_time(1,0.5)
-            softcut.level_slew_time(1,0.5)
-            softcut.fade_time(1,0.01)
-            softcut.rec_level(1,rec.state)
-            if rec.state == 1 then
-              softcut.pre_level(1,params:get("live_rec_feedback"))
-            else
-              softcut.pre_level(1,1)
-            end
-          end
-        else
+        if page.loops_view[id] == 2 then
+          params:delta("live_buff_rate",d)
+        elseif page.loops_view[id] == 1 then
           local lbr = {1,2,4}
           if d >= 0 and util.round(rec.start_point + ((d/rec_loop_enc_resolution)/lbr[params:get("live_buff_rate")]),0.01) < util.round(rec.end_point,0.01) then
             rec.start_point = util.clamp(rec.start_point+((d/rec_loop_enc_resolution)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.clip-1))),(8.9+(8*(rec.clip-1))))
@@ -273,112 +232,8 @@ function encoder_actions.init(n,d)
           rytm.track[rytm.track_edit].mode = "single"
         end
       end
-
-
-      --[==[
-      if page.track_page_section[page.track_page] == 1 then
-        --[[
-        page.track_page = util.clamp(page.track_page+d,1,4)
-        for i = 1,3 do
-          tracker[i].recording = false
-        end
-        --]]
-      elseif page.track_page_section[page.track_page] == 3 then
-        if page.track_page < 4 then
-          if tracker[page.track_page][page.track_sel[page.track_page]].pad == nil then
-            tracker[page.track_page][page.track_sel[page.track_page]].pad = 0
-            tracker[page.track_page][page.track_sel[page.track_page]].time = 3
-            if page.track_sel[page.track_page] > tracker[page.track_page].end_point then
-              tracker[page.track_page].end_point = page.track_sel[page.track_page]
-            end
-          end
-          tracker[page.track_page][page.track_sel[page.track_page]].pad = util.clamp(tracker[page.track_page][page.track_sel[page.track_page]].pad+d,1,16)
-          trackers.map_to(page.track_page,page.track_sel[page.track_page])
-        else
-          tracker[1].snake = util.clamp(tracker[1].snake+d,1,8)
-        end
-      elseif page.track_page_section[page.track_page] == 4 then
-        local id = page.track_page
-        local sel = page.track_param_sel[id]
-        local line = page.track_sel[id]
-        if sel == 1 then
-          if tracker[id][line].pad == nil then tracker[id][line].pad = 0 end
-          tracker[id][line].pad = util.clamp(tracker[id][line].pad+d,1,16)
-          trackers.map_to(id,line)
-        elseif sel == 2 then
-          local rate_to_int =
-          { [-4] = 1
-          , [-2] = 2
-          , [-1] = 3
-          , [-0.5] = 4
-          , [-0.25] = 5
-          , [-0.125] = 6
-          , [0.125] = 7
-          , [0.25] = 8
-          , [0.5] = 9
-          , [1] = 10
-          , [2] = 11
-          , [4] = 12
-          }
-          local tracker_rate = rate_to_int[tracker[id][line].rate]
-          local tracker_rate = util.clamp(tracker_rate+d,1,12)
-          local int_to_rate = {-4,-2,-1,-0.5,-0.25,-0.125,0.125,0.25,0.5,1,2,4}
-          tracker[id][line].rate = int_to_rate[tracker_rate]
-        elseif sel == 3 then
-          ea.move_start(tracker[id][line],d/loop_enc_resolution)
-        elseif sel == 4 then
-          ea.move_end(tracker[id][line],d/loop_enc_resolution)
-        elseif sel == 5 then
-          local bool_to_string = {["false"] = 1, ["true"] = 2}
-          local tracker_loop = bool_to_string[tostring(tracker[id][line].loop)]
-          tracker_loop = util.clamp(tracker_loop+d,1,2)
-          local int_to_bool = {false, true}
-          tracker[id][line].loop = int_to_bool[tracker_loop]
-        elseif sel == 6 then
-          local pre_adjust = tracker[id][line].clip
-          local current_difference = (tracker[id][line].end_point - tracker[id][line].start_point)
-          if tracker[id][line].mode == 1 and tracker[id][line].clip + d > 3 then
-            tracker[id][line].mode = 2
-            tracker[id][line].clip = 1
-          elseif tracker[id][line].mode == 2 and tracker[id][line].clip + d < 1 then
-            tracker[id][line].mode = 1
-            tracker[id][line].clip = 3
-          else
-            tracker[id][line].clip = util.clamp(tracker[id][line].clip+d,1,3)
-          end
-          tracker[id][line].start_point = tracker[id][line].start_point - ((pre_adjust - tracker[id][line].clip)*8)
-          tracker[id][line].end_point = tracker[id][line].start_point + current_difference
-        end
-        --trackers.map_similar(id,line)
-      end
-      --]==]
     elseif menu == 9 then
-      local focus_arp = arp[page.arp_page_sel]
-      if page.arp_param_group[page.arp_page_sel] == 2 then
-        focus_arp.start_point = util.clamp(focus_arp.start_point+d,1,focus_arp.end_point)
-      else
-        local deci_to_int =
-        { ["0.125"] = 1 --1/32
-        , ["0.1667"] = 2 --1/16T
-        , ["0.25"] = 3 -- 1/16
-        , ["0.3333"] = 4 -- 1/8T
-        , ["0.5"] = 5 -- 1/8
-        , ["0.6667"] = 6 -- 1/4T
-        , ["1.0"] = 7 -- 1/4
-        , ["1.3333"] = 8 -- 1/2T
-        , ["2.0"] = 9 -- 1/2
-        , ["2.6667"] = 10  -- 1T
-        , ["4.0"] = 11 -- 1
-        }
-        local rounded = util.round(focus_arp.time,0.0001)
-        local working = deci_to_int[tostring(rounded)]
-        working = util.clamp(working+d,1,11)
-        local int_to_deci = {0.125,1/6,0.25,1/3,0.5,2/3,1,4/3,2,8/3,4}
-        focus_arp.time = int_to_deci[working]
-        for i = 1,16 do
-          bank[page.arp_page_sel][i].arp_time = focus_arp.time
-        end
-      end
+      page.arp_param[page.arp_page_sel] = util.clamp(page.arp_param[page.arp_page_sel] + d,1,5)
     elseif menu == 10 then
       local selected_slot = page.rnd_page_sel[page.rnd_page]
       if page.rnd_page_section == 1 then
@@ -394,9 +249,9 @@ function encoder_actions.init(n,d)
   end
   if n == 3 then
     if menu == 2 then
-      local id = page.loops_sel + 1
+      local id = page.loops_sel
       if id ~= 4 then
-        if page.loops_page == 1 then
+        if page.loops_view[id] == 3 then
           local focused_pad = nil
           if grid_pat[id].play == 0 and grid_pat[id].tightened_start == 0 and not arp[id].playing and midi_pat[id].play == 0 then
             focused_pad = bank[id].id
@@ -417,12 +272,33 @@ function encoder_actions.init(n,d)
               bank[id][i].offset = bank[id][16].offset
             end
           end
-          if grid.alt == 1 then
+          if grid.alt then
             for i = 1,16 do
               bank[id][i].offset = bank[id][focused_pad].offset
             end
           end
-        else
+        
+        elseif page.loops_view[id] == 2 then
+          local focused_pad = nil
+          if grid_pat[id].play == 0 and grid_pat[id].tightened_start == 0 and not arp[id].playing and midi_pat[id].play == 0 then
+            focused_pad = bank[id].id
+          else
+            focused_pad = bank[id].focus_pad
+          end
+          bank[id][focused_pad].rate_slew = util.clamp(bank[id][focused_pad].rate_slew+d/10,0,4)
+          softcut.rate_slew_time(id+1,bank[id][focused_pad].rate_slew)
+          if focused_pad == 16 then
+            for i = 1,15 do
+              bank[id][i].rate_slew = bank[id][16].rate_slew
+            end
+          end
+          if grid.alt then
+            for i = 1,16 do
+              bank[id][i].rate_slew = bank[id][focused_pad].rate_slew
+            end
+          end
+          
+        elseif page.loops_view[id] == 1 then
           local which_pad = nil
           if bank[id].focus_hold == false then
             which_pad = bank[id].id
@@ -436,8 +312,8 @@ function encoder_actions.init(n,d)
           end
         end
       elseif id == 4 then
-        if page.loops_page == 1 then
-          params:delta("live_buff_rate",d)
+        if page.loops_view[id] == 2 then
+          
         else
           local lbr = {1,2,4}
           if d <= 0 and util.round(rec.start_point,0.01) < util.round(rec.end_point + ((d/rec_loop_enc_resolution)/lbr[params:get("live_buff_rate")]),0.01) then
@@ -599,45 +475,59 @@ function encoder_actions.init(n,d)
         rytm.track[rytm.track_edit].clock_div = tonumber(deci[new_value])
       end
 
-      --[==[
-      if page.track_page_section[page.track_page] == 3 then
-        if tracker[page.track_page][page.track_sel[page.track_page]].pad ~= nil then
-        local numerator_to_sel =
-          { [2] = 1 --1/16T
-          , [3] = 2 -- 1/16
-          , [4] = 3 -- 1/8T
-          , [6] = 4 -- 1/8
-          , [8] = 5 -- 1/4T
-          , [12] = 6 -- 1/4
-          , [16] = 7 -- 1/2T
-          , [24] = 8 -- 1/2
-          , [32] = 9  -- 1T
-          , [48] = 10 -- 1
-          }
-          local working = numerator_to_sel[tracker[page.track_page][page.track_sel[page.track_page]].time]
-          working = util.clamp(working+d,1,10)
-          local int_to_numerator = {2,3,4,6,8,12,16,24,32,48}
-          tracker[page.track_page][page.track_sel[page.track_page]].time = int_to_numerator[working]
-        end
-      end
-      --]==]
     elseif menu == 9 then
-      if page.arp_param_group[page.arp_page_sel] == 2 then
-        if #arp[page.arp_page_sel].notes > 0 then
-          arp[page.arp_page_sel].end_point = util.clamp(arp[page.arp_page_sel].end_point+d,arp[page.arp_page_sel].start_point,#arp[page.arp_page_sel].notes)
+      local focus_arp = arp[page.arp_page_sel]
+      local id = page.arp_page_sel
+      if page.arp_param[id] == 1 then
+        local deci_to_int =
+        { ["0.125"] = 1 --1/32
+        , ["0.1667"] = 2 --1/16T
+        , ["0.25"] = 3 -- 1/16
+        , ["0.3333"] = 4 -- 1/8T
+        , ["0.5"] = 5 -- 1/8
+        , ["0.6667"] = 6 -- 1/4T
+        , ["1.0"] = 7 -- 1/4
+        , ["1.3333"] = 8 -- 1/2T
+        , ["2.0"] = 9 -- 1/2
+        , ["2.6667"] = 10  -- 1T
+        , ["4.0"] = 11 -- 1
+        }
+        local rounded = util.round(focus_arp.time,0.0001)
+        local working = deci_to_int[tostring(rounded)]
+        working = util.clamp(working+d,1,11)
+        local int_to_deci = {0.125,1/6,0.25,1/3,0.5,2/3,1,4/3,2,8/3,4}
+        if page.arp_alt[page.arp_page_sel] then
+          bank[page.arp_page_sel][bank[page.arp_page_sel].id].arp_time = int_to_deci[working]
+          focus_arp.time = bank[page.arp_page_sel][bank[page.arp_page_sel].id].arp_time
+        else
+          focus_arp.time = int_to_deci[working]
+          for i = 1,16 do
+            bank[page.arp_page_sel][i].arp_time = focus_arp.time
+          end
         end
-      else
+      elseif page.arp_param[id] == 2 then
         local dir_to_int =
         { ["fwd"] = 1
         , ["bkwd"] = 2
         , ["pend"] = 3
         , ["rnd"] = 4
         }
-        local dir = dir_to_int[arp[page.arp_page_sel].mode]
+        local dir = dir_to_int[focus_arp.mode]
         dir = util.clamp(dir+d,1,4)
         local int_to_dir = {"fwd","bkwd","pend","rnd"}
-        arp[page.arp_page_sel].mode = int_to_dir[dir]
+        focus_arp.mode = int_to_dir[dir]
+      elseif page.arp_param[id] == 3 then
+        focus_arp.start_point = util.clamp(focus_arp.start_point+d,1,focus_arp.end_point)
+      elseif page.arp_param[id] == 4 then
+        if #focus_arp.notes > 0 then
+          focus_arp.end_point = util.clamp(focus_arp.end_point+d,focus_arp.start_point,#focus_arp.notes)
+        end
+      elseif page.arp_param[id] == 5 then
+        local working = arp[page.arp_page_sel].retrigger and 0 or 1
+        working = util.clamp(working+d,0,1)
+        arp[page.arp_page_sel].retrigger = (working == 0 and true or false)
       end
+
     elseif menu == 10 then
       local current = rnd[page.rnd_page][page.rnd_page_sel[page.rnd_page]]
       if page.rnd_page_section == 2 then
@@ -725,65 +615,122 @@ function encoder_actions.init(n,d)
       focused_pad = bank[n].id
     end
     if page.levels_sel == 0 then
-      if key1_hold or grid.alt == 1 then
-        for i = 1,16 do
-          bank[n][i].level = util.clamp(bank[n][i].level+d/10,0,2)
-        end
+      if key1_hold or grid.alt or bank[n].alt_lock then
+        -- for i = 1,16 do
+        --   bank[n][i].level = util.clamp(bank[n][i].level+d/10,0,2)
+        -- end
+        bank[n].global_level = util.clamp(bank[n].global_level+d/10,0,2)
       else
         bank[n][focused_pad].level = util.clamp(bank[n][focused_pad].level+d/10,0,2)
       end
-      if bank[n][bank[n].id].enveloped == false then
+      -- TODO figure out of this is necessary:
+      -- it wouldn't let you adjust the volume on an enveloped
+      -- if bank[n][bank[n].id].enveloped == false then
+      if bank[n][bank[n].id].envelope_mode == 2 or bank[n][bank[n].id].enveloped == false then
         if bank[n].focus_hold == false then
           softcut.level_slew_time(n+1,1.0)
-          softcut.level(n+1,bank[n][bank[n].id].level)
-          softcut.level_cut_cut(n+1,5,util.linlin(-1,1,0,1,bank[n][bank[n].id].pan)*(bank[n][bank[n].id].left_delay_level*bank[n][bank[n].id].level))
-          softcut.level_cut_cut(n+1,6,util.linlin(-1,1,1,0,bank[n][bank[n].id].pan)*(bank[n][bank[n].id].right_delay_level*bank[n][bank[n].id].level))
+          softcut.level(n+1,bank[n][bank[n].id].level*bank[n].global_level)
+          softcut.level_cut_cut(n+1,5,(bank[n][bank[n].id].left_delay_level*bank[n][bank[n].id].level)*bank[n].global_level)
+          softcut.level_cut_cut(n+1,6,(bank[n][bank[n].id].right_delay_level*bank[n][bank[n].id].level)*bank[n].global_level)
         end
       end
     elseif page.levels_sel == 1 then
-      if key1_hold or grid.alt == 1 then
+
+      if key1_hold or grid.alt or bank[n].alt_lock then
         for j = 1,16 do
           local pre_enveloped = bank[n][j].enveloped
+          local pre_mode = bank[n][j].envelope_mode
+
+          bank[n][j].envelope_mode = util.clamp(bank[n][j].envelope_mode + d,0,3)
+
+          if bank[n][j].envelope_mode == 0 then
+            bank[n][j].enveloped = false
+            -- TODO: figure out if this is necessary
+            -- if pre_enveloped ~= bank[n][j].enveloped then
+            --   cheat(n, bank[n].id)
+            -- end
+          else
+            bank[n][j].enveloped = true
+            if pre_enveloped ~= bank[n][j].enveloped then
+              cheat(n, bank[n].id)
+            end
+          end
+
+          -- if bank[n][j].enveloped then
+          --   if d < 0 then
+          --     bank[n][j].enveloped = false
+          --     if pre_enveloped ~= bank[n][j].enveloped then
+          --       cheat(n, bank[n].id)
+          --     end
+          --   end
+          -- else
+          --   if d > 0 then
+          --     bank[n][j].enveloped = true
+          --     if pre_enveloped ~= bank[n][j].enveloped then
+          --       cheat(n, bank[n].id)
+          --     end
+          --   end
+          -- end
+          
+        end
+
+      else
+
+        local pre_enveloped = bank[n][focused_pad].enveloped
+        local pre_mode = bank[n][focused_pad].envelope_mode
+        bank[n][focused_pad].envelope_mode = util.clamp(bank[n][focused_pad].envelope_mode + d,0,3)
+        
+        if bank[n][focused_pad].envelope_mode == 0 then
+          bank[n][focused_pad].enveloped = false
+          -- if pre_enveloped ~= bank[n][bank[n].id].enveloped then
+          --   if bank[n].focus_hold == false then
+          --     cheat(n, bank[n].id)
+          --   end
+          -- end
+        else
+          bank[n][focused_pad].enveloped = true
+          if pre_enveloped ~= bank[n][focused_pad].enveloped then
+            if bank[n].focus_hold == false then
+              cheat(n, bank[n].id)
+            end
+          elseif pre_mode ~= bank[n][focused_pad].envelope_mode then
+            if bank[n].focus_hold == false then
+              cheat(n, bank[n].id)
+            end
+          end
+        end
+
+      end
+
+    elseif page.levels_sel == 2 then
+      if key1_hold or grid.alt or bank[n].alt_lock then
+        for j = 1,16 do
           if bank[n][j].enveloped then
-            if d < 0 then
-              bank[n][j].enveloped = false
-              if pre_enveloped ~= bank[n][j].enveloped then
+            if d>0 then
+              bank[n][j].envelope_loop = true
+            else
+              bank[n][j].envelope_loop = false
+            end
+          end
+        end
+      else
+        if bank[n][focused_pad].enveloped then
+          local pre_loop = bank[n][focused_pad].envelope_loop
+          if d>0 then
+            bank[n][focused_pad].envelope_loop = true
+            if pre_loop ~= bank[n][focused_pad].envelope_loop then
+              if bank[n].focus_hold == false then
                 cheat(n, bank[n].id)
               end
             end
           else
-            if d > 0 then
-              bank[n][j].enveloped = true
-              if pre_enveloped ~= bank[n][j].enveloped then
-                cheat(n, bank[n].id)
-              end
-            end
-          end
-        end
-      else
-        local pre_enveloped = bank[n][focused_pad].enveloped
-        if bank[n][focused_pad].enveloped then
-          if d < 0 then
-            bank[n][focused_pad].enveloped = false
-            if pre_enveloped ~= bank[n][bank[n].id].enveloped then
-              if bank[n].focus_hold == false then
-                cheat(n, bank[n].id)
-              end
-            end
-          end
-        else
-          if d > 0 then
-            bank[n][focused_pad].enveloped = true
-            if pre_enveloped ~= bank[n][focused_pad].enveloped then
-              if bank[n].focus_hold == false then
-                cheat(n, bank[n].id)
-              end
-            end
+            bank[n][focused_pad].envelope_loop = false
           end
         end
       end
-    elseif page.levels_sel == 2 then
-      if key1_hold or grid.alt == 1 then
+
+    elseif page.levels_sel == 3 then
+      if key1_hold or grid.alt or bank[n].alt_lock then
         for j = 1,16 do
           if bank[n][j].enveloped then
             bank[n][j].envelope_time = util.explin(0.1,60,0.1,60,bank[n][j].envelope_time)
@@ -793,16 +740,17 @@ function encoder_actions.init(n,d)
         end
       else
         if bank[n][focused_pad].enveloped then
-          bank[n][focused_pad].envelope_time = util.explin(0.1,60,0.1,60,bank[n][focused_pad].envelope_time)
-          bank[n][focused_pad].envelope_time = util.clamp(bank[n][focused_pad].envelope_time+d/10,0.1,60)
-          bank[n][focused_pad].envelope_time = util.linexp(0.1,60,0.1,60,bank[n][focused_pad].envelope_time)
+          bank[n][focused_pad].envelope_time = util.explin(0.05,60,0.05,60,bank[n][focused_pad].envelope_time)
+          bank[n][focused_pad].envelope_time = util.clamp(bank[n][focused_pad].envelope_time+d/10,0.05,60)
+          bank[n][focused_pad].envelope_time = util.linexp(0.05,60,0.05,60,bank[n][focused_pad].envelope_time)
         end
       end
+      env_counter[n].time = (bank[n][focused_pad].envelope_time/(bank[n][focused_pad].level/0.05))
     end
   end
   if menu == 4 then
     local focused_pad = nil
-    if key1_hold or grid.alt == 1 then
+    if key1_hold or grid.alt then
       for i = 1,16 do
         bank[n][i].pan = util.clamp(bank[n][i].pan+d/10,-1,1)
       end
@@ -819,7 +767,7 @@ function encoder_actions.init(n,d)
     local filt_page = page.filtering_sel + 1
     if filt_page == 1 then
       if bank[n][bank[n].id].filter_type == 4 then
-        if key1_hold or grid.alt == 1 then
+        if key1_hold or grid.alt then
           if slew_counter[n] ~= nil then
             slew_counter[n].prev_tilt = bank[n][bank[n].id].tilt
           end
@@ -854,7 +802,7 @@ function encoder_actions.init(n,d)
         end
       end
     elseif filt_page == 2 then
-      if key1_hold or grid.alt == 1 then
+      if key1_hold or grid.alt then
         bank[n][bank[n].id].tilt_ease_time = util.clamp(bank[n][bank[n].id].tilt_ease_time+(d/1), 5, 15000)
       else
         for j = 1,16 do
@@ -862,7 +810,7 @@ function encoder_actions.init(n,d)
         end
       end
     elseif filt_page == 3 then
-      if key1_hold or grid.alt == 1 then
+      if key1_hold or grid.alt then
         bank[n][bank[n].id].tilt_ease_type = util.clamp(bank[n][bank[n].id].tilt_ease_type+d, 1, 2)
       else
         for j = 1,16 do
@@ -875,15 +823,32 @@ function encoder_actions.init(n,d)
 end
 
 function ea.move_play_window(target,delta)
+  -- local duration = target.mode == 1 and 8 or clip[target.clip].sample_length
+  -- local current_difference = (target.end_point - target.start_point)
+  -- local s_p = target.mode == 1 and live[target.clip].min or clip[target.clip].min
+  -- local current_clip = duration*(target.clip-1)
+  -- if target.start_point + current_difference <= s_p+duration then
+  --   target.start_point = util.clamp(target.start_point + delta, s_p, s_p+duration)
+  --   target.end_point = target.start_point + current_difference
+  -- else
+  --   target.end_point = s_p+duration
+  --   target.start_point = target.end_point - current_difference
+  -- end
+
   local duration = target.mode == 1 and 8 or clip[target.clip].sample_length
   local current_difference = (target.end_point - target.start_point)
   local s_p = target.mode == 1 and live[target.clip].min or clip[target.clip].min
   local current_clip = duration*(target.clip-1)
-  if target.start_point + current_difference <= s_p+duration then
-    target.start_point = util.clamp(target.start_point + delta, s_p, s_p+duration)
+  local reasonable_max = target.mode == 1 and 9 or clip[target.clip].max+1
+  if target.start_point + current_difference <= reasonable_max then
+    target.start_point = util.clamp(target.start_point + delta, s_p, reasonable_max)
     target.end_point = target.start_point + current_difference
   else
-    target.end_point = s_p+duration
+    target.end_point = reasonable_max
+    target.start_point = target.end_point - current_difference
+  end
+  if target.end_point > reasonable_max then
+    target.end_point = reasonable_max
     target.start_point = target.end_point - current_difference
   end
 end
@@ -916,6 +881,7 @@ function ea.change_pad(target,delta)
   else
     pad.focus_pad = util.clamp(pad.focus_pad + delta,1,16)
   end
+  grid_dirty = true
 end
 
 function ea.change_buffer(target,delta)
@@ -924,6 +890,7 @@ function ea.change_buffer(target,delta)
   target.clip = util.clamp(target.clip+delta,1,3)
   target.start_point = target.start_point - ((pre_adjust - target.clip)*8)
   target.end_point = target.start_point + current_difference
+  grid_dirty = true
 end
 
 function ea.change_pad_clip(target,delta)
@@ -960,12 +927,13 @@ function ea.change_pad_clip(target,delta)
       bank[target][i].end_point = bank[target][i].start_point + current_difference
     end
   end
+  grid_dirty = true
 end
 
 function ea.move_start(target,delta)
   local duration = target.mode == 1 and 8 or clip[target.clip].sample_length
   local s_p = target.mode == 1 and live[target.clip].min or clip[target.clip].min
-  if delta >= 0 and target.start_point < (target.end_point - delta) then
+  if delta >= 0 and target.start_point < (target.end_point - 0.05) then
     target.start_point = util.clamp(target.start_point+delta,s_p,s_p+duration)
   elseif delta < 0 then
     target.start_point = util.clamp(target.start_point+delta,s_p,s_p+duration)
@@ -975,7 +943,7 @@ end
 function ea.move_end(target,delta)
   local duration = target.mode == 1 and 8 or clip[target.clip].sample_length
   local s_p = target.mode == 1 and live[target.clip].min or clip[target.clip].min
-  if delta <= 0 and target.start_point < target.end_point + delta then
+  if delta <= 0 and target.start_point < (target.end_point - 0.05) then
     target.end_point = util.clamp(target.end_point+delta,s_p,s_p+duration)
   elseif delta > 0 then
     target.end_point = util.clamp(target.end_point+delta,s_p,s_p+duration)

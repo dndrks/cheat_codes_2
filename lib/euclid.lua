@@ -24,6 +24,7 @@ function euclid.trig(target)
       end
       cheat(target,euclid.rotate_pads(euclid.track[target].pos + euclid.track[target].pad_offset))
     end
+    grid_dirty = true
   end
 end
 
@@ -112,26 +113,26 @@ end
 
 function euclid.savestate()
   local collection = params:get("collection")
-  local dirname = _path.data.."cheat_codes/rytm/"
+  local dirname = _path.data.."cheat_codes2/rytm/"
   if os.rename(dirname, dirname) == nil then
     os.execute("mkdir " .. dirname)
   end
   
-  local dirname = _path.data.."cheat_codes/rytm/collection-"..collection.."/"
+  local dirname = _path.data.."cheat_codes2/rytm/collection-"..collection.."/"
   if os.rename(dirname, dirname) == nil then
     os.execute("mkdir " .. dirname)
   end
 
   for i = 1,3 do
-    tab.save(euclid.track[i],_path.data .. "cheat_codes/rytm/collection-"..collection.."/"..i..".data")
+    tab.save(euclid.track[i],_path.data .. "cheat_codes2/rytm/collection-"..collection.."/"..i..".data")
   end
 end
 
 function euclid.loadstate()
   local collection = params:get("collection")
   for i = 1,3 do
-    if tab.load(_path.data .. "cheat_codes/rytm/collection-"..collection.."/"..i..".data") ~= nil then
-      euclid.track[i] = tab.load(_path.data .. "cheat_codes/rytm/collection-"..collection.."/"..i..".data")
+    if tab.load(_path.data .. "cheat_codes2/rytm/collection-"..collection.."/"..i..".data") ~= nil then
+      euclid.track[i] = tab.load(_path.data .. "cheat_codes2/rytm/collection-"..collection.."/"..i..".data")
     end
   end
   euclid.reset_pattern()

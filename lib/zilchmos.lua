@@ -30,11 +30,11 @@ function zilchmos.init(k,i)
   local sc_action = z.actions[k][finger][2]
 
   -- here's where we call the action
-  --if grid.alt == 0 then
-  if not b.alt_lock and grid.alt == 0 then
+  --if not grid.alt then
+  if not b.alt_lock and not grid.alt then
     p_action( b[p] )
     --trackers.inherit(which_bank,p)
-  elseif b.alt_lock or grid.alt == 1 then
+  elseif b.alt_lock or grid.alt then
     z.map( p_action, b ) -- or map it over the whole bank
   end
   if not b.focus_hold then
@@ -46,7 +46,6 @@ end
 function zilchmos.map( fn, bank ) -- this is a local bank, represents bank[i]
   for i=1,16 do -- will execute for each of the 16 elements in bank
     fn( bank[i] ) -- pass each pad to the supplied function
-    --trackers.inherit(which_bank,i)
   end
 end
 
@@ -69,7 +68,13 @@ function z.slew_add( pad ) z.slew( pad, "add" ) end
 -- core pad modifiers
 
 function zilchmos.level_inc( pad, delta )
-  pad.level = util.clamp( pad.level + delta, 0, 2 )
+  if not bank[which_bank].alt_lock and not grid.alt then
+    pad.level = util.clamp( pad.level + delta, 0, 2 )
+  else
+    if pad.pad_id == 1 then -- only do this once...
+      bank[which_bank].global_level = util.clamp( bank[which_bank].global_level + delta, 0, 2)
+    end
+  end
 end
 
 function zilchmos.pan_reverse( pad )
@@ -105,11 +110,12 @@ end
 
 function zilchmos.start_end_default( pad )
   local duration;
-  if pad.mode == 1 and pad.clip == rec.clip then
+  -- if pad.mode == 1 and pad.clip == rec.clip then
+  if pad.mode == 1 then
     --slice within bounds
     duration = rec.end_point-rec.start_point
-    pad.start_point = rec.start_point+((duration/16) * (pad.pad_id-1))
-    pad.end_point = rec.start_point+((duration/16) * (pad.pad_id))
+    pad.start_point = (rec.start_point+((duration/16) * (pad.pad_id-1)))+((pad.clip-1)*8)
+    pad.end_point = (rec.start_point+((duration/16) * (pad.pad_id)))+((pad.clip-1)*8)
   else
     duration = pad.mode == 1 and 8 or clip[pad.clip].sample_length
     pad.start_point = ((duration/16)*(pad.pad_id-1)) + clip[pad.clip].min
@@ -145,6 +151,9 @@ function zilchmos.start_random( pad )
     else
       min_start = math.floor(rec.start_point * 100) -- this sucks...
     end
+  elseif pad.mode == 2 then
+    max_end = math.floor(pad.end_point * 100)
+    min_start = math.floor(clip[pad.clip].min * 100)
   else
     --duration = math.modf(clip[pad.clip].sample_length)
     duration = pad.mode == 1 and 8 or math.modf(clip[pad.clip].sample_length)
@@ -173,6 +182,9 @@ function zilchmos.end_random( pad )
     else
       min_start = math.floor(rec.start_point * 100)
     end
+  elseif pad.mode == 2 then
+    max_end = math.floor(clip[pad.clip].max * 100)
+    min_start = math.floor(pad.start_point * 100)
   else
     duration = util.round(clip[pad.clip].sample_length)
     max_end = math.floor(((duration*pad.clip)+1) * 100)
@@ -216,6 +228,17 @@ function zilchmos.start_end_random( pad )
       else
         case2(8)
       end
+    end
+  elseif pad.mode == 2 then
+    local s_p = math.floor(clip[pad.clip].min * 100)
+    local e_p = math.floor(clip[pad.clip].max * 100)
+    local j = math.random(s_p, e_p) / 100
+    if j + current_difference >= clip[pad.clip].max then
+      pad.end_point = clip[pad.clip].max
+      pad.start_point = pad.end_point - current_difference
+    else
+      pad.start_point = j
+      pad.end_point = pad.start_point + current_difference
     end
   else
     case2(pad.mode == 1 and 8 or math.modf(clip[pad.clip].sample_length))
@@ -283,16 +306,16 @@ end
 function zilchmos.sc.level( pad, i )
   if not pad.enveloped then
     softcut.level_slew_time(i+1,1.0)
-    softcut.level(i+1,pad.level)
+    softcut.level(i+1,pad.level*bank[i].global_level)
     if pad.left_delay_thru then
-      softcut.level_cut_cut(i+1,5,util.linlin(-1,1,0,1,pad.pan)*(pad.left_delay_level))
+      softcut.level_cut_cut(i+1,5,pad.left_delay_level)
     else
-      softcut.level_cut_cut(i+1,5,util.linlin(-1,1,0,1,pad.pan)*(pad.left_delay_level*pad.level))
+      softcut.level_cut_cut(i+1,5,(pad.left_delay_level*pad.level)*bank[i].global_level)
     end
     if pad.right_delay_thru then
-      softcut.level_cut_cut(i+1,6,util.linlin(-1,1,1,0,pad.pan)*(pad.right_delay_level))
+      softcut.level_cut_cut(i+1,6,pad.right_delay_level)
     else
-      softcut.level_cut_cut(i+1,6,util.linlin(-1,1,1,0,pad.pan)*(pad.right_delay_level*pad.level))
+      softcut.level_cut_cut(i+1,6,(pad.right_delay_level*pad.level)*bank[i].global_level)
     end
   end
 end
@@ -305,7 +328,7 @@ function zilchmos.sc.play_toggle( pad, i )
     if pad.enveloped then
       cheat( i, pad.pad_id )
     else
-      softcut.level(i+1, pad.level)
+      softcut.level(i+1, pad.level*bank[i].global_level)
     end
     softcut.rate(i+1, pad.rate * pad.offset)
   end

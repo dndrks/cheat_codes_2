@@ -17,17 +17,17 @@ function aa.init(n,d)
     local this_pad = this_bank[which_pad]
     local p_action = aa.actions[arc_param[n]][1]
     local sc_action = aa.actions[arc_param[n]][2]
-    if grid.alt == 0 then
+    if not this_bank.alt_lock and not grid.alt then
       if arc_param[n] ~= 4 then
         p_action(this_pad,d)
       else
-        aa.map(p_action, this_bank, d/1000, n)
+        aa.map(p_action, this_bank, arc_param[n] == 4 and d/1000 or d, n)
       end
-    else
+    elseif this_bank.alt_lock or grid.alt then
       if arc_param[n] ~= 4 then
         aa.map(p_action,this_bank,d)
       else
-        p_action(this_pad,d/1000, n)
+        p_action(this_pad, arc_param[n] == 4 and d/1000 or d, n)
       end
     end
     if this_bank.focus_hold == false or this_bank.focus_pad == this_bank.id then
@@ -37,9 +37,7 @@ function aa.init(n,d)
       aa.record(n)
     end
   else
-    local side = (arc.alt == nil or arc.alt == 0) and "L" or "R"
-    aa.delay_rate(d,side)
-    aa.record_delay(side)
+    aa.change_param_focus(d)
   end
   redraw()
 end
@@ -69,6 +67,7 @@ function aa.new_pattern_watch(enc)
   --new new!
   arc_p[enc][a_p].pan = bank[id][bank[id].id].pan
   arc_p[enc][a_p].level = bank[id][bank[id].id].level
+  arc_p[enc][a_p].global_level = bank[id].global_level
   --/new new!
   arc_pat[enc][a_p]:watch(arc_p[enc][a_p])
 end
@@ -79,52 +78,72 @@ function aa.map(fn, bank, delta, enc)
   end
 end
 
-function aa.delay_rate(d,side)
-  local chan = side == "L" and 1 or 2
-  delay[chan].arc_rate_tracker = util.clamp(delay[chan].arc_rate_tracker + d/10,1,13)
-  delay[chan].arc_rate = math.floor(delay[chan].arc_rate_tracker)
-  params:set("delay "..side..": rate",math.floor(delay[chan].arc_rate_tracker))
+function aa.change_param_focus(d)
+  local start = util.round(arc_meta_focus)
+  arc_meta_focus = util.clamp(arc_meta_focus+d/33,1,6)
+  if start ~= util.round(arc_meta_focus) then
+    for i = 1,3 do
+      arc_param[i] = util.round(arc_meta_focus)
+    end
+    grid_dirty = true
+  end
 end
 
 function aa.record(enc)
   aa.new_pattern_watch(enc)
 end
 
-function aa.record_delay(side)
-  arc_p[side] = {}
-  arc_p[side].i = side
-  if grid.alt == 0 then
-    arc_p[side].delay_focus = "L"
-    arc_p[side].left_delay_value = params:get("delay L: rate")
-  else
-    arc_p[side].delay_focus = "R"
-    arc_p[side].right_delay_value = params:get("delay R: rate")
-  end
-end
-
 function aa.move_window(target, delta)
+  local force = math.abs(delta) >= 5 and true or false
   local duration = target.mode == 1 and 8 or clip[target.clip].sample_length
   local current_difference = (target.end_point - target.start_point)
+  local s_p = target.mode == 1 and live[target.clip].min or clip[target.clip].min
   local current_clip = duration*(target.clip-1)
-  if target.start_point + current_difference <= (duration+1)+current_clip then
-    target.start_point = util.clamp(target.start_point + delta/300, 1+current_clip, (duration+1)+current_clip)
+  local reasonable_max = target.mode == 1 and 9 or clip[target.clip].max
+  local adjusted_delta = force and (duration > 15 and (delta/25) or (delta/100)) or (delta/300)
+  if target.start_point + current_difference <= reasonable_max then
+    target.start_point = util.clamp(target.start_point + adjusted_delta, s_p, reasonable_max)
     target.end_point = target.start_point + current_difference
   else
-    target.end_point = ((duration+1)+current_clip)
+    target.end_point = reasonable_max
     target.start_point = target.end_point - current_difference
   end
+  if target.end_point > reasonable_max then
+    target.end_point = reasonable_max
+    target.start_point = target.end_point - current_difference
+  end
+
 end
 
 function aa.move_start(target, delta)
+
+  local force = math.abs(delta) >= 5 and true or false
+
   local duration = target.mode == 1 and 8 or clip[target.clip].sample_length
-  local current_clip = duration*(target.clip-1)
-  target.start_point = util.clamp(target.start_point + delta/300, (1+current_clip), target.end_point-0.01)
+  local s_p = target.mode == 1 and live[target.clip].min or clip[target.clip].min
+  local adjusted_delta = force and (delta/100) or (delta/300)
+  if adjusted_delta >= 0 and target.start_point < (target.end_point - 0.055) then
+    target.start_point = util.clamp(target.start_point+adjusted_delta,s_p,s_p+duration)
+    print(target.end_point)
+  elseif adjusted_delta < 0 then
+    target.start_point = util.clamp(target.start_point+adjusted_delta,s_p,s_p+duration)
+  end
+
 end
 
 function aa.move_end(target, delta)
+
+  local force = math.abs(delta) >= 5 and true or false
+
   local duration = target.mode == 1 and 8 or clip[target.clip].sample_length
-  local current_clip = duration*(target.clip-1)
-  target.end_point = util.clamp(target.end_point + delta/300, target.start_point+0.01, ((duration+1)+current_clip))
+  local s_p = target.mode == 1 and live[target.clip].min or clip[target.clip].min
+  local adjusted_delta = force and (delta/100) or (delta/300)
+  if adjusted_delta <= 0 and target.start_point < (target.end_point - 0.055) then
+    target.end_point = util.clamp(target.end_point+adjusted_delta,s_p,s_p+duration)
+  elseif adjusted_delta > 0 then
+    target.end_point = util.clamp(target.end_point+adjusted_delta,s_p,s_p+duration)
+  end
+
 end
 
 function aa.change_tilt(target, delta, enc)
@@ -149,7 +168,13 @@ function aa.change_pan(target, delta)
 end
 
 function aa.change_level(target, delta)
-  target.level = util.clamp(target.level + delta/1000,0,2)
+  if bank[target.bank_id].alt_lock or grid.alt then
+    if target.pad_id == 1 then
+      bank[target.bank_id].global_level = util.clamp(bank[target.bank_id].global_level + delta/1000,0,2)
+    end
+  else
+    target.level = util.clamp(target.level + delta/1000,0,2)
+  end
 end
 
 function aa.sc.move_window(enc, target)
@@ -174,7 +199,9 @@ function aa.sc.change_pan(enc, target)
 end
 
 function aa.sc.change_level(enc, target)
-  softcut.level(enc+1,target.level)
+  if bank[enc][bank[enc].id].envelope_mode == 2 or not bank[enc][bank[enc].id].enveloped then
+    softcut.level(enc+1,target.level*bank[enc].global_level)
+  end
 end
 
 aa.actions =

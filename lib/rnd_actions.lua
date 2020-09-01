@@ -72,7 +72,8 @@ end
 
 function rnd.restore_default(t,i)
     if rnd[t][i].param == "rate slew" then
-        softcut.rate_slew_time(t+1,params:get("rate slew time "..t))
+        -- softcut.rate_slew_time(t+1,params:get("rate slew time "..t))
+        softcut.rate_slew_time(t+1,bank[t][bank[t].id].rate_slew)
     elseif rnd[t][i].param == "pan" then
         softcut.pan(t+1,bank[t][bank[t].id].pan)
     elseif rnd[t][i].param == "delay send" then
@@ -89,7 +90,10 @@ end
 function rnd.rate_slew(t,i)
     local min = util.round(rnd[t][i].rate_slew_min * 1000)
     local max = util.round(rnd[t][i].rate_slew_max * 1000)
-    local random_slew = math.random(min,max)/10000
+    local random_slew = math.random(min,max)/1000
+    if rnd[t][i].mode == "destructive" then
+      bank[t][bank[t].id].rate_slew = random_slew
+    end
     softcut.rate_slew_time(t+1,random_slew)
 end
 
@@ -101,8 +105,6 @@ function rnd.pan(t,i)
     bank[t][bank[t].id].pan = rand_pan
   end
   softcut.pan(t+1,rand_pan)
-  -- rightangleslice.actions[3]['123'][1](bank[t][bank[t].id])
-  -- rightangleslice.actions[3]['123'][2](bank[t][bank[t].id],t)
 end
 
 function rnd.rate(t,i)
@@ -135,6 +137,7 @@ function rnd.loop(t)
         bank[t][bank[t].id].loop = false
         softcut.loop(t+1,0)
     end
+    grid_dirty = true
 end
 
 function rnd.delay_send(t,i)
@@ -143,6 +146,19 @@ function rnd.delay_send(t,i)
         bank[t][j].left_delay_level = delay_send
         bank[t][j].right_delay_level = delay_send
     end
+    softcut.level_slew_time(5,1)
+    softcut.level_slew_time(6,1)
+    if bank[t][bank[t].id].left_delay_thru then
+      softcut.level_cut_cut(t+1,5,bank[t][bank[t].id].left_delay_level)
+    else
+      softcut.level_cut_cut(t+1,5,(bank[t][bank[t].id].left_delay_level*bank[t][bank[t].id].level)*bank[t].global_level)
+    end
+    if bank[t][bank[t].id].right_delay_thru then
+      softcut.level_cut_cut(t+1,6,bank[t][bank[t].id].right_delay_level)
+    else
+      softcut.level_cut_cut(t+1,6,(bank[t][bank[t].id].right_delay_level*bank[t][bank[t].id].level)*bank[t].global_level)
+    end
+    grid_dirty = true
 end
 
 function rnd.offset(t,i)
@@ -178,26 +194,26 @@ end
 
 function rnd.savestate()
   local collection = params:get("collection")
-  local dirname = _path.data.."cheat_codes/rnd/"
+  local dirname = _path.data.."cheat_codes2/rnd/"
   if os.rename(dirname, dirname) == nil then
     os.execute("mkdir " .. dirname)
   end
   
-  local dirname = _path.data.."cheat_codes/rnd/collection-"..collection.."/"
+  local dirname = _path.data.."cheat_codes2/rnd/collection-"..collection.."/"
   if os.rename(dirname, dirname) == nil then
     os.execute("mkdir " .. dirname)
   end
 
   for i = 1,3 do
-    tab.save(rnd[i],_path.data .. "cheat_codes/rnd/collection-"..collection.."/"..i..".data")
+    tab.save(rnd[i],_path.data .. "cheat_codes2/rnd/collection-"..collection.."/"..i..".data")
   end
 end
 
 function rnd.loadstate()
   local collection = params:get("collection")
   for i = 1,3 do
-    if tab.load(_path.data .. "cheat_codes/rnd/collection-"..collection.."/"..i..".data") ~= nil then
-      rnd[i] = tab.load(_path.data .. "cheat_codes/rnd/collection-"..collection.."/"..i..".data")
+    if tab.load(_path.data .. "cheat_codes2/rnd/collection-"..collection.."/"..i..".data") ~= nil then
+      rnd[i] = tab.load(_path.data .. "cheat_codes2/rnd/collection-"..collection.."/"..i..".data")
       for j = 1,#rnd[i] do
         rnd[i][j].clock = nil
         if rnd[i][j].playing then
