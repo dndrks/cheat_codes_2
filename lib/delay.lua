@@ -83,6 +83,7 @@ function delays.build_bundle(target,slot)
     delay[target].selected_bundle = slot
   end
   delay[target].saver_active = false
+  grid_dirty = true
 end
 
 function delays.restore_bundle(target,slot)
@@ -182,8 +183,6 @@ function delays.quick_action(target,param)
       end
     else
       if not pad.enveloped then
-        print(pad.enveloped)
-        print("sending 185")
         softcut.level_cut_cut(delay_grid.bank+1,target+4,target == 1 and bank[delay_grid.bank][bank[delay_grid.bank].id].left_delay_level or bank[delay_grid.bank][bank[delay_grid.bank].id].right_delay_level)
       end
     end

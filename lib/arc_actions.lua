@@ -17,13 +17,13 @@ function aa.init(n,d)
     local this_pad = this_bank[which_pad]
     local p_action = aa.actions[arc_param[n]][1]
     local sc_action = aa.actions[arc_param[n]][2]
-    if not this_bank.alt_lock and grid.alt == 0 then
+    if not this_bank.alt_lock and not grid.alt then
       if arc_param[n] ~= 4 then
         p_action(this_pad,d)
       else
         aa.map(p_action, this_bank, arc_param[n] == 4 and d/1000 or d, n)
       end
-    elseif this_bank.alt_lock or grid.alt == 1 then
+    elseif this_bank.alt_lock or grid.alt then
       if arc_param[n] ~= 4 then
         aa.map(p_action,this_bank,d)
       else
@@ -99,7 +99,7 @@ function aa.move_window(target, delta)
   local current_difference = (target.end_point - target.start_point)
   local s_p = target.mode == 1 and live[target.clip].min or clip[target.clip].min
   local current_clip = duration*(target.clip-1)
-  local reasonable_max = target.mode == 1 and 9 or clip[target.clip].max+1
+  local reasonable_max = target.mode == 1 and 9 or clip[target.clip].max
   local adjusted_delta = force and (duration > 15 and (delta/25) or (delta/100)) or (delta/300)
   if target.start_point + current_difference <= reasonable_max then
     target.start_point = util.clamp(target.start_point + adjusted_delta, s_p, reasonable_max)
@@ -122,8 +122,9 @@ function aa.move_start(target, delta)
   local duration = target.mode == 1 and 8 or clip[target.clip].sample_length
   local s_p = target.mode == 1 and live[target.clip].min or clip[target.clip].min
   local adjusted_delta = force and (delta/100) or (delta/300)
-  if adjusted_delta >= 0 and target.start_point < (target.end_point - 0.05) then
+  if adjusted_delta >= 0 and target.start_point < (target.end_point - 0.055) then
     target.start_point = util.clamp(target.start_point+adjusted_delta,s_p,s_p+duration)
+    print(target.end_point)
   elseif adjusted_delta < 0 then
     target.start_point = util.clamp(target.start_point+adjusted_delta,s_p,s_p+duration)
   end
@@ -137,7 +138,7 @@ function aa.move_end(target, delta)
   local duration = target.mode == 1 and 8 or clip[target.clip].sample_length
   local s_p = target.mode == 1 and live[target.clip].min or clip[target.clip].min
   local adjusted_delta = force and (delta/100) or (delta/300)
-  if adjusted_delta <= 0 and target.start_point < (target.end_point - 0.05) then
+  if adjusted_delta <= 0 and target.start_point < (target.end_point - 0.055) then
     target.end_point = util.clamp(target.end_point+adjusted_delta,s_p,s_p+duration)
   elseif adjusted_delta > 0 then
     target.end_point = util.clamp(target.end_point+adjusted_delta,s_p,s_p+duration)
@@ -167,7 +168,7 @@ function aa.change_pan(target, delta)
 end
 
 function aa.change_level(target, delta)
-  if bank[target.bank_id].alt_lock or grid.alt == 1 then
+  if bank[target.bank_id].alt_lock or grid.alt then
     if target.pad_id == 1 then
       bank[target.bank_id].global_level = util.clamp(bank[target.bank_id].global_level + delta/1000,0,2)
     end

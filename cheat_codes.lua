@@ -638,9 +638,9 @@ end
 key1_hold = false
 key1_hold_and_modify = false
 
-grid.alt = 0
-grid.alt_pp = 0
-grid.alt_delay = false
+grid.alt = false
+-- grid.alt_pp = 0
+-- grid.alt_delay = false
 grid.loop_mod = 0
 
 local function crow_flush()
@@ -706,7 +706,7 @@ function init()
   params:add_trigger("overwrite_coll", "overwrite collection")
   params:set_action("overwrite_coll", function(x) fileselect.enter(_path.data.."cheat_codes2/names/", named_overwrite) end)
   params:add_trigger("delete_coll", "delete collection")
-  params:set_action("delete_coll", function(x) fileselect.enter(_path.data.."cheat_codes2/names/", named_delete) end)
+  params:set_action("delete_coll", function(x) fileselect.enter(_path.data.."cheat_codes2/names/", pre_delete) end)
   
   menu = 1
   
@@ -1911,7 +1911,7 @@ osc_in = function(path, args, from)
       osc.send(dest, "/buffer_LED_"..i, {1})
         
       --[[
-      if rec.loop == 0 and grid.alt == 0 then
+      if rec.loop == 0 and not grid.alt then
         clock.run(one_shot_clock)
       end
       
@@ -2237,12 +2237,16 @@ function cheat(b,i)
       end
     end
   end
-  if pad.end_point - pad.start_point < 0.11 then
-    pad.end_point = pad.start_point + 0.1
+  -- OH ALL THIS SUCKS TODO FIXME
+  -- if pad.end_point - pad.start_point < 0.11 then
+  --   pad.end_point = pad.start_point + 0.1
+  -- end
+  if pad.mode == 1 then
+    if pad.end_point == 9 or pad.end_point == 17 or pad.end_point == 25 then
+      pad.end_point = pad.end_point-0.01
+    end
   end
-  if pad.end_point == 9 or pad.end_point == 17 or pad.end_point == 25 then
-    pad.end_point = pad.end_point-0.01
-  end
+  --/ OH ALL THIS SUCKS TODO FIXME
   softcut.fade_time(b+1,0.01)
   softcut.loop_start(b+1,pad.start_point)
   softcut.loop_end(b+1,pad.end_point)
@@ -2446,7 +2450,7 @@ function easing_slew(i)
   slew_counter[i].slewedVal = slew_counter[i].ease(slew_counter[i].current,slew_counter[i].beginVal,slew_counter[i].change,slew_counter[i].duration)
   slew_counter[i].slewedQ = slew_counter[i].ease(slew_counter[i].current,slew_counter[i].beginQ,slew_counter[i].changeQ,slew_counter[i].duration)
   slew_counter[i].current = slew_counter[i].current + 0.01
-  if grid.alt == 1 then
+  if grid.alt then
     try_tilt_process(i,bank[i].id,slew_counter[i].slewedVal,slew_counter[i].slewedQ)
   else
     for j = 1,16 do
@@ -2548,9 +2552,9 @@ function toggle_buffer(i)
     rec.end_point = rec.start_point + current_difference
   end
   
-  if rec.loop == 0 and grid.alt == 0 then
+  if rec.loop == 0 and not grid.alt then
     clock.run(one_shot_clock)
-  elseif rec.loop == 0 and grid.alt == 1 then
+  elseif rec.loop == 0 and grid.alt then
     buff_flush()
   end
   
@@ -2640,11 +2644,17 @@ end
 
 function key(n,z)
   if menu == "load screen" then
-  elseif menu == "save screen" then
+  elseif menu == "overwrite screen" then
     if z == 1 then
-      clock.cancel(collection_save_clock)
-      print("cancel save")
+      clock.cancel(collection_overwrite_clock)
+      print("cancel overwrite")
       clock.run(canceled_save)
+    end
+  elseif menu == "delete screen" then
+    if z == 1 then
+      clock.cancel(collection_delete_clock)
+      print("cancel delete")
+      clock.run(canceled_delete)
     end
   else
     if n == 3 and z == 1 then
@@ -3250,7 +3260,7 @@ function grid_redraw()
         g:led(e.x, e.y,15)
       end
       
-      g:led(16,8,(grid.alt*12)+3)
+      g:led(16,8,(grid.alt and 12 or 0)+3)
       
       for i = 1,3 do
         if bank[i].focus_hold == false then
@@ -3369,7 +3379,7 @@ function grid_redraw()
         end
       end
       
-      g:led(16,8,(grid.alt_pp*12)+3)
+      g:led(16,8,(grid.alt and 12 or 0)+3)
       g:led(16,2,(grid.loop_mod*9)+3)
       
       if grid.loop_mod == 1 then
@@ -3554,7 +3564,20 @@ function grid_redraw()
         end
       end
 
-      g:led(16,8,(grid.alt_delay == true and 12 or 0)+3)
+      --arp button
+      if not arp[delay_grid.bank].enabled then
+        g:led(12,2,0)
+      else
+        if arp[delay_grid.bank].playing and arp[delay_grid.bank].hold then
+          g:led(12,2,10)
+        elseif arp[delay_grid.bank].hold then
+          g:led(12,2,6)
+        else
+          g:led(12,2,4)
+        end
+      end
+
+      g:led(16,8,(grid.alt == true and 12 or 0)+3)
 
     end
     local page_led = {[0] = 0, [1] = 7, [2] = 15}
@@ -3798,7 +3821,7 @@ arc_redraw = function()
     end
     if arc_param[i] == 5 then
       local level_to_led;
-      if key1_hold or bank[i].alt_lock or grid.alt == 1 then
+      if key1_hold or bank[i].alt_lock or grid.alt then
         level_to_led = bank[i].global_level
       else
         level_to_led = bank[i][bank[i].id].level
@@ -3880,8 +3903,10 @@ function named_overwrite(path)
       io.input(file)
       local collection = io.read()
       io.close(file)
-      pre_save(collection)
+      pre_overwrite(collection)
     end
+  else
+    print("nothing overwritten")
   end
 end
 
@@ -3892,12 +3917,33 @@ function named_delete(path)
       io.input(file)
       os.remove(path)
       io.close(file)
+      print("collection deleted")
     end
   end
 end
 
+function pre_overwrite(text)
+  if text ~= 'cancel' then
+    collection_overwrite_clock = clock.run(overwrite_screen,text)
+    _norns.key(1,1)
+    _norns.key(1,0)
+  else
+    print("nothing overwritten")
+  end
+end
+
+function pre_delete(text)
+  if text ~= 'cancel' then
+    collection_delete_clock = clock.run(delete_screen,text)
+    _norns.key(1,1)
+    _norns.key(1,0)
+  else
+    print("nothing deleted")
+  end
+end
+
 function pre_save(text)
-  if text then
+  if text ~= 'cancel' then
     collection_save_clock = clock.run(save_screen,text)
     _norns.key(1,1)
     _norns.key(1,0)
@@ -3991,87 +4037,21 @@ function named_savestate(text)
   end
   --/ ARC rec save
 
-end
-
-function savestate()
-  
-  local dirname = _path.data.."cheat_codes2/"
-  local collection = tonumber(string.format("%.0f",params:get("collection")))
-  if os.rename(dirname, dirname) == nil then
-    os.execute("mkdir " .. dirname)
+  -- misc save
+  local file = io.open(_path.data .. "cheat_codes2/collection-"..selected_coll.."/misc/misc.data", "w+")
+  if file then
+    io.output(file)
+    io.write("clock_tempo: "..params:get("clock_tempo").."\n")
+    io.close(file)
   end
-  
-  local dirname = _path.data.."cheat_codes2/collection-"..collection.."/"
-  if os.rename(dirname, dirname) == nil then
-    os.execute("mkdir " .. dirname)
-  end
-
-  local dirnames = {"banks/","params/","arc-rec/","patterns/","step-seq/","arps/","euclid/","rnd/","delays/","rec/","misc/"}
-  for i = 1,#dirnames do
-    local directory = _path.data.."cheat_codes2/collection-"..collection.."/"..dirnames[i]
-    if os.rename(directory, directory) == nil then
-      os.execute("mkdir " .. directory)
-    end
-  end
-
-  for i = 1,3 do
-    tab.save(bank[i],_path.data .. "cheat_codes2/collection-"..collection.."/banks/"..i..".data")
-    tab.save(step_seq[i],_path.data .. "cheat_codes2/collection-"..collection.."/step-seq/"..i..".data")
-    tab.save(arp[i],_path.data .. "cheat_codes2/collection-"..collection.."/arps/"..i..".data")
-    tab.save(rytm.track[i],_path.data .. "cheat_codes2/collection-"..collection.."/euclid/euclid"..i..".data")
-    tab.save(rnd[i],_path.data .. "cheat_codes2/collection-"..collection.."/rnd/"..i..".data")
-    if params:get("collect_live") == 2 then
-      collect_samples(i)
-    end
-  end
-
-  for i = 1,2 do
-    tab.save(delay[i],_path.data .. "cheat_codes2/collection-"..collection.."/delays/delay"..(i == 1 and "L" or "R")..".data")
-  end
-  
-  params:write(_path.data.."cheat_codes2/collection-"..collection.."/params/all.pset")
-  tab.save(rec,_path.data .. "cheat_codes2/collection-"..collection.."/rec/rec.data")
-
-  -- GRID pattern save
-  if selected_coll ~= collection then
-    meta_copy_coll(selected_coll,collection)
-  end
-  meta_shadow(collection)
-  selected_coll = collection
-  --/ GRID pattern save
-
-  -- MIDI pattern save
-  for i = 1,3 do
-    save_midi_pattern(i)
-  end
-  --/ MIDI pattern save
-
-  -- ARC rec save
-  local arc_rec_dirty = {false,false,false}
-  for i = 1,3 do
-    for j = 1,4 do
-      if arc_pat[i][j].count > 0 then
-        arc_rec_dirty[i] = true
-      end
-    end
-    if arc_rec_dirty[i] then
-      save_arc_pattern(i)
-    else
-      local file = io.open(_path.data .. "cheat_codes2/collection-"..selected_coll.."/arc-rec/encoder-"..i..".data", "r")
-      if file then
-        io.input(file)
-        os.remove(_path.data .. "cheat_codes2/collection-"..selected_coll.."/arc-rec/encoder-"..i..".data")
-        io.close(file)
-      end
-    end
-  end
-  --/ ARC rec save
+  --/ misc save
 
 end
 
 function named_loadstate(path)
 
   print("loading...")
+  reset_all_banks(bank)
   print(path)
   local file = io.open(path, "r")
   if file then
@@ -4144,89 +4124,14 @@ function named_loadstate(path)
         load_midi_pattern(i)
       end
     end
-  else
-    _norns.key(1,1)
-    _norns.key(1,0)
-    collection_loaded = false
-    clock.run(load_fail_screen)
-  end
 
-  grid_dirty = true
-
-end
-
-function loadstate()
-    
-  local check_exist = io.open(_path.data.."cheat_codes2/collection-"..tonumber(string.format("%.0f",params:get("collection"))))
-  if check_exist then
-    local collection = tonumber(string.format("%.0f",params:get("collection")))
-    selected_coll = collection
-    collection_loaded = true
-    io.close(check_exist)
-    _norns.key(1,1)
-    _norns.key(1,0)
-    clock.run(load_screen)
-    redraw()
-    params:read(_path.data.."cheat_codes2/collection-"..collection.."/params/all.pset")
-    if tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/rec/rec.data") ~= nil then
-      rec = tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/rec/rec.data")
-    end
-    -- params:bang()
-    for i = 1,3 do
-      if tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/banks/"..i..".data") ~= nil then
-        bank[i] = tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/banks/"..i..".data")
-      end
-      if tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/step-seq/"..i..".data") ~= nil then
-        step_seq[i] = tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/step-seq/"..i..".data")
-      end
-      if tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/arps/"..i..".data") ~= nil then
-        arp[i] = tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/arps/"..i..".data")
-      end
-      if tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/rnd/"..i..".data") ~= nil then
-        rnd[i] = tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/rnd/"..i..".data")
-        for j = 1,#rnd[i] do
-          rnd[i][j].clock = nil
-          if rnd[i][j].playing then
-            rnd[i][j].clock = clock.run(rnd.advance, i, j)
-          end
-        end
-      end
-
-      if params:get("collect_live") == 2 then
-        reload_collected_samples(_path.dust.."audio/cc2_live-audio/"..collection.."/".."cc2_"..collection.."-"..i..".wav",i)
-      end
-      
-      if tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/euclid/euclid"..i..".data") ~= nil then
-        rytm.track[i] = tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/euclid/euclid"..i..".data")
-      end
-      rytm.reset_pattern()
+    local file = io.open(_path.data .. "cheat_codes2/collection-"..selected_coll.."/misc/misc.data", "r")
+    if file then
+      io.input(file)
+      params:set("clock_tempo", tonumber(string.match(io.read(), ': (.*)')))
+      io.close(file)
     end
 
-    for i = 1,2 do
-      if tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/delays/delay"..(i == 1 and "L" or "R")..".data") ~= nil then
-        delay[i] = tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/delays/delay"..(i == 1 and "L" or "R")..".data")
-      end
-    end
-
-    -- GRID pattern restore
-    if selected_coll ~= collection then
-      meta_shadow(selected_coll)
-    elseif selected_coll == collection then
-      cleanup()
-    end
-    one_point_two()
-    -- / GRID pattern restore
-
-    for i = 1,3 do
-      load_arc_pattern(i)
-    end
-
-    for i = 1,3 do
-      local dirname = _path.data .. "cheat_codes2/collection-"..selected_coll.."/patterns/midi"..i..".data"
-      if os.rename(dirname, dirname) ~= nil then
-        load_midi_pattern(i)
-      end
-    end
   else
     _norns.key(1,1)
     _norns.key(1,0)
@@ -4689,7 +4594,7 @@ function test_save(i)
   pattern_saver[i].active = true
   clock.sleep(1)
   -- if pattern_saver[i].active then
-    if grid.alt_pp == 0 then
+    if not grid.alt then
       if grid_pat[i].count > 0 and grid_pat[i].rec == 0 then
         copy_entire_pattern(i)
         save_pattern(i,pattern_saver[i].save_slot+8*(i-1),"pattern")

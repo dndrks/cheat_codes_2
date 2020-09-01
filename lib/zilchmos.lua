@@ -30,11 +30,11 @@ function zilchmos.init(k,i)
   local sc_action = z.actions[k][finger][2]
 
   -- here's where we call the action
-  --if grid.alt == 0 then
-  if not b.alt_lock and grid.alt == 0 then
+  --if not grid.alt then
+  if not b.alt_lock and not grid.alt then
     p_action( b[p] )
     --trackers.inherit(which_bank,p)
-  elseif b.alt_lock or grid.alt == 1 then
+  elseif b.alt_lock or grid.alt then
     z.map( p_action, b ) -- or map it over the whole bank
   end
   if not b.focus_hold then
@@ -68,7 +68,7 @@ function z.slew_add( pad ) z.slew( pad, "add" ) end
 -- core pad modifiers
 
 function zilchmos.level_inc( pad, delta )
-  if not bank[which_bank].alt_lock and grid.alt == 0 then
+  if not bank[which_bank].alt_lock and not grid.alt then
     pad.level = util.clamp( pad.level + delta, 0, 2 )
   else
     if pad.pad_id == 1 then -- only do this once...

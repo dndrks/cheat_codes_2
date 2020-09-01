@@ -6,7 +6,7 @@ ea.sc = {}
 function encoder_actions.init(n,d)
   if n == 1 then
     if menu == 1 then
-      page.main_sel = util.clamp(page.main_sel+d,1,10)
+      page.main_sel = util.clamp(page.main_sel+d,1,9)
     elseif menu == 2 then
       local id = page.loops_sel
       if not key1_hold then
@@ -63,7 +63,7 @@ function encoder_actions.init(n,d)
   end
   if n == 2 then
     if menu == 1 then
-      page.main_sel = util.clamp(page.main_sel+d,1,10)
+      page.main_sel = util.clamp(page.main_sel+d,1,9)
     elseif menu == 2 then
       local id = page.loops_sel
       if id ~=4 then
@@ -80,7 +80,7 @@ function encoder_actions.init(n,d)
               bank[id][i].rate = bank[id][16].rate
             end
           end
-          if grid.alt == 1 then
+          if grid.alt then
             for i = 1,16 do
               bank[id][i].rate = bank[id][focused_pad].rate
             end
@@ -272,7 +272,7 @@ function encoder_actions.init(n,d)
               bank[id][i].offset = bank[id][16].offset
             end
           end
-          if grid.alt == 1 then
+          if grid.alt then
             for i = 1,16 do
               bank[id][i].offset = bank[id][focused_pad].offset
             end
@@ -292,7 +292,7 @@ function encoder_actions.init(n,d)
               bank[id][i].rate_slew = bank[id][16].rate_slew
             end
           end
-          if grid.alt == 1 then
+          if grid.alt then
             for i = 1,16 do
               bank[id][i].rate_slew = bank[id][focused_pad].rate_slew
             end
@@ -615,7 +615,7 @@ function encoder_actions.init(n,d)
       focused_pad = bank[n].id
     end
     if page.levels_sel == 0 then
-      if key1_hold or grid.alt == 1 or bank[n].alt_lock then
+      if key1_hold or grid.alt or bank[n].alt_lock then
         -- for i = 1,16 do
         --   bank[n][i].level = util.clamp(bank[n][i].level+d/10,0,2)
         -- end
@@ -636,7 +636,7 @@ function encoder_actions.init(n,d)
       end
     elseif page.levels_sel == 1 then
 
-      if key1_hold or grid.alt == 1 or bank[n].alt_lock then
+      if key1_hold or grid.alt or bank[n].alt_lock then
         for j = 1,16 do
           local pre_enveloped = bank[n][j].enveloped
           local pre_mode = bank[n][j].envelope_mode
@@ -703,7 +703,7 @@ function encoder_actions.init(n,d)
       end
 
     elseif page.levels_sel == 2 then
-      if key1_hold or grid.alt == 1 or bank[n].alt_lock then
+      if key1_hold or grid.alt or bank[n].alt_lock then
         for j = 1,16 do
           if bank[n][j].enveloped then
             if d>0 then
@@ -730,7 +730,7 @@ function encoder_actions.init(n,d)
       end
 
     elseif page.levels_sel == 3 then
-      if key1_hold or grid.alt == 1 or bank[n].alt_lock then
+      if key1_hold or grid.alt or bank[n].alt_lock then
         for j = 1,16 do
           if bank[n][j].enveloped then
             bank[n][j].envelope_time = util.explin(0.1,60,0.1,60,bank[n][j].envelope_time)
@@ -750,7 +750,7 @@ function encoder_actions.init(n,d)
   end
   if menu == 4 then
     local focused_pad = nil
-    if key1_hold or grid.alt == 1 then
+    if key1_hold or grid.alt then
       for i = 1,16 do
         bank[n][i].pan = util.clamp(bank[n][i].pan+d/10,-1,1)
       end
@@ -767,7 +767,7 @@ function encoder_actions.init(n,d)
     local filt_page = page.filtering_sel + 1
     if filt_page == 1 then
       if bank[n][bank[n].id].filter_type == 4 then
-        if key1_hold or grid.alt == 1 then
+        if key1_hold or grid.alt then
           if slew_counter[n] ~= nil then
             slew_counter[n].prev_tilt = bank[n][bank[n].id].tilt
           end
@@ -802,7 +802,7 @@ function encoder_actions.init(n,d)
         end
       end
     elseif filt_page == 2 then
-      if key1_hold or grid.alt == 1 then
+      if key1_hold or grid.alt then
         bank[n][bank[n].id].tilt_ease_time = util.clamp(bank[n][bank[n].id].tilt_ease_time+(d/1), 5, 15000)
       else
         for j = 1,16 do
@@ -810,7 +810,7 @@ function encoder_actions.init(n,d)
         end
       end
     elseif filt_page == 3 then
-      if key1_hold or grid.alt == 1 then
+      if key1_hold or grid.alt then
         bank[n][bank[n].id].tilt_ease_type = util.clamp(bank[n][bank[n].id].tilt_ease_type+d, 1, 2)
       else
         for j = 1,16 do
@@ -933,7 +933,7 @@ end
 function ea.move_start(target,delta)
   local duration = target.mode == 1 and 8 or clip[target.clip].sample_length
   local s_p = target.mode == 1 and live[target.clip].min or clip[target.clip].min
-  if delta >= 0 and target.start_point < (target.end_point - delta) then
+  if delta >= 0 and target.start_point < (target.end_point - 0.05) then
     target.start_point = util.clamp(target.start_point+delta,s_p,s_p+duration)
   elseif delta < 0 then
     target.start_point = util.clamp(target.start_point+delta,s_p,s_p+duration)
@@ -943,7 +943,7 @@ end
 function ea.move_end(target,delta)
   local duration = target.mode == 1 and 8 or clip[target.clip].sample_length
   local s_p = target.mode == 1 and live[target.clip].min or clip[target.clip].min
-  if delta <= 0 and target.start_point < target.end_point + delta then
+  if delta <= 0 and target.start_point < (target.end_point - 0.05) then
     target.end_point = util.clamp(target.end_point+delta,s_p,s_p+duration)
   elseif delta > 0 then
     target.end_point = util.clamp(target.end_point+delta,s_p,s_p+duration)

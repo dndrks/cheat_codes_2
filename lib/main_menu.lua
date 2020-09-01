@@ -28,7 +28,7 @@ function main_menu.init()
       , " euclid"
       , " arp"
       , " rnd"
-      , " ?"
+      , " "
       }
       screen.text(page.main_sel == i and (">"..options[i]) or options[i])
     end
@@ -94,7 +94,7 @@ function main_menu.init()
       -- local loops_to_screen_options = {"a", "b", "c"}
       -- screen.text(loops_to_screen_options[i]..""..which_pad)
 
-      if grid.alt == 0 then
+      if not grid.alt then
         local loops_to_screen_options = {"a", "b", "c"}
         screen.text(loops_to_screen_options[i]..""..which_pad)
       else
@@ -139,7 +139,7 @@ function main_menu.init()
         end
         screen.move(0,8+(i*14))
         screen.level(page.loops_sel == i and 15 or 3)
-        if grid.alt == 0 then
+        if not grid.alt then
           local loops_to_screen_options = {"a", "b", "c"}
           screen.text(loops_to_screen_options[i]..""..focused_pad)
         else
@@ -155,7 +155,7 @@ function main_menu.init()
         screen.move(15,8+(i*14))
         local id = page.loops_sel
         local focused_pad = nil
-        -- if grid.alt == 1 then
+        -- if grid.alt then
         --   screen.move(0,20)
         --   screen.level(6)
         --   screen.text("(grid-ALT sets offset for all)")
@@ -167,7 +167,7 @@ function main_menu.init()
           focused_pad = bank[i].focus_pad
         end
         -- if page.loops_sel == i-1 then
-        --   if page.loops_sel < 3 and focused_pad == 16 and grid.alt == 0 then
+        --   if page.loops_sel < 3 and focused_pad == 16 and not grid.alt then
         --     screen.move(0,20)
         --     screen.level(6)
         --     screen.text("(pad 16 overwrites bank!)")
@@ -180,7 +180,7 @@ function main_menu.init()
         -- end
         screen.move(0,8+(i*14))
         screen.level(page.loops_sel == i and 15 or 3)
-        if grid.alt == 0 then
+        if not grid.alt then
           local loops_to_screen_options = {"a", "b", "c"}
           screen.text(loops_to_screen_options[i]..""..focused_pad)
         else
@@ -249,13 +249,13 @@ function main_menu.init()
       screen.move(10+(i*20),64)
       screen.level(level_options[page.levels_sel+1] == "levels" and 15 or 3)
       local level_to_screen_options = {"a", "b", "c"}
-      if key1_hold or grid.alt == 1 or bank[i].alt_lock then
+      if key1_hold or grid.alt or bank[i].alt_lock then
         screen.text("("..level_to_screen_options[i]..")")
       else
         screen.text(level_to_screen_options[i]..""..focused_pad)
       end
       screen.move(35+(20*(i-1)),57)
-      local level_to_screen = ((key1_hold or grid.alt == 1 or bank[i].alt_lock) and util.linlin(0,2,0,40,bank[i].global_level) or util.linlin(0,2,0,40,bank[i][focused_pad].level))
+      local level_to_screen = ((key1_hold or grid.alt or bank[i].alt_lock) and util.linlin(0,2,0,40,bank[i].global_level) or util.linlin(0,2,0,40,bank[i][focused_pad].level))
       screen.line(35+(20*(i-1)),57-level_to_screen)
       screen.close()
       screen.stroke()
@@ -282,7 +282,7 @@ function main_menu.init()
       -- screen.text("time")
       screen.move(85,34+((i)*10))
       local envelope_to_screen_options = {"a", "b", "c"}
-      if key1_hold or grid.alt == 1 or bank[i].alt_lock then
+      if key1_hold or grid.alt or bank[i].alt_lock then
         screen.text("("..envelope_to_screen_options[i]..")")
       else
         screen.text(envelope_to_screen_options[i]..""..focused_pad)
@@ -316,7 +316,7 @@ function main_menu.init()
       screen.move(pan_to_screen,35+(10*(i-1)))
       local pan_to_screen_options = {"a", "b", "c"}
       screen.level(15)
-      if key1_hold or grid.alt == 1 then
+      if key1_hold or grid.alt then
         screen.text("("..pan_to_screen_options[i]..")")
       else
         screen.text(pan_to_screen_options[i]..""..focused_pad)
@@ -334,7 +334,7 @@ function main_menu.init()
       screen.move(17+((i-1)*45),25)
       screen.level(15)
       local filters_to_screen_options = {"a", "b", "c"}
-      if key1_hold or grid.alt == 1 then
+      if key1_hold or grid.alt then
         screen.text_center(filters_to_screen_options[i]..""..bank[i].id)
       else
         screen.text_center("("..filters_to_screen_options[i]..")")
@@ -919,6 +919,12 @@ function main_menu.init()
       screen.text_center(dots)
       screen.font_size(8)
     end
+  elseif menu == "save screen" then
+    screen.level(15)
+    screen.move(62,43)
+    screen.font_size(40)
+    screen.text_center("saved!")
+    screen.font_size(8)
   elseif menu == "load fail screen" then
     screen.level(15)
     screen.move(62,30)
@@ -928,7 +934,7 @@ function main_menu.init()
     screen.font_size(15)
     screen.text_center("try another...")
     screen.font_size(8)
-  elseif menu == "save screen" then
+  elseif menu == "overwrite screen" then
     screen.level(15)
     screen.move(62,15)
     screen.font_size(10)
@@ -942,14 +948,35 @@ function main_menu.init()
       screen.text_center("K2 or K3 to cancel")
     end
     screen.font_size(8)
-  elseif menu == "canceled screen" then
+  elseif menu == "delete screen" then
+    screen.level(15)
+    screen.move(62,15)
+    screen.font_size(10)
+    screen.text_center("deleting collection")
+    screen.font_size(40)
+    screen.move(62,50)
+    screen.text_center(dots)
+    screen.move(62,64)
+    screen.font_size(10)
+    if dots ~= "deleted!" then
+      screen.text_center("K2 or K3 to cancel")
+    end
+    screen.font_size(8)
+  elseif menu == "canceled overwrite screen" or menu == "canceled delete screen" then
     screen.level(15)
     screen.move(62,30)
     screen.font_size(20)
-    screen.text_center("save")
+    screen.text_center(menu == "canceled overwrite screen" and "overwrite" or "delete")
     screen.move(62,50)
     screen.text_center("canceled")
   end
+end
+
+function save_screen(text)
+  menu = "save screen"
+  named_savestate(text)
+  clock.sleep(0.75)
+  menu = 1
 end
 
 function load_screen()
@@ -979,9 +1006,9 @@ function load_fail_screen()
   end
 end
 
-function save_screen(text)
+function overwrite_screen(text)
   dots = "3"
-  menu = "save screen"
+  menu = "overwrite screen"
   clock.sleep(0.75)
   dots = "2"
   clock.sleep(0.75)
@@ -994,7 +1021,27 @@ function save_screen(text)
 end
 
 function canceled_save()
-  menu = "canceled screen"
+  menu = "canceled overwrite screen"
+  clock.sleep(0.75)
+  menu = 1
+end
+
+function delete_screen(text)
+  dots = "3"
+  menu = "delete screen"
+  clock.sleep(0.75)
+  dots = "2"
+  clock.sleep(0.75)
+  dots = "1"
+  clock.sleep(0.75)
+  dots = "(x_x)"
+  clock.sleep(0.33)
+  named_delete(text)
+  menu = 1
+end
+
+function canceled_delete()
+  menu = "canceled delete screen"
   clock.sleep(0.75)
   menu = 1
 end
