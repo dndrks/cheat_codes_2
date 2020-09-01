@@ -316,24 +316,19 @@ function grid_actions.init(x,y,z)
       if x == 1 or x == 6 or x == 11 then
         local which_pad = nil
         local current = util.round(math.sqrt(math.abs(x-2)))
-        --if not grid.alt then
-        if not bank[current].alt_lock and not grid.alt then
-          if bank[current].focus_hold == false then
-            --jump_live(current, bank[current].id, y, z)
-            jump_clip(current, bank[current].id, y, z)
-          else
-            --jump_live(current, bank[current].focus_pad, y, z)
-            jump_clip(current, bank[current].focus_pad, y, z)
-          end
-        elseif bank[current].alt_lock or grid.alt then
-          for j = 1,16 do
-            --jump_live(current, j, y, z)
-            jump_clip(current, j, y, z)
-            
-            --trackers.inherit(current,j)
+        if z == 1 then
+          if not bank[current].alt_lock and not grid.alt then
+            if bank[current].focus_hold == false then
+              jump_clip(current, bank[current].id, math.abs(y-5))
+            else
+              jump_clip(current, bank[current].focus_pad, math.abs(y-5))
+            end
+          elseif bank[current].alt_lock or grid.alt then
+            for j = 1,16 do
+              jump_clip(current, j, math.abs(y-5))
+            end
           end
         end
-        --trackers.inherit(current,bank[current].focus_hold == true and bank[current].focus_pad or bank[current].id)
         if z == 0 then
           redraw()
           if bank[current].focus_hold == false then
@@ -349,22 +344,16 @@ function grid_actions.init(x,y,z)
       for j = 2,12,5 do
         if x == j and y == i and z == 1 then
           local which_pad = nil
-          --if not grid.alt then
+          
           if not bank[math.sqrt(math.abs(x-3))].alt_lock and not grid.alt then
             local current = math.sqrt(math.abs(x-3))
-            if bank[current].focus_hold == false then
-              local old_mode = bank[current][bank[current].id].mode
-              bank[current][bank[current].id].mode = math.abs(i-5)
-              if old_mode ~= bank[current][bank[current].id].mode then
-                change_mode(bank[current][bank[current].id], old_mode)
-              end
-            else
-              local old_mode = bank[current][bank[current].focus_pad].mode
-              bank[current][bank[current].focus_pad].mode = math.abs(i-5)
-              if old_mode ~= bank[current][bank[current].focus_pad].mode then
-                change_mode(bank[current][bank[current].focus_pad], old_mode)
-              end
+            local target = bank[current].focus_hold == false and bank[current][bank[current].id] or bank[current][bank[current].focus_pad]
+            local old_mode = target.mode
+            target.mode = math.abs(i-5)
+            if old_mode ~= target.mode then
+              change_mode(target, old_mode)
             end
+
           elseif bank[math.sqrt(math.abs(x-3))].alt_lock or grid.alt then
             for k = 1,16 do
               local current = math.sqrt(math.abs(x-3))
@@ -373,9 +362,9 @@ function grid_actions.init(x,y,z)
               if old_mode ~= bank[current][k].mode then
                 change_mode(bank[current][k], old_mode)
               end
-              --trackers.inherit(current,k)
             end
           end
+
           local current = math.sqrt(math.abs(x-3))
           if bank[current].focus_hold == false then
             which_pad = bank[current].id
@@ -383,14 +372,6 @@ function grid_actions.init(x,y,z)
             which_pad = bank[current].focus_pad
           end
 
-          --i don't think this is necessary:
-          --[[
-          if bank[current][which_pad].mode == 1 then
-            bank[current][which_pad].sample_end = 8
-          else
-            bank[current][which_pad].sample_end = clip[bank[current][which_pad].clip].sample_length
-          end
-          --]]
 
           if bank[current].focus_hold == false then
             if params:string("preview_clip_change") == "yes" then
@@ -398,11 +379,11 @@ function grid_actions.init(x,y,z)
               cheat(current,bank[current].id)
             end
           end
+
           if menu == 11 then
             which_bank = current
             help_menu = "mode"
           end
-          --trackers.inherit(current,bank[current].focus_hold == true and bank[current].focus_pad or bank[current].id)
         end
       end
     end
@@ -940,6 +921,10 @@ function grid_actions.kill_arp(i)
     arps.clear(i)
   end
   arp[i].enabled = false
+end
+
+function grid_actions.change_clips()
+
 end
 
 return grid_actions

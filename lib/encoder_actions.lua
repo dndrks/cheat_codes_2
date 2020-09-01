@@ -894,6 +894,7 @@ function ea.change_buffer(target,delta)
 end
 
 function ea.change_pad_clip(target,delta)
+
   local focused_pad = nil
   if grid_pat[target].play == 0 and grid_pat[target].tightened_start == 0 and not arp[target].playing and midi_pat[target].play == 0 then
     focused_pad = bank[target].id
@@ -901,33 +902,44 @@ function ea.change_pad_clip(target,delta)
     focused_pad = bank[target].focus_pad
   end
   pad = bank[target][focused_pad]
+
   local pre_adjust = pad.clip
   local current_difference = (pad.end_point - pad.start_point)
+  
   if pad.mode == 1 and pad.clip + delta > 3 then
     pad.mode = 2
-    pad.clip = 1
+    change_mode(pad,1)
+    -- pad.clip = 1
+    jump_clip(target,focused_pad,1)
   elseif pad.mode == 2 and pad.clip + delta < 1 then
     pad.mode = 1
-    pad.clip = 3
+    change_mode(pad,2)
+    -- pad.clip = 3
+    jump_clip(target,focused_pad,3)
   else
-    pad.clip = util.clamp(pad.clip+delta,1,3)
+    local tryit = util.clamp(pad.clip+delta,1,3)
+    jump_clip(target,focused_pad,tryit)
   end
-  pad.start_point = pad.start_point - ((pre_adjust - pad.clip)*8)
-  pad.end_point = pad.start_point + current_difference
+  
+  -- FIXME TODO
+  -- pad.start_point = pad.start_point - ((pre_adjust - pad.clip)*8)
+  -- pad.end_point = pad.start_point + current_difference
+ 
   if grid_pat[target].play == 0 and grid_pat[target].tightened_start == 0 and not arp[target].playing and midi_pat[target].play == 0 then
     cheat(target,bank[target].id)
   end
+  
   if focused_pad == 16 then
+
     for i = 1,15 do
-      local pre_adjust = bank[target][i].clip
-      bank[target][i].mode = bank[target][16].mode
-      bank[target][i].clip = bank[target][16].clip
-      local current_difference = (bank[target][i].end_point - bank[target][i].start_point)
-      bank[target][i].start_point = bank[target][i].start_point - ((pre_adjust - bank[target][i].clip)*8)
-      bank[target][i].end_point = bank[target][i].start_point + current_difference
+      change_mode(bank[target][i],bank[target][16].mode)
+      jump_clip(target,i,bank[target][16].clip)
     end
+  
   end
+  
   grid_dirty = true
+
 end
 
 function ea.move_start(target,delta)

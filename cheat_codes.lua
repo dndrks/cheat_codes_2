@@ -2673,22 +2673,13 @@ function key(n,z)
             bank[id][bank[id].id].loop = not bank[id][bank[id].id].loop
             if bank[id][bank[id].id].loop then
               softcut.loop(id+1,1)
-              softcut.position(id+1,bank[id][bank[id].id].start_point)
+              cheat(id,bank[id].id)
             else
               softcut.loop(id+1,0)
             end
             grid_dirty = true
           elseif page.loops_sel == 4 then
             toggle_buffer(rec.clip)
-            -- if params:get("rec_loop") == 1 then
-            --   rec.state = math.abs((rec.state % 2) - 1)
-            --   softcut.rec_level(1,rec.state)
-            -- else
-            --   softcut.position(1,rec.start_point)
-            --   rec.state = 1
-            --   softcut.rec_level(1,rec.state)
-            -- end
-
           end
         end
 
@@ -3098,13 +3089,12 @@ function change_mode(target,old_mode)
   end
 end
 
-function jump_clip(i,s,y,z)
-  local pad = bank[i][s]
+function jump_clip(bank_id,pad_id,new_clip)
+  local pad = bank[bank_id][pad_id]
   local current_difference = (pad.end_point - pad.start_point)
   if pad.mode == 2 then
     local old_clip = pad.clip
-    pad.clip = math.abs(y-5)
-    --local current_difference = (pad.end_point - pad.start_point)
+    pad.clip = new_clip
     pad.start_point = util.linlin(clip[old_clip].min,clip[old_clip].max,clip[pad.clip].min,clip[pad.clip].max,pad.start_point)
     if pad.start_point + current_difference > clip[pad.clip].max then
       pad.end_point = clip[pad.clip].max
@@ -3113,8 +3103,7 @@ function jump_clip(i,s,y,z)
     end
   else
     local old_clip = pad.clip
-    pad.clip = math.abs(y-5)
-    --local current_difference = (pad.end_point - pad.start_point)
+    pad.clip = new_clip
     pad.start_point = util.linlin(live[old_clip].min,live[old_clip].max,live[pad.clip].min,live[pad.clip].max,pad.start_point)
     if pad.start_point + current_difference > live[pad.clip].max then
       pad.end_point = live[pad.clip].max
