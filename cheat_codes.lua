@@ -684,6 +684,10 @@ function init()
   rec.loop = 1
   rec.clear = 0
   rec.rate_offset = 1.0
+
+  params:add_group("GRID",1)
+  params:add_option("LED_style","LED style",{"varibright","4-step","grayscale"},1)
+  params:set_action("LED_style",function() grid_dirty = true end)
   
   params:add_separator("cheat codes params")
   
@@ -3053,9 +3057,86 @@ function grid_entry(e)
   grid_dirty = true
 end
 
+led_maps =
+--                    {   VB,4S,GS  }
+{
+  -- main page
+  ["square_off"]          =   {3,4,0}
+  , ["square_selected"]   =   {15,12,15}
+  , ["square_dim"]        =   {5,4,0}
+  , ["zilchmo_off"]       =   {3,4,15} -- is this right?
+  , ["zilchmo_on"]        =   {15,12,15}
+  , ["pad_pause"]         =   {15,12,15}
+  , ["pad_play"]          =   {3,4,0}
+  , ["rec_record"]        =   {9,8,15}
+  , ["rec_overdub"]       =   {9,8,15}
+  , ["rec_play"]          =   {15,12,15}
+  , ["rec_pause"]         =   {5,4,0}
+  , ["rec_off"]           =   {3,0,0}
+  , ["arc_rec_rec"]       =   {15,12,15}
+  , ["arc_rec_play"]      =   {9,8,15}
+  , ["arc_rec_pause"]     =   {5,4,0}
+  , ["arc_rec_off"]       =   {0,0,0}
+  , ["arc_param_show"]    =   {5,4,0}
+  , ["grid_alt_on"]       =   {15,12,15}
+  , ["grid_alt_off"]      =   {3,4,0}
+  , ["clip"]              =   {8,8,15}
+  , ["mode"]              =   {6,8,15}
+  , ["loop_on"]           =   {4,8,15}
+  , ["loop_off"]          =   {4,4,0}
+  , ["arp_on"]            =   {4,4,0}
+  , ["arp_pause"]         =   {4,8,15}
+  , ["arp_play"]          =   {10,12,15}
+  , ["arp_off"]           =   {0,0,0}
+  , ["live_empty"]        =   {3,0,0}
+  , ["live_rec"]          =   {10,8,15}
+  , ["live_pause"]        =   {5,4,0}
+  , ["alt_on"]            =   {15,12,15}
+  , ["alt_off"]           =   {3,4,0}
+
+  -- seq page
+  , ["step_no_data"]      =   {2,4,0}
+  , ["step_loops"]        =   {4,8,15}
+  , ["slot_saved"]        =   {7,8,0}
+  , ["slot_empty"]        =   {2,4,0}
+  , ["slot_loaded"]       =   {15,15,15}
+  , ["step_current"]      =   {15,15,15}
+  , ["step_held"]         =   {9,8,15}
+  , ["loop_duration"]     =   {4,4,0}
+  , ["meta_duration"]     =   {4,4,15}
+  , ["meta_step_hi"]      =   {6,8,15}
+  , ["meta_step_lo"]      =   {2,4,0}
+  , ["loop_mod_hi"]       =   {12,12,15}
+  , ["loop_mod_lo"]       =   {3,4,0}
+
+  -- delay page
+  , ["bundle_empty"]      =   {2,4,0}
+  , ["bundle_saved"]      =   {7,8,0}
+  , ["bundle_loaded"]     =   {15,12,15}
+  , ["time_to_led.5"]     =   {5,4,15}
+  , ["time_to_led.25"]    =   {10,8,15}
+  , ["time_to_led.125"]   =   {15,12,15}
+  , ["time_to_led2"]      =   {3,4,15}
+  , ["time_to_led4"]      =   {6,8,15}
+  , ["time_to_led8"]      =   {12,12,15}
+  , ["time_to_led16"]     =   {15,12,15}
+  , ["reverse_on"]        =   {7,8,15}
+  , ["reverse_off"]       =   {3,4,0}
+  , ["wobble_on"]         =   {15,12,15}
+  , ["wobble_off"]        =   {0,0,0}
+  , ["level_lo"]          =   {2,4,0}
+  , ["level_hi"]          =   {7,8,15}
+  
+  -- misc
+  , ["page1_led"]         =   {0,0,15}
+  , ["page2_led"]         =   {7,8,15}
+  , ["page3_led"]         =   {15,12,15}
+}
+
 function grid_redraw()
   if g.device ~= nil then
     g:all(0)
+    local edition = params:get("LED_style")
     
     if grid_page == 0 then
       
@@ -3063,7 +3144,7 @@ function grid_redraw()
         for k = 1,4 do
           k = k+(5*j)
           for i = 8,5,-1 do
-            g:led(k,i,3)
+            g:led(k,i,led_maps["square_off"][edition])
           end
         end
       end
@@ -3071,7 +3152,7 @@ function grid_redraw()
       for j = 0,2 do
         for k = (5-j),(15-j),5 do
           for i = (4-j),1,-1 do
-            g:led(k,i,3)
+            g:led(k,i,led_maps["zilchmo_off"][edition])
           end
         end
       end
@@ -3101,13 +3182,13 @@ function grid_redraw()
           a_p = arc_param[i] - 2
         end
         if arc_pat[i][a_p].rec == 1 then
-          g:led(16,5-i,15)
+          g:led(16,5-i,led_maps["arc_rec_rec"][edition])
         elseif arc_pat[i][a_p].play == 1 then
-          g:led(16,5-i,9)
+          g:led(16,5-i,led_maps["arc_rec_play"][edition])
         elseif arc_pat[i][a_p].count > 0 then
-          g:led(16,5-i,5)
+          g:led(16,5-i,led_maps["arc_rec_pause"][edition])
         else
-          g:led(16,5-i,0)
+          g:led(16,5-i,led_maps["arc_rec_off"][edition])
         end
       end
       
@@ -3119,14 +3200,14 @@ function grid_redraw()
             g:led(j,6,arc_param[j/5] == 3 and 5 or 0)
             if arc_param[j/5] == 4 then
               for k = 8,6,-1 do
-                g:led(j,k,5)
+                g:led(j,k,led_maps["arc_param_show"][edition])
               end
             elseif arc_param[j/5] == 5 then
-              g:led(j,8,5)
-              g:led(j,7,5)
+              g:led(j,8,led_maps["arc_param_show"][edition])
+              g:led(j,7,led_maps["arc_param_show"][edition])
             elseif arc_param[j/5] == 6 then
-              g:led(j,7,5)
-              g:led(j,6,5)
+              g:led(j,7,led_maps["arc_param_show"][edition])
+              g:led(j,6,led_maps["arc_param_show"][edition])
             end
           end
         end
@@ -3134,28 +3215,28 @@ function grid_redraw()
       
       for i = 1,3 do
         if bank[i].focus_hold == false then
-          g:led(selected[i].x, selected[i].y, 15)
+          g:led(selected[i].x, selected[i].y, led_maps["square_selected"][edition])
           if i == nil then print("2339") end
           if bank[i].id == nil then print("2340", i) end
           if bank[i][bank[i].id].pause == nil then print("2341") end
           if bank[i][bank[i].id].pause == true then
-            g:led(3+(5*(i-1)),1,15)
-            g:led(3+(5*(i-1)),2,15)
+            g:led(3+(5*(i-1)),1,led_maps["pad_pause"][edition])
+            g:led(3+(5*(i-1)),2,led_maps["pad_pause"][edition])
           else
-            g:led(3+(5*(i-1)),1,3)
-            g:led(3+(5*(i-1)),2,3)
+            g:led(3+(5*(i-1)),1,led_maps["pad_play"][edition])
+            g:led(3+(5*(i-1)),2,led_maps["pad_play"][edition])
           end
         else
           local focus_x = (math.ceil(bank[i].focus_pad/4)+(5*(i-1)))
           local focus_y = 8-((bank[i].focus_pad-1)%4)
-          g:led(selected[i].x, selected[i].y, 5)
-          g:led(focus_x, focus_y, 15)
+          g:led(selected[i].x, selected[i].y, led_maps["square_dim"][edition])
+          g:led(focus_x, focus_y, led_maps["square_selected"][edition])
           if bank[i][bank[i].focus_pad].pause == true then
-            g:led(3+(5*(i-1)),1,15)
-            g:led(3+(5*(i-1)),2,15)
+            g:led(3+(5*(i-1)),1,led_maps["square_selected"][edition])
+            g:led(3+(5*(i-1)),2,led_maps["square_selected"][edition])
           else
-            g:led(3+(5*(i-1)),1,3)
-            g:led(3+(5*(i-1)),2,3)
+            g:led(3+(5*(i-1)),1,led_maps["square_off"][edition])
+            g:led(3+(5*(i-1)),2,led_maps["square_off"][edition])
           end
         end
       end
@@ -3170,10 +3251,10 @@ function grid_redraw()
       end
       
       for i,e in pairs(lit) do
-        g:led(e.x, e.y,15)
+        g:led(e.x, e.y,led_maps["square_selected"][edition])
       end
       
-      g:led(16,8,(grid.alt and 12 or 0)+3)
+      g:led(16,8,(grid.alt and led_maps["alt_on"][edition] or led_maps["alt_off"][edition]))
       
       for i = 1,3 do
         if bank[i].focus_hold == false then
