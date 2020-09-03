@@ -2209,6 +2209,9 @@ function cheat(b,i)
   if osc_communication == true then
     osc_redraw(b)
   end
+  if all_loaded and params:get("midi_echo_enabled") == 2 then
+    mc.redraw(pad)
+  end
 end
 
 function envelope(i)
