@@ -225,13 +225,13 @@ function start_up.init()
   end
 
   for i = 1,3 do
-    params:add_option("rand_pattern_"..i.."_note_length", "rand pat "..i.." note length", {"1/16", "1/8", "1/4", "1/2", "1", "rand"})
+    params:add_option("rand_pattern_"..i.."_note_length", "rand pat "..i.." note length", {"1/16", "1/8", "1/4", "1/2", "1", "rand"},6)
   end
   
   params:add_separator("arc")
   params:add_option("arc_patterning", "arc pat style", { "passive", "active" })
   
-  params:add_group("manual control params",32)
+  params:add_group("manual control params",34)
 
   params:add_separator("arc encoders")
   for i = 1,3 do
@@ -240,11 +240,6 @@ function start_up.init()
       arc_param[i] = x
     end)
   end
-
-  params:add_option("enc 4 param", "enc 4 param",{"L delay","R delay"})
-  params:set_action("enc 4 param", function(x)
-    arc.alt = x == 1 and 0 or 1
-  end)
   
   for i = 1,3 do
     banks = {"(a)","(b)","(c)"}
@@ -257,6 +252,7 @@ function start_up.init()
         selected[i].y = 8-((bank[i].id-1)%4)
         cheat(i,bank[i].id)
         redraw()
+        grid_dirty = true
       end
     end)
     local rates = {-4,-2,-1,-0.5,-0.25,-0.125,0.125,0.25,0.5,1,2,4}
@@ -274,39 +270,25 @@ function start_up.init()
     params:set_action("pan "..i, function(x) softcut.pan(i+1,x) bank[i][bank[i].id].pan = x redraw() end)
     params:add_control("pan slew "..i,"pan slew "..banks[i], controlspec.new(0.,200.,'lin',0.1,5.0))
     params:set_action("pan slew "..i, function(x) softcut.pan_slew_time(i+1,x) end)
-    params:add_control("level "..i, "level "..banks[i], controlspec.new(0.,2.,'lin',0.01,1.0))
+    params:add_control("level "..i, "pad level "..banks[i], controlspec.new(0,127,'lin',1,64))
     params:set_action("level "..i, function(x)
-      bank[i][bank[i].id].level = x
-      if not bank[i][bank[i].id].enveloped then
-        softcut.level(i+1,x*bank[i].global_level)
-        softcut.level_cut_cut(i+1,5,(bank[i][bank[i].id].left_delay_level*bank[i][bank[i].id].level)*bank[i].global_level)
-        softcut.level_cut_cut(i+1,6,(bank[i][bank[i].id].right_delay_level*bank[i][bank[i].id].level)*bank[i].global_level)
-      end
-      redraw()
+      mc.adjust_pad_level(bank[i][bank[i].id],x)
+      if all_loaded then mc.redraw(bank[i][bank[i].id]) end
       end)
-    params:add_control("start point "..i, "start point "..banks[i], controlspec.new(100,890,'lin',1,100))
+    params:add_control("bank level "..i, "bank level "..banks[i], controlspec.new(0,127,'lin',1,64))
+    params:set_action("bank level "..i, function(x)
+      mc.adjust_bank_level(bank[i][bank[i].id],x)
+      if all_loaded then mc.redraw(bank[i][bank[i].id]) end
+      end)
+    params:add_control("start point "..i, "start point "..banks[i], controlspec.new(0,127,'lin',1,0))
     params:set_action("start point "..i, function(x)
-      local s_p = bank[i][bank[i].id].start_point - (8*(bank[i][bank[i].id].clip-1))
-      local e_p = bank[i][bank[i].id].end_point - (8*(bank[i][bank[i].id].clip-1))
-      if s_p <= x/100 and s_p < (e_p - 0.1) then
-        bank[i][bank[i].id].start_point = x/100+(8*(bank[i][bank[i].id].clip-1))
-      elseif s_p > x/100 then
-        bank[i][bank[i].id].start_point = x/100+(8*(bank[i][bank[i].id].clip-1))
-      end
-      softcut.loop_start(i+1, bank[i][bank[i].id].start_point)
-      redraw()
+      mc.move_start(bank[i][bank[i].id],x)
+      if all_loaded then mc.redraw(bank[i][bank[i].id]) end
       end)
-    params:add_control("end point "..i, "end point "..banks[i], controlspec.new(110,899,'lin',1,150))
+    params:add_control("end point "..i, "end point "..banks[i], controlspec.new(0,127,'lin',1,8))
     params:set_action("end point "..i, function(x)
-      local s_p = bank[i][bank[i].id].start_point - (8*(bank[i][bank[i].id].clip-1))
-      local e_p = bank[i][bank[i].id].end_point - (8*(bank[i][bank[i].id].clip-1))
-      if e_p >= x/100 and s_p < e_p - 0.1 then
-        bank[i][bank[i].id].end_point = x/100+(8*(bank[i][bank[i].id].clip-1))
-      elseif e_p < x/100 then
-        bank[i][bank[i].id].end_point = x/100+(8*(bank[i][bank[i].id].clip-1))
-      end
-      softcut.loop_end(i+1, bank[i][bank[i].id].end_point)
-      redraw()
+      mc.move_end(bank[i][bank[i].id],x)
+      if all_loaded then mc.redraw(bank[i][bank[i].id]) end
       end)
   end
   
@@ -420,7 +402,7 @@ function start_up.init()
     }
     params:set_action("delay "..sides[i-3]..": rate", function(x)
       delay[i-3].rate = x
-      softcut.rate(i+1,x)
+      softcut.rate(i+1,x*(delay[i-3].reverse and -1 or 1))
     end)
     params:add_option("delay "..sides[i-3]..": rate bump", "delay "..sides[i-3]..": rate bump", {"fifth","detune"}, 1)
     params:add_control("delay "..sides[i-3]..": rate slew time", "delay "..sides[i-3]..": rate slew time", controlspec.new(0,3,'lin',0.01,0))

@@ -23,6 +23,7 @@ arps = include 'lib/arp_actions'
 rnd = include 'lib/rnd_actions'
 del = include 'lib/delay'
 rytm = include 'lib/euclid'
+mc = include 'lib/midicheat'
 math.randomseed(os.time())
 
 --all the .quantize stuff is irrelevant now. it's been replaced by .mode = "quantized"
@@ -661,6 +662,8 @@ local lit = {}
 
 function init()
 
+  metro[31].time = 0.1
+
   collection_loaded = false
 
   all_loaded = false
@@ -1075,7 +1078,7 @@ function init()
     osc_communication = false
   end}
 
-  params:add_group("MIDI setup",9)
+  params:add_group("MIDI keyboard setup",9)
   params:add_option("midi_control_enabled", "enable MIDI control?", {"no","yes"},1)
   params:set_action("midi_control_enabled", function() persistent_state_save() end)
   params:add_option("midi_control_device", "MIDI control device",{"port 1", "port 2", "port 3", "port 4"},1)
@@ -1114,7 +1117,7 @@ function init()
               if d.note >= params:get("bank_"..i.."_pad_midi_base") and d.note <= params:get("bank_"..i.."_pad_midi_base") + (not midi_alt and 15 or 22) then
                 if not midi_alt then
                   if d.type == "note_on" then
-                    midi_cheat(d.note-(params:get("bank_"..i.."_pad_midi_base")-1), i)
+                    mc.cheat(i,d.note-(params:get("bank_"..i.."_pad_midi_base")-1))
                     if midi_pat[i].rec == 1 and midi_pat[i].count == 0 then
                       if midi_pat[i].playmode == 2 then
                         --clock.run(synced_pattern_record,midi_pat[i]) -- i think we'll want this in a separate function...
@@ -1135,7 +1138,7 @@ function init()
                   end
                 elseif midi_alt then
                   if d.type == "note_on" then
-                    midi_zilch(d.note-(params:get("bank_"..i.."_pad_midi_base")-1), i)
+                    mc.zilch(i,d.note-(params:get("bank_"..i.."_pad_midi_base")-1))
                   end
                 end
               elseif d.note == params:get("bank_"..i.."_pad_midi_base") + 23 then
@@ -1147,35 +1150,14 @@ function init()
               end
             end
             if d.type == "cc" then
-              local pad = bank[i][bank[i].id]
               if d.cc == 1 then
-                --local lo = 1+(8*(pad.clip-1))
-                local lo = pad.mode == 1 and live[pad.clip].min or clip[pad.clip].min
-                local hi = pad.end_point-0.1
-                --local max = 9+(8*(pad.clip-1))
-                local max = pad.mode == 1 and live[pad.clip].max or clip[pad.clip].max
-                pad.start_point = util.clamp(util.linlin(0,127,lo,max,d.val),lo,hi)
-                softcut.loop_start(i+1,pad.start_point)
+                mc.move_start(bank[i][bank[i].id],d.val)
               elseif d.cc == 2 then
-                local lo = pad.start_point+0.1
-                --local hi = 9+(8*(pad.clip-1))
-                local hi = pad.mode == 1 and live[pad.clip].max or clip[pad.clip].max
-                --local min = 1+(8*(pad.clip-1))
-                local min = pad.mode == 1 and live[pad.clip].min or clip[pad.clip].min
-                pad.end_point = util.clamp(util.linlin(0,127,min,hi,d.val),lo,hi)
-                softcut.loop_end(i+1,pad.end_point)
+                mc.move_end(bank[i][bank[i].id],d.val)
               elseif d.cc == 3 then
-                for j = 1,16 do
-                  local target = bank[i][j]
-                  if slew_counter[i] ~= nil then
-                    slew_counter[i].prev_tilt = target.tilt
-                  end
-                  target.tilt = util.linlin(0,127,-1,1,d.val)
-                end
-                slew_filter(i,slew_counter[i].prev_tilt,pad.tilt,pad.q,pad.q,15)
+                mc.adjust_filter(i,d.val)
               elseif d.cc == 4 then
-                pad.level = util.linlin(0,127,0,2,d.val)
-                softcut.level(i+1,pad.level*bank[i].global_level)
+                mc.adjust_pad_level(bank[i][bank[i].id],d.val)
               end
             end
           end
@@ -1185,22 +1167,6 @@ function init()
   end
 
   midi_alt = false
-
-  function midi_redraw(target)
-    local pad = bank[target][bank[target].id]
-    local duration = pad.mode == 1 and 8 or clip[pad.clip].sample_length
-    local min = pad.mode == 1 and live[pad.clip].min or clip[pad.clip].min
-    local max = pad.mode == 1 and live[pad.clip].max or clip[pad.clip].max
-    local start_to_cc = util.round(util.linlin(min,max,0,127,pad.start_point))
-    midi_dev[params:get("midi_control_device")]:cc(1,start_to_cc,params:get("bank_"..target.."_midi_channel"))
-    local end_to_cc = util.round(util.linlin(min,max,0,127,pad.end_point))
-    midi_dev[params:get("midi_control_device")]:cc(2,end_to_cc,params:get("bank_"..target.."_midi_channel"))
-    local tilt_to_cc = util.round(util.linlin(-1,1,0,127,pad.tilt))
-    midi_dev[params:get("midi_control_device")]:cc(3,tilt_to_cc,params:get("bank_"..target.."_midi_channel"))
-    local level_to_cc = util.round(util.linlin(0,2,0,127,pad.level))
-    midi_dev[params:get("midi_control_device")]:cc(4,level_to_cc,params:get("bank_"..target.."_midi_channel"))
-  end
-
 
   midi_pat = {}
   for i = 1,3 do
@@ -1315,79 +1281,10 @@ end
 function midi_pattern_execute(entry)
   if entry ~= nil then
     if entry ~= "pause" then
-      midi_cheat(entry.note, entry.target)
+      mc.cheat(entry.target, entry.note)
+      -- midi_cheat(entry.note, entry.target)
     end
   end
-end
-
-function midi_cheat(note,target)
-  bank[target].id = note
-  --if menu ~= 9 then
-  if not arp[target].playing then
-    selected[target].x = (5*(target-1)+1)+(math.ceil(bank[target].id/4)-1)
-    if (bank[target].id % 4) ~= 0 then
-      selected[target].y = 9-(bank[target].id % 4)
-    else
-      selected[target].y = 5
-    end
-    cheat(target,bank[target].id)
-    if params:get("midi_echo_enabled") == 2 then
-      midi_redraw(target)
-    end
-  end
-end
-
-function midi_zilch(note,target)
-  if note == 1 or note == 2 then
-    for i = (note == 1 and bank[target].id or 1), (note == 1 and bank[target].id or 16) do
-      rightangleslice.actions[4]['134'][1](bank[target][i])
-      rightangleslice.actions[4]['134'][2](bank[target][i],target)
-    end
-  elseif note == 3 or note == 4 then
-    for i = (note == 3 and bank[target].id or 1), (note == 3 and bank[target].id or 16) do
-      rightangleslice.actions[4]['14'][1](bank[target][i])
-      rightangleslice.actions[4]['14'][2](bank[target][i],target)
-    end
-  elseif note == 5 or note == 6 then
-    for i = (note == 5 and bank[target].id or 1), (note == 5 and bank[target].id or 16) do
-      rightangleslice.actions[4]['124'][1](bank[target][i])
-      rightangleslice.actions[4]['124'][2](bank[target][i],target)
-    end
-  elseif note == 8 or note == 9 then
-    for i = (note == 8 and bank[target].id or 1), (note == 8 and bank[target].id or 16) do
-      bank[target][i].loop = not bank[target][i].loop
-    end
-    softcut.loop(target+1,bank[target][bank[target].id].loop == true and 1 or 0)
-  elseif note == 11 then
-    toggle_buffer(rec.clip)
-  elseif note == 13 or note == 14 then
-    for i = (note == 13 and bank[target].id or 1), (note == 13 and bank[target].id or 16) do
-      rightangleslice.actions[4]['12'][1](bank[target][i])
-      rightangleslice.actions[4]['12'][2](bank[target][i],target)
-    end
-  elseif note == 15 or note == 16 then
-    for i = (note == 15 and bank[target].id or 1), (note == 15 and bank[target].id or 16) do
-      rightangleslice.actions[4]['23'][1](bank[target][i])
-      rightangleslice.actions[4]['23'][2](bank[target][i],target)
-    end
-  elseif note == 17 or note == 18 then
-    for i = (note == 17 and bank[target].id or 1), (note == 17 and bank[target].id or 16) do
-      rightangleslice.actions[4]['34'][1](bank[target][i])
-      rightangleslice.actions[4]['34'][2](bank[target][i],target)
-    end
-  elseif note == 21 then
-    for i = 1,16 do
-      rightangleslice.actions[4]['2'][1](bank[target][i])
-      rightangleslice.actions[4]['2'][2](bank[target][i],target)
-    end
-  elseif note == 23 then
-    buff_flush()
-  end
-
-  if params:get("midi_echo_enabled") == 2 then
-    midi_redraw(target)
-  end
-
 end
 
 function start_synced_loop(target)
@@ -1430,7 +1327,7 @@ function alt_synced_loop(target,state)
   while true do
     clock.sync(1/4)
     if target.synced_loop_runner == target.rec_clock_time * 4 then
-      print(clock.get_beats(), target.synced_loop_runner)
+      -- print(clock.get_beats(), target.synced_loop_runner)
       local overdub_flag = target.overdub
       target:stop()
       if overdub_flag == 1 then
@@ -2308,10 +2205,7 @@ function cheat(b,i)
       pad.fifth = true
     end
   end
-  params:set("level "..tonumber(string.format("%.0f",b)),pad.level,"true")
   params:set("current pad "..tonumber(string.format("%.0f",b)),i,"true")
-  params:set("start point "..tonumber(string.format("%.0f",b)),pad.start_point*100,"true")
-  params:set("end point "..tonumber(string.format("%.0f",b)),pad.end_point*100,"true")
   if osc_communication == true then
     osc_redraw(b)
   end
@@ -2642,6 +2536,18 @@ function reload_collected_samples(file,sample)
   end
 end
 
+function adjust_key1_timing()
+  if menu ~= 6 then
+    if metro[31].time ~= 0.1 then metro[31].time = 0.1 end
+  elseif menu == 6 then
+    if page.delay[page.delay_focus].menu == 1 and page.delay[page.delay_focus].menu_sel[page.delay[page.delay_focus].menu] == 5 then
+      metro[31].time = 0.01
+    else
+      if metro[31].time ~= 0.1 then metro[31].time = 0.1 end
+    end
+  end
+end
+
 function key(n,z)
   if menu == "load screen" then
   elseif menu == "overwrite screen" then
@@ -2659,11 +2565,12 @@ function key(n,z)
   else
     if n == 3 and z == 1 then
       if menu == 1 then
-        for i = 1,10 do
-          if page.main_sel == i then
-            menu = i+1
-          end
-        end
+        menu = page.main_sel + 1
+        -- for i = 1,10 do
+        --   if page.main_sel == i then
+        --     menu = i+1
+        --   end
+        -- end
       elseif menu == 2 then
         if not key1_hold then
           page.loops_view[page.loops_sel] = (page.loops_view[page.loops_sel] % (page.loops_sel ~= 4 and 3 or 2)) + 1
@@ -2691,9 +2598,10 @@ function key(n,z)
         local filter_nav = (page.filtering_sel + 1)%3
         page.filtering_sel = filter_nav
       elseif menu == 6 then
-        if page.delay_section < 3 then
-          page.delay_section = (page.delay_section%3)+1
-        end
+        page.delay_section = page.delay_section == 1 and 2 or 1
+        -- if page.delay_section < 3 then
+        --   page.delay_section = (page.delay_section%3)+1
+        -- end
       elseif menu == 7 then
         local time_nav = page.time_sel
         local id = time_nav
@@ -2879,13 +2787,14 @@ function key(n,z)
           menu = 1
         end
       elseif menu == 6 then
-        if page.delay_section == 3 then
-          page.delay_section = 2
-        elseif page.delay_section == 2 then
-          page.delay_section = 1
-        else
-          menu = 1
-        end
+        -- if page.delay_section == 3 then
+        --   page.delay_section = 2
+        -- elseif page.delay_section == 2 then
+        --   page.delay_section = 1
+        -- else
+        --   menu = 1
+        -- end
+        menu = 1
       elseif menu == 2 then
         if key1_hold then
           sync_clock_to_loop(bank[page.loops_sel][bank[page.loops_sel].id])
@@ -2907,6 +2816,12 @@ function key(n,z)
         else
           key1_hold = false
         end
+      elseif menu == 6 then
+        key1_hold = true
+        if page.delay[page.delay_focus].menu == 1 and page.delay[page.delay_focus].menu_sel[page.delay[page.delay_focus].menu] == 5 then
+          del.quick_action(page.delay_focus,"feedback mute")
+          grid_dirty = true
+        end
       elseif menu == 7 then
         key1_hold = true
       elseif menu == 8 then
@@ -2921,6 +2836,12 @@ function key(n,z)
     elseif n == 1 and z == 0 then
       if menu ~= 5 and menu ~= 11 then
         key1_hold = false
+      end
+      if menu == 6 then
+        if page.delay[page.delay_focus].menu == 1 and page.delay[page.delay_focus].menu_sel[page.delay[page.delay_focus].menu] == 5 then
+          del.quick_action(page.delay_focus,"feedback mute")
+          grid_dirty = true
+        end
       end
       if menu == 7 then
         if page.time_sel < 4 then
@@ -2969,11 +2890,13 @@ function key(n,z)
       end
     end
   end
+  adjust_key1_timing()
   redraw()
 end
 
 function enc(n,d)
   encoder_actions.init(n,d)
+  adjust_key1_timing()
 end
 
 function redraw()
@@ -3077,10 +3000,8 @@ function change_mode(target,old_mode)
   local duration = target.end_point - target.start_point
   if old_mode == 1 then
     target.start_point = util.linlin(live_min,live_max,clip_min,clip_max,target.start_point)
-    --target.end_point = util.linlin(live_min,live_max,clip_min,clip_max,target.end_point)
   elseif old_mode == 2 then
     target.start_point = util.linlin(clip_min,clip_max,live_min,live_max,target.start_point)
-    --target.end_point = util.linlin(clip_min,clip_max,live_min,live_max,target.end_point)
   end
   if target.start_point + duration > (old_mode == 1 and clip[target.clip].max or live[target.clip].max) then
     target.end_point = (old_mode == 1 and clip[target.clip].max or live[target.clip].max)
@@ -3412,6 +3333,8 @@ function grid_redraw()
       g:led(2,3,time_to_led[4])
       g:led(1,6,time_to_led[1])
       g:led(2,6,time_to_led[3])
+      g:led(3,3,delay[2].reverse and 7 or 3)
+      g:led(3,6,delay[1].reverse and 7 or 3)
 
       rate_to_led = {{},{},{},{}}
       local rate = {params:get("delay L: rate"), params:get("delay R: rate")}
@@ -3883,6 +3806,7 @@ function persistent_state_restore()
     end
     io.close(file)
   end
+  mc.init()
 end
 
 function named_overwrite(path)
@@ -5068,6 +4992,8 @@ function load_pattern(slot,destination)
 end
 
 function cleanup()
+
+  metro[31].time = 0.25
 
   for i = 1,3 do
     env_counter[i]:stop()

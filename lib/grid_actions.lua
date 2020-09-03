@@ -726,9 +726,11 @@ function grid_actions.init(x,y,z)
   
   elseif grid_page == 2 then
     if y == 3 or y == 6 then
-      if x <= 3 and z == 1 then
+      if x <= 2 and z == 1 then
         local changes = {"double", "halve", "sync"}
         del.change_duration(y == 6 and 1 or 2, y == 6 and 2 or 1, changes[x])
+      elseif x == 3 and z == 1 then
+        del.quick_action(y == 6 and 1 or 2, "reverse")
       elseif x >= 4 and x <= 8 then
         if z == 1 then
           del.set_value(math.abs(5-y), x-3, "level")
