@@ -13,7 +13,7 @@ zilchmos.sc = {}
 --- main function
 
 -- this is the new zilchmos.init
-function zilchmos.init(k,i)
+function zilchmos.init(k,i,coll)
   -- for .help functionality
   which_bank = i -- FIXME should be in the help. namespace
   if menu == 11 then
@@ -24,8 +24,7 @@ function zilchmos.init(k,i)
   local b = bank[i] -- just alias for shorter lines
   local p = b.focus_hold and b.focus_pad or b.id -- was 'which_pad'
 
-  -- TODO fingers should be passed in as an argument, not globally accessed
-  local finger    = fingers[k][i].con
+  local finger    = coll
   local p_action  = z.actions[k][finger][1]
   local sc_action = z.actions[k][finger][2]
 

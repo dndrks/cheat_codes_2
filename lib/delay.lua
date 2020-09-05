@@ -41,6 +41,7 @@ function delays.init(target)
     delay[i].saver_active = false
     delay[i].selected_bundle = 0
     delay[i].wobble_hold = false
+    delay[i].reverse = false
   end
 
   delay_bundle = { {},{} }
@@ -191,6 +192,10 @@ function delays.quick_action(target,param)
     local duration = delay[target].mode == "clocked" and delay[target].end_point-delay[target].start_point or delay[target].free_end_point-delay[target].start_point
     softcut.buffer_clear_region_channel(1, 41 + (30*(target-1)), duration+ params:get(target == 1 and "delay L: fade time" or "delay R: fade time"))
     softcut.level(target+4,params:get(target == 1 and "delay L: global level" or "delay R: global level"))
+  elseif param == "reverse" then
+    delay[target].reverse = not delay[target].reverse
+    local rate = {"delay L: rate", "delay R: rate"}
+    softcut.rate(target+4,params:get(rate[target])*(delay[target].reverse and -1 or 1))
   end
 end
 
