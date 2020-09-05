@@ -485,33 +485,6 @@ function snap_to_bars_midi(bank,bar_count)
   end
 end
 
--- function load_external_timing(bank,slot)
---   local file = io.open(_path.data .. "cheat_codes2/external-timing/pattern"..selected_coll.."_"..slot.."_external-timing.data", "r")
---   if file then
---     io.input(file)
---     if io.read() == "external clock timing for stored pad pattern: collection "..selected_coll.." + slot "..slot then
---       quantized_grid_pat[bank].event = {}
---       local total_entry_count = tonumber(io.read())
---       local number_of_events = tonumber(io.read())
---       for i = 1,number_of_events do
---         local event_id = tonumber(string.match(io.read(), '%d+'))
---         local entry_count = tonumber(string.match(io.read(), '%d+'))
---         quantized_grid_pat[bank].event[i] = {}
---         for j = 1,entry_count do
---           quantized_grid_pat[bank].event[i][j] = io.read()
---         end
---       end
---     end
---     print("unpacking old quantized table")
---     unpack_quantized_table(bank)
---     io.close(file)
---   else
---     print("creating external timing file...")
---     midi_clock_linearize(bank)
---     save_external_timing(bank,slot)
---   end
--- end
-
 function copy_entire_pattern(bank)
   original_pattern = {}
   original_pattern[bank] = {}
@@ -659,6 +632,13 @@ local function crow_init()
 end
 
 local lit = {}
+
+zilch_leds =
+{   [1] = {{0},{0},{0}}
+  , [2] = {{0,0},{0,0},{0,0}}
+  , [3] = {{0,0,0},{0,0,0},{0,0,0}}
+  , [4] = {{0,0,0,0},{0,0,0,0},{0,0,0,0}}
+}
 
 function init()
 
@@ -946,8 +926,6 @@ function init()
   --GRID
   selected = {}
   fingers = {}
-  counter_four = {}
-  counter_three = {}
   counter_two = {}
   for i = 1,3 do
     selected[i] = {}
@@ -964,11 +942,11 @@ function init()
     end
   end
 
-  function record_the_zilchmo(prev,sel,row)
+  function record_zilchmo_4(prev,sel,row,con)
     grid_p[sel] = {}
     grid_p[sel].i = sel
     grid_p[sel].action = "zilchmo"
-    grid_p[sel].con = fingers[row][sel].con
+    grid_p[sel].con = con
     grid_p[sel].row = row
     grid_p[sel].bank = sel
     grid_p[sel].id = selected[sel].id
@@ -981,23 +959,6 @@ function init()
     grid_pat[sel]:watch(grid_p[sel])
   end
 
-  counter_four.key_up = metro.init()
-  counter_four.key_up.time = 0.05
-  counter_four.key_up.count = 1
-  counter_four.key_up.event = function()
-    local previous_rate = bank[selected_zilchmo_bank][bank[selected_zilchmo_bank].id].rate
-    zilchmo(4,selected_zilchmo_bank)
-    record_the_zilchmo(previous_rate,selected_zilchmo_bank,4)
-  end
-  counter_four.key_up:stop()
-  counter_three = {}
-  counter_three.key_up = metro.init()
-  counter_three.key_up.time = 0.05
-  counter_three.key_up.count = 1
-  counter_three.key_up.event = function()
-    zilchmo(3,selected_zilchmo_bank)
-  end
-  counter_three.key_up:stop()
   counter_two = {}
   counter_two.key_up = metro.init()
   counter_two.key_up.time = 0.05
@@ -3061,11 +3022,11 @@ led_maps =
 --                    {   VB,4S,GS  }
 {
   -- main page
-  ["square_off"]          =   {3,4,0}
-  , ["square_selected"]   =   {15,12,15}
+  ["square_off"]          =   {3,4,15}
+  , ["square_selected"]   =   {15,12,0}
   , ["square_dim"]        =   {5,4,0}
   , ["zilchmo_off"]       =   {3,4,15} -- is this right?
-  , ["zilchmo_on"]        =   {15,12,15}
+  , ["zilchmo_on"]        =   {15,12,0}
   , ["pad_pause"]         =   {15,12,15}
   , ["pad_play"]          =   {3,4,0}
   , ["rec_record"]        =   {9,8,15}
@@ -3083,19 +3044,20 @@ led_maps =
   , ["clip"]              =   {8,8,15}
   , ["mode"]              =   {6,8,15}
   , ["loop_on"]           =   {4,8,15}
-  , ["loop_off"]          =   {4,4,0}
+  , ["loop_off"]          =   {2,4,0}
   , ["arp_on"]            =   {4,4,0}
   , ["arp_pause"]         =   {4,8,15}
   , ["arp_play"]          =   {10,12,15}
-  , ["arp_off"]           =   {0,0,0}
   , ["live_empty"]        =   {3,0,0}
   , ["live_rec"]          =   {10,8,15}
   , ["live_pause"]        =   {5,4,0}
   , ["alt_on"]            =   {15,12,15}
   , ["alt_off"]           =   {3,4,0}
+  , ["focus_on"]          =   {10,8,15}
 
   -- seq page
   , ["step_no_data"]      =   {2,4,0}
+  , ["step_yes_data"]     =   {4,8,15}
   , ["step_loops"]        =   {4,8,15}
   , ["slot_saved"]        =   {7,8,0}
   , ["slot_empty"]        =   {2,4,0}
@@ -3126,12 +3088,17 @@ led_maps =
   , ["wobble_off"]        =   {0,0,0}
   , ["level_lo"]          =   {2,4,0}
   , ["level_hi"]          =   {7,8,15}
+  , ["selected_bank"]     =   {7,8,15}
+  , ["unselected_bank"]   =   {2,4,0}
   
   -- misc
-  , ["page1_led"]         =   {0,0,15}
-  , ["page2_led"]         =   {7,8,15}
-  , ["page3_led"]         =   {15,12,15}
+  , ["page_led"]          =   {{0,0,15},{7,8,15},{15,12,15}}
+  , ["off"]               =   {0,0,0}
 }
+
+function draw_zilch(x,y,z)
+  g:led(x,y,z == 1 and led_maps["zilchmo_on"][edition] or led_maps["zilchmo_off"][edition])
+end
 
 function grid_redraw()
   if g.device ~= nil then
@@ -3149,10 +3116,10 @@ function grid_redraw()
         end
       end
       
-      for j = 0,2 do
-        for k = (5-j),(15-j),5 do
-          for i = (4-j),1,-1 do
-            g:led(k,i,led_maps["zilchmo_off"][edition])
+      for i = 0,1 do
+        for x = 4+i,14+i,5 do
+          for j = 1,3+i do
+            g:led(x,j,zilch_leds[i == 0 and 3 or 4][util.round(x/5)][j] == 1 and led_maps["zilchmo_on"][edition] or led_maps["zilchmo_off"][edition])
           end
         end
       end
@@ -3251,49 +3218,72 @@ function grid_redraw()
       end
       
       for i,e in pairs(lit) do
-        g:led(e.x, e.y,led_maps["square_selected"][edition])
+        g:led(e.x, e.y,led_maps["zilchmo_on"][edition])
       end
       
       g:led(16,8,(grid.alt and led_maps["alt_on"][edition] or led_maps["alt_off"][edition]))
       
       for i = 1,3 do
-        if bank[i].focus_hold == false then
-          g:led(1 + (5*(i-1)), math.abs(bank[i][bank[i].id].clip-5),8)
-          g:led(2 + (5*(i-1)), math.abs(bank[i][bank[i].id].mode-5),6)
-          g:led(1+(5*(i-1)),1,0)
-          if bank[i][bank[i].id].loop == false then
-            g:led(3+(5*(i-1)),4,2)
-          elseif bank[i][bank[i].id].loop == true then
-            g:led(3+(5*(i-1)),4,4)
-          end
-          -- if arp[i].hold == false then
-          if not arp[i].enabled then
-            g:led(3+(5*(i-1)),3,0)
-          else
-            if arp[i].playing and arp[i].hold then
-              g:led(3+(5*(i-1)),3,10)
-            elseif arp[i].hold then
-              g:led(3+(5*(i-1)),3,6)
-            else
-              g:led(3+(5*(i-1)),3,4)
-            end
-          end
+        
+        local focused = bank[i].focus_hold == false and bank[i][bank[i].id] or bank[i][bank[i].focus_pad]
+
+        g:led(1 + (5*(i-1)), math.abs(focused.clip-5),led_maps["clip"][edition])
+        g:led(2 + (5*(i-1)), math.abs(focused.mode-5),led_maps["mode"][edition])
+        g:led(1+(5*(i-1)),1,bank[i].focus_hold == false and led_maps["off"][edition] or led_maps["focus_on"][edition])
+        if focused.loop == false then
+          g:led(3+(5*(i-1)),4,led_maps["loop_off"][edition])
+        elseif focused.loop == true then
+          g:led(3+(5*(i-1)),4,led_maps["loop_on"][edition])
+        end
+        if not arp[i].enabled then
+          g:led(3+(5*(i-1)),3,led_maps["off"][edition])
         else
-          g:led(1 + (5*(i-1)), math.abs(bank[i][bank[i].focus_pad].clip-5),8)
-          g:led(2 + (5*(i-1)), math.abs(bank[i][bank[i].focus_pad].mode-5),6)
-          g:led(1+(5*(i-1)),1,10)
-          if bank[i][bank[i].focus_pad].loop == false then
-            g:led(3+(5*(i-1)),4,2)
-          elseif bank[i][bank[i].focus_pad].loop == true then
-            g:led(3+(5*(i-1)),4,4)
+          if arp[i].playing and arp[i].hold then
+            g:led(3+(5*(i-1)),3,led_maps["arp_play"][edition])
+          elseif arp[i].hold then
+            g:led(3+(5*(i-1)),3,led_maps["arp_pause"][edition])
+          else
+            g:led(3+(5*(i-1)),3,led_maps["arp_on"][edition])
           end
         end
+        
+        -- if bank[i].focus_hold == false then
+        --   g:led(1 + (5*(i-1)), math.abs(bank[i][bank[i].id].clip-5),led_maps["clip"][edition])
+        --   g:led(2 + (5*(i-1)), math.abs(bank[i][bank[i].id].mode-5),led_maps["mode"][edition])
+        --   g:led(1+(5*(i-1)),1,led_maps["off"][edition])
+        --   if bank[i][bank[i].id].loop == false then
+        --     g:led(3+(5*(i-1)),4,led_maps["loop_off"][edition])
+        --   elseif bank[i][bank[i].id].loop == true then
+        --     g:led(3+(5*(i-1)),4,led_maps["loop_on"][edition])
+        --   end
+        --   if not arp[i].enabled then
+        --     g:led(3+(5*(i-1)),3,led_maps["off"][edition])
+        --   else
+        --     if arp[i].playing and arp[i].hold then
+        --       g:led(3+(5*(i-1)),3,led_maps["arp_play"][edition])
+        --     elseif arp[i].hold then
+        --       g:led(3+(5*(i-1)),3,led_maps["arp_pause"][edition])
+        --     else
+        --       g:led(3+(5*(i-1)),3,led_maps["arp_on"][edition])
+        --     end
+        --   end
+        -- else
+        --   g:led(1 + (5*(i-1)), math.abs(bank[i][bank[i].focus_pad].clip-5),8)
+        --   g:led(2 + (5*(i-1)), math.abs(bank[i][bank[i].focus_pad].mode-5),6)
+        --   g:led(1+(5*(i-1)),1,10)
+        --   if bank[i][bank[i].focus_pad].loop == false then
+        --     g:led(3+(5*(i-1)),4,2)
+        --   elseif bank[i][bank[i].focus_pad].loop == true then
+        --     g:led(3+(5*(i-1)),4,4)
+        --   end
+        -- end
+
       end
       
       if rec.clear == 0 then
-        g:led(16,8-rec.clip,(5*rec.state)+5)
+        g:led(16,8-rec.clip,rec.state == 1 and led_maps["live_rec"][edition] or led_maps["live_pause"][edition])
       elseif rec.clear == 1 then
-        g:led(16,8-rec.clip,3)
+        g:led(16,8-rec.clip,led_maps["live_empty"][edition])
       end
     
     elseif grid_page == 1 then
@@ -3301,94 +3291,78 @@ function grid_redraw()
       -- if we're on page 2...
       
       for i = 1,3 do
+
         for j = step_seq[i].start_point,step_seq[i].end_point do
-          if j < 9 then
-            g:led((i*5)-2,9-j,2)
-            if grid.loop_mod == 1 then
-              g:led((i*5)-2,9-step_seq[i].start_point,4)
-              g:led((i*5)-2,9-step_seq[i].end_point,4)
-            end
-          elseif j >=9 then
-            g:led((i*5)-1,17-j,2)
-            if grid.loop_mod == 1 then
-              g:led((i*5)-1,17-step_seq[i].start_point,4)
-              g:led((i*5)-1,17-step_seq[i].end_point,4)
-            end
+          local xval = j < 9 and (i*5)-2 or (i*5)-1
+          local yval = j < 9 and 9 or 17
+
+          g:led(xval,yval-j,led_maps["step_no_data"][edition])
+
+          if grid.loop_mod == 1 then
+            g:led(xval,yval-step_seq[i].start_point,led_maps["step_loops"][edition])
+            g:led(xval,yval-step_seq[i].end_point,led_maps["step_loops"][edition])
           end
+
         end
-      end
-      
-      for i = 1,11,5 do
-        for j = 1,8 do
-          local current = math.floor(i/5)+1
-          if step_seq[current].held == 0 then
-            g:led(i,j,(5*pattern_saver[current].saved[9-j])+2)
-            g:led(i,j,j == 9 - pattern_saver[current].load_slot and 15 or ((5*pattern_saver[current].saved[9-j])+2))
-          else
-            g:led(i,j,(5*pattern_saver[current].saved[9-j])+2)
-            g:led(i,j,j == 9 - step_seq[current][step_seq[current].held].assigned_to and 15 or ((5*pattern_saver[current].saved[9-j])+2))
-          end
-        end
-      end
-      
-      for i = 1,3 do
+
         for j = 1,16 do
           if step_seq[i][j].assigned_to ~= 0 then
-            if j < 9 then
-              g:led((i*5)-2,9-j,4)
-            elseif j >= 9 then
-              g:led((i*5)-1,17-j,4)
-            end
+            local xval = j < 9 and (i*5)-2 or (i*5)-1
+            local yval = j < 9 and 9 or 17
+            g:led(xval,yval-j,led_maps["step_yes_data"][edition])
           end
         end
+
         if step_seq[i].current_step < 9 then
-          g:led((i*5)-2,9-step_seq[i].current_step,15)
+          g:led((i*5)-2,9-step_seq[i].current_step,led_maps["step_current"][edition])
         elseif step_seq[i].current_step >=9 then
-          g:led((i*5)-1,9-(step_seq[i].current_step-8),15)
+          g:led((i*5)-1,9-(step_seq[i].current_step-8),led_maps["step_current"][edition])
         end
+
         if step_seq[i].held < 9 then
-          g:led((i*5)-2,9-step_seq[i].held,9)
+          g:led((i*5)-2,9-step_seq[i].held,led_maps["step_held"][edition])
         elseif step_seq[i].held >= 9 then
-          g:led((i*5)-1,9-(step_seq[i].held-8),9)
+          g:led((i*5)-1,9-(step_seq[i].held-8),led_maps["step_held"][edition])
         end
-      end
-      
-      for i = 1,3 do
-        g:led((i*5)-3, 9-step_seq[i].meta_duration,4)
-        g:led((i*5)-3, 9-step_seq[i].meta_step,6)
-      end
-      
-      for i = 1,3 do
+
+        g:led((i*5)-3, 9-step_seq[i].meta_duration,led_maps["meta_duration"][edition])
+        g:led((i*5)-3, 9-step_seq[i].meta_step,led_maps["meta_step_hi"][edition])
+
         if step_seq[i].held == 0 then
-          g:led((i*5), 9-step_seq[i][step_seq[i].current_step].meta_meta_duration,4)
-          g:led((i*5), 9-step_seq[i].meta_meta_step,6)
+          g:led((i*5), 9-step_seq[i][step_seq[i].current_step].meta_meta_duration,led_maps["meta_duration"][edition])
+          g:led((i*5), 9-step_seq[i].meta_meta_step,led_maps["meta_step_hi"][edition])
         else
-          g:led((i*5), 9-step_seq[i].meta_meta_step,2)
-          g:led((i*5), 9-step_seq[i][step_seq[i].held].meta_meta_duration,4)
+          g:led((i*5), 9-step_seq[i].meta_meta_step,led_maps["meta_step_lo"][edition])
+          g:led((i*5), 9-step_seq[i][step_seq[i].held].meta_meta_duration,led_maps["meta_duration"][edition])
         end
         if step_seq[i].held == 0 then
           g:led(16,8-i,(step_seq[i].active*6)+2)
         else
           g:led(16,8-i,step_seq[i][step_seq[i].held].loop_pattern*4)
         end
+
       end
       
-      g:led(16,8,(grid.alt and 12 or 0)+3)
-      g:led(16,2,(grid.loop_mod*9)+3)
-      
-      if grid.loop_mod == 1 then
-        
+      for i = 1,11,5 do
+        for j = 1,8 do
+          local current = math.floor(i/5)+1
+          local show = step_seq[current].held == 0 and pattern_saver[current].load_slot or step_seq[current][step_seq[current].held].assigned_to
+          g:led(i,j,(5*pattern_saver[current].saved[9-j])+2)
+          g:led(i,j,j == (9 - show) and 15 or ((5*pattern_saver[current].saved[9-j])+2))
+        end
       end
+      
+      g:led(16,8,grid.alt and led_maps["alt_on"][edition] or led_maps["alt_off"][edition])
+      g:led(16,2,grid.loop_mod == 1 and led_maps["loop_mod_hi"][edition] or led_maps["loop_mod_lo"][edition])
     
     elseif grid_page == 2 then
       -- delay page!
       for i = 1,8 do
-        --right delay presets
-        g:led(i,1,delay[2].selected_bundle == i+8 and 15 or (delay_bundle[2][i+8].saved == true and 7 or 2))
-        g:led(i,2,delay[2].selected_bundle == i and 15 or (delay_bundle[2][i].saved == true and 7 or 2))
-        --left delay presets
-        g:led(i,7,delay[1].selected_bundle == i+8 and 15 or (delay_bundle[1][i+8].saved == true and 7 or 2))
-        g:led(i,8,delay[1].selected_bundle == i and 15 or (delay_bundle[1][i].saved == true and 7 or 2))
+        local check = {i+8, i}
+        for j = 1,2 do
+          g:led(i,j,delay[2].selected_bundle == check[j] and 15 or (delay_bundle[2][check[j]].saved == true and led_maps["bundle_saved"][edition] or led_maps["bundle_empty"][edition]))
+          g:led(i,j+6,delay[1].selected_bundle == check[j] and 15 or (delay_bundle[1][check[j]].saved == true and led_maps["bundle_saved"][edition] or led_maps["bundle_empty"][edition]))
+        end
       end
 
       -- delay time modifiers
@@ -3398,27 +3372,27 @@ function grid_redraw()
         time_to_led[i] = 0
         time_to_led[i+2] = 0
         if time[i] == 0.5 then
-          time_to_led[i+2] = 5
+          time_to_led[i+2] = led_maps["time_to_led.5"][edition]
         elseif time[i] == 0.25 then
-          time_to_led[i+2] = 10
+          time_to_led[i+2] = led_maps["time_to_led.25"][edition]
         elseif time[i] == 0.125 then
-          time_to_led[i+2] = 15
+          time_to_led[i+2] = led_maps["time_to_led.125"][edition]
         elseif time[i] == 2 then
-          time_to_led[i] = 3
+          time_to_led[i] = led_maps["time_to_led2"][edition]
         elseif time[i] == 4 then
-          time_to_led[i] = 6
+          time_to_led[i] = led_maps["time_to_led4"][edition]
         elseif time[i] == 8 then
-          time_to_led[i] = 12
+          time_to_led[i] = led_maps["time_to_led8"][edition]
         elseif time[i] == 16 then
-          time_to_led[i] = 15
+          time_to_led[i] = led_maps["time_to_led16"][edition]
         end
       end
       g:led(1,3,time_to_led[2])
       g:led(2,3,time_to_led[4])
       g:led(1,6,time_to_led[1])
       g:led(2,6,time_to_led[3])
-      g:led(3,3,delay[2].reverse and 7 or 3)
-      g:led(3,6,delay[1].reverse and 7 or 3)
+      g:led(3,3,delay[2].reverse and led_maps["reverse_on"][edition] or led_maps["reverse_off"][edition])
+      g:led(3,6,delay[1].reverse and led_maps["reverse_on"][edition] or led_maps["reverse_off"][edition])
 
       rate_to_led = {{},{},{},{}}
       local rate = {params:get("delay L: rate"), params:get("delay R: rate")}
@@ -3441,10 +3415,10 @@ function grid_redraw()
       end
       g:led(1,4,rate_to_led[2])
       g:led(2,4,rate_to_led[4])
-      g:led(3,4,delay[2].wobble_hold == true and 15 or 0)
+      g:led(3,4,delay[2].wobble_hold and led_maps["wobble_on"][edition] or led_maps["wobble_off"][edition])
       g:led(1,5,rate_to_led[1])
       g:led(2,5,rate_to_led[3])
-      g:led(3,5,delay[1].wobble_hold == true and 15 or 0)
+      g:led(3,5,delay[1].wobble_hold and led_maps["wobble_on"][edition] or led_maps["wobble_off"][edition])
       
       -- delay levels
       local level_to_led = {{},{}}
@@ -3463,18 +3437,18 @@ function grid_redraw()
         end
       end
       for i = 8,4,-1 do
-        g:led(i,6,2)
-        g:led(i,3,2)
+        g:led(i,6,led_maps["level_lo"][edition])
+        g:led(i,3,led_maps["level_lo"][edition])
       end
       for i = 1,2 do
         if not delay[i].level_mute then
           for j = 8,4+(4-level_to_led[i]),-1 do
-            g:led(j,i==1 and 6 or 3,7)
+            g:led(j,i==1 and 6 or 3,led_maps["level_hi"][edition])
           end
         else
           if params:get(i == 1 and "delay L: global level" or "delay R: global level") == 0 then
             for j = 8,4,-1 do
-              g:led(j,i==1 and 6 or 3,7)
+              g:led(j,i==1 and 6 or 3,led_maps["level_hi"][edition])
             end
           end
         end
@@ -3497,18 +3471,18 @@ function grid_redraw()
         end
       end
       for i = 8,4,-1 do
-        g:led(i,5,2)
-        g:led(i,4,2)
+        g:led(i,5,led_maps["level_lo"][edition])
+        g:led(i,4,led_maps["level_lo"][edition])
       end
       for i = 1,2 do
         if not delay[i].feedback_mute then
           for j = 8,4+(4-feed_to_led[i]),-1 do
-            g:led(j,i==1 and 5 or 4,7)
+            g:led(j,i==1 and 5 or 4,led_maps["level_hi"][edition])
           end
         else
           if params:get(i == 1 and "delay L: feedback" or "delay R: feedback") == 0 then
             for j = 8,4,-1 do
-              g:led(j,i==1 and 5 or 4,7)
+              g:led(j,i==1 and 5 or 4,led_maps["level_hi"][edition])
             end
           end
         end
@@ -3516,16 +3490,16 @@ function grid_redraw()
 
       for k = 10,13 do
         for i = 6,3,-1 do
-          g:led(k,i,3)
+          g:led(k,i,led_maps["square_off"][edition])
         end
       end
 
       local shifted_x = (selected[delay_grid.bank].x - (5*(delay_grid.bank-1)))+9
       local shifted_y = selected[delay_grid.bank].y - 2
-      g:led(shifted_x, shifted_y, 15)
+      g:led(shifted_x, shifted_y, led_maps["square_selected"][edition])
 
       for i = 4,6 do
-        g:led(14,i,delay_grid.bank == 7-i and 7 or 2)
+        g:led(14,i,delay_grid.bank == 7-i and led_maps["selected_bank"][edition] or led_maps["unselected_bank"][edition])
       end
 
       -- send levels
@@ -3549,12 +3523,12 @@ function grid_redraw()
       for i = 1,2 do
         if not delay[i].send_mute then
           for j = 14,10+(4-send_to_led[i]),-1 do
-            g:led(j,i==1 and 8 or 1,7)
+            g:led(j,i==1 and 8 or 1,led_maps["level_hi"][edition])
           end
         else
           if (i == 1 and bank[delay_grid.bank][bank[delay_grid.bank].id].left_delay_level or bank[delay_grid.bank][bank[delay_grid.bank].id].right_delay_level) == 0 then
             for j = 14,10,-1 do
-              g:led(j,i==1 and 8 or 1,7)
+              g:led(j,i==1 and 8 or 1,led_maps["level_hi"][edition])
             end
           end
         end
@@ -3562,23 +3536,23 @@ function grid_redraw()
 
       --arp button
       if not arp[delay_grid.bank].enabled then
-        g:led(12,2,0)
+        g:led(12,2,led_maps["off"][edition])
       else
         if arp[delay_grid.bank].playing and arp[delay_grid.bank].hold then
-          g:led(12,2,10)
+          g:led(12,2,led_maps["arp_play"][edition])
         elseif arp[delay_grid.bank].hold then
-          g:led(12,2,6)
+          g:led(12,2,led_maps["arp_pause"][edition])
         else
-          g:led(12,2,4)
+          g:led(12,2,led_maps["arp_on"][edition])
         end
       end
 
-      g:led(16,8,(grid.alt == true and 12 or 0)+3)
+      g:led(16,8,(grid.alt and led_maps["alt_on"][edition] or led_maps["alt_off"][edition]))
 
     end
     local page_led = {[0] = 0, [1] = 7, [2] = 15}
     if grid_page ~= nil then
-      g:led(16,1,page_led[grid_page])
+      g:led(16,1,led_maps["page_led"][grid_page+1][edition])
     end
     
     g:refresh()
@@ -3618,31 +3592,37 @@ function grid_pattern_execute(entry)
       elseif string.match(entry.action, "zilchmo") then
         if params:get("zilchmo_patterning") == 2 then
           bank[i][entry.id].rate = entry.rate
-          if fingers[entry.row][entry.bank] == nil then
-            fingers[entry.row][entry.bank] = {}
-          end
-          fingers[entry.row][entry.bank].con = entry.con
-          zilchmo(entry.row,entry.bank)
+          rightangleslice.init(entry.row,entry.bank,entry.con)
+
+          local depth = {'(%d)','(%d)(%d)','(%d)(%d)(%d)','(%d)(%d)(%d)(%d)'}
+          local y1,y2,y3,y4 = entry.con:match(depth[#entry.con])
+          
+          zilch_leds[4][entry.bank][y1 ~= nil and 5-tonumber(y1)] = 1
+          zilch_leds[4][entry.bank][y2 ~= nil and 5-tonumber(y2)] = 1
+          zilch_leds[4][entry.bank][y3 ~= nil and 5-tonumber(y3)] = 1
+          zilch_leds[4][entry.bank][y4 ~= nil and 5-tonumber(y4)] = 1
+
+          clock.run(recorded_zilch_zero,entry.bank)
           if arc_param[i] ~= 4 and #arc_pat[i][a_p].event == 0 then -- TODO what is this?
             bank[i][bank[i].id].start_point = entry.start_point
             bank[i][bank[i].id].end_point = entry.end_point
             softcut.loop_start(i+1,bank[i][bank[i].id].start_point)
             softcut.loop_end(i+1,bank[i][bank[i].id].end_point)
           end
-          local length = math.floor(math.log10(entry.con)+1)
-          for i = 1,length do
-            if grid_page == 0 then
-              g:led((entry.row+1)*entry.bank,5-(math.floor(entry.con/(10^(i-1))) % 10),15)
-              g:refresh()
-            end
-          end
         end
       end
-      -- grid_redraw()
       grid_dirty = true
       redraw()
     end
   end
+end
+
+function recorded_zilch_zero(bank)
+  clock.sleep(0.1)
+  for i = 1,4 do
+    zilch_leds[4][bank][i] = 0
+  end
+  grid_dirty = true
 end
 
 function new_arc_pattern_execute(entry)

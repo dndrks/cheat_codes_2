@@ -903,7 +903,15 @@ function main_menu.init()
     screen.font_size(10)
     if collection_loaded then
       screen.text_center("loading collection")
-      screen.font_size(30)
+      if #selected_coll < 8 then
+        screen.font_size(30)
+      elseif #selected_coll < 11 then
+        screen.font_size(20)
+      elseif #selected_coll < 14 then
+        screen.font_size(15)
+      else
+        screen.font_size(10)
+      end
       screen.move(62,43)
       screen.text_center(selected_coll)
       screen.font_size(15)

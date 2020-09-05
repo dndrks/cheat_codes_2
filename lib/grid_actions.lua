@@ -5,6 +5,24 @@ for i = 1,3 do
   held_query[i] = 0
 end
 
+zilches = 
+{ 
+    [3] = {{},{},{}} 
+  , [4] = {{},{},{}}
+}
+for i = 1,3 do
+  zilches[4][i].held = 0
+  for j = 1,4 do
+    zilches[4][i][j] = false
+  end
+end
+for i = 1,3 do
+  zilches[3][i].held = 0
+  for j = 1,3 do
+    zilches[3][i][j] = false
+  end
+end
+
 zilch4 = {{},{},{}}
 for i = 1,3 do
   zilch4[i].held = 0
@@ -114,69 +132,44 @@ function grid_actions.init(x,y,z)
       end
     end
     
-    -- if x == 5 or x == 10 or x == 15 then
-
-    --   if z == 1 then
-    --     zilch4[x/5][5-y] = true
-    --     zilch4[x/5].held = zilch4[x/5].held + 1
-    --   elseif z == 0 then
-    --     if zilch4[x/5].held > 0 then
-    --       local coll = {}
-    --       for j = 1,4 do
-    --         if zilch4[x/5][j] == true then
-    --           table.insert(coll,j)
-    --         end
-    --       end
-    --       coll = table.concat(coll)
-    --       rightangleslice.actions[4][coll][1](bank[x/5][bank[x/5].id])
-    --       rightangleslice.actions[4][coll][2](bank[x/5][bank[x/5].id],x/5)
-    --       for j = 1,4 do
-    --         zilch4[x/5][j] = false
-    --       end
-    --     end
-    --     zilch4[x/5].held = 0
-    --   end
-    -- end
-
-    for k = 4,2,-1 do
-      for i = 1,3 do
-
-        if z == 1 and x == (k+1)+(5*(i-1)) and y <=k then
-          local t1 = util.time()
-          fingers[k].dt = t1-fingers[k].t
-          fingers[k].t = t1
-          if fingers[k].dt > 0.1 then
-            fingers[k][i] = {}
+    -- zilchmo 3+4 handling
+    if x == 4 or x == 5 or x == 9 or x == 10 or x == 14 or x == 15 then
+      if y <= 4 then
+        local zilch_id = x%5 == 0 and 4 or 3
+        local zmap = zilches[zilch_id]
+        local k1 = util.round(x/5)
+        local k2 = zilch_id == 3 and 4-y or 5-y
+        if z == 1 then
+          zmap[k1][k2] = true
+          zmap[k1].held = zmap[k1].held + 1
+          zilch_leds[zilch_id][k1][y] = 1
+          grid_dirty = true
+        elseif z == 0 then
+          if zmap[k1].held > 0 then
+            local coll = {}
+            for j = 1,4 do
+              if zmap[k1][j] == true then
+                table.insert(coll,j)
+              end
+            end
+            coll.con = table.concat(coll)
+            local previous_rate = bank[k1][bank[k1].id].rate
+            rightangleslice.init(4,k1,coll.con)
+            if zilch_id == 4 then
+              record_zilchmo_4(previous_rate,k1,4,coll.con)
+            end
+            for j = 1,4 do
+              zmap[k1][j] = false
+            end
           end
-          table.insert(fingers[k][i],math.abs(y-(k+1)))
-          table.sort(fingers[k][i])
-          fingers[k][i].con = table.concat(fingers[k][i])
-          for j = 1,#fingers[k][i] do
-            local e = {}
-            e.state = 1
-            e.id = (k+1)+(5*(i-1))+math.abs(fingers[k][i][j]-(k+1))
-            e.x = (k+1)+(5*(i-1))
-            e.y = math.abs(fingers[k][i][j]-(k+1))
-            grid_entry(e)
-          end
-        elseif z == 0 and x == (k+1)+(5*(i-1)) and y<=k then
-          if k == 4 then
-            counter_four.key_up:stop()
-            counter_four.key_up:start()
-          elseif k == 3 then
-            counter_three.key_up:stop()
-            counter_three.key_up:start()
-          elseif k == 2 then
-            counter_two.key_up:stop()
-            counter_two.key_up:start()
-          elseif k == 1 then
-            zilchmo(1,i)
-          end
-          selected_zilchmo_row = k
-          selected_zilchmo_bank = i
+          zmap[k1].held = 0
+          zilch_leds[zilch_id][k1][y] = 0
+          grid_dirty = true
+          redraw()
         end
       end
     end
+    --/ zilchmo 3+4 handling
     
     for k = 1,1 do
       for i = 1,3 do
@@ -923,10 +916,6 @@ function grid_actions.kill_arp(i)
     arps.clear(i)
   end
   arp[i].enabled = false
-end
-
-function grid_actions.change_clips()
-
 end
 
 return grid_actions
