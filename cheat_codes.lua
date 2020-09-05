@@ -3123,6 +3123,12 @@ function grid_redraw()
           end
         end
       end
+
+      for x = 3,13,5 do
+        for j = 1,2 do
+          g:led(x,j,zilch_leds[2][util.round(x/5)][j] == 1 and led_maps["zilchmo_on"][edition] or led_maps["zilchmo_off"][edition])
+        end
+      end
       
       for i = 1,3 do
         local target = grid_pat[i]
@@ -3190,8 +3196,10 @@ function grid_redraw()
             g:led(3+(5*(i-1)),1,led_maps["pad_pause"][edition])
             g:led(3+(5*(i-1)),2,led_maps["pad_pause"][edition])
           else
-            g:led(3+(5*(i-1)),1,led_maps["pad_play"][edition])
-            g:led(3+(5*(i-1)),2,led_maps["pad_play"][edition])
+            -- g:led(3+(5*(i-1)),1,led_maps["pad_play"][edition])
+            -- g:led(3+(5*(i-1)),2,led_maps["pad_play"][edition])
+            g:led(3+(5*(i-1)),1,zilch_leds[2][i][1] == 1 and led_maps["zilchmo_on"][edition] or led_maps["zilchmo_off"][edition])
+            g:led(3+(5*(i-1)),2,zilch_leds[2][i][2] == 1 and led_maps["zilchmo_on"][edition] or led_maps["zilchmo_off"][edition])
           end
         else
           local focus_x = (math.ceil(bank[i].focus_pad/4)+(5*(i-1)))

@@ -7,7 +7,8 @@ end
 
 zilches = 
 { 
-    [3] = {{},{},{}} 
+    [2] = {{},{},{}} 
+  , [3] = {{},{},{}} 
   , [4] = {{},{},{}}
 }
 for i = 1,3 do
@@ -22,12 +23,10 @@ for i = 1,3 do
     zilches[3][i][j] = false
   end
 end
-
-zilch4 = {{},{},{}}
 for i = 1,3 do
-  zilch4[i].held = 0
-  for j = 1,4 do
-    zilch4[i][j] = false
+  zilches[2][i].held = 0
+  for j = 1,3 do
+    zilches[2][i][j] = false
   end
 end
 
@@ -154,7 +153,7 @@ function grid_actions.init(x,y,z)
             end
             coll.con = table.concat(coll)
             local previous_rate = bank[k1][bank[k1].id].rate
-            rightangleslice.init(4,k1,coll.con)
+            rightangleslice.init(zilch_id,k1,coll.con)
             if zilch_id == 4 then
               record_zilchmo_4(previous_rate,k1,4,coll.con)
             end
@@ -170,6 +169,41 @@ function grid_actions.init(x,y,z)
       end
     end
     --/ zilchmo 3+4 handling
+
+    if x == 3 or x == 8 or x == 13 then
+      if y <= 2 then
+        local zilch_id = 2
+        local zmap = zilches[zilch_id]
+        local k1 = util.round(x/5)
+        local k2 = 3-y
+        if z == 1 then
+          zmap[k1][k2] = true
+          zmap[k1].held = zmap[k1].held + 1
+          zilch_leds[zilch_id][k1][y] = 1
+          grid_dirty = true
+        elseif z == 0 then
+          if zmap[k1].held > 0 then
+            local coll = {}
+            for j = 1,4 do
+              if zmap[k1][j] == true then
+                table.insert(coll,j)
+              end
+            end
+            coll.con = table.concat(coll)
+            local previous_rate = bank[k1][bank[k1].id].rate
+            rightangleslice.init(2,k1,coll.con)
+            for j = 1,4 do
+              zmap[k1][j] = false
+            end
+          end
+          zmap[k1].held = 0
+          zilch_leds[zilch_id][k1][y] = 0
+          grid_dirty = true
+          redraw()
+        end
+      end
+    end
+
     
     for k = 1,1 do
       for i = 1,3 do
