@@ -57,7 +57,9 @@ function main_menu.init()
       screen.text_right("s: "..string.format("%.4g",(pad.start_point)-off).."s | e: "..string.format("%.4g",(display_end)-off).."s")
     else
       local off = ((rec.clip-1)*8)+1
-      screen.text_right("s: "..string.format("%.4g",rec.start_point-off).."s | e: "..string.format("%.4g",rec.end_point-off).."s")
+      local mults = {1,2,4}
+      local mult = mults[params:get("live_buff_rate")]
+      screen.text_right("s: "..string.format("%.4g",(rec.start_point-off)*mult).."s | e: "..string.format("%.4g",(rec.end_point-off)*mult).."s")
     end
 
     for i = 1,3 do

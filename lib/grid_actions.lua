@@ -510,29 +510,7 @@ function grid_actions.init(x,y,z)
           --if not grid.alt then
           if not bank[i].alt_lock and not grid.alt then
             if y == 3 then
-
               grid_actions.arp_handler(i)
-
-              -- if not arp[i].enabled then
-              --   arp[i].enabled = true
-              -- elseif not arp[i].hold then
-              --   if #arp[i].notes > 0 then
-              --     arp[i].hold = true
-              --   else
-              --     arp[i].enabled = false
-              --   end
-              -- else
-              --   if #arp[i].notes > 0 then
-              --     if arp[i].playing == true then
-              --       arp[i].pause = true
-              --       arp[i].playing = false
-              --     else
-              --       arp[i].step = arp[i].start_point-1
-              --       arp[i].pause = false
-              --       arp[i].playing = true
-              --     end
-              --   end
-              -- end
             else
               if key1_hold == true then key1_hold = false end
               if y == 4 then

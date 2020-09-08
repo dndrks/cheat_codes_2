@@ -2505,7 +2505,9 @@ function reload_collected_samples(file,sample)
 end
 
 function adjust_key1_timing()
-  if menu ~= 6 then
+  if menu == 1 then
+    metro[31].time = 0.25
+  elseif menu ~= 6 then
     if metro[31].time ~= 0.1 then metro[31].time = 0.1 end
   elseif menu == 6 then
     if page.delay[page.delay_focus].menu == 1 and page.delay[page.delay_focus].menu_sel[page.delay[page.delay_focus].menu] == 5 then
@@ -2764,7 +2766,7 @@ function key(n,z)
         -- end
         menu = 1
       elseif menu == 2 then
-        if key1_hold then
+        if key1_hold and page.loops_sel ~= 4 then
           sync_clock_to_loop(bank[page.loops_sel][bank[page.loops_sel].id])
         else
           menu = 1
