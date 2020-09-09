@@ -282,7 +282,6 @@ function main_menu.init()
     end
     screen.level(3)
     screen.move(0,64)
-    screen.text("...")
   elseif menu == 4 then
     screen.move(0,10)
     screen.level(3)
@@ -308,9 +307,6 @@ function main_menu.init()
         screen.text(pan_to_screen_options[i]..""..focused_pad)
       end
     end
-    screen.level(3)
-    screen.move(0,64)
-    screen.text("...")
   elseif menu == 5 then
     screen.move(0,10)
     screen.level(3)
@@ -367,9 +363,6 @@ function main_menu.init()
       local ease_types = {"cont","jumpy"}
       screen.text_center(ease_types[ease_type_to_screen])
     end
-    screen.level(3)
-    screen.move(0,64)
-    screen.text("...")
 
   elseif menu == 6 then
     screen.move(0,10)
@@ -477,9 +470,6 @@ function main_menu.init()
       screen.move(30,60)
       screen.text("main output level: "..string.format("%.2f", params:get("delay "..delay_name..": global level")))
     end
-    screen.level(3)
-    screen.move(0,64)
-    screen.text("...")
   
   elseif menu == 7 then
     screen.move(0,10)

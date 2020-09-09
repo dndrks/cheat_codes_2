@@ -642,7 +642,8 @@ zilch_leds =
 
 function init()
 
-  metro[31].time = 0.1
+  clock.run(check_page_for_k1)
+  -- metro[31].time = 0.25
 
   collection_loaded = false
 
@@ -1502,6 +1503,7 @@ function random_rec_clock()
       if random_rec_comp < random_rec_prob then
         if params:get("rec_loop") == 1 then
           buff_freeze()
+          grid_dirty = true
         elseif params:get("rec_loop") == 2 then
           if not rec_state_watcher.is_running then
             softcut.position(1,rec.start_point+0.1)
@@ -1509,6 +1511,7 @@ function random_rec_clock()
             rec.state = 1
             rec_state_watcher:start()
             if rec.clear == 1 then rec.clear = 0 end
+            grid_dirty = true
           end
         end
       end
@@ -2862,6 +2865,20 @@ function key(n,z)
   end
   adjust_key1_timing()
   redraw()
+  grid_dirty = true
+end
+
+function check_page_for_k1()
+  while true do
+    clock.sleep(0.25)
+    if _menu.mode and metro[31].time ~= 0.25 then
+      metro[31].time = 0.25
+      print("yep!")
+    elseif not _menu.mode and metro[31].time == 0.25 and menu ~= 1 then
+      metro[31].time = 0.1
+      print("nope")
+    end
+  end
 end
 
 function enc(n,d)
@@ -3559,7 +3576,12 @@ function grid_redraw()
 
       g:led(16,8,(grid.alt and led_maps["alt_on"][edition] or led_maps["alt_off"][edition]))
 
+      for j = 1,4 do
+        g:led(15,math.abs(j-7),zilch_leds[4][delay_grid.bank][j] == 1 and led_maps["zilchmo_on"][edition] or led_maps["zilchmo_off"][edition])
+      end
+
     end
+
     local page_led = {[0] = 0, [1] = 7, [2] = 15}
     if grid_page ~= nil then
       g:led(16,1,led_maps["page_led"][grid_page+1][edition])

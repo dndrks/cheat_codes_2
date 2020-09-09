@@ -188,7 +188,7 @@ function encoder_actions.init(n,d)
       elseif page.rnd_page_section == 2 then
         local selected_slot = page.rnd_page_sel[page.rnd_page]
         local current_param = rnd[page.rnd_page][selected_slot].param
-        local reasonable_max = (current_param == "loop" or current_param == "delay send") and 4 or 6
+        local reasonable_max = (current_param == "semitone offset" and 5) or ((current_param == "loop" or current_param == "delay send") and 4 or 6)
         page.rnd_page_edit[page.rnd_page] = util.clamp(page.rnd_page_edit[page.rnd_page]+d,1,reasonable_max)
       end
     end

@@ -851,6 +851,44 @@ function grid_actions.init(x,y,z)
       end
     end
 
+    -- zilchmo 4!!
+    if x == 15 then
+      if y >= 3 and y <= 6 then
+        local zilch_id = 4
+        local zmap = zilches[zilch_id]
+        local k1 = delay_grid.bank
+        local k2 = 7-y
+        if z == 1 then
+          zmap[k1][k2] = true
+          zmap[k1].held = zmap[k1].held + 1
+          zilch_leds[zilch_id][k1][7-y] = 1
+          grid_dirty = true
+        elseif z == 0 then
+          if zmap[k1].held > 0 then
+            local coll = {}
+            for j = 1,4 do
+              if zmap[k1][j] == true then
+                table.insert(coll,j)
+              end
+            end
+            coll.con = table.concat(coll)
+            local previous_rate = bank[k1][bank[k1].id].rate
+            rightangleslice.init(zilch_id,k1,coll.con)
+            if zilch_id == 4 then
+              record_zilchmo_4(previous_rate,k1,4,coll.con)
+            end
+            for j = 1,4 do
+              zmap[k1][j] = false
+            end
+          end
+          zmap[k1].held = 0
+          zilch_leds[zilch_id][k1][k2] = 0
+          grid_dirty = true
+          redraw()
+        end
+      end
+    end
+
     if x == 16 and y == 8 then
       -- grid.alt_delay = not grid.alt_delay
       grid.alt = not grid.alt
