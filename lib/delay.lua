@@ -44,6 +44,13 @@ function delays.init(target)
     delay[i].reverse = false
   end
 
+  delay_links = {{},{},{}}
+  for i = 1,3 do
+    for j = 1,4+i do
+      delay_links[i][j] = false
+    end
+  end
+
   delay_bundle = { {},{} }
   for i = 1,2 do
     for j = 1,16 do
@@ -57,6 +64,13 @@ function delays.init(target)
   delay_grid = {}
   delay_grid.bank = 1
 
+end
+
+function delays.links(k,v)
+  delay_links[k][v] = not delay_links[k][v]
+  if k == 1 and (v == 1 or v == 2) then
+    delay_links[k][v==1 and 2 or 1] = delay_links[k][v]
+  end
 end
 
 function delays.build_bundle(target,slot)

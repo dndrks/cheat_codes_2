@@ -41,32 +41,8 @@ function encoder_actions.init(n,d)
           ea.sc.move_rec_window(rec)
         end
       end
-      -- if id ~= 4 then
- 
-      -- elseif id == 4 then
-      --   if key1_hold then
-      --     if page.loops_view[id] == 2 then
-      --       ea.change_buffer(rec,d)
-      --     else
-      --       ea.move_rec_window(rec,d)
-      --     end
-      --     ea.sc.move_rec_window(rec)
-      --   end
-      -- end
     elseif menu == 6 then
-
       page.delay_focus = util.clamp(page.delay_focus+d,1,2)
-
-      -- if page.delay_section == 1 then
-      --   page.delay_focus = util.clamp(page.delay_focus+d,1,2)
-      -- elseif page.delay_section == 2 then
-      --   page.delay[page.delay_focus].menu = util.clamp(page.delay[page.delay_focus].menu+d,1,3)
-      -- elseif page.delay_section == 3 then
-      --   local max_lines = {3,3,4}
-      --   local target = page.delay[page.delay_focus].menu_sel[page.delay[page.delay_focus].menu]
-      --   page.delay[page.delay_focus].menu_sel[page.delay[page.delay_focus].menu] = util.clamp(target+d,1,max_lines[page.delay[page.delay_focus].menu])
-      -- end
-
     elseif menu == 7 then
       page.time_sel = util.clamp(page.time_sel+d,1,6)
     elseif menu == 8 then
@@ -315,7 +291,8 @@ function encoder_actions.init(n,d)
       if page.delay_section == 2 then
         if focused_menu == 1 then
           if item == 1 then
-            params:delta("delay "..delay_name..": mode",d)
+            ea.delta_delay_param(delay_name,"mode",d)
+            -- params:delta("delay "..delay_name..": mode",d)
           elseif item == 2 then
             local divisor;
             if delay[page.delay_focus].mode == "free" and key1_hold then
@@ -325,51 +302,67 @@ function encoder_actions.init(n,d)
             else
               divisor = 1
             end
-            params:delta(delay[page.delay_focus].mode == "clocked" and "delay "..delay_name..": div/mult" or "delay "..delay_name..": free length",d/divisor)
+            ea.delta_delay_param(delay_name,delay[page.delay_focus].mode == "clocked" and "div/mult" or "free length",d/divisor)
+            -- params:delta(delay[page.delay_focus].mode == "clocked" and "delay "..delay_name..": div/mult" or "delay "..delay_name..": free length",d/divisor)
           elseif item == 3 then
             local divisor = (delay[page.delay_focus].mode == "free" and key1_hold) and 10 or 0.2
-            params:delta("delay "..delay_name..": fade time",d/divisor)
+            ea.delta_delay_param(delay_name,"fade time",d/divisor)
+            -- params:delta("delay "..delay_name..": fade time",d/divisor)
           elseif item == 4 then
             if key1_hold then
-              params:delta("delay "..delay_name..": rate",d)
+              ea.delta_delay_param(delay_name,"rate",d)
+              -- params:delta("delay "..delay_name..": rate",d)
             else
               if params:get("delay "..delay_name..": rate") < 1.0 then
                 if d > 0 then
                   if params:get("delay "..delay_name..": rate") * 2 < 1.0 then
-                    params:set("delay "..delay_name..": rate",params:get("delay "..delay_name..": rate") * 2)
+                    ea.set_delay_param(delay_name,"rate",params:get("delay "..delay_name..": rate") * 2)
+                    -- params:set("delay "..delay_name..": rate",params:get("delay "..delay_name..": rate") * 2)
                   else
-                    params:set("delay "..delay_name..": rate",1)
+                    ea.set_delay_param(delay_name,"rate",1)
+                    -- params:set("delay "..delay_name..": rate",1)
                   end
                 else
                   if params:get("delay "..delay_name..": rate") / 2 >= 0.25 then
-                    params:set("delay "..delay_name..": rate",params:get("delay "..delay_name..": rate") / 2)
+                    ea.set_delay_param(delay_name,"rate",params:get("delay "..delay_name..": rate") / 2)
+                    -- params:set("delay "..delay_name..": rate",params:get("delay "..delay_name..": rate") / 2)
                   else
-                    params:set("delay "..delay_name..": rate",1)
+                    ea.set_delay_param(delay_name,"rate",1)
+                    -- params:set("delay "..delay_name..": rate",1)
                   end
                 end
               else
-                params:delta("delay "..delay_name..": rate",d*100)
+                ea.delta_delay_param(delay_name,"rate",d*100)
+                -- params:delta("delay "..delay_name..": rate",d*100)
                 if params:get("delay "..delay_name..": rate") < 1.0 then
-                  params:set("delay "..delay_name..": rate",1)
+                  ea.set_delay_param(delay_name,"rate",1)
+                  -- params:set("delay "..delay_name..": rate",1)
                 end
               end
             end
           elseif item == 5 then
-            params:delta("delay "..delay_name..": feedback",d)
+            ea.delta_delay_param(delay_name,"feedback",d)
+            -- params:delta("delay "..delay_name..": feedback",d)
           end
         elseif focused_menu == 2 then
           if item == 1 then
-            params:delta("delay "..delay_name..": filter cut",d/10)
+            ea.delta_delay_param(delay_name,"filter cut",d/10)
+            -- params:delta("delay "..delay_name..": filter cut",d/10)
           elseif item == 2 then
-            params:delta("delay "..delay_name..": filter q",d/10)
+            ea.delta_delay_param(delay_name,"filter q",d/10)
+            -- params:delta("delay "..delay_name..": filter q",d/10)
           elseif item == 3 then
-            params:delta("delay "..delay_name..": filter lp",d)
+            ea.delta_delay_param(delay_name,"filter lp",d)
+            -- params:delta("delay "..delay_name..": filter lp",d)
           elseif item == 4 then
-            params:delta("delay "..delay_name..": filter hp",d)
+            ea.delta_delay_param(delay_name,"filter hp",d)
+            -- params:delta("delay "..delay_name..": filter hp",d)
           elseif item == 5 then
-            params:delta("delay "..delay_name..": filter bp",d)
+            ea.delta_delay_param(delay_name,"filter bp",d)
+            -- params:delta("delay "..delay_name..": filter bp",d)
           elseif item == 6 then
-            params:delta("delay "..delay_name..": filter dry",d)
+            ea.delta_delay_param(delay_name,"filter dry",d)
+            -- params:delta("delay "..delay_name..": filter dry",d)
           end
         elseif focused_menu == 3 then
           if item < 7 then
@@ -397,65 +390,8 @@ function encoder_actions.init(n,d)
               end
             end
           elseif item == 7 then
-            params:delta("delay "..delay_name..": global level",d)
-          end
-        end
-      end
-
-      local item = page.delay[page.delay_focus].menu_sel[page.delay[page.delay_focus].menu]
-      local delay_name = page.delay_focus == 1 and "L" or "R"
-      local focused_menu = page.delay[page.delay_focus].menu
-      if page.delay_section == 3 then
-        if focused_menu == 1 then
-          if item == 1 then
-            local divisor;
-            if delay[page.delay_focus].mode == "free" and key1_hold then
-              divisor = 3
-            elseif delay[page.delay_focus].mode == "free" and not key1_hold then
-              divisor = 1/(100/3)
-            else
-              divisor = 1
-            end
-            params:delta(delay[page.delay_focus].mode == "clocked" and "delay "..delay_name..": div/mult" or "delay "..delay_name..": free length",d/divisor)
-          elseif item == 2 then
-            if key1_hold then
-              params:delta("delay "..delay_name..": rate",d)
-            else
-              params:delta("delay "..delay_name..": rate",d*100)
-              if params:get("delay "..delay_name..": rate") < 1.0 then
-                params:set("delay "..delay_name..": rate",1)
-              end
-            end
-          end
-        elseif focused_menu == 2 then
-          if item == 1 then
-            params:delta("delay "..delay_name..": filter q",d/10)
-          elseif item == 2 then
-            params:delta("delay "..delay_name..": filter hp",d)
-          elseif item == 3 then
-            params:delta("delay "..delay_name..": filter dry",d)
-          end
-        elseif focused_menu == 3 then
-          if page.delay_focus == 1 then
-            local current_thru = bank[item][bank[item].id].left_delay_thru == true and 1 or 0
-            current_thru = util.clamp(current_thru + d,0,1)
-            if key1_hold then
-              for i = 1,16 do
-                bank[item][i].left_delay_thru = current_thru == 1 and true or false
-              end
-            else
-              bank[item][bank[item].id].left_delay_thru = current_thru == 1 and true or false
-            end
-          elseif page.delay_focus == 2 then
-            local current_thru = bank[item][bank[item].id].right_delay_thru == true and 1 or 0
-            current_thru = util.clamp(current_thru + d,0,1)
-            if key1_hold then
-              for i = 1,16 do
-                bank[item][i].right_delay_thru = current_thru == 1 and true or false
-              end
-            else
-              bank[item][bank[item].id].right_delay_thru = current_thru == 1 and true or false
-            end
+            ea.delta_delay_param(delay_name,"global level",d)
+            -- params:delta("delay "..delay_name..": global level",d)
           end
         end
       end
@@ -1006,6 +942,25 @@ end
 function ea.sc.move_start(target)
   pad = bank[target][bank[target].id]
   softcut.loop_start(target+1, pad.start_point)
+end
+
+function ea.check_delay_links(orig,dest,prm)
+  local keyyy = page.delay[page.delay_focus].menu
+  local indexxx = page.delay[page.delay_focus].menu_sel[page.delay[page.delay_focus].menu]
+  if delay_links[keyyy][indexxx] then
+    params:set("delay "..dest..": "..prm,params:get("delay "..orig..": "..prm))
+  end
+  grid_dirty = true
+end
+
+function ea.delta_delay_param(target,prm,d)
+  params:delta("delay "..target..": "..prm,d)
+  ea.check_delay_links(target, target == "L" and "R" or "L",prm)
+end
+
+function ea.set_delay_param(target,prm,val)
+  params:set("delay "..target..": "..prm,val)
+  ea.check_delay_links(target, target == "L" and "R" or "L",prm)
 end
 
 return encoder_actions

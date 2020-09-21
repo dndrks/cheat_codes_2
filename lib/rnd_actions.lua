@@ -164,7 +164,6 @@ end
 function rnd.offset(t,i)
     local scale = MusicUtil.generate_scale(0,rnd[t][i].offset_scale,rnd[t][i].offset_octave)
     local rand_offset = scale[math.random(1,#scale)]
-    print(rand_offset)
     if rnd[t][i].mode == "destructive" then
         bank[t][bank[t].id].offset = math.pow(0.5, -rand_offset / 12)
     end

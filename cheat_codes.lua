@@ -2612,10 +2612,17 @@ function key(n,z)
         local filter_nav = (page.filtering_sel + 1)%3
         page.filtering_sel = filter_nav
       elseif menu == 6 then
-        page.delay_section = page.delay_section == 1 and 2 or 1
-        -- if page.delay_section < 3 then
-        --   page.delay_section = (page.delay_section%3)+1
-        -- end
+        if key1_hold then
+          local k = page.delay[page.delay_focus].menu
+          local v = page.delay[page.delay_focus].menu_sel[page.delay[page.delay_focus].menu]
+          del.links(k,v)
+          if k == 1 and v == 5 then
+            delay[page.delay_focus == 1 and 2 or 1].feedback_mute = not delay[page.delay_focus == 1 and 2 or 1].feedback_mute
+          end
+          -- TODO FIX THE FEEDBACK BUMP
+        else
+          page.delay_section = page.delay_section == 1 and 2 or 1
+        end
       elseif menu == 7 then
         local time_nav = page.time_sel
         local id = time_nav
@@ -2835,7 +2842,12 @@ function key(n,z)
       elseif menu == 6 then
         key1_hold = true
         if page.delay[page.delay_focus].menu == 1 and page.delay[page.delay_focus].menu_sel[page.delay[page.delay_focus].menu] == 5 then
-          del.quick_action(page.delay_focus,"feedback mute")
+          if delay_links[1][5] then
+            del.quick_action(1,"feedback mute")
+            del.quick_action(2,"feedback mute")
+          else
+            del.quick_action(page.delay_focus,"feedback mute")
+          end
           grid_dirty = true
         end
       elseif menu == 7 then
@@ -2855,7 +2867,12 @@ function key(n,z)
       end
       if menu == 6 then
         if page.delay[page.delay_focus].menu == 1 and page.delay[page.delay_focus].menu_sel[page.delay[page.delay_focus].menu] == 5 then
-          del.quick_action(page.delay_focus,"feedback mute")
+          if delay_links[1][5] then
+            del.quick_action(1,"feedback mute")
+            del.quick_action(2,"feedback mute")
+          else
+            del.quick_action(page.delay_focus,"feedback mute")
+          end
           grid_dirty = true
         end
       end
@@ -4050,6 +4067,7 @@ function named_savestate(text)
   for i = 1,2 do
     tab.save(delay[i],_path.data .. "cheat_codes2/collection-"..collection.."/delays/delay"..(i == 1 and "L" or "R")..".data")
   end
+  tab.save(delay_links,_path.data .. "cheat_codes2/collection-"..collection.."/delays/delay-links.data")
   
   params:write(_path.data.."cheat_codes2/collection-"..collection.."/params/all.pset")
   tab.save(rec,_path.data .. "cheat_codes2/collection-"..collection.."/rec/rec.data")
@@ -4104,6 +4122,14 @@ end
 function named_loadstate(path)
 
   print("loading...")
+  for j = 1,3 do
+    for k = 1,7 do
+      if rnd[j][k].clock ~= nil then
+        -- print(rnd[j][k].clock)
+        clock.cancel(rnd[j][k].clock)
+      end
+    end
+  end
   reset_all_banks(bank)
   print(path)
   local file = io.open(path, "r")
@@ -4156,6 +4182,10 @@ function named_loadstate(path)
       if tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/delays/delay"..(i == 1 and "L" or "R")..".data") ~= nil then
         delay[i] = tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/delays/delay"..(i == 1 and "L" or "R")..".data")
       end
+    end
+
+    if tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/delays/delay-links.data") ~= nil then
+      delay_links = tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/delays/delay-links.data")
     end
 
     -- GRID pattern restore
