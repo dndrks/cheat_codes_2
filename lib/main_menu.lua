@@ -54,12 +54,12 @@ function main_menu.init()
       local dur = e_p-s_p
       local off = pad.mode == 1 and (((pad.clip-1)*8)+1) or clip[pad.clip].min
       local display_end = pad.mode == 1 and (pad.end_point == 8.99 and 9 or pad.end_point) or pad.end_point
-      screen.text_right("s: "..string.format("%.4g",(pad.start_point)-off).."s | e: "..string.format("%.4g",(display_end)-off).."s")
+      screen.text_right("s: "..string.format("%.4g",(util.round(pad.start_point,0.0001))-off).."s | e: "..string.format("%.4g",(display_end)-off).."s")
     else
       local off = ((rec.clip-1)*8)+1
       local mults = {1,2,4}
       local mult = mults[params:get("live_buff_rate")]
-      screen.text_right("s: "..string.format("%.4g",(rec.start_point-off)*mult).."s | e: "..string.format("%.4g",(rec.end_point-off)*mult).."s")
+      screen.text_right("s: "..string.format("%.4g",(util.round(rec.start_point,0.0001)-off)*mult).."s | e: "..string.format("%.4g",(rec.end_point-off)*mult).."s")
     end
 
     for i = 1,3 do
@@ -82,19 +82,22 @@ function main_menu.init()
       end
 
       if key1_hold then
+        screen.level(15)
         screen.move(122,8+(page.loops_sel*14))
         screen.text("*")
+        screen.level(3)
       else
         screen.move(122,8+(i*14))
         screen.text(bank[i][bank[i].focus_hold == false and bank[i].id or bank[i].focus_pad].loop and "L" or "")
       end
 
       if page.loops_view[i] == 1 then
+        screen.level(page.loops_sel == i and 15 or 3)
         screen.move(15,8+(i*14))
         screen.line(120,8+(i*14))
         screen.close()
         screen.stroke()
-        screen.level(page.loops_sel == i and 15 or 3)
+        -- screen.level(page.loops_sel == i and 15 or 3)
         if bank[i].focus_hold == false then
           which_pad = bank[i].id
         else
@@ -183,17 +186,20 @@ function main_menu.init()
     screen.level(page.loops_sel == 4 and 15 or 3)
     if page.loops_view[4] == 1 then
       local recording_playhead = util.linlin(1,9,15,120,(poll_position_new[1] - (8*(rec.clip-1))))
-      if rec.state == 1 then
+      if rec.state == 1 and not rec.pause then
         screen.font_size(4)
         screen.move(recording_playhead,62)
         screen.text(">")
-        screen.font_size(8)
-      elseif rec.state == 0 then
+      elseif rec.state == 0 and not rec.pause then
+        screen.font_size(4)
+        screen.move(recording_playhead,62)
+        screen.text_center("||")
+      elseif rec.pause then
         screen.font_size(8)
         screen.move(recording_playhead,62)
-        screen.text_center(".")
-        screen.font_size(8)
+        screen.text_center("||")
       end
+      screen.font_size(8)
       local recording_start = util.linlin(1,9,15,120,(rec.start_point - (8*(rec.clip-1))))
       screen.move(recording_start,62)
       screen.text("|")
@@ -206,13 +212,22 @@ function main_menu.init()
       screen.move(0,62)
       screen.text("L"..rec.clip)
       screen.move(15,62)
-      local rate_options = {"8 s","16 s","32 s"}
-      screen.text(rate_options[params:get"live_buff_rate"])
-      screen.move(45,62)
-      screen.text("offset: "..string.format("%.0f",((math.log(rec.rate_offset)/math.log(0.5))*-12)).." st")
-      screen.move(111,62)
+      local rate_options = {"8s","16s","32s"}
+      screen.text("total: "..rate_options[params:get"live_buff_rate"])
+      screen.move(65,62)
+      -- screen.text("offset: "..string.format("%.0f",((math.log(rec.rate_offset)/math.log(0.5))*-12)).." st")
+      screen.text("fb: "..string.format("%0.f",params:get("live_rec_feedback")*100).."%")
+      screen.move(105,62)
       screen.level(3)
       screen.text(string.format("%0.f",util.linlin(rec.start_point-(8*(rec.clip-1)),rec.end_point-(8*(rec.clip-1)),0,100,(poll_position_new[1] - (8*(rec.clip-1))))).."%")
+    elseif page.loops_view[4] == 3 then
+      screen.move(0,62)
+      screen.text("L"..rec.clip)
+      screen.move(15,62)
+      local loop_options = {"loop","shot"}
+      screen.text("mode: "..loop_options[params:get("rec_loop")])
+      screen.move(70,62)
+      screen.text("rnd prob: "..params:get("random_rec_clock_prob").."%")
     end
     
   elseif menu == 3 then

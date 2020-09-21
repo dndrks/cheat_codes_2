@@ -28,10 +28,46 @@ math.randomseed(os.time())
 
 --all the .quantize stuff is irrelevant now. it's been replaced by .mode = "quantized"
 
+function make_a_gif(filename,time)
+  local steps = time*24
+  local gif_step = 1
+  local dirnames = {"/home/we/dust/tmp", "/home/we/dust/tmp/frames"}
+  for i = 1,2 do
+    if os.rename(dirnames[i], dirnames[i]) == nil then
+      os.execute("mkdir " .. dirnames[i])
+    end
+  end
+  while gif_step <= steps do
+    _norns.screen_export_png("/home/we/dust/tmp/frames/"..string.format("%04d",gif_step)..".gif")
+    gif_step = gif_step + 1
+    clock.sleep(1/24)
+  end
+  print("creating gif...")
+  os.execute("convert -delay "..(100/24).." -dispose previous -loop 0 /home/we/dust/tmp/frames/*.gif "..'home/we/dust/gifs/'..filename..'.gif')
+  -- print("converting gif...")
+  -- os.execute("convert home/we/dust/image.gif -gamma 1.25 -filter point -resize 400% -gravity center -background black -extent 120% home/we/dust/image.gif")
+  os.execute("rm -r /home/we/dust/tmp/frames/")
+  print("done!")
+end
+
+function record_screen(state)
+  if state == 1 then
+    gif_step = 1
+    recording_screen = true
+  else
+    recording_screen = false
+  end
+end
+
 function screenshot()
-  --_norns.screen_export_png("/home/we/"..menu.."-"..os.time()..".png")
-  local which_screen = string.match(string.match(string.match(norns.state.script,"/home/we/dust/code/(.*)"),"/(.*)"),"(.+).lua")
-  _norns.screen_export_png("/home/we/"..which_screen.."-"..os.time()..".png")
+  if recording_screen then
+  -- os.execute("mkdir /home/we/dust/tmp")
+  -- os.execute("mkdir /home/we/dust/tmp/frames")
+  -- local which_screen = string.match(string.match(string.match(norns.state.script,"/home/we/dust/code/(.*)"),"/(.*)"),"(.+).lua")
+  -- _norns.screen_export_png("/home/we/dust/"..which_screen.."-"..os.time()..".png")
+    _norns.screen_export_png("/home/we/dust/"..gif_step..".png")
+    gif_step = gif_step + 1
+  end
 end
 
 function rerun()
@@ -659,6 +695,7 @@ function init()
   
   rec = {}
   rec.state = 1
+  rec.pause = false
   rec.clip = 1
   rec.start_point = 1
   rec.end_point = 9
@@ -2397,6 +2434,11 @@ function buff_flush()
   softcut.rec_level(1,0)
 end
 
+function buff_pause()
+  rec.pause = not rec.pause
+  softcut.rate(1,rec.pause and 0 or 1) -- TODO make this dynamic to include rec rate offsets
+end
+
 function toggle_buffer(i)
   grid_dirty = true
   softcut.level_slew_time(1,0.5)
@@ -2539,31 +2581,30 @@ function key(n,z)
     if n == 3 and z == 1 then
       if menu == 1 then
         menu = page.main_sel + 1
-        -- for i = 1,10 do
-        --   if page.main_sel == i then
-        --     menu = i+1
-        --   end
-        -- end
       elseif menu == 2 then
+        local id = page.loops_sel
         if not key1_hold then
-          page.loops_view[page.loops_sel] = (page.loops_view[page.loops_sel] % (page.loops_sel ~= 4 and 3 or 2)) + 1
+          page.loops_sel = (page.loops_sel % 4) + 1
+          id = page.loops_sel
         else
           if page.loops_sel < 4 then
             local id = page.loops_sel
-            bank[id][bank[id].id].loop = not bank[id][bank[id].id].loop
-            if bank[id][bank[id].id].loop then
-              softcut.loop(id+1,1)
-              cheat(id,bank[id].id)
+            if page.loops_view[id] == 1 then
+              bank[id][bank[id].id].loop = not bank[id][bank[id].id].loop
+              if bank[id][bank[id].id].loop then
+                softcut.loop(id+1,1)
+                cheat(id,bank[id].id)
+              else
+                softcut.loop(id+1,0)
+              end
+              grid_dirty = true
             else
-              softcut.loop(id+1,0)
+              rightangleslice.init(4,id,'14')
             end
-            grid_dirty = true
           elseif page.loops_sel == 4 then
             toggle_buffer(rec.clip)
           end
         end
-
-
       elseif menu == 3 then
         local level_nav = (page.levels_sel + 1)%4
         page.levels_sel = level_nav
@@ -2771,6 +2812,8 @@ function key(n,z)
       elseif menu == 2 then
         if key1_hold and page.loops_sel ~= 4 then
           sync_clock_to_loop(bank[page.loops_sel][bank[page.loops_sel].id])
+        elseif key1_hold and page.loops_sel == 4 then
+          buff_pause()
         else
           menu = 1
         end
@@ -2892,6 +2935,7 @@ function redraw()
   screen.font_size(8)
   main_menu.init()
   screen.update()
+  screenshot()
 end
 
 --GRID
