@@ -300,23 +300,8 @@ function grid_actions.init(x,y,z)
     
     for i = 1,3 do
       if x == (3)+(5*(i-1)) and y == 4 and z == 1 then
-        which_bank = i
-        local which_pad = bank[i].focus_hold == true and bank[i].focus_pad or bank[i].id
-        bank[i][which_pad].loop = not bank[i][which_pad].loop
-        if bank[i].alt_lock or grid.alt then
-          for j = 1,16 do
-            bank[i][j].loop = bank[i][which_pad].loop
-          end
-        end
-        if bank[i].focus_hold == false then
-          softcut.loop(i+1,bank[i][which_pad].loop == true and 1 or 0)
-        end
-        if menu == 11 then
-          help_menu = "loop"
-        end
-        --trackers.inherit(i,which_pad)
+        grid_actions.toggle_pad_loop(i)
       end
-      redraw()
     end
     
     if x == 16 and y == 8 then
@@ -741,7 +726,7 @@ function grid_actions.init(x,y,z)
           del.set_value(math.abs(5-y), x-3, "level")
         end
       elseif x == 9 then
-        del.quick_action(math.abs(y-5),"level mute")
+        del.quick_action(math.abs(y-5),"level_mute",z)
       end
     elseif y == 4 or y == 5 then
       if x >= 4 and x <= 8 then
@@ -753,7 +738,7 @@ function grid_actions.init(x,y,z)
         if grid.alt then
           del.quick_action(6-y, "clear")
         end
-        del.quick_action(6-y,"feedback mute")
+        del.quick_action(6-y,"feedback_mute",z)
       end
     elseif y == 1 or y == 8 then
       if x >= 10 and x <=14 then
@@ -762,7 +747,7 @@ function grid_actions.init(x,y,z)
           del.set_value(y == 8 and 1 or 2,x-9,grid.alt == true and "send all" or "send")
         end
       elseif x == 15 then
-        del.quick_action(y == 8 and 1 or 2,"send mute")
+        del.quick_action(y == 8 and 1 or 2,"send_mute",z)
       end
     end
 
@@ -815,6 +800,10 @@ function grid_actions.init(x,y,z)
           grid_actions.arp_handler(delay_grid.bank)
         end
       end
+    end
+
+    if x == 13 and y == 2 and z == 1 then
+      grid_actions.toggle_pad_loop(delay_grid.bank)
     end
 
     if x >= 10 and x <= 13 and y >=3 and y <=6 then
@@ -910,24 +899,19 @@ function grid_actions.init(x,y,z)
         end
       else
         grid_page = 2
-        -- grid.alt_delay = true
         grid.alt = true
-        -- grid.alt = 0
       end
     elseif grid_page == 1 then
       if not grid.alt then
         grid_page = 2
       else
         grid_page = 0
-        -- grid.alt = true
       end
     elseif grid_page == 2 then
-      -- if not grid.alt_delay then
       if not grid.alt then
         grid_page = 0
       else
         grid_page = 1
-        -- grid.alt_delay = false
       end
     end
   end
@@ -966,6 +950,24 @@ function grid_actions.kill_arp(i)
     arps.clear(i)
   end
   arp[i].enabled = false
+end
+
+function grid_actions.toggle_pad_loop(i)
+  -- which_bank = i
+  local which_pad = bank[i].focus_hold == true and bank[i].focus_pad or bank[i].id
+  bank[i][which_pad].loop = not bank[i][which_pad].loop
+  if bank[i].alt_lock or grid.alt then
+    for j = 1,16 do
+      bank[i][j].loop = bank[i][which_pad].loop
+    end
+  end
+  if bank[i].focus_hold == false then
+    softcut.loop(i+1,bank[i][which_pad].loop == true and 1 or 0)
+  end
+  if menu == 11 then
+    help_menu = "loop"
+  end
+  redraw()
 end
 
 return grid_actions

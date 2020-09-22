@@ -779,6 +779,8 @@ function encoder_actions.init(n,d)
         end
       end
     elseif filt_page == 3 then
+      params:delta("filter "..n.." q",d*-1)
+    elseif filt_page == 4 then
       if key1_hold or grid.alt then
         bank[n][bank[n].id].tilt_ease_type = util.clamp(bank[n][bank[n].id].tilt_ease_type+d, 1, 2)
       else
@@ -961,6 +963,11 @@ end
 function ea.set_delay_param(target,prm,val)
   params:set("delay "..target..": "..prm,val)
   ea.check_delay_links(target, target == "L" and "R" or "L",prm)
+end
+
+function ea.change_filter_q(target,d)
+  
+  -- softcut.post_filter_rq(n+1,bank[n][bank[n].id].q)
 end
 
 return encoder_actions

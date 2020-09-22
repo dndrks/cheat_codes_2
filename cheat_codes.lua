@@ -2609,7 +2609,7 @@ function key(n,z)
         local level_nav = (page.levels_sel + 1)%4
         page.levels_sel = level_nav
       elseif menu == 5 then
-        local filter_nav = (page.filtering_sel + 1)%3
+        local filter_nav = (page.filtering_sel + 1)%4
         page.filtering_sel = filter_nav
       elseif menu == 6 then
         if key1_hold then
@@ -2808,14 +2808,11 @@ function key(n,z)
           menu = 1
         end
       elseif menu == 6 then
-        -- if page.delay_section == 3 then
-        --   page.delay_section = 2
-        -- elseif page.delay_section == 2 then
-        --   page.delay_section = 1
-        -- else
-        --   menu = 1
-        -- end
-        menu = 1
+        if key1_hold then
+          del.quick_action(page.delay_focus, "reverse")
+        else
+          menu = 1
+        end
       elseif menu == 2 then
         if key1_hold and page.loops_sel ~= 4 then
           sync_clock_to_loop(bank[page.loops_sel][bank[page.loops_sel].id])
@@ -2827,7 +2824,9 @@ function key(n,z)
       else
         menu = 1
       end
-      if menu ~= 2 and menu ~= 8 then
+      if menu == 6 and page.delay[page.delay_focus].menu == 1 and page.delay[page.delay_focus].menu_sel[page.delay[page.delay_focus].menu] == 4 then
+        -- just need a logic break
+      elseif menu ~= 2 and menu ~= 8 then
         if key1_hold == true then key1_hold = false end
       end
     end
@@ -2843,10 +2842,10 @@ function key(n,z)
         key1_hold = true
         if page.delay[page.delay_focus].menu == 1 and page.delay[page.delay_focus].menu_sel[page.delay[page.delay_focus].menu] == 5 then
           if delay_links[1][5] then
-            del.quick_action(1,"feedback mute")
-            del.quick_action(2,"feedback mute")
+            del.quick_action(1,"feedback_mute",z)
+            del.quick_action(2,"feedback_mute",z)
           else
-            del.quick_action(page.delay_focus,"feedback mute")
+            del.quick_action(page.delay_focus,"feedback_mute",z)
           end
           grid_dirty = true
         end
@@ -2868,10 +2867,10 @@ function key(n,z)
       if menu == 6 then
         if page.delay[page.delay_focus].menu == 1 and page.delay[page.delay_focus].menu_sel[page.delay[page.delay_focus].menu] == 5 then
           if delay_links[1][5] then
-            del.quick_action(1,"feedback mute")
-            del.quick_action(2,"feedback mute")
+            del.quick_action(1,"feedback_mute",z)
+            del.quick_action(2,"feedback_mute",z)
           else
-            del.quick_action(page.delay_focus,"feedback mute")
+            del.quick_action(page.delay_focus,"feedback_mute",z)
           end
           grid_dirty = true
         end
@@ -3634,6 +3633,8 @@ function grid_redraw()
           g:led(12,2,led_maps["arp_on"][edition])
         end
       end
+
+
 
       g:led(16,8,(grid.alt and led_maps["alt_on"][edition] or led_maps["alt_off"][edition]))
 

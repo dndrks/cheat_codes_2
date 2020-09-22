@@ -158,9 +158,10 @@ function delays.loadstate(collection)
   end
 end
 
-function delays.quick_action(target,param)
-  if param == "level mute" then
-    delay[target].level_mute = not delay[target].level_mute
+function delays.quick_action(target,param,state)
+  local flip = state == 1 and true or false
+  if param == "level_mute" then
+    delay[target].level_mute = flip
     if delay[target].level_mute then
       softcut.level_slew_time(target+4,0.25)
       if params:get(target == 1 and "delay L: global level" or "delay R: global level") == 0 then
@@ -171,8 +172,8 @@ function delays.quick_action(target,param)
     else
       softcut.level(target+4,params:get(target == 1 and "delay L: global level" or "delay R: global level"))
     end
-  elseif param == "feedback mute" then
-    delay[target].feedback_mute = not delay[target].feedback_mute
+  elseif param == "feedback_mute" then
+    delay[target].feedback_mute = flip
     if delay[target].feedback_mute then
       if params:get(target == 1 and "delay L: feedback" or "delay R: feedback") == 0 then
         softcut.pre_level(target+4,1)
@@ -182,10 +183,10 @@ function delays.quick_action(target,param)
     else
       softcut.pre_level(target+4,params:get(target == 1 and "delay L: feedback" or "delay R: feedback")/100)
     end
-  elseif param == "send mute" then
+  elseif param == "send_mute" then
     -- softcut.level_slew_time(target+4,0.25)
     local pad = bank[delay_grid.bank][bank[delay_grid.bank].id]
-    delay[target].send_mute = not delay[target].send_mute
+    delay[target].send_mute = flip
     if delay[target].send_mute then
       if (target == 1 and pad.left_delay_level or pad.right_delay_level) == 0 then
         if not pad.enveloped then

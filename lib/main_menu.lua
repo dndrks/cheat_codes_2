@@ -328,7 +328,7 @@ function main_menu.init()
     screen.text("filters")
     
     for i = 1,3 do
-      screen.move(17+((i-1)*45),25)
+      screen.move(17+((i-1)*45),20)
       screen.level(15)
       local filters_to_screen_options = {"a", "b", "c"}
       if key1_hold or grid.alt then
@@ -336,7 +336,7 @@ function main_menu.init()
       else
         screen.text_center("("..filters_to_screen_options[i]..")")
       end
-      screen.move(17+((i-1)*45),35)
+      screen.move(17+((i-1)*45),30)
       
       screen.level(page.filtering_sel+1 == 1 and 15 or 3)
       if slew_counter[i].slewedVal ~= nil then
@@ -368,12 +368,16 @@ function main_menu.init()
           end
         end
       end
-      screen.move(17+((i-1)*45),45)
+      screen.move(17+((i-1)*45),40)
       screen.level(page.filtering_sel+1 == 2 and 15 or 3)
       local ease_time_to_screen = bank[i][bank[i].id].tilt_ease_time
       screen.text_center(string.format("%.2f",ease_time_to_screen/100).."s")
-      screen.move(17+((i-1)*45),55)
+      screen.move(17+((i-1)*45),50)
       screen.level(page.filtering_sel+1 == 3 and 15 or 3)
+      local q_scaled = util.linlin(0.0005,4,100,0,params:get("filter "..i.." q"))
+      screen.text_center(string.format("%.4g",q_scaled).."%")
+      screen.move(17+((i-1)*45),60)
+      screen.level(page.filtering_sel+1 == 4 and 15 or 3)
       local ease_type_to_screen = bank[i][bank[i].id].tilt_ease_type
       local ease_types = {"cont","jumpy"}
       screen.text_center(ease_types[ease_type_to_screen])
@@ -445,8 +449,9 @@ function main_menu.init()
       screen.move(30,40)
       screen.text("fade: "..string.format("%.4g",params:get("delay "..delay_name..": fade time")))
       screen.level((page.delay_section == 2 and selected == 4) and 15 or 3)
-      screen.move(85,40)
-      screen.text("rate: "..string.format("%.4g",params:string("delay "..delay_name..": rate")))
+      screen.move(80,40)
+      local rev = delay[page.delay_focus].reverse == true and 1 or 0
+      screen.text("rate: "..(rev == 1 and "-" or "")..string.format("%.4g",params:string("delay "..delay_name..": rate")))
       screen.level((page.delay_section == 2 and selected == 5) and 15 or 3)
       screen.move(30,50)
       if delay[page.delay_focus].feedback_mute then
