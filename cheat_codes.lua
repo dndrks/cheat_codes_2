@@ -3634,6 +3634,12 @@ function grid_redraw()
         end
       end
 
+      if bank[delay_grid.bank][bank[delay_grid.bank].id].loop == false then
+        g:led(13,2,led_maps["loop_off"][edition])
+      else
+        g:led(13,2,led_maps["loop_on"][edition])
+      end
+
 
 
       g:led(16,8,(grid.alt and led_maps["alt_on"][edition] or led_maps["alt_off"][edition]))
