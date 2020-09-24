@@ -9,12 +9,14 @@ function encoder_actions.init(n,d)
       page.main_sel = util.clamp(page.main_sel+d,1,9)
     elseif menu == 2 then
       local id = page.loops_sel
-      if not key1_hold then
-        page.loops_sel = util.clamp(page.loops_sel+d,1,4)
-        id = page.loops_sel
-      end
-      if id ~= 4 then
-        if key1_hold then
+      -- if not key1_hold then
+      --   page.loops_sel = util.clamp(page.loops_sel+d,1,4)
+      --   id = page.loops_sel
+      -- end
+      if key1_hold then
+        page.loops_view[id] = util.clamp(page.loops_view[id]+d,1,3)
+      else
+        if id ~= 4 then
           if page.loops_view[id] > 1 then
             ea.change_pad(id,d)
           else
@@ -30,9 +32,7 @@ function encoder_actions.init(n,d)
               ea.sc.move_play_window(id)
             end
           end
-        end
-      elseif id == 4 then
-        if key1_hold then
+        else
           if page.loops_view[id] == 2 then
             ea.change_buffer(rec,d)
           else
@@ -42,19 +42,7 @@ function encoder_actions.init(n,d)
         end
       end
     elseif menu == 6 then
-
       page.delay_focus = util.clamp(page.delay_focus+d,1,2)
-
-      -- if page.delay_section == 1 then
-      --   page.delay_focus = util.clamp(page.delay_focus+d,1,2)
-      -- elseif page.delay_section == 2 then
-      --   page.delay[page.delay_focus].menu = util.clamp(page.delay[page.delay_focus].menu+d,1,3)
-      -- elseif page.delay_section == 3 then
-      --   local max_lines = {3,3,4}
-      --   local target = page.delay[page.delay_focus].menu_sel[page.delay[page.delay_focus].menu]
-      --   page.delay[page.delay_focus].menu_sel[page.delay[page.delay_focus].menu] = util.clamp(target+d,1,max_lines[page.delay[page.delay_focus].menu])
-      -- end
-
     elseif menu == 7 then
       page.time_sel = util.clamp(page.time_sel+d,1,6)
     elseif menu == 8 then
@@ -79,18 +67,33 @@ function encoder_actions.init(n,d)
             focused_pad = bank[id].focus_pad
           end
           params:delta("rate "..id,d)
-          if focused_pad == 16 then
-            for i = 1,15 do
-              bank[id][i].rate = bank[id][16].rate
-            end
-          end
-          if grid.alt then
+          if key1_hold then
             for i = 1,16 do
-              bank[id][i].rate = bank[id][focused_pad].rate
+              if i ~= focused_pad then
+                bank[id][i].rate = bank[id][focused_pad].rate
+              end
             end
           end
         elseif page.loops_view[id] == 3 then
           ea.change_pad_clip(id,d)
+          local focused_pad = nil
+          if grid_pat[id].play == 0 and grid_pat[id].tightened_start == 0 and not arp[id].playing and midi_pat[id].play == 0 then
+            focused_pad = bank[id].id
+          else
+            focused_pad = bank[id].focus_pad
+          end
+          if key1_hold then
+            for i = 1,16 do
+              if i ~= focused_pad then
+                if bank[id][focused_pad].mode ~= bank[id][i].mode then
+                  local old_mode = bank[id][i].mode
+                  bank[id][i].mode = bank[id][focused_pad].mode
+                  change_mode(bank[id][i],old_mode)
+                end
+                jump_clip(id,i,bank[id][focused_pad].clip)
+              end
+            end
+          end
         elseif page.loops_view[id] == 1 then
           local which_pad = nil
           if bank[id].focus_hold == false then
@@ -105,14 +108,22 @@ function encoder_actions.init(n,d)
           end
         end
       elseif id == 4 then
-        if page.loops_view[id] == 2 then
+        if page.loops_view[id] == 3 then
+          params:delta("rec_loop",d)
+        elseif page.loops_view[id] == 2 then
           params:delta("live_buff_rate",d)
         elseif page.loops_view[id] == 1 then
           local lbr = {1,2,4}
-          if d >= 0 and util.round(rec.start_point + ((d/rec_loop_enc_resolution)/lbr[params:get("live_buff_rate")]),0.01) < util.round(rec.end_point,0.01) then
-            rec.start_point = util.clamp(rec.start_point+((d/rec_loop_enc_resolution)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.clip-1))),(8.9+(8*(rec.clip-1))))
+          local res;
+          if params:get("rec_loop_enc_resolution") == 1 then
+            res = key1_hold and d/100 or d/10
+          else
+            res = d/rec_loop_enc_resolution
+          end
+          if d >= 0 and util.round(rec.start_point + ((res)/lbr[params:get("live_buff_rate")]),0.01) < util.round(rec.end_point,0.01) then
+            rec.start_point = util.clamp(rec.start_point+((res)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.clip-1))),(8.9+(8*(rec.clip-1))))
           elseif d < 0 then
-            rec.start_point = util.clamp(rec.start_point+((d/rec_loop_enc_resolution)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.clip-1))),(8.9+(8*(rec.clip-1))))
+            rec.start_point = util.clamp(rec.start_point+((res)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.clip-1))),(8.9+(8*(rec.clip-1))))
           end
           softcut.loop_start(1, rec.start_point)
         end
@@ -188,7 +199,7 @@ function encoder_actions.init(n,d)
       elseif page.rnd_page_section == 2 then
         local selected_slot = page.rnd_page_sel[page.rnd_page]
         local current_param = rnd[page.rnd_page][selected_slot].param
-        local reasonable_max = (current_param == "loop" or current_param == "delay send") and 4 or 6
+        local reasonable_max = (current_param == "semitone offset" and 5) or ((current_param == "loop" or current_param == "delay send") and 4 or 6)
         page.rnd_page_edit[page.rnd_page] = util.clamp(page.rnd_page_edit[page.rnd_page]+d,1,reasonable_max)
       end
     end
@@ -213,14 +224,11 @@ function encoder_actions.init(n,d)
           if grid_pat[id].play == 0 and grid_pat[id].tightened_start == 0 and not arp[id].playing and midi_pat[id].play == 0 then
             cheat(id,bank[id].id)
           end
-          if focused_pad == 16 then
-            for i = 1,15 do
-              bank[id][i].offset = bank[id][16].offset
-            end
-          end
-          if grid.alt then
+          if key1_hold then
             for i = 1,16 do
-              bank[id][i].offset = bank[id][focused_pad].offset
+              if i ~= focused_pad then
+                bank[id][i].offset = bank[id][focused_pad].offset
+              end
             end
           end
         
@@ -233,14 +241,11 @@ function encoder_actions.init(n,d)
           end
           bank[id][focused_pad].rate_slew = util.clamp(bank[id][focused_pad].rate_slew+d/10,0,4)
           softcut.rate_slew_time(id+1,bank[id][focused_pad].rate_slew)
-          if focused_pad == 16 then
-            for i = 1,15 do
-              bank[id][i].rate_slew = bank[id][16].rate_slew
-            end
-          end
-          if grid.alt then
+          if key1_hold then
             for i = 1,16 do
-              bank[id][i].rate_slew = bank[id][focused_pad].rate_slew
+              if i ~= focused_pad then
+                bank[id][i].rate_slew = bank[id][focused_pad].rate_slew
+              end
             end
           end
           
@@ -258,14 +263,22 @@ function encoder_actions.init(n,d)
           end
         end
       elseif id == 4 then
-        if page.loops_view[id] == 2 then
-          
+        if page.loops_view[id] == 3 then
+          params:delta("random_rec_clock_prob",d)
+        elseif page.loops_view[id] == 2 then
+          params:delta("live_rec_feedback",d)
         else
           local lbr = {1,2,4}
-          if d <= 0 and util.round(rec.start_point,0.01) < util.round(rec.end_point + ((d/rec_loop_enc_resolution)/lbr[params:get("live_buff_rate")]),0.01) then
-            rec.end_point = util.clamp(rec.end_point+((d/rec_loop_enc_resolution)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.clip-1))),(9+(8*(rec.clip-1))))
-          elseif d > 0 and rec.end_point+((d/rec_loop_enc_resolution)/lbr[params:get("live_buff_rate")]) <= 9+(8*(rec.clip-1)) then
-            rec.end_point = util.clamp(rec.end_point+((d/rec_loop_enc_resolution)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.clip-1))),(9+(8*(rec.clip-1))))
+          local res;
+          if params:get("rec_loop_enc_resolution") == 1 then
+            res = key1_hold and d/100 or d/10
+          else
+            res = d/rec_loop_enc_resolution
+          end
+          if d <= 0 and util.round(rec.start_point,0.01) < util.round(rec.end_point + ((res)/lbr[params:get("live_buff_rate")]),0.01) then
+            rec.end_point = util.clamp(rec.end_point+((res)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.clip-1))),(9+(8*(rec.clip-1))))
+          elseif d > 0 and rec.end_point+((res)/lbr[params:get("live_buff_rate")]) <= 9+(8*(rec.clip-1)) then
+            rec.end_point = util.clamp(rec.end_point+((res)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.clip-1))),(9+(8*(rec.clip-1))))
           end
           softcut.loop_end(1, rec.end_point-0.01)
         end
@@ -278,7 +291,8 @@ function encoder_actions.init(n,d)
       if page.delay_section == 2 then
         if focused_menu == 1 then
           if item == 1 then
-            params:delta("delay "..delay_name..": mode",d)
+            ea.delta_delay_param(delay_name,"mode",d)
+            -- params:delta("delay "..delay_name..": mode",d)
           elseif item == 2 then
             local divisor;
             if delay[page.delay_focus].mode == "free" and key1_hold then
@@ -288,64 +302,97 @@ function encoder_actions.init(n,d)
             else
               divisor = 1
             end
-            params:delta(delay[page.delay_focus].mode == "clocked" and "delay "..delay_name..": div/mult" or "delay "..delay_name..": free length",d/divisor)
+            ea.delta_delay_param(delay_name,delay[page.delay_focus].mode == "clocked" and "div/mult" or "free length",d/divisor)
+            -- params:delta(delay[page.delay_focus].mode == "clocked" and "delay "..delay_name..": div/mult" or "delay "..delay_name..": free length",d/divisor)
           elseif item == 3 then
             local divisor = (delay[page.delay_focus].mode == "free" and key1_hold) and 10 or 0.2
-            params:delta("delay "..delay_name..": fade time",d/divisor)
+            ea.delta_delay_param(delay_name,"fade time",d/divisor)
+            -- params:delta("delay "..delay_name..": fade time",d/divisor)
           elseif item == 4 then
             if key1_hold then
-              params:delta("delay "..delay_name..": rate",d)
+              ea.delta_delay_param(delay_name,"rate",d)
+              -- params:delta("delay "..delay_name..": rate",d)
             else
               if params:get("delay "..delay_name..": rate") < 1.0 then
                 if d > 0 then
                   if params:get("delay "..delay_name..": rate") * 2 < 1.0 then
-                    params:set("delay "..delay_name..": rate",params:get("delay "..delay_name..": rate") * 2)
+                    ea.set_delay_param(delay_name,"rate",params:get("delay "..delay_name..": rate") * 2)
+                    -- params:set("delay "..delay_name..": rate",params:get("delay "..delay_name..": rate") * 2)
                   else
-                    params:set("delay "..delay_name..": rate",1)
+                    ea.set_delay_param(delay_name,"rate",1)
+                    -- params:set("delay "..delay_name..": rate",1)
                   end
                 else
                   if params:get("delay "..delay_name..": rate") / 2 >= 0.25 then
-                    params:set("delay "..delay_name..": rate",params:get("delay "..delay_name..": rate") / 2)
+                    ea.set_delay_param(delay_name,"rate",params:get("delay "..delay_name..": rate") / 2)
+                    -- params:set("delay "..delay_name..": rate",params:get("delay "..delay_name..": rate") / 2)
                   else
-                    params:set("delay "..delay_name..": rate",1)
+                    ea.set_delay_param(delay_name,"rate",1)
+                    -- params:set("delay "..delay_name..": rate",1)
                   end
                 end
               else
-                params:delta("delay "..delay_name..": rate",d*100)
+                ea.delta_delay_param(delay_name,"rate",d*100)
+                -- params:delta("delay "..delay_name..": rate",d*100)
                 if params:get("delay "..delay_name..": rate") < 1.0 then
-                  params:set("delay "..delay_name..": rate",1)
+                  ea.set_delay_param(delay_name,"rate",1)
+                  -- params:set("delay "..delay_name..": rate",1)
                 end
               end
             end
           elseif item == 5 then
-            params:delta("delay "..delay_name..": feedback",d)
+            ea.delta_delay_param(delay_name,"feedback",d)
+            -- params:delta("delay "..delay_name..": feedback",d)
           end
         elseif focused_menu == 2 then
           if item == 1 then
-            params:delta("delay "..delay_name..": filter cut",d/10)
+            ea.delta_delay_param(delay_name,"filter cut",d/10)
+            -- params:delta("delay "..delay_name..": filter cut",d/10)
           elseif item == 2 then
-            params:delta("delay "..delay_name..": filter q",d/10)
+            ea.delta_delay_param(delay_name,"filter q",d/10)
+            -- params:delta("delay "..delay_name..": filter q",d/10)
           elseif item == 3 then
-            params:delta("delay "..delay_name..": filter lp",d)
+            ea.delta_delay_param(delay_name,"filter lp",d)
+            -- params:delta("delay "..delay_name..": filter lp",d)
           elseif item == 4 then
-            params:delta("delay "..delay_name..": filter hp",d)
+            ea.delta_delay_param(delay_name,"filter hp",d)
+            -- params:delta("delay "..delay_name..": filter hp",d)
           elseif item == 5 then
-            params:delta("delay "..delay_name..": filter bp",d)
+            ea.delta_delay_param(delay_name,"filter bp",d)
+            -- params:delta("delay "..delay_name..": filter bp",d)
           elseif item == 6 then
-            params:delta("delay "..delay_name..": filter dry",d)
+            ea.delta_delay_param(delay_name,"filter dry",d)
+            -- params:delta("delay "..delay_name..": filter dry",d)
           end
         elseif focused_menu == 3 then
           if item < 7 then
             if item == 1 or item == 3 or item == 5 then
+              local k = page.delay[page.delay_focus].menu
+              local v = page.delay[page.delay_focus].menu_sel[page.delay[page.delay_focus].menu]
               local target = bank[util.round(item/2)]
               local prm = {"left_delay_level","right_delay_level"}
               if key1_hold then
                 for i = 1,16 do
                   target[i][prm[page.delay_focus]] = util.clamp(target[i][prm[page.delay_focus]] + d/10,0,1)
+                  if delay_links[del.lookup_prm(k,v)] then
+                    target[i][prm[page.delay_focus == 1 and 2 or 1]] = target[i][prm[page.delay_focus]]
+                  end
                 end
               else
                 target[target.id][prm[page.delay_focus]] = util.clamp(target[target.id][prm[page.delay_focus]] + d/10,0,1)
+                if delay_links[del.lookup_prm(k,v)] then
+                  target[target.id][prm[page.delay_focus == 1 and 2 or 1]] = target[target.id][prm[page.delay_focus]]
+                end
               end
+              grid_dirty = true
+              if target[target.id].enveloped == false then
+                softcut.level_cut_cut(util.round(item/2)+1,page.delay_focus+4,(target[target.id][prm[page.delay_focus]]*target[target.id].level)*target.global_level)
+                if delay_links[del.lookup_prm(k,v)] then
+                  local this_one = page.delay_focus == 1 and 2 or 1
+                  softcut.level_cut_cut(util.round(item/2)+1,(this_one)+4,(target[target.id][prm[this_one]]*target[target.id].level)*target.global_level)
+                end
+              end
+              
             else
               local target = bank[item/2]
               local prm = {"left_delay_thru","right_delay_thru"}
@@ -360,65 +407,7 @@ function encoder_actions.init(n,d)
               end
             end
           elseif item == 7 then
-            params:delta("delay "..delay_name..": global level",d)
-          end
-        end
-      end
-
-      local item = page.delay[page.delay_focus].menu_sel[page.delay[page.delay_focus].menu]
-      local delay_name = page.delay_focus == 1 and "L" or "R"
-      local focused_menu = page.delay[page.delay_focus].menu
-      if page.delay_section == 3 then
-        if focused_menu == 1 then
-          if item == 1 then
-            local divisor;
-            if delay[page.delay_focus].mode == "free" and key1_hold then
-              divisor = 3
-            elseif delay[page.delay_focus].mode == "free" and not key1_hold then
-              divisor = 1/(100/3)
-            else
-              divisor = 1
-            end
-            params:delta(delay[page.delay_focus].mode == "clocked" and "delay "..delay_name..": div/mult" or "delay "..delay_name..": free length",d/divisor)
-          elseif item == 2 then
-            if key1_hold then
-              params:delta("delay "..delay_name..": rate",d)
-            else
-              params:delta("delay "..delay_name..": rate",d*100)
-              if params:get("delay "..delay_name..": rate") < 1.0 then
-                params:set("delay "..delay_name..": rate",1)
-              end
-            end
-          end
-        elseif focused_menu == 2 then
-          if item == 1 then
-            params:delta("delay "..delay_name..": filter q",d/10)
-          elseif item == 2 then
-            params:delta("delay "..delay_name..": filter hp",d)
-          elseif item == 3 then
-            params:delta("delay "..delay_name..": filter dry",d)
-          end
-        elseif focused_menu == 3 then
-          if page.delay_focus == 1 then
-            local current_thru = bank[item][bank[item].id].left_delay_thru == true and 1 or 0
-            current_thru = util.clamp(current_thru + d,0,1)
-            if key1_hold then
-              for i = 1,16 do
-                bank[item][i].left_delay_thru = current_thru == 1 and true or false
-              end
-            else
-              bank[item][bank[item].id].left_delay_thru = current_thru == 1 and true or false
-            end
-          elseif page.delay_focus == 2 then
-            local current_thru = bank[item][bank[item].id].right_delay_thru == true and 1 or 0
-            current_thru = util.clamp(current_thru + d,0,1)
-            if key1_hold then
-              for i = 1,16 do
-                bank[item][i].right_delay_thru = current_thru == 1 and true or false
-              end
-            else
-              bank[item][bank[item].id].right_delay_thru = current_thru == 1 and true or false
-            end
+            ea.delta_delay_param(delay_name,"global level",d)
           end
         end
       end
@@ -806,6 +795,8 @@ function encoder_actions.init(n,d)
         end
       end
     elseif filt_page == 3 then
+      params:delta("filter "..n.." q",d*-1)
+    elseif filt_page == 4 then
       if key1_hold or grid.alt then
         bank[n][bank[n].id].tilt_ease_type = util.clamp(bank[n][bank[n].id].tilt_ease_type+d, 1, 2)
       else
@@ -942,9 +933,7 @@ end
 function ea.move_start(target,delta)
   local duration = target.mode == 1 and 8 or clip[target.clip].sample_length
   local s_p = target.mode == 1 and live[target.clip].min or clip[target.clip].min
-  if delta >= 0 and target.start_point < (target.end_point - 0.05) then
-    target.start_point = util.clamp(target.start_point+delta,s_p,s_p+duration)
-  elseif delta < 0 then
+  if target.start_point+delta < (target.end_point - 0.04) then
     target.start_point = util.clamp(target.start_point+delta,s_p,s_p+duration)
   end
 end
@@ -952,9 +941,7 @@ end
 function ea.move_end(target,delta)
   local duration = target.mode == 1 and 8 or clip[target.clip].sample_length
   local s_p = target.mode == 1 and live[target.clip].min or clip[target.clip].min
-  if delta <= 0 and target.start_point < (target.end_point - 0.05) then
-    target.end_point = util.clamp(target.end_point+delta,s_p,s_p+duration)
-  elseif delta > 0 then
+  if target.start_point < ((target.end_point+delta) - 0.04) then
     target.end_point = util.clamp(target.end_point+delta,s_p,s_p+duration)
   end
 end
@@ -973,6 +960,28 @@ end
 function ea.sc.move_start(target)
   pad = bank[target][bank[target].id]
   softcut.loop_start(target+1, pad.start_point)
+end
+
+function ea.check_delay_links(orig,dest,prm)
+  if delay_links[prm] then
+    params:set("delay "..dest..": "..prm,params:get("delay "..orig..": "..prm))
+  end
+  grid_dirty = true
+end
+
+function ea.delta_delay_param(target,prm,d)
+  params:delta("delay "..target..": "..prm,d)
+  -- ea.check_delay_links(target, target == "L" and "R" or "L",prm)
+end
+
+function ea.set_delay_param(target,prm,val)
+  params:set("delay "..target..": "..prm,val)
+  -- ea.check_delay_links(target, target == "L" and "R" or "L",prm)
+end
+
+function ea.change_filter_q(target,d)
+  
+  -- softcut.post_filter_rq(n+1,bank[n][bank[n].id].q)
 end
 
 return encoder_actions

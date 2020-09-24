@@ -54,10 +54,12 @@ function main_menu.init()
       local dur = e_p-s_p
       local off = pad.mode == 1 and (((pad.clip-1)*8)+1) or clip[pad.clip].min
       local display_end = pad.mode == 1 and (pad.end_point == 8.99 and 9 or pad.end_point) or pad.end_point
-      screen.text_right("s: "..string.format("%.4g",(pad.start_point)-off).."s | e: "..string.format("%.4g",(display_end)-off).."s")
+      screen.text_right("s: "..string.format("%.4g",(util.round(pad.start_point,0.0001))-off).."s | e: "..string.format("%.4g",(display_end)-off).."s")
     else
       local off = ((rec.clip-1)*8)+1
-      screen.text_right("s: "..string.format("%.4g",rec.start_point-off).."s | e: "..string.format("%.4g",rec.end_point-off).."s")
+      local mults = {1,2,4}
+      local mult = mults[params:get("live_buff_rate")]
+      screen.text_right("s: "..string.format("%.4g",(util.round(rec.start_point,0.0001)-off)*mult).."s | e: "..string.format("%.4g",(rec.end_point-off)*mult).."s")
     end
 
     for i = 1,3 do
@@ -80,19 +82,22 @@ function main_menu.init()
       end
 
       if key1_hold then
+        screen.level(15)
         screen.move(122,8+(page.loops_sel*14))
         screen.text("*")
+        screen.level(3)
       else
         screen.move(122,8+(i*14))
         screen.text(bank[i][bank[i].focus_hold == false and bank[i].id or bank[i].focus_pad].loop and "L" or "")
       end
 
       if page.loops_view[i] == 1 then
+        screen.level(page.loops_sel == i and 15 or 3)
         screen.move(15,8+(i*14))
         screen.line(120,8+(i*14))
         screen.close()
         screen.stroke()
-        screen.level(page.loops_sel == i and 15 or 3)
+        -- screen.level(page.loops_sel == i and 15 or 3)
         if bank[i].focus_hold == false then
           which_pad = bank[i].id
         else
@@ -181,17 +186,20 @@ function main_menu.init()
     screen.level(page.loops_sel == 4 and 15 or 3)
     if page.loops_view[4] == 1 then
       local recording_playhead = util.linlin(1,9,15,120,(poll_position_new[1] - (8*(rec.clip-1))))
-      if rec.state == 1 then
+      if rec.state == 1 and not rec.pause then
         screen.font_size(4)
         screen.move(recording_playhead,62)
         screen.text(">")
-        screen.font_size(8)
-      elseif rec.state == 0 then
+      elseif rec.state == 0 and not rec.pause then
+        screen.font_size(4)
+        screen.move(recording_playhead,62)
+        screen.text_center("||")
+      elseif rec.pause then
         screen.font_size(8)
         screen.move(recording_playhead,62)
-        screen.text_center(".")
-        screen.font_size(8)
+        screen.text_center("||")
       end
+      screen.font_size(8)
       local recording_start = util.linlin(1,9,15,120,(rec.start_point - (8*(rec.clip-1))))
       screen.move(recording_start,62)
       screen.text("|")
@@ -204,13 +212,22 @@ function main_menu.init()
       screen.move(0,62)
       screen.text("L"..rec.clip)
       screen.move(15,62)
-      local rate_options = {"8 s","16 s","32 s"}
-      screen.text(rate_options[params:get"live_buff_rate"])
-      screen.move(45,62)
-      screen.text("offset: "..string.format("%.0f",((math.log(rec.rate_offset)/math.log(0.5))*-12)).." st")
-      screen.move(111,62)
+      local rate_options = {"8s","16s","32s"}
+      screen.text("total: "..rate_options[params:get"live_buff_rate"])
+      screen.move(65,62)
+      -- screen.text("offset: "..string.format("%.0f",((math.log(rec.rate_offset)/math.log(0.5))*-12)).." st")
+      screen.text("fb: "..string.format("%0.f",params:get("live_rec_feedback")*100).."%")
+      screen.move(105,62)
       screen.level(3)
       screen.text(string.format("%0.f",util.linlin(rec.start_point-(8*(rec.clip-1)),rec.end_point-(8*(rec.clip-1)),0,100,(poll_position_new[1] - (8*(rec.clip-1))))).."%")
+    elseif page.loops_view[4] == 3 then
+      screen.move(0,62)
+      screen.text("L"..rec.clip)
+      screen.move(15,62)
+      local loop_options = {"loop","shot"}
+      screen.text("mode: "..loop_options[params:get("rec_loop")])
+      screen.move(70,62)
+      screen.text("rnd prob: "..params:get("random_rec_clock_prob").."%")
     end
     
   elseif menu == 3 then
@@ -280,7 +297,6 @@ function main_menu.init()
     end
     screen.level(3)
     screen.move(0,64)
-    screen.text("...")
   elseif menu == 4 then
     screen.move(0,10)
     screen.level(3)
@@ -306,16 +322,13 @@ function main_menu.init()
         screen.text(pan_to_screen_options[i]..""..focused_pad)
       end
     end
-    screen.level(3)
-    screen.move(0,64)
-    screen.text("...")
   elseif menu == 5 then
     screen.move(0,10)
     screen.level(3)
     screen.text("filters")
     
     for i = 1,3 do
-      screen.move(17+((i-1)*45),25)
+      screen.move(17+((i-1)*45),20)
       screen.level(15)
       local filters_to_screen_options = {"a", "b", "c"}
       if key1_hold or grid.alt then
@@ -323,7 +336,7 @@ function main_menu.init()
       else
         screen.text_center("("..filters_to_screen_options[i]..")")
       end
-      screen.move(17+((i-1)*45),35)
+      screen.move(17+((i-1)*45),30)
       
       screen.level(page.filtering_sel+1 == 1 and 15 or 3)
       if slew_counter[i].slewedVal ~= nil then
@@ -355,19 +368,20 @@ function main_menu.init()
           end
         end
       end
-      screen.move(17+((i-1)*45),45)
+      screen.move(17+((i-1)*45),40)
       screen.level(page.filtering_sel+1 == 2 and 15 or 3)
       local ease_time_to_screen = bank[i][bank[i].id].tilt_ease_time
       screen.text_center(string.format("%.2f",ease_time_to_screen/100).."s")
-      screen.move(17+((i-1)*45),55)
+      screen.move(17+((i-1)*45),50)
       screen.level(page.filtering_sel+1 == 3 and 15 or 3)
+      local q_scaled = util.linlin(0.0005,4,100,0,params:get("filter "..i.." q"))
+      screen.text_center(string.format("%.4g",q_scaled).."%")
+      screen.move(17+((i-1)*45),60)
+      screen.level(page.filtering_sel+1 == 4 and 15 or 3)
       local ease_type_to_screen = bank[i][bank[i].id].tilt_ease_type
       local ease_types = {"cont","jumpy"}
       screen.text_center(ease_types[ease_type_to_screen])
     end
-    screen.level(3)
-    screen.move(0,64)
-    screen.text("...")
 
   elseif menu == 6 then
     screen.move(0,10)
@@ -393,6 +407,15 @@ function main_menu.init()
     screen.font_size(40)
     screen.move(0,50)
     screen.text(page.delay_focus == 1 and "L" or "R")
+    screen.move(0,60)
+    if page.delay_section == 2 then
+      local k = page.delay[page.delay_focus].menu
+      local v = page.delay[page.delay_focus].menu_sel[page.delay[page.delay_focus].menu]
+      if delay_links[del.lookup_prm(k,v)] then
+        screen.font_size(8)
+        screen.text("linked")
+      end
+    end
     screen.font_size(8)
     local options = {"ctl","flt","mix"}
     for i = 1,3 do
@@ -426,8 +449,9 @@ function main_menu.init()
       screen.move(30,40)
       screen.text("fade: "..string.format("%.4g",params:get("delay "..delay_name..": fade time")))
       screen.level((page.delay_section == 2 and selected == 4) and 15 or 3)
-      screen.move(85,40)
-      screen.text("rate: "..string.format("%.4g",params:string("delay "..delay_name..": rate")))
+      screen.move(80,40)
+      local rev = delay[page.delay_focus].reverse == true and 1 or 0
+      screen.text("rate: "..(rev == 1 and "-" or "")..string.format("%.4g",params:string("delay "..delay_name..": rate")))
       screen.level((page.delay_section == 2 and selected == 5) and 15 or 3)
       screen.move(30,50)
       if delay[page.delay_focus].feedback_mute then
@@ -475,9 +499,6 @@ function main_menu.init()
       screen.move(30,60)
       screen.text("main output level: "..string.format("%.2f", params:get("delay "..delay_name..": global level")))
     end
-    screen.level(3)
-    screen.move(0,64)
-    screen.text("...")
   
   elseif menu == 7 then
     screen.move(0,10)

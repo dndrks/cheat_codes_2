@@ -28,10 +28,46 @@ math.randomseed(os.time())
 
 --all the .quantize stuff is irrelevant now. it's been replaced by .mode = "quantized"
 
+function make_a_gif(filename,time)
+  local steps = time*24
+  local gif_step = 1
+  local dirnames = {"/home/we/dust/tmp", "/home/we/dust/tmp/frames"}
+  for i = 1,2 do
+    if os.rename(dirnames[i], dirnames[i]) == nil then
+      os.execute("mkdir " .. dirnames[i])
+    end
+  end
+  while gif_step <= steps do
+    _norns.screen_export_png("/home/we/dust/tmp/frames/"..string.format("%04d",gif_step)..".gif")
+    gif_step = gif_step + 1
+    clock.sleep(1/24)
+  end
+  print("creating gif...")
+  os.execute("convert -delay "..(100/24).." -dispose previous -loop 0 /home/we/dust/tmp/frames/*.gif "..'home/we/dust/gifs/'..filename..'.gif')
+  -- print("converting gif...")
+  -- os.execute("convert home/we/dust/image.gif -gamma 1.25 -filter point -resize 400% -gravity center -background black -extent 120% home/we/dust/image.gif")
+  os.execute("rm -r /home/we/dust/tmp/frames/")
+  print("done!")
+end
+
+function record_screen(state)
+  if state == 1 then
+    gif_step = 1
+    recording_screen = true
+  else
+    recording_screen = false
+  end
+end
+
 function screenshot()
-  --_norns.screen_export_png("/home/we/"..menu.."-"..os.time()..".png")
-  local which_screen = string.match(string.match(string.match(norns.state.script,"/home/we/dust/code/(.*)"),"/(.*)"),"(.+).lua")
-  _norns.screen_export_png("/home/we/"..which_screen.."-"..os.time()..".png")
+  if recording_screen then
+  -- os.execute("mkdir /home/we/dust/tmp")
+  -- os.execute("mkdir /home/we/dust/tmp/frames")
+  -- local which_screen = string.match(string.match(string.match(norns.state.script,"/home/we/dust/code/(.*)"),"/(.*)"),"(.+).lua")
+  -- _norns.screen_export_png("/home/we/dust/"..which_screen.."-"..os.time()..".png")
+    _norns.screen_export_png("/home/we/dust/"..gif_step..".png")
+    gif_step = gif_step + 1
+  end
 end
 
 function rerun()
@@ -642,7 +678,7 @@ zilch_leds =
 
 function init()
 
-  metro[31].time = 0.1
+  clock.run(check_page_for_k1)
 
   collection_loaded = false
 
@@ -658,6 +694,7 @@ function init()
   
   rec = {}
   rec.state = 1
+  rec.pause = false
   rec.clip = 1
   rec.start_point = 1
   rec.end_point = 9
@@ -667,7 +704,13 @@ function init()
 
   params:add_group("GRID",1)
   params:add_option("LED_style","LED style",{"varibright","4-step","grayscale"},1)
-  params:set_action("LED_style",function() grid_dirty = true end)
+  params:set_action("LED_style",
+  function()
+    grid_dirty = true
+    if all_loaded then
+      persistent_state_save()
+    end
+  end)
   
   params:add_separator("cheat codes params")
   
@@ -1502,6 +1545,7 @@ function random_rec_clock()
       if random_rec_comp < random_rec_prob then
         if params:get("rec_loop") == 1 then
           buff_freeze()
+          grid_dirty = true
         elseif params:get("rec_loop") == 2 then
           if not rec_state_watcher.is_running then
             softcut.position(1,rec.start_point+0.1)
@@ -1509,6 +1553,7 @@ function random_rec_clock()
             rec.state = 1
             rec_state_watcher:start()
             if rec.clear == 1 then rec.clear = 0 end
+            grid_dirty = true
           end
         end
       end
@@ -2394,6 +2439,11 @@ function buff_flush()
   softcut.rec_level(1,0)
 end
 
+function buff_pause()
+  rec.pause = not rec.pause
+  softcut.rate(1,rec.pause and 0 or 1) -- TODO make this dynamic to include rec rate offsets
+end
+
 function toggle_buffer(i)
   grid_dirty = true
   softcut.level_slew_time(1,0.5)
@@ -2505,7 +2555,9 @@ function reload_collected_samples(file,sample)
 end
 
 function adjust_key1_timing()
-  if menu ~= 6 then
+  if menu == 1 then
+    metro[31].time = 0.25
+  elseif menu ~= 6 then
     if metro[31].time ~= 0.1 then metro[31].time = 0.1 end
   elseif menu == 6 then
     if page.delay[page.delay_focus].menu == 1 and page.delay[page.delay_focus].menu_sel[page.delay[page.delay_focus].menu] == 5 then
@@ -2534,42 +2586,53 @@ function key(n,z)
     if n == 3 and z == 1 then
       if menu == 1 then
         menu = page.main_sel + 1
-        -- for i = 1,10 do
-        --   if page.main_sel == i then
-        --     menu = i+1
-        --   end
-        -- end
       elseif menu == 2 then
+        local id = page.loops_sel
         if not key1_hold then
-          page.loops_view[page.loops_sel] = (page.loops_view[page.loops_sel] % (page.loops_sel ~= 4 and 3 or 2)) + 1
+          page.loops_sel = (page.loops_sel % 4) + 1
+          id = page.loops_sel
         else
           if page.loops_sel < 4 then
             local id = page.loops_sel
-            bank[id][bank[id].id].loop = not bank[id][bank[id].id].loop
-            if bank[id][bank[id].id].loop then
-              softcut.loop(id+1,1)
-              cheat(id,bank[id].id)
+            if page.loops_view[id] == 1 then
+              bank[id][bank[id].id].loop = not bank[id][bank[id].id].loop
+              if bank[id][bank[id].id].loop then
+                softcut.loop(id+1,1)
+                cheat(id,bank[id].id)
+              else
+                softcut.loop(id+1,0)
+              end
+              grid_dirty = true
             else
-              softcut.loop(id+1,0)
+              rightangleslice.init(4,id,'14')
             end
-            grid_dirty = true
           elseif page.loops_sel == 4 then
             toggle_buffer(rec.clip)
           end
         end
-
-
       elseif menu == 3 then
         local level_nav = (page.levels_sel + 1)%4
         page.levels_sel = level_nav
       elseif menu == 5 then
-        local filter_nav = (page.filtering_sel + 1)%3
+        local filter_nav = (page.filtering_sel + 1)%4
         page.filtering_sel = filter_nav
       elseif menu == 6 then
-        page.delay_section = page.delay_section == 1 and 2 or 1
-        -- if page.delay_section < 3 then
-        --   page.delay_section = (page.delay_section%3)+1
-        -- end
+        if key1_hold then
+          local k = page.delay[page.delay_focus].menu
+          local v = page.delay[page.delay_focus].menu_sel[page.delay[page.delay_focus].menu]
+          del.links(del.lookup_prm(k,v))
+          if k == 1 and v == 5 then
+            delay[page.delay_focus == 1 and 2 or 1].feedback_mute = not delay[page.delay_focus == 1 and 2 or 1].feedback_mute
+          end
+          if delay_links[del.lookup_prm(k,v)] then
+            local sides = {"L","R"}
+            params:set("delay "..sides[page.delay_focus == 1 and 2 or 1]..": "..del.lookup_prm(k,v),params:get("delay "..sides[page.delay_focus]..": "..del.lookup_prm(k,v)))
+            grid_dirty = true
+          end
+          -- TODO FIX THE FEEDBACK BUMP
+        else
+          page.delay_section = page.delay_section == 1 and 2 or 1
+        end
       elseif menu == 7 then
         local time_nav = page.time_sel
         local id = time_nav
@@ -2755,24 +2818,36 @@ function key(n,z)
           menu = 1
         end
       elseif menu == 6 then
-        -- if page.delay_section == 3 then
-        --   page.delay_section = 2
-        -- elseif page.delay_section == 2 then
-        --   page.delay_section = 1
-        -- else
-        --   menu = 1
-        -- end
-        menu = 1
-      elseif menu == 2 then
         if key1_hold then
+          if page.delay[page.delay_focus].menu_sel[page.delay[page.delay_focus].menu] == 4 then
+            local k = page.delay[page.delay_focus].menu
+            local v = page.delay[page.delay_focus].menu_sel[page.delay[page.delay_focus].menu]
+            -- have to make sure that if the lines are linked,
+            -- we set them to the same value and reverse together.
+            if delay_links[del.lookup_prm[k][v]] then
+              delay[page.delay_focus == 1 and 2 or 1].reverse = delay[page.delay_focus].reverse
+              del.quick_action(page.delay_focus == 1 and 2 or 1, "reverse")
+            end
+            -- TODO make sure this happens for encoder changes as well!
+            del.quick_action(page.delay_focus, "reverse")
+          end
+        else
+          menu = 1
+        end
+      elseif menu == 2 then
+        if key1_hold and page.loops_sel ~= 4 then
           sync_clock_to_loop(bank[page.loops_sel][bank[page.loops_sel].id])
+        elseif key1_hold and page.loops_sel == 4 then
+          buff_pause()
         else
           menu = 1
         end
       else
         menu = 1
       end
-      if menu ~= 2 and menu ~= 8 then
+      if menu == 6 and page.delay[page.delay_focus].menu == 1 and page.delay[page.delay_focus].menu_sel[page.delay[page.delay_focus].menu] == 4 then
+        -- just need a logic break
+      elseif menu ~= 2 and menu ~= 8 then
         if key1_hold == true then key1_hold = false end
       end
     end
@@ -2787,7 +2862,12 @@ function key(n,z)
       elseif menu == 6 then
         key1_hold = true
         if page.delay[page.delay_focus].menu == 1 and page.delay[page.delay_focus].menu_sel[page.delay[page.delay_focus].menu] == 5 then
-          del.quick_action(page.delay_focus,"feedback mute")
+          if delay_links["feedback"] then
+            del.quick_action(1,"feedback_mute",z)
+            del.quick_action(2,"feedback_mute",z)
+          else
+            del.quick_action(page.delay_focus,"feedback_mute",z)
+          end
           grid_dirty = true
         end
       elseif menu == 7 then
@@ -2807,7 +2887,12 @@ function key(n,z)
       end
       if menu == 6 then
         if page.delay[page.delay_focus].menu == 1 and page.delay[page.delay_focus].menu_sel[page.delay[page.delay_focus].menu] == 5 then
-          del.quick_action(page.delay_focus,"feedback mute")
+          if delay_links["feedback"] then
+            del.quick_action(1,"feedback_mute",z)
+            del.quick_action(2,"feedback_mute",z)
+          else
+            del.quick_action(page.delay_focus,"feedback_mute",z)
+          end
           grid_dirty = true
         end
       end
@@ -2860,6 +2945,18 @@ function key(n,z)
   end
   adjust_key1_timing()
   redraw()
+  grid_dirty = true
+end
+
+function check_page_for_k1()
+  while true do
+    clock.sleep(0.25)
+    if _menu.mode and metro[31].time ~= 0.25 then
+      metro[31].time = 0.25
+    elseif not _menu.mode and metro[31].time == 0.25 and menu ~= 1 then
+      metro[31].time = 0.1
+    end
+  end
 end
 
 function enc(n,d)
@@ -2873,6 +2970,7 @@ function redraw()
   screen.font_size(8)
   main_menu.init()
   screen.update()
+  screenshot()
 end
 
 --GRID
@@ -3023,7 +3121,7 @@ led_maps =
 {
   -- main page
   ["square_off"]          =   {3,4,15}
-  , ["square_selected"]   =   {15,12,0}
+  , ["square_selected"]   =   {15,15,0}
   , ["square_dim"]        =   {5,4,0}
   , ["zilchmo_off"]       =   {3,4,15} -- is this right?
   , ["zilchmo_on"]        =   {15,12,0}
@@ -3555,9 +3653,22 @@ function grid_redraw()
         end
       end
 
+      if bank[delay_grid.bank][bank[delay_grid.bank].id].loop == false then
+        g:led(13,2,led_maps["loop_off"][edition])
+      else
+        g:led(13,2,led_maps["loop_on"][edition])
+      end
+
+
+
       g:led(16,8,(grid.alt and led_maps["alt_on"][edition] or led_maps["alt_off"][edition]))
 
+      for j = 1,4 do
+        g:led(15,math.abs(j-7),zilch_leds[4][delay_grid.bank][j] == 1 and led_maps["zilchmo_on"][edition] or led_maps["zilchmo_off"][edition])
+      end
+
     end
+
     local page_led = {[0] = 0, [1] = 7, [2] = 15}
     if grid_page ~= nil then
       g:led(16,1,led_maps["page_led"][grid_page+1][edition])
@@ -3856,6 +3967,7 @@ function persistent_state_save()
   end
   io.write("preview_clip_change: "..params:get("preview_clip_change").."\n")
   io.write("zilchmo_patterning: "..params:get("zilchmo_patterning").."\n")
+  io.write("LED_style: "..params:get("LED_style").."\n")
   io.close(file)
 end
 
@@ -3982,6 +4094,7 @@ function named_savestate(text)
   for i = 1,2 do
     tab.save(delay[i],_path.data .. "cheat_codes2/collection-"..collection.."/delays/delay"..(i == 1 and "L" or "R")..".data")
   end
+  tab.save(delay_links,_path.data .. "cheat_codes2/collection-"..collection.."/delays/delay-links.data")
   
   params:write(_path.data.."cheat_codes2/collection-"..collection.."/params/all.pset")
   tab.save(rec,_path.data .. "cheat_codes2/collection-"..collection.."/rec/rec.data")
@@ -4036,6 +4149,14 @@ end
 function named_loadstate(path)
 
   print("loading...")
+  for j = 1,3 do
+    for k = 1,7 do
+      if rnd[j][k].clock ~= nil then
+        -- print(rnd[j][k].clock)
+        clock.cancel(rnd[j][k].clock)
+      end
+    end
+  end
   reset_all_banks(bank)
   print(path)
   local file = io.open(path, "r")
@@ -4088,6 +4209,10 @@ function named_loadstate(path)
       if tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/delays/delay"..(i == 1 and "L" or "R")..".data") ~= nil then
         delay[i] = tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/delays/delay"..(i == 1 and "L" or "R")..".data")
       end
+    end
+
+    if tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/delays/delay-links.data") ~= nil then
+      delay_links = tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/delays/delay-links.data")
     end
 
     -- GRID pattern restore
