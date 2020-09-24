@@ -44,12 +44,36 @@ function delays.init(target)
     delay[i].reverse = false
   end
 
-  delay_links = {{},{},{}}
-  for i = 1,3 do
-    for j = 1,4+i do
-      delay_links[i][j] = false
-    end
-  end
+  delay_links = {{}}
+
+
+  delay_links["mode"] = false
+  delay_links["div/mult"] = false
+  delay_links["free length"] = false
+  delay_links["duration"] = false
+  delay_links["fade time"] = false
+  delay_links["rate"] = false
+  delay_links["feedback"] = false
+  delay_links["filter cut"] = false
+  delay_links["filter q"] = false
+  delay_links["filter lp"] = false
+  delay_links["filter hp"] = false
+  delay_links["filter bp"] = false
+  delay_links["filter dry"] = false
+  delay_links["level1"] = false
+  delay_links["level2"] = false
+  delay_links["level3"] = false
+  delay_links["thru1"] = false
+  delay_links["thru2"] = false
+  delay_links["thru3"] = false
+  delay_links["global level"] = false
+
+  -- delay_links = {{},{},{}}
+  -- for i = 1,3 do
+  --   for j = 1,4+i do
+  --     delay_links[i][j] = false
+  --   end
+  -- end
 
   delay_bundle = { {},{} }
   for i = 1,2 do
@@ -61,15 +85,25 @@ function delays.init(target)
     end
   end
 
+  function delays.lookup_prm(k,v)
+    local prms =
+    {
+      [1] = {"mode",delay[1].mode == "clocked" and "div/mult" or "free length","fade time","rate","feedback"},
+      [2] = {"filter cut","filter q","filter lp","filter hp","filter bp","filter dry"},
+      [3] = {"level1","level2","level3","thur1","thru2","thru3","global level"}
+    }
+    return prms[k][v]
+  end
+
   delay_grid = {}
   delay_grid.bank = 1
 
 end
 
-function delays.links(k,v)
-  delay_links[k][v] = not delay_links[k][v]
-  if k == 1 and (v == 1 or v == 2) then
-    delay_links[k][v==1 and 2 or 1] = delay_links[k][v]
+function delays.links(prm)
+  delay_links[prm] = not delay_links[prm]
+  if prm == "mode" or prm == (delay[1].mode == "clocked" and "div/mult" or "free length") then
+    delay_links[prm == "mode" and (delay[1].mode == "clocked" and "div/mult" or "free length") or "mode"] = delay_links[prm]
   end
 end
 

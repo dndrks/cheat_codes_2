@@ -679,7 +679,6 @@ zilch_leds =
 function init()
 
   clock.run(check_page_for_k1)
-  -- metro[31].time = 0.25
 
   collection_loaded = false
 
@@ -705,7 +704,13 @@ function init()
 
   params:add_group("GRID",1)
   params:add_option("LED_style","LED style",{"varibright","4-step","grayscale"},1)
-  params:set_action("LED_style",function() grid_dirty = true end)
+  params:set_action("LED_style",
+  function()
+    grid_dirty = true
+    if all_loaded then
+      persistent_state_save()
+    end
+  end)
   
   params:add_separator("cheat codes params")
   
@@ -2615,9 +2620,14 @@ function key(n,z)
         if key1_hold then
           local k = page.delay[page.delay_focus].menu
           local v = page.delay[page.delay_focus].menu_sel[page.delay[page.delay_focus].menu]
-          del.links(k,v)
+          del.links(del.lookup_prm(k,v))
           if k == 1 and v == 5 then
             delay[page.delay_focus == 1 and 2 or 1].feedback_mute = not delay[page.delay_focus == 1 and 2 or 1].feedback_mute
+          end
+          if delay_links[del.lookup_prm(k,v)] then
+            local sides = {"L","R"}
+            params:set("delay "..sides[page.delay_focus == 1 and 2 or 1]..": "..del.lookup_prm(k,v),params:get("delay "..sides[page.delay_focus]..": "..del.lookup_prm(k,v)))
+            grid_dirty = true
           end
           -- TODO FIX THE FEEDBACK BUMP
         else
@@ -2809,7 +2819,18 @@ function key(n,z)
         end
       elseif menu == 6 then
         if key1_hold then
-          del.quick_action(page.delay_focus, "reverse")
+          if page.delay[page.delay_focus].menu_sel[page.delay[page.delay_focus].menu] == 4 then
+            local k = page.delay[page.delay_focus].menu
+            local v = page.delay[page.delay_focus].menu_sel[page.delay[page.delay_focus].menu]
+            -- have to make sure that if the lines are linked,
+            -- we set them to the same value and reverse together.
+            if delay_links[del.lookup_prm[k][v]] then
+              delay[page.delay_focus == 1 and 2 or 1].reverse = delay[page.delay_focus].reverse
+              del.quick_action(page.delay_focus == 1 and 2 or 1, "reverse")
+            end
+            -- TODO make sure this happens for encoder changes as well!
+            del.quick_action(page.delay_focus, "reverse")
+          end
         else
           menu = 1
         end
@@ -2841,7 +2862,7 @@ function key(n,z)
       elseif menu == 6 then
         key1_hold = true
         if page.delay[page.delay_focus].menu == 1 and page.delay[page.delay_focus].menu_sel[page.delay[page.delay_focus].menu] == 5 then
-          if delay_links[1][5] then
+          if delay_links["feedback"] then
             del.quick_action(1,"feedback_mute",z)
             del.quick_action(2,"feedback_mute",z)
           else
@@ -2866,7 +2887,7 @@ function key(n,z)
       end
       if menu == 6 then
         if page.delay[page.delay_focus].menu == 1 and page.delay[page.delay_focus].menu_sel[page.delay[page.delay_focus].menu] == 5 then
-          if delay_links[1][5] then
+          if delay_links["feedback"] then
             del.quick_action(1,"feedback_mute",z)
             del.quick_action(2,"feedback_mute",z)
           else
@@ -2932,10 +2953,8 @@ function check_page_for_k1()
     clock.sleep(0.25)
     if _menu.mode and metro[31].time ~= 0.25 then
       metro[31].time = 0.25
-      print("yep!")
     elseif not _menu.mode and metro[31].time == 0.25 and menu ~= 1 then
       metro[31].time = 0.1
-      print("nope")
     end
   end
 end
@@ -3102,7 +3121,7 @@ led_maps =
 {
   -- main page
   ["square_off"]          =   {3,4,15}
-  , ["square_selected"]   =   {15,12,0}
+  , ["square_selected"]   =   {15,15,0}
   , ["square_dim"]        =   {5,4,0}
   , ["zilchmo_off"]       =   {3,4,15} -- is this right?
   , ["zilchmo_on"]        =   {15,12,0}
@@ -3948,6 +3967,7 @@ function persistent_state_save()
   end
   io.write("preview_clip_change: "..params:get("preview_clip_change").."\n")
   io.write("zilchmo_patterning: "..params:get("zilchmo_patterning").."\n")
+  io.write("LED_style: "..params:get("LED_style").."\n")
   io.close(file)
 end
 

@@ -409,9 +409,9 @@ function main_menu.init()
     screen.text(page.delay_focus == 1 and "L" or "R")
     screen.move(0,60)
     if page.delay_section == 2 then
-      local ky = page.delay[page.delay_focus].menu
-      local vl = page.delay[page.delay_focus].menu_sel[page.delay[page.delay_focus].menu]
-      if delay_links[ky][vl] then
+      local k = page.delay[page.delay_focus].menu
+      local v = page.delay[page.delay_focus].menu_sel[page.delay[page.delay_focus].menu]
+      if delay_links[del.lookup_prm(k,v)] then
         screen.font_size(8)
         screen.text("linked")
       end

@@ -367,15 +367,32 @@ function encoder_actions.init(n,d)
         elseif focused_menu == 3 then
           if item < 7 then
             if item == 1 or item == 3 or item == 5 then
+              local k = page.delay[page.delay_focus].menu
+              local v = page.delay[page.delay_focus].menu_sel[page.delay[page.delay_focus].menu]
               local target = bank[util.round(item/2)]
               local prm = {"left_delay_level","right_delay_level"}
               if key1_hold then
                 for i = 1,16 do
                   target[i][prm[page.delay_focus]] = util.clamp(target[i][prm[page.delay_focus]] + d/10,0,1)
+                  if delay_links[del.lookup_prm(k,v)] then
+                    target[i][prm[page.delay_focus == 1 and 2 or 1]] = target[i][prm[page.delay_focus]]
+                  end
                 end
               else
                 target[target.id][prm[page.delay_focus]] = util.clamp(target[target.id][prm[page.delay_focus]] + d/10,0,1)
+                if delay_links[del.lookup_prm(k,v)] then
+                  target[target.id][prm[page.delay_focus == 1 and 2 or 1]] = target[target.id][prm[page.delay_focus]]
+                end
               end
+              grid_dirty = true
+              if target[target.id].enveloped == false then
+                softcut.level_cut_cut(util.round(item/2)+1,page.delay_focus+4,(target[target.id][prm[page.delay_focus]]*target[target.id].level)*target.global_level)
+                if delay_links[del.lookup_prm(k,v)] then
+                  local this_one = page.delay_focus == 1 and 2 or 1
+                  softcut.level_cut_cut(util.round(item/2)+1,(this_one)+4,(target[target.id][prm[this_one]]*target[target.id].level)*target.global_level)
+                end
+              end
+              
             else
               local target = bank[item/2]
               local prm = {"left_delay_thru","right_delay_thru"}
@@ -391,7 +408,6 @@ function encoder_actions.init(n,d)
             end
           elseif item == 7 then
             ea.delta_delay_param(delay_name,"global level",d)
-            -- params:delta("delay "..delay_name..": global level",d)
           end
         end
       end
@@ -947,9 +963,7 @@ function ea.sc.move_start(target)
 end
 
 function ea.check_delay_links(orig,dest,prm)
-  local keyyy = page.delay[page.delay_focus].menu
-  local indexxx = page.delay[page.delay_focus].menu_sel[page.delay[page.delay_focus].menu]
-  if delay_links[keyyy][indexxx] then
+  if delay_links[prm] then
     params:set("delay "..dest..": "..prm,params:get("delay "..orig..": "..prm))
   end
   grid_dirty = true
@@ -957,12 +971,12 @@ end
 
 function ea.delta_delay_param(target,prm,d)
   params:delta("delay "..target..": "..prm,d)
-  ea.check_delay_links(target, target == "L" and "R" or "L",prm)
+  -- ea.check_delay_links(target, target == "L" and "R" or "L",prm)
 end
 
 function ea.set_delay_param(target,prm,val)
   params:set("delay "..target..": "..prm,val)
-  ea.check_delay_links(target, target == "L" and "R" or "L",prm)
+  -- ea.check_delay_links(target, target == "L" and "R" or "L",prm)
 end
 
 function ea.change_filter_q(target,d)

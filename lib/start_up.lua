@@ -304,7 +304,7 @@ function start_up.init()
     local sides = {"L","R"}
     params:add_separator("delay output "..sides[i-3])
     params:add_control("delay "..sides[i-3]..": global level", "delay "..sides[i-3]..": global level", controlspec.new(0,1,'lin',0,0,""))
-    params:set_action("delay "..sides[i-3]..": global level", function(x) softcut.level(i+1,x) redraw() end)
+    params:set_action("delay "..sides[i-3]..": global level", function(x) softcut.level(i+1,x) redraw() encoder_actions.check_delay_links(sides[i-3], sides[i-3] == "L" and "R" or "L","global level") end)
     params:add_option("delay "..sides[i-3]..": mode", "delay "..sides[i-3]..": mode", {"clocked", "free"},1)
     params:set_action("delay "..sides[i-3]..": mode", function(x)
       if x == 1 then
@@ -314,6 +314,7 @@ function start_up.init()
         delay[i-3].mode = "free"
         softcut.loop_end(i+1,delay[i-3].free_end_point)
       end
+      encoder_actions.check_delay_links(sides[i-3], sides[i-3] == "L" and "R" or "L","mode")
       redraw()
     end)
     params:add_option("delay "..sides[i-3]..": div/mult", "--> clocked div/mult: ",
@@ -341,6 +342,7 @@ function start_up.init()
       local delay_time = delay_rate_to_time + (41 + (30*(i-4)))
       delay[i-3].end_point = delay_time
       softcut.loop_end(i+1,delay[i-3].end_point)
+      encoder_actions.check_delay_links(sides[i-3], sides[i-3] == "L" and "R" or "L","div/mult")
       redraw()
     end)
     params:add{
@@ -362,6 +364,7 @@ function start_up.init()
       if delay[i-3].mode == "free" then
         delay[i-3].free_end_point = delay[i-3].start_point + x
         softcut.loop_end(i+1,delay[i-3].free_end_point)
+        encoder_actions.check_delay_links(sides[i-3], sides[i-3] == "L" and "R" or "L","free length")
       end
     end)
     --params:add_control("delay "..sides[i-3]..": free length", "--> free length: ", controlspec.new(0.01,30,'lin',0.01,0.01,""))
@@ -381,6 +384,7 @@ function start_up.init()
     }
     params:set_action("delay "..sides[i-3]..": fade time", function(x)
       softcut.fade_time(i+1,x)
+      encoder_actions.check_delay_links(sides[i-3], sides[i-3] == "L" and "R" or "L","fade time")
     end)
     params:add{
       type='control',
@@ -399,12 +403,18 @@ function start_up.init()
     params:set_action("delay "..sides[i-3]..": rate", function(x)
       delay[i-3].rate = x
       softcut.rate(i+1,x*(delay[i-3].reverse and -1 or 1))
+      encoder_actions.check_delay_links(sides[i-3], sides[i-3] == "L" and "R" or "L","rate")
     end)
     params:add_option("delay "..sides[i-3]..": rate bump", "delay "..sides[i-3]..": rate bump", {"fifth","detune"}, 1)
     params:add_control("delay "..sides[i-3]..": rate slew time", "delay "..sides[i-3]..": rate slew time", controlspec.new(0,3,'lin',0.01,0.01))
     params:set_action("delay "..sides[i-3]..": rate slew time", function(x) softcut.rate_slew_time(i+1,x) end)
     params:add_control("delay "..sides[i-3]..": feedback", "delay "..sides[i-3]..": feedback", controlspec.new(0,100,'lin',0,50,"%"))
-    params:set_action("delay "..sides[i-3]..": feedback", function(x) softcut.pre_level(i+1,(x/100)) redraw() end)
+    params:set_action("delay "..sides[i-3]..": feedback",
+    function(x)
+      softcut.pre_level(i+1,(x/100))
+      redraw()
+      encoder_actions.check_delay_links(sides[i-3], sides[i-3] == "L" and "R" or "L","feedback")
+    end)
     params:add{type = "trigger", id = "save_delay_"..sides[i-3], name = "***** save delay "..sides[i-3].." ***** [K3]", action = function() del.save_delay(i-3) end}	
   end
 
@@ -420,6 +430,7 @@ function start_up.init()
       for j = 1,16 do
         bank[i][j].left_delay_level = x
       end
+      grid_dirty = true
     end)
     params:add_control("delay R: ("..banks[i]..") send", "delay R: ("..banks[i]..") send", controlspec.new(0,1,'lin',0.1,0,""))
     params:set_action("delay R: ("..banks[i]..") send", function(x)
@@ -429,6 +440,7 @@ function start_up.init()
       for j = 1,16 do
         bank[i][j].right_delay_level = x
       end
+      grid_dirty = true
     end)
   end
 
@@ -447,17 +459,41 @@ function start_up.init()
     local sides = {"L","R"}
     params:add_separator("delay filters "..sides[i-3])
     params:add_control("delay "..sides[i-3]..": filter cut", "delay "..sides[i-3]..": filter cut", controlspec.new(10,12000,'exp',1,12000,"Hz"))
-    params:set_action("delay "..sides[i-3]..": filter cut", function(x) softcut.post_filter_fc(i+1,x) end)
+    params:set_action("delay "..sides[i-3]..": filter cut",
+    function(x)
+      softcut.post_filter_fc(i+1,x)
+      encoder_actions.check_delay_links(sides[i-3], sides[i-3] == "L" and "R" or "L","filter cut")
+    end)
     params:add_control("delay "..sides[i-3]..": filter q", "delay "..sides[i-3]..": filter q", controlspec.new(0.001, 8.0, 'exp', 0, 1.0, ""))
-    params:set_action("delay "..sides[i-3]..": filter q", function(x) softcut.post_filter_rq(i+1,x) end)
+    params:set_action("delay "..sides[i-3]..": filter q",
+    function(x)
+      softcut.post_filter_rq(i+1,x)
+      encoder_actions.check_delay_links(sides[i-3], sides[i-3] == "L" and "R" or "L","filter q")
+    end)
     params:add_control("delay "..sides[i-3]..": filter lp", "delay "..sides[i-3]..": filter lp", controlspec.new(0, 1, 'lin', 0, 1, ""))
-    params:set_action("delay "..sides[i-3]..": filter lp", function(x) softcut.post_filter_lp(i+1,x) end)
+    params:set_action("delay "..sides[i-3]..": filter lp",
+    function(x)
+      softcut.post_filter_lp(i+1,x)
+      encoder_actions.check_delay_links(sides[i-3], sides[i-3] == "L" and "R" or "L","filter lp")
+    end)
     params:add_control("delay "..sides[i-3]..": filter hp", "delay "..sides[i-3]..": filter hp", controlspec.new(0, 1, 'lin', 0, 0, ""))
-    params:set_action("delay "..sides[i-3]..": filter hp", function(x) softcut.post_filter_hp(i+1,x) end)
+    params:set_action("delay "..sides[i-3]..": filter hp",
+    function(x)
+      softcut.post_filter_hp(i+1,x)
+      encoder_actions.check_delay_links(sides[i-3], sides[i-3] == "L" and "R" or "L","filter hp")
+    end)
     params:add_control("delay "..sides[i-3]..": filter bp", "delay "..sides[i-3]..": filter bp", controlspec.new(0, 1, 'lin', 0, 0, ""))
-    params:set_action("delay "..sides[i-3]..": filter bp", function(x) softcut.post_filter_bp(i+1,x) end)
+    params:set_action("delay "..sides[i-3]..": filter bp",
+    function(x)
+      softcut.post_filter_bp(i+1,x)
+      encoder_actions.check_delay_links(sides[i-3], sides[i-3] == "L" and "R" or "L","filter bp")
+    end)
     params:add_control("delay "..sides[i-3]..": filter dry", "delay "..sides[i-3]..": filter dry", controlspec.new(0, 1, 'lin', 0, 0, ""))
-    params:set_action("delay "..sides[i-3]..": filter dry", function(x) softcut.post_filter_dry(i+1,x) end)
+    params:set_action("delay "..sides[i-3]..": filter dry",
+    function(x)
+      softcut.post_filter_dry(i+1,x)
+      encoder_actions.check_delay_links(sides[i-3], sides[i-3] == "L" and "R" or "L","filter dry")
+    end)
   end
   
   --params:add_separator()
