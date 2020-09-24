@@ -945,7 +945,7 @@ end
 
 function grid_actions.kill_arp(i)
   page.arp_page_sel = i
-  arp[i].hold = not arp[i].hold
+  arp[i].hold = false
   if not arp[i].hold then
     arps.clear(i)
   end
