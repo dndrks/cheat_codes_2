@@ -42,6 +42,8 @@ function delays.init(target)
     delay[i].selected_bundle = 0
     delay[i].wobble_hold = false
     delay[i].reverse = false
+    -- delay[i].external_left = false
+    -- delay[i].external_right = false
   end
 
   delay_links = {{}}
@@ -104,6 +106,18 @@ function delays.links(prm)
   delay_links[prm] = not delay_links[prm]
   if prm == "mode" or prm == (delay[1].mode == "clocked" and "div/mult" or "free length") then
     delay_links[prm == "mode" and (delay[1].mode == "clocked" and "div/mult" or "free length") or "mode"] = delay_links[prm]
+  end
+end
+
+function delays.link_all(k)
+  local prms =
+    {
+      [1] = {"mode",delay[1].mode == "clocked" and "div/mult" or "free length","fade time","rate","feedback"},
+      [2] = {"filter cut","filter q","filter lp","filter hp","filter bp","filter dry"},
+      [3] = {"level1","level2","level3","thur1","thru2","thru3","global level"}
+    }
+  for i = 1,#prms[k] do
+    delay_links[delays.lookup_prm(k,i)] = not delay_links[delays.lookup_prm(k,i)]
   end
 end
 
@@ -243,6 +257,9 @@ function delays.quick_action(target,param,state)
     softcut.level(target+4,params:get(target == 1 and "delay L: global level" or "delay R: global level"))
   elseif param == "reverse" then
     delay[target].reverse = not delay[target].reverse
+    if delay_links["rate"] then
+      delay[target == 1 and 2 or 1].reverse = delay[target].reverse
+    end
     local rate = {"delay L: rate", "delay R: rate"}
     softcut.rate(target+4,params:get(rate[target])*(delay[target].reverse and -1 or 1))
   end

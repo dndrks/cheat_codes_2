@@ -58,39 +58,13 @@ function grid_actions.init(x,y,z)
             end
             pad_clipboard = nil
             if bank[i].quantize_press == 0 then
-              -- if (arp[i].hold or (menu == 9)) and grid_pat[i].rec == 0 and not arp[i].pause then
-              if (arp[i].enabled or (menu == 9)) and grid_pat[i].rec == 0 and not arp[i].pause then
+              -- if (arp[i].enabled or (menu == 9)) and grid_pat[i].rec == 0 and not arp[i].pause then
+              if arp[i].enabled and grid_pat[i].rec == 0 and not arp[i].pause then
                 arp[i].time = bank[i][bank[i].id].arp_time
                 arps.momentary(i, bank[i].id, "on")
               else
                 cheat(i, bank[i].id)
-
                 grid_pattern_watch(i)
-                
-                --[==[
-                grid_p[i] = {}
-                grid_p[i].action = "pads"
-                grid_p[i].i = i
-                grid_p[i].id = selected[i].id
-                grid_p[i].x = selected[i].x
-                grid_p[i].y = selected[i].y
-                grid_p[i].rate = bank[i][bank[i].id].rate
-                grid_p[i].start_point = bank[i][bank[i].id].start_point
-                grid_p[i].end_point = bank[i][bank[i].id].end_point
-                grid_p[i].rate_adjusted = false
-                grid_p[i].loop = bank[i][bank[i].id].loop
-                grid_p[i].pause = bank[i][bank[i].id].pause
-                grid_p[i].mode = bank[i][bank[i].id].mode
-                grid_p[i].clip = bank[i][bank[i].id].clip
-                --[[
-                if grid_pat[i].rec == 1 and grid_pat[i].count == 0 then
-                  print("grid happening")
-                  clock.run(synced_pattern_record,grid_pat[i])
-                end
-                --]]
-                grid_pat[i]:watch(grid_p[i])
-                --]==]
-
               end
             else
               table.insert(quantize_events[i],selected[i].id)
@@ -230,6 +204,9 @@ function grid_actions.init(x,y,z)
                 end
                 if grid_pat[i].mode ~= "quantized" then
                   --grid_pat[i]:start()
+                  start_pattern(grid_pat[i])
+                --TODO: CONFIRM THIS IS OK...
+                elseif grid_pat[i].mode == "quantized" then
                   start_pattern(grid_pat[i])
                 end
                 grid_pat[i].loop = 1
@@ -554,8 +531,9 @@ function grid_actions.init(x,y,z)
               if step_seq[current].held == 0 then
                 if pattern_saver[math.floor(x/5)+1].clock then
                   clock.cancel(pattern_saver[math.floor(x/5)+1].clock)
-                  clock.cancel(pattern_saver[math.floor(x/5)+1].clock-1)
-                  clock.cancel(pattern_saver[math.floor(x/5)+1].clock-2)
+                  -- TODO: FIX THIS OVERWRITING...
+                  -- clock.cancel(pattern_saver[math.floor(x/5)+1].clock-1)
+                  -- clock.cancel(pattern_saver[math.floor(x/5)+1].clock-2)
                   -- print("killing save "..pattern_saver[math.floor(x/5)+1].clock)
                 end
                 pattern_saver[math.floor(x/5)+1].active = false

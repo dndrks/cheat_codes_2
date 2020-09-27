@@ -5,7 +5,7 @@ local pattern = {}
 pattern.__index = pattern
 
 --- constructor
-function pattern.new()
+function pattern.new(id)
   local i = {}
   setmetatable(i, pattern)
   i.rec = 0
@@ -28,6 +28,7 @@ function pattern.new()
   i.clock_time = 4
   i.rec_clock = nil
   i.mode = "unquantized"
+  i.name = id
 
   i.metro = metro.init(function() i:next_event() end,1,1)
 
@@ -96,6 +97,9 @@ function pattern:rec_stop()
         self:calculate_quantum(i)
       end
       self:calculate_duration()
+      if self.playmode == 1 then
+        sync_clock_to_loop(self,"pattern")
+      end
       --tab.print(self.time)
     else
       print("no events recorded")

@@ -33,7 +33,7 @@ function encoder_actions.init(n,d)
             end
           end
         else
-          if page.loops_view[id] == 2 then
+          if page.loops_view[id] ~= 1 then
             ea.change_buffer(rec,d)
           else
             ea.move_rec_window(rec,d)
@@ -111,7 +111,7 @@ function encoder_actions.init(n,d)
         if page.loops_view[id] == 3 then
           params:delta("rec_loop",d)
         elseif page.loops_view[id] == 2 then
-          params:delta("live_buff_rate",d)
+          params:delta("random_rec_clock_prob",d)
         elseif page.loops_view[id] == 1 then
           local lbr = {1,2,4}
           local res;
@@ -264,10 +264,10 @@ function encoder_actions.init(n,d)
         end
       elseif id == 4 then
         if page.loops_view[id] == 3 then
-          params:delta("random_rec_clock_prob",d)
+          params:delta("live_buff_rate",d)
         elseif page.loops_view[id] == 2 then
           params:delta("live_rec_feedback",d)
-        else
+        elseif page.loops_view[id] == 1 then
           local lbr = {1,2,4}
           local res;
           if params:get("rec_loop_enc_resolution") == 1 then
@@ -971,17 +971,10 @@ end
 
 function ea.delta_delay_param(target,prm,d)
   params:delta("delay "..target..": "..prm,d)
-  -- ea.check_delay_links(target, target == "L" and "R" or "L",prm)
 end
 
 function ea.set_delay_param(target,prm,val)
   params:set("delay "..target..": "..prm,val)
-  -- ea.check_delay_links(target, target == "L" and "R" or "L",prm)
-end
-
-function ea.change_filter_q(target,d)
-  
-  -- softcut.post_filter_rq(n+1,bank[n][bank[n].id].q)
 end
 
 return encoder_actions

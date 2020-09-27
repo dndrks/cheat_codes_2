@@ -30,17 +30,12 @@ end
 
 function euclid.init()
 
-  euclid.reset = false
+  -- euclid.reset = false
   euclid.alt = false
   euclid.running = false
   euclid.track_edit = 1
   euclid.current_pattern = 0
   euclid.clock_div = {1/2,1/2,1/2}
-  -- euclid.clock =
-  --   { clock.run(euclid.step,1)
-  --   , clock.run(euclid.step,2)
-  --   , clock.run(euclid.step,3)
-  --   }
   euclid.screen_focus = "left"
 
   euclid.track = {}
@@ -56,8 +51,16 @@ function euclid.init()
       mode = "single",
       clock_div = 1/2
     }
-    clock.run(euclid.step,i)
+    -- clock.run(euclid.step,i)
   end
+
+  euclid.clock =
+  { clock.run(euclid.step,1)
+  , clock.run(euclid.step,2)
+  , clock.run(euclid.step,3)
+  }
+
+  euclid.reset = { false, false, false}
 
   euclid.pattern = {}
   for i = 1,112 do
@@ -76,10 +79,12 @@ function euclid.init()
 
 end
 
-function euclid.reset_pattern()
-  euclid.reset = true
-  for i=1,3 do euclid.track[i].pos = 0 end
-  euclid.reset = false
+function euclid.reset_pattern(target)
+  euclid.reset[target] = true
+  clock.cancel(euclid.clock[target])
+  euclid.track[target].pos = 0
+  euclid.reset[target] = false
+  euclid.clock[target] = clock.run(euclid.step,target)
 end
 
 function euclid.step(target)

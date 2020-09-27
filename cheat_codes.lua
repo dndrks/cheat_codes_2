@@ -715,15 +715,6 @@ function init()
   params:add_separator("cheat codes params")
   
   params:add_group("collections",7)
-  
-  -- params:add_number("collection", "collection", 1,100,1)
-  -- params:add{type = "trigger", id = "load", name = "load", action = loadstate}
-  -- params:add_option("collect_live","collect Live buffers?",{"no","yes"})
-  -- params:add{type = "trigger", id = "save", name = "save", action = function()
-  --   collection_save_clock = clock.run(save_screen)
-  --   _norns.key(1,1)
-  --   _norns.key(1,0)
-  -- end}
   params:add_separator("load/save")
   params:add_trigger("load", "load collection")
   params:set_action("load", function(x) fileselect.enter(_path.data.."cheat_codes2/names/", named_loadstate) end)
@@ -760,7 +751,7 @@ function init()
   
   grid_pat = {}
   for i = 1,3 do
-    grid_pat[i] = pattern_time.new()
+    grid_pat[i] = pattern_time.new("grid_pat["..i.."]")
     grid_pat[i].process = grid_pattern_execute
     grid_pat[i].tightened_start = 0
     grid_pat[i].auto_snap = 0
@@ -1023,35 +1014,22 @@ function init()
   arc_pat = {{},{},{}}
   for i = 1,3 do
     for j = 1,4 do
-      arc_pat[i][j] = pattern_time.new()
+      arc_pat[i][j] = pattern_time.new("arc_pat["..i.."]["..j.."]")
       arc_pat[i][j].process = new_arc_pattern_execute
     end
   end
-  
-  --if g then grid_redraw() end
-  --/GRID
+
   for i=1,3 do
     cheat(i,bank[i].id)
   end
-  
-  -- hardware_redraw = metro.init(
-  --   function()
-  --     grid_redraw()
-  --     arc_redraw()
-  --   end
-  --   , 0.02, -1)
-  -- hardware_redraw:start()
 
   grid_dirty = true
 
   function draw_grid()
-    -- while true do
-    --   clock.sleep(1/30)
-      if grid_dirty then
-        grid_redraw()
-        grid_dirty = false
-      end
-    -- end
+    if grid_dirty then
+      grid_redraw()
+      grid_dirty = false
+    end
   end
   
   softcut.poll_start_phase()
@@ -1066,6 +1044,7 @@ function init()
         if rec.end_point < poll_position_new[1] +0.015 then
           rec.state = 0
           rec_state_watcher:stop()
+          grid_dirty = true
           redraw()
         end
       end
@@ -1088,19 +1067,19 @@ function init()
 
   params:add_group("MIDI keyboard setup",9)
   params:add_option("midi_control_enabled", "enable MIDI control?", {"no","yes"},1)
-  params:set_action("midi_control_enabled", function() persistent_state_save() end)
+  params:set_action("midi_control_enabled", function() if all_loaded then persistent_state_save() end end)
   params:add_option("midi_control_device", "MIDI control device",{"port 1", "port 2", "port 3", "port 4"},1)
-  params:set_action("midi_control_device", function(x) m = midi.connect(x) persistent_state_save() end)
+  params:set_action("midi_control_device", function() if all_loaded then persistent_state_save() end end)
   params:add_option("midi_echo_enabled", "enable MIDI echo?", {"no","yes"},1)
-  params:set_action("midi_echo_enabled", function() persistent_state_save() end)
+  params:set_action("midi_echo_enabled", function() if all_loaded then persistent_state_save() end end)
   local bank_names = {"(a)","(b)","(c)"}
   for i = 1,3 do
     params:add_number("bank_"..i.."_midi_channel", "bank "..bank_names[i].." pad channel:",1,16,i)
-    params:set_action("bank_"..i.."_midi_channel", function() persistent_state_save() end)
+    params:set_action("bank_"..i.."_midi_channel", function() if all_loaded then persistent_state_save() end end)
   end
   for i = 1,3 do
     params:add_number("bank_"..i.."_pad_midi_base", "bank "..bank_names[i].." pad midi base:",0,111,53)
-    params:set_action("bank_"..i.."_pad_midi_base", function() persistent_state_save() end)
+    params:set_action("bank_"..i.."_pad_midi_base", function() if all_loaded then persistent_state_save() end end)
   end
 
   crow_init()
@@ -1178,7 +1157,7 @@ function init()
 
   midi_pat = {}
   for i = 1,3 do
-    midi_pat[i] = pattern_time.new()
+    midi_pat[i] = pattern_time.new("midi_pat["..i.."]")
     midi_pat[i].process = midi_pattern_execute
     midi_pat[i].tightened_start = 0
     midi_pat[i].auto_snap = 0
@@ -1200,51 +1179,57 @@ function init()
 
   rytm.init()
 
-  -- if g then grid_redraw() end
   if g then grid_dirty = true end
   
-  all_loaded = true
+  -- all_loaded = true
   
   metro_persistent_state_restore = metro.init(persistent_state_restore, 0.1, 1)
   metro_persistent_state_restore:start()
 
-  -- clock.run(draw_grid)
-
   hardware_redraw = metro.init(
     function()
-      -- grid_redraw()
       draw_grid()
       arc_redraw()
     end
     , 1/30, -1)
   hardware_redraw:start()
 
-  -- for i = 0,100 do
-  --   local dirname = _path.data.."cheat_codes2/collection-"..i
-  --   if os.rename(dirname, dirname) == nil then
-  --     os.execute("mkdir " .. dirname)
-  --   end
-  -- end
-
 end
 
 ---
 
-function sync_clock_to_loop(source)
-  -- if delay[source].mode == "free" and delay[source].free_end_point-delay[source].start_point > 0.1 then
-    local duration = source.end_point-source.start_point
-    local quarter = duration/4
-    local derived_bpm = 60/quarter
-    while derived_bpm < 70 do
-      derived_bpm = derived_bpm * 2
-      if derived_bpm > 160 then break end
+function sync_clock_to_loop(source,style)
+  local duration = 0
+  local pattern_id;
+  if style == "audio" then
+    duration = source.end_point-source.start_point
+  elseif style == "pattern" then
+    pattern_id = string.match(source.name,"%d+")
+    if params:string("sync_clock_to_pattern_"..pattern_id) == "yes" then
+      for i = source.start_point,source.end_point do
+        duration = duration + source.time[i]
+      end
     end
-    while derived_bpm > 160 do
-      derived_bpm = derived_bpm/2
-      if derived_bpm <= 70 then break end
+  end
+  local quarter = duration/4
+  local derived_bpm = 60/quarter
+  while derived_bpm < 70 do
+    derived_bpm = derived_bpm * 2
+    if derived_bpm > 160 then break end
+  end
+  while derived_bpm > 160 do
+    derived_bpm = derived_bpm/2
+    if derived_bpm <= 70 then break end
+  end
+  if duration ~= 0 then
+    if params:get("clock_midi_out") ~= 1 then
+      params:set("clock_tempo",util.round(derived_bpm))
+    else
+      params:set("clock_tempo",util.round(derived_bpm,0.01))
     end
-    params:set("clock_tempo",util.round(derived_bpm,0.01))
-  -- end
+  else
+    print("won't be doing it!")
+  end
 end
 
 function midi_pattern_watch(target,note)
@@ -1575,6 +1560,7 @@ function one_shot_clock()
   rec.state = 1
   rec_state_watcher:start()
   if rec.clear == 1 then rec.clear = 0 end
+  grid_dirty = true
 end
 
 function compare_rec_resolution(x)
@@ -2479,6 +2465,7 @@ function toggle_buffer(i)
       rec.clear = 0
     end
   end
+  grid_dirty = true
 end
 
 function update_delays()
@@ -2604,7 +2591,7 @@ function key(n,z)
               end
               grid_dirty = true
             else
-              rightangleslice.init(4,id,'14')
+              -- rightangleslice.init(4,id,'14')
             end
           elseif page.loops_sel == 4 then
             toggle_buffer(rec.clip)
@@ -2617,21 +2604,31 @@ function key(n,z)
         local filter_nav = (page.filtering_sel + 1)%4
         page.filtering_sel = filter_nav
       elseif menu == 6 then
-        if key1_hold then
-          local k = page.delay[page.delay_focus].menu
-          local v = page.delay[page.delay_focus].menu_sel[page.delay[page.delay_focus].menu]
-          del.links(del.lookup_prm(k,v))
-          if k == 1 and v == 5 then
-            delay[page.delay_focus == 1 and 2 or 1].feedback_mute = not delay[page.delay_focus == 1 and 2 or 1].feedback_mute
+        if page.delay_section == 2 then
+          if key1_hold then
+            local k = page.delay[page.delay_focus].menu
+            local v = page.delay[page.delay_focus].menu_sel[page.delay[page.delay_focus].menu]
+            del.links(del.lookup_prm(k,v))
+            if k == 1 and v == 5 then
+              delay[page.delay_focus == 1 and 2 or 1].feedback_mute = not delay[page.delay_focus == 1 and 2 or 1].feedback_mute
+            elseif k == 1 and v == 4 then
+              delay[page.delay_focus == 1 and 2 or 1].reverse = delay[page.delay_focus].reverse
+            end
+            if delay_links[del.lookup_prm(k,v)] then
+              local sides = {"L","R"}
+              params:set("delay "..sides[page.delay_focus == 1 and 2 or 1]..": "..del.lookup_prm(k,v),params:get("delay "..sides[page.delay_focus]..": "..del.lookup_prm(k,v)))
+              grid_dirty = true
+            end
+            -- TODO FIX THE FEEDBACK BUMP
+          else
+            page.delay_section = page.delay_section == 1 and 2 or 1
           end
-          if delay_links[del.lookup_prm(k,v)] then
-            local sides = {"L","R"}
-            params:set("delay "..sides[page.delay_focus == 1 and 2 or 1]..": "..del.lookup_prm(k,v),params:get("delay "..sides[page.delay_focus]..": "..del.lookup_prm(k,v)))
-            grid_dirty = true
+        elseif page.delay_section == 1 then
+          if key1_hold then
+            del.link_all(page.delay[page.delay_focus].menu)
+          else
+            page.delay_section = page.delay_section == 1 and 2 or 1
           end
-          -- TODO FIX THE FEEDBACK BUMP
-        else
-          page.delay_section = page.delay_section == 1 and 2 or 1
         end
       elseif menu == 7 then
         local time_nav = page.time_sel
@@ -2743,7 +2740,7 @@ function key(n,z)
       elseif menu == 8 then
 
         if key1_hold then
-          rytm.track[rytm.track_edit].pos = 0
+          rytm.reset_pattern(rytm.track_edit)
         else
           rytm.screen_focus = rytm.screen_focus == "left" and "right" or "left"
         end
@@ -2804,7 +2801,9 @@ function key(n,z)
         end
       elseif menu == 8 then
         if key1_hold then
-          rytm.reset_pattern()
+          for i = 1,3 do
+            rytm.reset_pattern(i)
+          end
         else
           menu = 1
         end
@@ -2824,7 +2823,7 @@ function key(n,z)
             local v = page.delay[page.delay_focus].menu_sel[page.delay[page.delay_focus].menu]
             -- have to make sure that if the lines are linked,
             -- we set them to the same value and reverse together.
-            if delay_links[del.lookup_prm[k][v]] then
+            if delay_links[del.lookup_prm(k,v)] then
               delay[page.delay_focus == 1 and 2 or 1].reverse = delay[page.delay_focus].reverse
               del.quick_action(page.delay_focus == 1 and 2 or 1, "reverse")
             end
@@ -2836,7 +2835,11 @@ function key(n,z)
         end
       elseif menu == 2 then
         if key1_hold and page.loops_sel ~= 4 then
-          sync_clock_to_loop(bank[page.loops_sel][bank[page.loops_sel].id])
+          if page.loops_view[page.loops_sel] == 1 then
+            sync_clock_to_loop(bank[page.loops_sel][bank[page.loops_sel].id],"audio")
+          elseif page.loops_view[page.loops_sel] == 2 then
+            rightangleslice.init(4,id,'14')
+          end
         elseif key1_hold and page.loops_sel == 4 then
           buff_pause()
         else
@@ -3968,6 +3971,10 @@ function persistent_state_save()
   io.write("preview_clip_change: "..params:get("preview_clip_change").."\n")
   io.write("zilchmo_patterning: "..params:get("zilchmo_patterning").."\n")
   io.write("LED_style: "..params:get("LED_style").."\n")
+  for i = 1,3 do
+    io.write("sync_clock_to_pattern_"..i..": "..params:get("sync_clock_to_pattern_"..i).."\n")
+  end
+  io.write("arc_patterning: "..params:get("arc_patterning").."\n")
   io.close(file)
 end
 
@@ -3990,6 +3997,7 @@ function persistent_state_restore()
     end
     io.close(file)
   end
+  all_loaded = true
   mc.init()
 end
 
@@ -4174,7 +4182,6 @@ function named_loadstate(path)
     if tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/rec/rec.data") ~= nil then
       rec = tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/rec/rec.data")
     end
-    -- params:bang()
     for i = 1,3 do
       if tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/banks/"..i..".data") ~= nil then
         bank[i] = tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/banks/"..i..".data")
@@ -4202,7 +4209,9 @@ function named_loadstate(path)
       if tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/euclid/euclid"..i..".data") ~= nil then
         rytm.track[i] = tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/euclid/euclid"..i..".data")
       end
-      rytm.reset_pattern()
+      for i = 1,3 do
+        rytm.reset_pattern(i)
+      end
     end
 
     for i = 1,2 do
@@ -4252,453 +4261,6 @@ function named_loadstate(path)
   grid_dirty = true
 
 end
-
--- function testsavestate()
---   local file = io.open(_path.data .. "cheat_codes2/collections"..tonumber(string.format("%.0f",params:get("collection")))..".data", "w+")
---   io.output(file)
---   io.write("PERMANENCE".."\n")
---   for i = 1,3 do
---     for k = 1,16 do 
---       io.write(bank[i].id .. "\n")
---       io.write(selected[i].x .. "\n")
---       io.write(selected[i].y .. "\n")
---       io.write(bank[i][k].clip .. "\n")
---       io.write(bank[i][k].mode .. "\n")
---       io.write(bank[i][k].start_point .. "\n")
---       io.write(bank[i][k].end_point .. "\n")
---       io.write(bank[i][k].rate .. "\n")
---       io.write(tostring(bank[i][k].pause) .. "\n")
---       io.write(tostring(bank[i][k].play_mode) .. "\n")
---       io.write(bank[i][k].level .. "\n")
---       io.write(tostring(bank[i][k].loop) .. "\n")
---       io.write(tostring(bank[i][k].fifth) .. "\n")
---       io.write(bank[i][k].pan .. "\n")
---       io.write(bank[i][k].fc .. "\n")
---       io.write(bank[i][k].q .. "\n")
---       io.write(bank[i][k].lp .. "\n")
---       io.write(bank[i][k].hp .. "\n")
---       io.write(bank[i][k].bp .. "\n")
---       io.write(bank[i][k].fd .. "\n")
---       io.write(bank[i][k].br .. "\n")
---       io.write(bank[i][k].filter_type .. "\n")
---       io.write(arc_control[i] .. "\n")
---       io.write(arc_param[i] .. "\n")
---     end
---     io.write(params:get("rate slew time ".. i) .. "\n")
---     io.write(tostring(params:get("clip "..i.." sample") .. "\n"))
---     local sides = {"delay L: ", "delay R: "}
---     for k = 1,2 do
---       io.write(params:get(sides[k].."div/mult") .. "\n")
---       io.write(params:get(sides[k].."global level") .. "\n")
---       io.write(params:get(sides[k].."feedback") .. "\n")
---       io.write(params:get(sides[k].."(a) send") .. "\n")
---       io.write(params:get(sides[k].."(b) send") .. "\n")
---       io.write(params:get(sides[k].."(c) send") .. "\n")
---       io.write(params:get(sides[k].."filter cut") .. "\n")
---       io.write(params:get(sides[k].."filter q") .. "\n")
---       io.write(params:get(sides[k].."filter lp") .. "\n")
---       io.write(params:get(sides[k].."filter hp") .. "\n")
---       io.write(params:get(sides[k].."filter bp") .. "\n")
---       io.write(params:get(sides[k].."filter dry") .. "\n")
---     end
---   end
---   io.write(params:get("offset").."\n")
---     -- v1.1 items
---   io.write("v1.1".."\n")
---   for i = 1,3 do
---     for k = 1,16 do
---       io.write(tostring(bank[i][k].enveloped) .. "\n")
---       io.write(bank[i][k].envelope_time .. "\n")
---     end
---   end
---   io.write(params:get("zilchmo_patterning") .. "\n")
---   io.write(params:get("rec_loop") .. "\n")
---   io.write(params:get("live_rec_feedback") .. "\n")
---   io.write(params:get("quantize_pads") .. "\n")
---   io.write(params:get("quantize_pats") .. "\n")
---   io.write(params:get("quant_div") .. "\n")
---   io.write(params:get("quant_div_pats") .. "\n")
---   io.write(params:get("bpm") .. "\n")
---   io.write(rec.clip .. "\n")
---   io.write(rec.start_point .. "\n")
---   io.write(rec.end_point .. "\n")
---   io.write("v1.1.1.1.1.1.1.1".."\n")
---   for i = 1,3 do
---     io.write(step_seq[i].active .. "\n")
---     io.write(step_seq[i].meta_duration .. "\n")
---     for k = 1,16 do
---       io.write(step_seq[i][k].meta_meta_duration .. "\n")
---       io.write(step_seq[i][k].assigned_to .. "\n")
---       io.write(bank[i][k].tilt .. "\n")
---       io.write(bank[i][k].tilt_ease_time .. "\n")
---       io.write(bank[i][k].tilt_ease_type .. "\n")
---     end
---   end
---   io.write("the last params".."\n")
---   --io.write(params:get("clock_out") .. "\n")
---   io.write("0".."\n")
---   --io.write(params:get("crow_clock_out") .. "\n")
---   io.write("0".."\n")
---   --io.write(params:get("midi_device") .. "\n")
---   io.write("0".."\n")
---   io.write(params:get("loop_enc_resolution") .."\n")
---   --io.write(params:get("clock") .. "\n")
---   io.write("0".."\n")
---   io.write(params:get("lock_pat") .. "\n")
---   for i = 1,3 do
---     io.write(bank[i].crow_execute .. "\n")
---     io.write(bank[i].snap_to_bars .. "\n")
---   end
---   for i = 1,3 do
---     for j = 1,16 do
---       io.write(bank[i][j].offset .. "\n")
---     end
---   end
---   io.write("crow execute count".."\n")
---   for i = 1,3 do
---     io.write(crow.count_execute[i] .. "\n")
---   end
---   io.write("step seq loop points".."\n")
---   for i = 1,3 do
---     io.write(step_seq[i].start_point .. "\n")
---     io.write(step_seq[i].end_point .. "\n")
---   end
---   io.write("Live buffer max".."\n")
---   io.write(params:get"live_buff_rate" .. "\n")
---   io.write("loop Pattern per step".."\n")
---   for i = 1,3 do
---     for k = 1,16 do
---       io.write(step_seq[i][k].loop_pattern.."\n")
---     end
---   end
---   io.write("collect live?".."\n")
---   io.write(params:get("collect_live").."\n")
---   if params:get("collect_live") == 2 then
---     io.write("sample refs".."\n")
---     for i = 1,3 do
---       io.write("/home/we/dust/audio/cc_collection-samples/"..params:get("collection").."/".."cc_"..params:get("collection").."-"..i..".wav".."\n")
---       collect_samples(i)
---     end
---   end
---   io.write("last Pattern playmode".."\n")
---   for i = 1,3 do
---     io.write(grid_pat[i].playmode.."\n")
---   end
---   io.write("1.2.1: arc patterning".."\n")
---   io.write(params:get("arc_patterning").."\n")
---   io.write("1.2.2: crow_pad_execute".."\n")
---   for i = 1,3 do
---     for k = 1,16 do
---       io.write(bank[i][k].crow_pad_execute.."\n")
---     end
---   end
---   io.write("1.3: Pattern random pitch range".."\n")
---   for i = 1,3 do
---     io.write(grid_pat[i].random_pitch_range.."\n")
---   end
---   io.write("1.3.1".."\n")
---   io.write("one_shot_clock_div: "..params:get("one_shot_clock_div").."\n")
---   io.write("rec_loop_enc_resolution: "..params:get("rec_loop_enc_resolution").."\n")
---   io.write("more 1.3.1".."\n")
---   io.write("random_rec_clock_prob: "..params:get("random_rec_clock_prob").."\n")
-
---   io.write("cc2.0".."\n")
-
---   io.close(file)
---   if selected_coll ~= params:get("collection") then
---     meta_copy_coll(selected_coll,params:get("collection"))
---   end
---   meta_shadow(params:get("collection"))
---   --maybe not this? want to clean up
---   selected_coll = params:get("collection")
---   for i = 1,3 do
---     if arc_pat[i][1].count > 0 then
---       save_arc_pattern(i)
---     end
---     save_midi_pattern(i)
---   end
---   for i = 1,2 do
---     del.savestate(i,selected_coll)
---   end
---   rnd.savestate()
---   arps.savestate()
---   rytm.savestate()
--- end
-
--- function testloadstate()
---   selected_coll = params:get("collection")
---   local file = io.open(_path.data .. "cheat_codes2/collections"..selected_coll..".data", "r")
---   if file then
---     io.input(file)
---     pre_cc2_sample = { false, false, false }
---     restored_clip_file = {"","",""}
---     if io.read() == "PERMANENCE" then
---       for i = 1,3 do
---         for k = 1,16 do
---           bank[i].id = tonumber(io.read())
---           selected[i].x = tonumber(io.read())
---           selected[i].y = tonumber(io.read())
---           bank[i][k].clip = tonumber(io.read())
---           bank[i][k].mode = tonumber(io.read())
---           bank[i][k].start_point = tonumber(io.read())
---           bank[i][k].end_point = tonumber(io.read())
---           bank[i][k].rate = tonumber(io.read())
---           local pause_to_boolean = io.read()
---           if pause_to_boolean == "true" then
---             bank[i][k].pause = true
---           else
---             bank[i][k].pause = false
---           end
---           bank[i][k].play_mode = io.read()
---           bank[i][k].level = tonumber(io.read())
---           local loop_to_boolean = io.read()
---           if loop_to_boolean == "true" then
---             bank[i][k].loop = true
---           else
---             bank[i][k].loop = false
---           end
---           local fifth_to_boolean = io.read()
---           if fifth_to_boolean == "true" then
---             bank[i][k].fifth = true
---           else
---             bank[i][k].fifth = false
---           end
---           bank[i][k].pan = tonumber(io.read())
---           bank[i][k].fc = tonumber(io.read())
---           bank[i][k].q = tonumber(io.read())
---           bank[i][k].lp = tonumber(io.read())
---           bank[i][k].hp = tonumber(io.read())
---           bank[i][k].bp = tonumber(io.read())
---           bank[i][k].fd = tonumber(io.read())
---           bank[i][k].br = tonumber(io.read())
---           tonumber(io.read())
---           bank[i][k].filter_type = 4
---           arc_control[i] = tonumber(io.read())
---           arc_param[i] = tonumber(io.read())
---         end
---       params:set("rate slew time ".. i,tonumber(io.read()))
---       local string_to_sample = io.read()
---       restored_clip_file[i] = string_to_sample
---       -- params:set("clip "..i.." sample", string_to_sample)
---       local sides = {"delay L: ", "delay R: "}
---       for k = 1,2 do
---         params:set(sides[k].."div/mult",tonumber(io.read()))
---         params:set(sides[k].."global level",tonumber(io.read()))
---         params:set(sides[k].."feedback",tonumber(io.read()))
---         params:set(sides[k].."(a) send",tonumber(io.read()))
---         params:set(sides[k].."(b) send",tonumber(io.read()))
---         params:set(sides[k].."(c) send",tonumber(io.read()))
---         params:set(sides[k].."filter cut",tonumber(io.read()))
---         params:set(sides[k].."filter q",tonumber(io.read()))
---         params:set(sides[k].."filter lp",tonumber(io.read()))
---         params:set(sides[k].."filter hp",tonumber(io.read()))
---         params:set(sides[k].."filter bp",tonumber(io.read()))
---         params:set(sides[k].."filter dry",tonumber(io.read()))
---       end
---     end
---     params:set("offset",tonumber(io.read()))
---     else
---       print("invalid data file")
---     end
---     if io.read() == "v1.1" then
---       for i = 1,3 do
---         for k = 1,16 do
---           local enveloped_to_boolean = io.read()
---           if enveloped_to_boolean == "true" then
---             bank[i][k].enveloped = true
---           else
---             bank[i][k].enveloped = false
---           end
---           bank[i][k].envelope_time = tonumber(io.read())
---         end
---       end
---       params:set("zilchmo_patterning",tonumber(io.read()))
---       params:set("rec_loop",tonumber(io.read()))
---       params:set("live_rec_feedback",tonumber(io.read()))
---       tonumber(io.read()) -- kill off quantize_pads
---       params:set("quantize_pads",1)
---       tonumber(io.read()) -- kill off quantize_pats
---       params:set("quantize_pats",1)
---       tonumber(io.read()) -- kill off quant_div
---       params:set("quant_div",4)
---       params:set("quant_div_pats",tonumber(io.read()))
---       local bpm_to_clock = tonumber(io.read())
---       params:set("bpm",bpm_to_clock)
---       params:set("clock_tempo",bpm_to_clock)
---       rec.clip = tonumber(io.read())
---       rec.start_point = tonumber(io.read())
---       rec.end_point = tonumber(io.read())
---       softcut.loop_start(1,rec.start_point)
---       softcut.loop_end(1,rec.end_point-0.01)
---       softcut.position(1,rec.start_point)
---     end
---     if io.read() == "v1.1.1.1.1.1.1.1" then
---       for i = 1,3 do
---         step_seq[i].active = tonumber(io.read())
---         step_seq[i].meta_duration = tonumber(io.read())
---         for k = 1,16 do
---           step_seq[i][k].meta_meta_duration = tonumber(io.read())
---           step_seq[i][k].assigned_to = tonumber(io.read())
---           bank[i][k].tilt = tonumber(io.read())
---           bank[i][k].tilt_ease_time = tonumber(io.read())
---           bank[i][k].tilt_ease_type = tonumber(io.read())
---         end
---       end
---     end
---     if io.read() == "the last params" then
---       --params:set("clock_out",tonumber(io.read()))
---       local disregard = tonumber(io.read())
---       --params:set("crow_clock_out",tonumber(io.read()))
---       local disregard = tonumber(io.read())
---       --params:set("midi_device",tonumber(io.read()))
---       local disregard = tonumber(io.read())
---       params:set("loop_enc_resolution",tonumber(io.read()))
---       --params:set("clock",tonumber(io.read()))
---       local disregard_the_clock_source = tonumber(io.read())
---       local disregard = tonumber(io.read())
---       params:set("lock_pat",1)
---       for i = 1,3 do
---         bank[i].crow_execute = tonumber(io.read())
---         bank[i].snap_to_bars = tonumber(io.read())
---       end
---       for i = 1,3 do
---         for j = 1,16 do
---           bank[i][j].offset = tonumber(io.read())
---         end
---       end
---     end
---     if io.read() == "crow execute count" then
---       for i = 1,3 do
---         crow.count_execute[i] = tonumber(io.read())
---       end
---     end
---     if io.read() == "step seq loop points" then
---       for i = 1,3 do
---         step_seq[i].start_point = tonumber(io.read())
---         step_seq[i].current_step = step_seq[i].start_point
---         step_seq[i].end_point = tonumber(io.read())
---       end
---     end
---     if io.read() == "Live buffer max" then
---       params:set("live_buff_rate",tonumber(io.read()))
---     end
---     if io.read() == "loop Pattern per step" then
---       for i = 1,3 do
---         for k = 1,16 do
---           step_seq[i][k].loop_pattern = tonumber(io.read())
---         end
---       end
---     end
---     if io.read() == "collect live?" then
---       local restore_live = tonumber(io.read())
---       params:set("collect_live",restore_live)
---       if restore_live == 2 then
---         if io.read() == "sample refs" then
---           for i = 1,3 do
---             local string_to_sample = io.read()
---             reload_collected_samples(string_to_sample,i)
---           end
---         end
---       end
---     end
---     if io.read() == "last Pattern playmode" then
---       for i = 1,3 do
---         local pm = tonumber(io.read())
---         if pm == 3 or pm == 4 then
---           grid_pat[i].playmode = 2
---           params:set("pattern_"..i.."_quantization",2)
---         else
---           grid_pat[i].playmode = 1
---         end
---       end
---     end
---     if io.read() == "1.2.1: arc patterning" then
---       params:set("arc_patterning", tonumber(io.read()))
---     end
---     if io.read() == "1.2.2: crow_pad_execute" then
---       for i = 1,3 do
---         for k = 1,16 do
---           bank[i][k].crow_pad_execute = tonumber(io.read())
---         end
---       end
---     end
---     if io.read() == "1.3: Pattern random pitch range" then
---       for i  = 1,3 do
---         grid_pat[i].random_pitch_range = tonumber(io.read())
---       end
---     end
---     if io.read() == "1.3.1" then
---       params:set("one_shot_clock_div", tonumber(string.match(io.read(), ': (.*)')))
---       params:set("rec_loop_enc_resolution", tonumber(string.match(io.read(), ': (.*)')))
---     end
---     if io.read() == "more 1.3.1" then
---       params:set("random_rec_clock_prob", tonumber(string.match(io.read(), ': (.*)')))
---     end
---     if io.read() == "cc2.0" then
---       for i = 1,3 do
---         pre_cc2_sample[i] = true -- WHY
---         params:set("clip "..i.." sample", restored_clip_file[i])
---       end
---     else
---       for i = 1,3 do
---         pre_cc2_sample[i] = true
---         params:set("clip "..i.." sample", restored_clip_file[i])
---       end
---     end
-      
---     io.close(file)
-
---     rnd.loadstate()
---     arps.loadstate()
---     rytm.loadstate()
-
---     for i = 1,3 do
---       if bank[i][bank[i].id].loop == true then
---         cheat(i,bank[i].id)
---       else
---         softcut.loop(i+1, 0)
---         softcut.position(i+1,bank[i][bank[i].id].start_point)
---       end
---     end
---   end
---   already_saved()
-
---   --- unpack quantized table here?
-
---   for i = 1,3 do
---     if step_seq[i].active == 1 and step_seq[i][step_seq[i].current_step].assigned_to ~= 0 then
---       test_load(step_seq[i][step_seq[i].current_step].assigned_to+((i-1)*8),i)
---     end
---   end
---   --maybe?
---   if selected_coll ~= params:get("collection") then
---     print("not selected coll!")
---     meta_shadow(selected_coll)
---   elseif selected_coll == params:get("collection") then
---     cleanup()
---   end
---   one_point_two()
---   for i = 1,3 do
---     local dirname = _path.data .. "cheat_codes2/arc-patterns/collection-"..params:get("collection").."/encoder-"..i..".data"
---     if os.rename(dirname, dirname) ~= nil then
---       load_arc_pattern(i)
---     end
---   end
---   -- for i = 1,3 do
---   --   local dirname = _path.data .. "cheat_codes2/arc-patterns/collection-"..params:get("collection").."/encoder-"..i..".data"
---   --   if os.rename(dirname, dirname) ~= nil then
---   --     load_arc_pattern(i)
---   --   end
---   -- end
---   for i = 1,3 do
---     local dirname = _path.data .. "cheat_codes2/midi-patterns/collection-"..params:get("collection").."/"..i..".data"
---     if os.rename(dirname, dirname) ~= nil then
---       load_midi_pattern(i)
---     end
---   end
---   del.loadstate(selected_coll)
---   grid_dirty = true
--- end
 
 function test_save(i)
   pattern_saver[i].active = true

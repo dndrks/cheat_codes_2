@@ -32,13 +32,18 @@ function main_menu.init()
       }
       screen.text(page.main_sel == i and (">"..options[i]) or options[i])
     end
-    screen.move(128,10)
+    screen.move(128,selected_coll ~= 0 and 20 or 10)
     screen.level(3)
     local target = midi_dev[params:get("midi_control_device")]
     if target.device ~= nil and target.device.port == params:get("midi_control_device") and params:get("midi_control_enabled") == 2 then
       screen.text_right("("..util.trim_string_to_width(target.device.name,70)..")")
     elseif target.device == nil and params:get("midi_control_enabled") == 2 then
-      screen.text_right("no midi device!")
+      screen.text_right("(no midi device!)")
+    end
+    if selected_coll ~= 0 then
+      screen.move(128,10)
+      screen.level(3)
+      screen.text_right("["..util.trim_string_to_width(selected_coll,70).."]")
     end
   elseif menu == 2 then
 
@@ -212,8 +217,7 @@ function main_menu.init()
       screen.move(0,62)
       screen.text("L"..rec.clip)
       screen.move(15,62)
-      local rate_options = {"8s","16s","32s"}
-      screen.text("total: "..rate_options[params:get"live_buff_rate"])
+      screen.text("rnd: "..params:get("random_rec_clock_prob").."%")
       screen.move(65,62)
       -- screen.text("offset: "..string.format("%.0f",((math.log(rec.rate_offset)/math.log(0.5))*-12)).." st")
       screen.text("fb: "..string.format("%0.f",params:get("live_rec_feedback")*100).."%")
@@ -226,8 +230,12 @@ function main_menu.init()
       screen.move(15,62)
       local loop_options = {"loop","shot"}
       screen.text("mode: "..loop_options[params:get("rec_loop")])
-      screen.move(70,62)
-      screen.text("rnd prob: "..params:get("random_rec_clock_prob").."%")
+      screen.move(65,62)
+      local rate_options = {"8s","16s","32s"}
+      screen.text("time: "..rate_options[params:get"live_buff_rate"])
+      screen.move(105,62)
+      screen.level(3)
+      screen.text(string.format("%0.f",util.linlin(rec.start_point-(8*(rec.clip-1)),rec.end_point-(8*(rec.clip-1)),0,100,(poll_position_new[1] - (8*(rec.clip-1))))).."%")
     end
     
   elseif menu == 3 then
@@ -414,6 +422,17 @@ function main_menu.init()
       if delay_links[del.lookup_prm(k,v)] then
         screen.font_size(8)
         screen.text("linked")
+      end
+    elseif page.delay_section == 1 then
+      if key1_hold then
+        screen.font_size(8)
+        if page.delay[page.delay_focus].menu ~= 3 then
+          screen.move(0,60)
+          screen.text("K3: toggle all links")
+        else
+          screen.move(128,10)
+          screen.text_right("K3: toggle all links")
+        end
       end
     end
     screen.font_size(8)
@@ -704,7 +723,7 @@ function main_menu.init()
       screen.text_center(rytm.track[i].n)
   
       for x = 1,rytm.track[i].n do
-        screen.level((rytm.track[i].pos == x and not rytm.reset) and 15 or 2)
+        screen.level((rytm.track[i].pos == x and not rytm.reset[i]) and 15 or 2)
         screen.move(x*4 + 30, i*12 + 20)
         if rytm.track[i].s[x] then
           screen.line_rel(0,-8)

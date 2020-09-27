@@ -129,9 +129,9 @@ function start_up.init()
   params:add{id="live_rec_feedback", name="live rec feedback", type="control", 
   controlspec=controlspec.new(0,1.0,'lin',0,0.25,""),
   action=function(x)
-    if rec.state == 1 then
+    -- if rec.state == 1 then
       softcut.pre_level(1,x)
-    end
+    -- end
   end}
   
   params:add_option("live_buff_rate", "live buffer max", {"8 sec", "16 sec", "32 sec"}, 1)
@@ -181,10 +181,16 @@ function start_up.init()
   
   --params:add_option("zilchmo_bind_rand","bind random zilchmo?", {"no","yes"}, 1)
   
-  params:add_group("grid/arc pattern params",16)
-  params:add_separator("grid")
+  params:add_group("grid/arc pattern params",18)
+  params:add_separator("patterns")
   params:add_option("zilchmo_patterning", "grid pat style", { "classic", "rad sauce" })
   params:set_action("zilchmo_patterning", function() if all_loaded then persistent_state_save() end end)
+  params:add_option("arc_patterning", "arc pat style", { "passive", "active" })
+  params:set_action("arc_patterning", function() if all_loaded then persistent_state_save() end end)
+  for i = 1,3 do
+    params:add_option("sync_clock_to_pattern_"..i, "sync bpm to free pat "..i.."?", { "no", "yes" })
+    params:set_action("sync_clock_to_pattern_"..i, function() if all_loaded then persistent_state_save() end end)
+  end
   params:add_separator("quantization")
   for i = 1,3 do
     params:add_option("pattern_"..i.."_quantization", "quantize pat "..i.."?", {"no", "yes"})
@@ -223,9 +229,6 @@ function start_up.init()
   for i = 1,3 do
     params:add_option("rand_pattern_"..i.."_note_length", "rand pat "..i.." note length", {"1/16", "1/8", "1/4", "1/2", "1", "rand"},6)
   end
-  
-  params:add_separator("arc")
-  params:add_option("arc_patterning", "arc pat style", { "passive", "active" })
   
   params:add_group("manual control params",34)
 
