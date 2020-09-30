@@ -1199,36 +1199,34 @@ end
 ---
 
 function sync_clock_to_loop(source,style)
-  local duration = 0
+  local dur = 0
   local pattern_id;
   if style == "audio" then
-    duration = source.end_point-source.start_point
+    dur = source.end_point-source.start_point
   elseif style == "pattern" then
     pattern_id = string.match(source.name,"%d+")
     if params:string("sync_clock_to_pattern_"..pattern_id) == "yes" then
       for i = source.start_point,source.end_point do
-        duration = duration + source.time[i]
+        dur = dur + source.time[i]
       end
     end
   end
-  local quarter = duration/4
-  local derived_bpm = 60/quarter
-  while derived_bpm < 70 do
-    derived_bpm = derived_bpm * 2
-    if derived_bpm > 160 then break end
-  end
-  while derived_bpm > 160 do
-    derived_bpm = derived_bpm/2
-    if derived_bpm <= 70 then break end
-  end
-  if duration ~= 0 then
+  if dur > 0 then
+    local quarter = dur/4
+    local derived_bpm = 60/quarter
+    while derived_bpm < 70 do
+      derived_bpm = derived_bpm * 2
+      if derived_bpm > 160 then break end
+    end
+    while derived_bpm > 160 do
+      derived_bpm = derived_bpm/2
+      if derived_bpm <= 70 then break end
+    end
     if params:get("clock_midi_out") ~= 1 then
       params:set("clock_tempo",util.round(derived_bpm))
     else
       params:set("clock_tempo",util.round(derived_bpm,0.01))
     end
-  else
-    print("won't be doing it!")
   end
 end
 
