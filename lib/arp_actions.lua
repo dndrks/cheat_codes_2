@@ -14,6 +14,7 @@ function arp_actions.init(target)
     arp[target].mode = "fwd"
     arp[target].start_point = 1
     arp[target].end_point = 1
+    arp[target].down = 0
     -- arp[target].clock = clock.run(arp_actions.arpeggiate, target)
     clock.run(arp_actions.arpeggiate, target)
     arp[target].retrigger = true

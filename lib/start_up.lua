@@ -181,7 +181,7 @@ function start_up.init()
   
   --params:add_option("zilchmo_bind_rand","bind random zilchmo?", {"no","yes"}, 1)
   
-  params:add_group("grid/arc pattern params",18)
+  params:add_group("grid/arc pattern params",22)
   params:add_separator("patterns")
   params:add_option("zilchmo_patterning", "grid pat style", { "classic", "rad sauce" })
   params:set_action("zilchmo_patterning", function() if all_loaded then persistent_state_save() end end)
@@ -191,7 +191,7 @@ function start_up.init()
     params:add_option("sync_clock_to_pattern_"..i, "sync bpm to free pat "..i.."?", { "no", "yes" })
     params:set_action("sync_clock_to_pattern_"..i, function() if all_loaded then persistent_state_save() end end)
   end
-  params:add_separator("quantization")
+  params:add_separator("pattern quantization")
   for i = 1,3 do
     params:add_option("pattern_"..i.."_quantization", "quantize pat "..i.."?", {"no", "yes"})
     params:set_action("pattern_"..i.."_quantization", function(x)
@@ -228,6 +228,11 @@ function start_up.init()
 
   for i = 1,3 do
     params:add_option("rand_pattern_"..i.."_note_length", "rand pat "..i.." note length", {"1/16", "1/8", "1/4", "1/2", "1", "rand"},6)
+  end
+
+  params:add_separator("arps")
+  for i = 1,3 do
+    params:add_option("arp_"..i.."_hold_style", "arp "..i.." hold style", {"additive","momentary"},1)
   end
   
   params:add_group("manual control params",34)

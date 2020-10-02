@@ -183,10 +183,14 @@ function encoder_actions.init(n,d)
           rytm.track[rytm.track_edit].k = util.clamp(rytm.track[rytm.track_edit].k+d,0,rytm.track[rytm.track_edit].n)
         end
       elseif key1_hold then
-        if d > 0 then
-          rytm.track[rytm.track_edit].mode = "span"
-        elseif d < 0 then
-          rytm.track[rytm.track_edit].mode = "single"
+        if rytm.screen_focus == "left" then
+          if d > 0 then
+            rytm.track[rytm.track_edit].mode = "span"
+          elseif d < 0 then
+            rytm.track[rytm.track_edit].mode = "single"
+          end
+        else
+          rytm.track[rytm.track_edit].auto_rotation = util.clamp(rytm.track[rytm.track_edit].auto_rotation + d, 0, 16)
         end
       end
     elseif menu == 9 then
@@ -485,11 +489,15 @@ function encoder_actions.init(n,d)
           rytm.track[rytm.track_edit].k = util.clamp(rytm.track[rytm.track_edit].k,0,rytm.track[rytm.track_edit].n)
         end
       elseif key1_hold then
-        local deci = {"0.25","0.5","1","2","4"}
-        local lookup = string.format("%.4g",rytm.track[rytm.track_edit].clock_div)
-        local current = (tab.key(deci, lookup))
-        local new_value = util.clamp(current+d,1,#deci)
-        rytm.track[rytm.track_edit].clock_div = tonumber(deci[new_value])
+        if rytm.screen_focus == "left" then
+          local deci = {"0.25","0.5","1","2","4"}
+          local lookup = string.format("%.4g",rytm.track[rytm.track_edit].clock_div)
+          local current = (tab.key(deci, lookup))
+          local new_value = util.clamp(current+d,1,#deci)
+          rytm.track[rytm.track_edit].clock_div = tonumber(deci[new_value])
+        else
+          rytm.track[rytm.track_edit].auto_pad_offset = util.clamp(rytm.track[rytm.track_edit].auto_pad_offset+d,-15,15)
+        end
       end
 
     elseif menu == 9 then

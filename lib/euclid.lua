@@ -46,8 +46,10 @@ function euclid.init()
       pos = 1,
       s = {},
       rotation = 0,
+      auto_rotation = 0,
       focus = 1,
       pad_offset = 0,
+      auto_pad_offset = 0,
       mode = "single",
       clock_div = 1/2
     }
@@ -92,6 +94,15 @@ function euclid.step(target)
     clock.sync(euclid.track[target].clock_div)
     euclid.track[target].pos = (euclid.track[target].pos % euclid.track[target].n) + 1
     euclid.trig(target)
+    if euclid.track[target].pos == euclid.track[target].n and euclid.track[target].auto_rotation ~= 0 then
+      local new_rotation = (euclid.track[target].rotation + euclid.track[target].auto_rotation)%16
+      euclid.track[target].rotation = new_rotation
+      euclid.track[target].s = euclid.rotate_pattern(euclid.track[target].s, euclid.track[target].rotation)
+    end
+    if euclid.track[target].pos == euclid.track[target].n and euclid.track[target].auto_pad_offset ~= 0 then
+      local sign = (euclid.track[target].pad_offset + euclid.track[target].auto_pad_offset) < 0 and -16 or 16
+      euclid.track[target].pad_offset = (euclid.track[target].pad_offset + euclid.track[target].auto_pad_offset) % sign
+    end
     redraw()
   end
 end

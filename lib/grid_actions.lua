@@ -60,10 +60,18 @@ function grid_actions.init(x,y,z)
             if bank[i].quantize_press == 0 then
               -- if (arp[i].enabled or (menu == 9)) and grid_pat[i].rec == 0 and not arp[i].pause then
               if arp[i].enabled and grid_pat[i].rec == 0 and not arp[i].pause then
+                if arp[i].down == 0 and params:get("arp_"..i.."_hold_style") == 2 then
+                  for j = #arp[i].notes,1,-1 do
+                    table.remove(arp[i].notes,j)
+                  end
+                end
                 arp[i].time = bank[i][bank[i].id].arp_time
                 arps.momentary(i, bank[i].id, "on")
+                arp[i].down = arp[i].down + 1
               else
-                cheat(i, bank[i].id)
+                if rytm.track[i].k == 0 then
+                  cheat(i, bank[i].id)
+                end
                 grid_pattern_watch(i)
               end
             else
@@ -95,12 +103,17 @@ function grid_actions.init(x,y,z)
         end
         redraw()
       elseif z == 0 and x > 0 + (5*(i-1)) and x <= 4 + (5*(i-1)) and y >=5 then
-        local released_pad = (math.abs(y-9)+((x-1)*4))-(20*(i-1))
-        if bank[i][released_pad].play_mode == "momentary" then
-          softcut.rate(i+1,0)
-        end
-        if (arp[i].enabled and not arp[i].hold) or (menu == 9 and not arp[i].hold) then
-          arps.momentary(i, released_pad, "off")
+        if not bank[i].focus_hold then
+          local released_pad = (math.abs(y-9)+((x-1)*4))-(20*(i-1))
+          if bank[i][released_pad].play_mode == "momentary" then
+            softcut.rate(i+1,0)
+          end
+          if (arp[i].enabled and not arp[i].hold) or (menu == 9 and not arp[i].hold) then
+            arps.momentary(i, released_pad, "off")
+            arp[i].down = arp[i].down - 1
+          elseif (arp[i].enabled and arp[i].hold) or (menu == 9 and arp[i].hold) then
+            arp[i].down = arp[i].down - 1
+          end
         end
       end
     end
@@ -795,18 +808,31 @@ function grid_actions.init(x,y,z)
           bank[id].id = selected[id].id
           -- if (arp[id].hold or (menu == 9)) and grid_pat[id].rec == 0 and not arp[id].pause then
           if (arp[id].enabled or (menu == 9)) and grid_pat[id].rec == 0 and not arp[id].pause then
+            if arp[id].down == 0 and params:get("arp_"..id.."_hold_style") == 2 then
+              for i = #arp[id].notes,1,-1 do
+                table.remove(arp[id].notes,i)
+              end
+            end
             arp[id].time = bank[id][bank[id].id].arp_time
             arps.momentary(id, bank[id].id, "on")
+            arp[id].down = arp[id].down + 1
           else
-            cheat(id, bank[id].id)
+            if rytm.track[id].k == 0 then
+              cheat(id, bank[id].id)
+            end
             grid_pattern_watch(id)
           end
         else
           -- if not arp[id].hold then
-          if arp[id].enabled and not arp[id].hold then
-            local xval = {9,4,-1}
-            local released_pad = (math.abs((y + 2)-9)+(((x - xval[id])-1)*4))-(20*(id-1))
-            arps.momentary(id, released_pad, "off")
+          if not bank[id].focus_hold then
+            if arp[id].enabled and not arp[id].hold then
+              local xval = {9,4,-1}
+              local released_pad = (math.abs((y + 2)-9)+(((x - xval[id])-1)*4))-(20*(id-1))
+              arps.momentary(id, released_pad, "off")
+              arp[id].down = arp[id].down - 1
+            elseif arp[id].enabled and arp[id].hold then
+              arp[id].down = arp[id].down - 1
+            end
           end
         end
       else
@@ -927,6 +953,7 @@ function grid_actions.kill_arp(i)
   if not arp[i].hold then
     arps.clear(i)
   end
+  arp[i].down = 0
   arp[i].enabled = false
 end
 

@@ -141,33 +141,33 @@ function rnd.loop(t)
 end
 
 function rnd.delay_send(t,i)
-    local delay_send = math.random(0,1)
-    for j = 1,16 do
-        bank[t][j].left_delay_level = delay_send
-        bank[t][j].right_delay_level = delay_send
-    end
-    softcut.level_slew_time(5,1)
-    softcut.level_slew_time(6,1)
-    if bank[t][bank[t].id].left_delay_thru then
-      softcut.level_cut_cut(t+1,5,bank[t][bank[t].id].left_delay_level)
-    else
-      softcut.level_cut_cut(t+1,5,(bank[t][bank[t].id].left_delay_level*bank[t][bank[t].id].level)*bank[t].global_level)
-    end
-    if bank[t][bank[t].id].right_delay_thru then
-      softcut.level_cut_cut(t+1,6,bank[t][bank[t].id].right_delay_level)
-    else
-      softcut.level_cut_cut(t+1,6,(bank[t][bank[t].id].right_delay_level*bank[t][bank[t].id].level)*bank[t].global_level)
-    end
-    grid_dirty = true
+  local delay_send = math.random(0,1)
+  for j = 1,16 do
+      bank[t][j].left_delay_level = delay_send
+      bank[t][j].right_delay_level = delay_send
+  end
+  softcut.level_slew_time(5,1)
+  softcut.level_slew_time(6,1)
+  if bank[t][bank[t].id].left_delay_thru then
+    softcut.level_cut_cut(t+1,5,bank[t][bank[t].id].left_delay_level)
+  else
+    softcut.level_cut_cut(t+1,5,(bank[t][bank[t].id].left_delay_level*bank[t][bank[t].id].level)*bank[t].global_level)
+  end
+  if bank[t][bank[t].id].right_delay_thru then
+    softcut.level_cut_cut(t+1,6,bank[t][bank[t].id].right_delay_level)
+  else
+    softcut.level_cut_cut(t+1,6,(bank[t][bank[t].id].right_delay_level*bank[t][bank[t].id].level)*bank[t].global_level)
+  end
+  grid_dirty = true
 end
 
 function rnd.offset(t,i)
-    local scale = MusicUtil.generate_scale(0,rnd[t][i].offset_scale,rnd[t][i].offset_octave)
-    local rand_offset = scale[math.random(1,#scale)]
-    if rnd[t][i].mode == "destructive" then
-        bank[t][bank[t].id].offset = math.pow(0.5, -rand_offset / 12)
-    end
-    softcut.rate(t+1,bank[t][bank[t].id].rate*(math.pow(0.5, -rand_offset / 12)))
+  local scale = MusicUtil.generate_scale(0,rnd[t][i].offset_scale,rnd[t][i].offset_octave)
+  local rand_offset = scale[math.random(1,#scale)]
+  if rnd[t][i].mode == "destructive" then
+      bank[t][bank[t].id].offset = math.pow(0.5, -rand_offset / 12)
+  end
+  softcut.rate(t+1,bank[t][bank[t].id].rate*(math.pow(0.5, -rand_offset / 12)))
 end
 
 function rnd.filter_tilt(t,i)

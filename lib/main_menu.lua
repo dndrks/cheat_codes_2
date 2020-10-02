@@ -689,17 +689,23 @@ function main_menu.init()
       screen.level(15)
       screen.move(40,10)
       local track_edit_to_banks = {"a","b","c"}
-      screen.text(track_edit_to_banks[rytm.track_edit].." mode: "..rytm.track[rytm.track_edit].mode)
-      screen.move(40,20)
-      local divs_to_frac =
-      { ["0.25"] = "1/16"
-      , ["0.5"] = "1/8"
-      , ["1"] = "1/4"
-      , ["2"] = "1/2"
-      , ["4"] = "1"
-      }
-      local lookup = string.format("%.4g",rytm.track[rytm.track_edit].clock_div)
-      screen.text(track_edit_to_banks[rytm.track_edit].." rate: "..divs_to_frac[lookup])
+      if rytm.screen_focus == "left" then
+        screen.text(track_edit_to_banks[rytm.track_edit].." mode: "..rytm.track[rytm.track_edit].mode)
+        screen.move(40,20)
+        local divs_to_frac =
+        { ["0.25"] = "1/16"
+        , ["0.5"] = "1/8"
+        , ["1"] = "1/4"
+        , ["2"] = "1/2"
+        , ["4"] = "1"
+        }
+        local lookup = string.format("%.4g",rytm.track[rytm.track_edit].clock_div)
+        screen.text(track_edit_to_banks[rytm.track_edit].." rate: "..divs_to_frac[lookup])
+      else
+        screen.text(track_edit_to_banks[rytm.track_edit].." auto rot: "..rytm.track[rytm.track_edit].auto_rotation)
+        screen.move(40,20)
+        screen.text(track_edit_to_banks[rytm.track_edit].." auto off: "..rytm.track[rytm.track_edit].auto_pad_offset)
+      end
     end
     local labels = {"(k","n)","o","+/-"}
     local spaces = {5,20,105,120}

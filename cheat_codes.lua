@@ -2074,22 +2074,10 @@ end
 function cheat(b,i)
   local pad = bank[b][i]
   if env_counter[b].is_running then
-    -- if pad.enveloped then
-    --   if pad.envelope_mode == 2 or pad.envelope_mode == 3 then
-    --     print("should not clip")
-    --     softcut.level_slew_time(b+1,0.5)
-    --     softcut.level(b+1,0*bank[b].global_level)
-    --     softcut.level_cut_cut(b+1,5,0)
-    --     softcut.level_cut_cut(b+1,6,0)
-    --     env_counter[b].butt = 0
-    --     env_counter[b].l_del_butt = 0
-    --     env_counter[b].r_del_butt = 0
-    --   end
-    -- end
     env_counter[b]:stop()
   end
   softcut.rate_slew_time(b+1,pad.rate_slew)
-  if pad.enveloped then
+  if pad.enveloped and not pad.pause then
     if pad.envelope_mode == 1 then
       env_counter[b].butt = pad.level
       env_counter[b].l_del_butt = pad.left_delay_level
@@ -2097,7 +2085,7 @@ function cheat(b,i)
       softcut.level_slew_time(b+1,0.05)
       softcut.level(b+1,pad.level*bank[b].global_level)
       softcut.level_cut_cut(b+1,5,(pad.level*bank[b].global_level)*pad.left_delay_level)
-      softcut.level_cut_cut(i+1,6,(pad.level*bank[b].global_level)*pad.right_delay_level)
+      softcut.level_cut_cut(b+1,6,(pad.level*bank[b].global_level)*pad.right_delay_level)
     elseif pad.envelope_mode == 2 or pad.envelope_mode == 3 then
       softcut.level_slew_time(b+1,0.01)
       softcut.level(b+1,0*bank[b].global_level)
@@ -2110,7 +2098,7 @@ function cheat(b,i)
     end
     env_counter[b].time = (pad.envelope_time/(pad.level/0.05))
     env_counter[b]:start()
-  else
+  elseif not pad.enveloped and not pad.pause then
     softcut.level_slew_time(b+1,0.1)
     softcut.level(b+1,pad.level*bank[b].global_level)
     if not delay[1].send_mute then
@@ -3708,7 +3696,9 @@ function grid_pattern_execute(entry)
             bank[i][bank[i].id].end_point = entry.end_point
           end
         end
-        cheat(i,bank[i].id)
+        if rytm.track[i].k == 0 then
+          cheat(i,bank[i].id)
+        end
       elseif string.match(entry.action, "zilchmo") then
         if params:get("zilchmo_patterning") == 2 then
           bank[i][entry.id].rate = entry.rate
