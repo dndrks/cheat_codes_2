@@ -144,14 +144,12 @@ function euclid.savestate()
   end
 end
 
-function euclid.loadstate()
-  local collection = params:get("collection")
+function euclid.restore_collection()
   for i = 1,3 do
-    if tab.load(_path.data .. "cheat_codes2/rytm/collection-"..collection.."/"..i..".data") ~= nil then
-      euclid.track[i] = tab.load(_path.data .. "cheat_codes2/rytm/collection-"..collection.."/"..i..".data")
-    end
+    euclid.track[i].auto_rotation = euclid.track[i].auto_rotation == nil and 0 or euclid.track[i].auto_rotation
+    euclid.track[i].auto_pad_offset = euclid.track[i].auto_pad_offset == nil and 0 or euclid.track[i].auto_pad_offset
+    euclid.reset_pattern(i)
   end
-  euclid.reset_pattern()
 end
 
 return euclid

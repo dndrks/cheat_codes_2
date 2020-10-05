@@ -232,7 +232,7 @@ function start_up.init()
 
   params:add_separator("arps")
   for i = 1,3 do
-    params:add_option("arp_"..i.."_hold_style", "arp "..i.." hold style", {"additive","momentary"},1)
+    params:add_option("arp_"..i.."_hold_style", "arp "..i.." hold style", {"last pressed","additive"},1)
   end
   
   params:add_group("manual control params",34)

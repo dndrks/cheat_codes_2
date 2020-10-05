@@ -60,7 +60,7 @@ function grid_actions.init(x,y,z)
             if bank[i].quantize_press == 0 then
               -- if (arp[i].enabled or (menu == 9)) and grid_pat[i].rec == 0 and not arp[i].pause then
               if arp[i].enabled and grid_pat[i].rec == 0 and not arp[i].pause then
-                if arp[i].down == 0 and params:get("arp_"..i.."_hold_style") == 2 then
+                if arp[i].down == 0 and params:string("arp_"..i.."_hold_style") == "last pressed" then
                   for j = #arp[i].notes,1,-1 do
                     table.remove(arp[i].notes,j)
                   end
@@ -808,7 +808,7 @@ function grid_actions.init(x,y,z)
           bank[id].id = selected[id].id
           -- if (arp[id].hold or (menu == 9)) and grid_pat[id].rec == 0 and not arp[id].pause then
           if (arp[id].enabled or (menu == 9)) and grid_pat[id].rec == 0 and not arp[id].pause then
-            if arp[id].down == 0 and params:get("arp_"..id.."_hold_style") == 2 then
+            if arp[id].down == 0 and params:string("arp_"..id.."_hold_style") == "last pressed" then
               for i = #arp[id].notes,1,-1 do
                 table.remove(arp[id].notes,i)
               end

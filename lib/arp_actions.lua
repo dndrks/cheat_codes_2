@@ -178,4 +178,10 @@ function arp_actions.loadstate()
   end
 end
 
+function arp_actions.restore_collection()
+  for i = 1,3 do
+    arp[i].down = arp[i].down == nil and 0 or arp[i].down
+  end
+end
+
 return arp_actions

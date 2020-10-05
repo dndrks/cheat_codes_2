@@ -4197,10 +4197,11 @@ function named_loadstate(path)
       if tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/euclid/euclid"..i..".data") ~= nil then
         rytm.track[i] = tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/euclid/euclid"..i..".data")
       end
-      for i = 1,3 do
-        rytm.reset_pattern(i)
-      end
+      
     end
+
+    arps.restore_collection()
+    rytm.restore_collection()
 
     for i = 1,2 do
       if tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/delays/delay"..(i == 1 and "L" or "R")..".data") ~= nil then
