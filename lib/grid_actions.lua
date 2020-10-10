@@ -392,13 +392,17 @@ function grid_actions.init(x,y,z)
     
     for i = 7,5,-1 do
       if x == 16 and z == 1 and y == i then
-        toggle_buffer(8-y)
-        if grid.alt then
-          buff_flush()
-        end
-        
-        if menu == 11 then
-          help_menu = "buffer switch"
+        if rec.focus ~= 8-y then
+          rec.focus = 8-y
+        else
+          toggle_buffer(8-y)
+          if grid.alt then
+            buff_flush()
+          end
+          
+          if menu == 11 then
+            help_menu = "buffer switch"
+          end
         end
       end
     end

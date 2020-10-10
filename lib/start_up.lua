@@ -87,13 +87,13 @@ function start_up.init()
   params:add_option("rec_loop", "live rec behavior", {"loop","1-shot"}, 1)
   params:set_action("rec_loop",
     function(x)
-      rec.loop = 2-x
-      softcut.loop(1,rec.loop)
-      softcut.position(1,rec.start_point)
-      --rec.state = 1
-      rec.state = 0
-      --rec.clear = 0
-      softcut.rec_level(1,rec.state)
+      rec[rec.focus].loop = 2-x
+      softcut.loop(1,rec[rec.focus].loop)
+      softcut.position(1,rec[rec.focus].start_point)
+      --rec[rec.focus].state = 1
+      rec[rec.focus].state = 0
+      --rec[rec.focus].clear = 0
+      softcut.rec_level(1,rec[rec.focus].state)
       if x == 2 then
         --rec_state_watcher:start()
         softcut.pre_level(1,params:get("live_rec_feedback"))
@@ -118,18 +118,18 @@ function start_up.init()
     }
     rec_loop_enc_resolution = resolutions[x]
     if x > 2 then
-      rec.start_point = 1+(8*(rec.clip-1))
+      rec[rec.focus].start_point = 1+(8*(rec.focus-1))
       local lbr = {1,2,4}
-      rec.end_point = (1+(8*(rec.clip-1) + (1/rec_loop_enc_resolution))/lbr[params:get("live_buff_rate")])
-      softcut.loop_start(1,rec.start_point)
-      softcut.loop_end(1,rec.end_point)
+      rec[rec.focus].end_point = (1+(8*(rec.focus-1) + (1/rec_loop_enc_resolution))/lbr[params:get("live_buff_rate")])
+      softcut.loop_start(1,rec[rec.focus].start_point)
+      softcut.loop_end(1,rec[rec.focus].end_point)
     end
   end)
 
   params:add{id="live_rec_feedback", name="live rec feedback", type="control", 
   controlspec=controlspec.new(0,1.0,'lin',0,0.25,""),
   action=function(x)
-    -- if rec.state == 1 then
+    -- if rec[rec.focus].state == 1 then
       softcut.pre_level(1,x)
     -- end
   end}
@@ -385,7 +385,7 @@ function start_up.init()
         max=2.000,
         warp='lin',
         step=0.001,
-        default=0.2,
+        default=0.01,
         quantum=0.001,
         wrap=false,
       },

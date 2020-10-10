@@ -34,11 +34,11 @@ function encoder_actions.init(n,d)
           end
         else
           if page.loops_view[id] ~= 1 then
-            ea.change_buffer(rec,d)
+            ea.change_buffer(rec[rec.focus],d)
           else
-            ea.move_rec_window(rec,d)
+            ea.move_rec_window(rec[rec.focus],d)
           end
-          ea.sc.move_rec_window(rec)
+          ea.sc.move_rec_window(rec[rec.focus])
         end
       end
     elseif menu == 6 then
@@ -120,12 +120,12 @@ function encoder_actions.init(n,d)
           else
             res = d/rec_loop_enc_resolution
           end
-          if d >= 0 and util.round(rec.start_point + ((res)/lbr[params:get("live_buff_rate")]),0.01) < util.round(rec.end_point,0.01) then
-            rec.start_point = util.clamp(rec.start_point+((res)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.clip-1))),(8.9+(8*(rec.clip-1))))
+          if d >= 0 and util.round(rec[rec.focus].start_point + ((res)/lbr[params:get("live_buff_rate")]),0.01) < util.round(rec[rec.focus].end_point,0.01) then
+            rec[rec.focus].start_point = util.clamp(rec[rec.focus].start_point+((res)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.focus-1))),(8.9+(8*(rec.focus-1))))
           elseif d < 0 then
-            rec.start_point = util.clamp(rec.start_point+((res)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.clip-1))),(8.9+(8*(rec.clip-1))))
+            rec[rec.focus].start_point = util.clamp(rec[rec.focus].start_point+((res)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.focus-1))),(8.9+(8*(rec.focus-1))))
           end
-          softcut.loop_start(1, rec.start_point)
+          softcut.loop_start(1, rec[rec.focus].start_point)
         end
       end
     elseif menu == 6 then
@@ -279,12 +279,12 @@ function encoder_actions.init(n,d)
           else
             res = d/rec_loop_enc_resolution
           end
-          if d <= 0 and util.round(rec.start_point,0.01) < util.round(rec.end_point + ((res)/lbr[params:get("live_buff_rate")]),0.01) then
-            rec.end_point = util.clamp(rec.end_point+((res)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.clip-1))),(9+(8*(rec.clip-1))))
-          elseif d > 0 and rec.end_point+((res)/lbr[params:get("live_buff_rate")]) <= 9+(8*(rec.clip-1)) then
-            rec.end_point = util.clamp(rec.end_point+((res)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.clip-1))),(9+(8*(rec.clip-1))))
+          if d <= 0 and util.round(rec[rec.focus].start_point,0.01) < util.round(rec[rec.focus].end_point + ((res)/lbr[params:get("live_buff_rate")]),0.01) then
+            rec[rec.focus].end_point = util.clamp(rec[rec.focus].end_point+((res)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.focus-1))),(9+(8*(rec.focus-1))))
+          elseif d > 0 and rec[rec.focus].end_point+((res)/lbr[params:get("live_buff_rate")]) <= 9+(8*(rec.focus-1)) then
+            rec[rec.focus].end_point = util.clamp(rec[rec.focus].end_point+((res)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.focus-1))),(9+(8*(rec.focus-1))))
           end
-          softcut.loop_end(1, rec.end_point-0.01)
+          softcut.loop_end(1, rec[rec.focus].end_point-0.01)
         end
       end
     elseif menu == 6 then
@@ -850,7 +850,7 @@ end
 
 function ea.move_rec_window(target,delta)
   local current_difference = (target.end_point - target.start_point)
-  local current_clip = 8*(target.clip-1)
+  local current_clip = 8*(rec.focus-1)
   if delta >=0 then
     --if util.round(target.end_point + current_difference,0.01) < (9+current_clip) then
     -- MBUTZ
@@ -882,7 +882,11 @@ end
 function ea.change_buffer(target,delta)
   local pre_adjust = target.clip
   local current_difference = (target.end_point - target.start_point)
-  target.clip = util.clamp(target.clip+delta,1,3)
+  if target ~= rec[rec.focus] then
+    target.clip = util.clamp(target.clip+delta,1,3)
+  else
+    rec.focus = util.clamp(rec.focus+delta,1,3)
+  end
   target.start_point = target.start_point - ((pre_adjust - target.clip)*8)
   target.end_point = target.start_point + current_difference
   grid_dirty = true

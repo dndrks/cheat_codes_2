@@ -98,8 +98,8 @@ end
 
 function zilchmos.start_zero( pad )
   local duration;
-  if pad.mode == 1 and pad.clip == rec.clip then
-    duration = rec.end_point-rec.start_point
+  if pad.mode == 1 and pad.clip == rec.focus then
+    duration = rec[rec.focus].end_point-rec[rec.focus].start_point
     pad.start_point = (duration*(pad.clip-1)) + 1
   else
     duration = pad.mode == 1 and ((8*(pad.clip-1)) + 1) or clip[pad.clip].min
@@ -109,12 +109,14 @@ end
 
 function zilchmos.start_end_default( pad )
   local duration;
-  -- if pad.mode == 1 and pad.clip == rec.clip then
   if pad.mode == 1 then
     --slice within bounds
-    duration = rec.end_point-rec.start_point
-    pad.start_point = (rec.start_point+((duration/16) * (pad.pad_id-1)))+((pad.clip-1)*8)
-    pad.end_point = (rec.start_point+((duration/16) * (pad.pad_id)))+((pad.clip-1)*8)
+    duration = rec[rec.focus].end_point-rec[rec.focus].start_point
+    local s_p = rec[rec.focus].start_point+(8*(pad.clip-1))
+    -- pad.start_point = (rec[rec.focus].start_point+((duration/16) * (pad.pad_id-1)))+((pad.clip-1)*8)
+    -- pad.end_point = (rec[rec.focus].start_point+((duration/16) * (pad.pad_id)))+((pad.clip-1)*8)
+    pad.start_point = (s_p+(duration/16) * (pad.pad_id-1))
+    pad.end_point = (s_p+((duration/16) * (pad.pad_id)))
   else
     duration = pad.mode == 1 and 8 or clip[pad.clip].sample_length
     pad.start_point = ((duration/16)*(pad.pad_id-1)) + clip[pad.clip].min
@@ -131,8 +133,8 @@ end
 
 function zilchmos.end_at_eight( pad )
   local duration;
-  if pad.mode == 1 and pad.clip == rec.clip then
-    duration = rec.end_point-rec.start_point
+  if pad.mode == 1 and pad.clip == rec.focus then
+    duration = rec[rec.focus].end_point-rec[rec.focus].start_point
     pad.end_point = (duration*pad.clip) + 1
   else
     duration = pad.mode == 1 and ((8*pad.clip) + 1) or clip[pad.clip].max
@@ -142,13 +144,13 @@ end
 
 function zilchmos.start_random( pad )
   local duration, max_end, min_start;
-  if pad.mode == 1 and pad.clip == rec.clip then
-    duration = rec.end_point-rec.start_point
+  if pad.mode == 1 and pad.clip == rec.focus then
+    duration = rec[rec.focus].end_point-rec[rec.focus].start_point
     max_end = math.floor(pad.end_point * 100)-10
-    if max_end < math.floor(rec.start_point * 100) then
+    if max_end < math.floor(rec[rec.focus].start_point * 100) then
       min_start = math.floor(((duration*(pad.clip-1))+1) * 100)
     else
-      min_start = math.floor(rec.start_point * 100) -- this sucks...
+      min_start = math.floor(rec[rec.focus].start_point * 100) -- this sucks...
     end
   elseif pad.mode == 2 then
     max_end = math.floor(pad.end_point * 100)
@@ -173,13 +175,13 @@ end
 
 function zilchmos.end_random( pad )
   local duration, max_end, min_start;
-  if pad.mode == 1 and pad.clip == rec.clip then
-    duration = rec.end_point-rec.start_point
-    max_end = math.floor(rec.end_point*100)
-    if pad.start_point > rec.start_point then
+  if pad.mode == 1 and pad.clip == rec.focus then
+    duration = rec[rec.focus].end_point-rec[rec.focus].start_point
+    max_end = math.floor(rec[rec.focus].end_point*100)
+    if pad.start_point > rec[rec.focus].start_point then
       min_start = math.floor(pad.start_point * 100)+10
     else
-      min_start = math.floor(rec.start_point * 100)
+      min_start = math.floor(rec[rec.focus].start_point * 100)
     end
   elseif pad.mode == 2 then
     max_end = math.floor(clip[pad.clip].max * 100)
@@ -198,8 +200,8 @@ function zilchmos.start_end_random( pad )
   current_difference = pad.end_point - pad.start_point
   local function case1(x)
     duration = x
-    min_start = math.floor((rec.start_point * 100) + (current_difference*100))
-    max_end = math.floor(rec.end_point * 100)
+    min_start = math.floor((rec[rec.focus].start_point * 100) + (current_difference*100))
+    max_end = math.floor(rec[rec.focus].end_point * 100)
     pad.end_point = math.random(min_start,max_end)/100
     pad.start_point = pad.end_point - current_difference
   end
@@ -214,13 +216,13 @@ function zilchmos.start_end_random( pad )
       pad.end_point = pad.start_point + current_difference
     end
   end
-  if pad.mode == 1 and pad.clip == rec.clip then
-    if current_difference < (rec.end_point - rec.start_point)/2 then
-      case1(rec.end_point-rec.start_point)
+  if pad.mode == 1 and pad.clip == rec.focus then
+    if current_difference < (rec[rec.focus].end_point - rec[rec.focus].start_point)/2 then
+      case1(rec[rec.focus].end_point-rec[rec.focus].start_point)
     else
-      if pad.start_point >= rec.start_point and pad.end_point < rec.end_point then -- case 1
-        if current_difference * 2 < (rec.end_point - rec.start_point) then
-          case1(rec.end_point-rec.start_point)
+      if pad.start_point >= rec[rec.focus].start_point and pad.end_point < rec[rec.focus].end_point then -- case 1
+        if current_difference * 2 < (rec[rec.focus].end_point - rec[rec.focus].start_point) then
+          case1(rec[rec.focus].end_point-rec[rec.focus].start_point)
         else
           case2(8)
         end

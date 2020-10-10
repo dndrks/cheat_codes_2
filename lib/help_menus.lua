@@ -396,11 +396,11 @@ function help_menus.buffer_switch()
   screen.text("- use alt to clear")
   screen.level(3)
   screen.move(0,60)
-  screen.text("live buffer: "..rec.clip)
+  screen.text("live buffer: "..rec.focus)
   screen.move(60,60)
-  if rec.clip ~= 3 then
+  if rec.focus ~= 3 then
     screen.text("try: button to R")
-  elseif rec.clip == 3 then
+  elseif rec.focus == 3 then
     screen.text("try: tap 3 again")
   end
 end

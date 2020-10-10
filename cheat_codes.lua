@@ -25,6 +25,7 @@ del = include 'lib/delay'
 rytm = include 'lib/euclid'
 mc = include 'lib/midicheat'
 math.randomseed(os.time())
+variable_fade_time = 0.01
 
 --all the .quantize stuff is irrelevant now. it's been replaced by .mode = "quantized"
 
@@ -702,6 +703,20 @@ function init()
   rec.clear = 0
   rec.rate_offset = 1.0
 
+  rec.focus = 1
+
+  for i = 1,3 do
+    rec[i] = {}
+    rec[i].state = 0
+    rec[i].pause = false
+    rec[i].clip = 1
+    rec[i].start_point = 1+(8*(i-1))
+    rec[i].end_point = 9+(8*(i-1))
+    rec[i].loop = 1
+    rec[i].clear = 1
+    rec[i].rate_offset = 1.0
+  end
+
   params:add_group("GRID",1)
   params:add_option("LED_style","LED style",{"varibright","4-step","grayscale"},1)
   params:set_action("LED_style",
@@ -724,8 +739,13 @@ function init()
     textentry.enter(pre_save)
   end)
   params:add_separator("danger zone!")
-  params:add_trigger("overwrite_coll", "overwrite collection")
-  params:set_action("overwrite_coll", function(x) fileselect.enter(_path.data.."cheat_codes2/names/", named_overwrite) end)
+  params:add_trigger("overwrite_coll", "overwrite loaded collection")
+  -- params:set_action("overwrite_coll", function(x) fileselect.enter(_path.data.."cheat_codes2/names/", named_overwrite) end)
+  params:set_action("overwrite_coll", function(x)
+    if selected_coll ~= 0 then
+      named_overwrite(_path.data.."cheat_codes2/names/"..selected_coll..".cc2")
+    end
+  end)
   params:add_trigger("delete_coll", "delete collection")
   params:set_action("delete_coll", function(x) fileselect.enter(_path.data.."cheat_codes2/names/", pre_delete) end)
   
@@ -1039,10 +1059,10 @@ function init()
   rec_state_watcher = metro.init()
   rec_state_watcher.time = 0.05
   rec_state_watcher.event = function()
-    if rec.loop == 0 then
-      if rec.state == 1 then
-        if rec.end_point < poll_position_new[1] +0.015 then
-          rec.state = 0
+    if rec[rec.focus].loop == 0 then
+      if rec[rec.focus].state == 1 then
+        if rec[rec.focus].end_point < poll_position_new[1] +0.015 then
+          rec[rec.focus].state = 0
           rec_state_watcher:stop()
           grid_dirty = true
           redraw()
@@ -1193,6 +1213,14 @@ function init()
     end
     , 1/30, -1)
   hardware_redraw:start()
+
+
+  -- local file = io.open("/home/we/dust/data/cheat_codes2/names/DEFAULT.cc2", "r")
+  -- if file == nil then
+  --   named_savestate("DEFAULT")
+  -- else
+  --   named_loadstate("/home/we/dust/data/cheat_codes2/names/DEFAULT.cc2")
+  -- end
 
 end
 
@@ -1519,7 +1547,7 @@ function random_rec_clock()
   while true do
     local lbr = {1,2,4}
     local rler = rec_loop_enc_resolution
-    local rec_distance = rec.end_point - rec.start_point
+    local rec_distance = rec[rec.focus].end_point - rec[rec.focus].start_point
     local bar_count = params:get("rec_loop_enc_resolution") > 2 and (((rec_distance)/(1/rler)) / (rler))*(2*lbr[params:get("live_buff_rate")]) or 1/4
     clock.sync(params:get("rec_loop") == 1 and 4 or bar_count)
     local random_rec_prob = params:get("random_rec_clock_prob")
@@ -1531,11 +1559,11 @@ function random_rec_clock()
           grid_dirty = true
         elseif params:get("rec_loop") == 2 then
           if not rec_state_watcher.is_running then
-            softcut.position(1,rec.start_point+0.1)
+            softcut.position(1,rec[rec.focus].start_point+0.1)
             softcut.rec_level(1,1)
-            rec.state = 1
+            rec[rec.focus].state = 1
             rec_state_watcher:start()
-            if rec.clear == 1 then rec.clear = 0 end
+            if rec[rec.focus].clear == 1 then rec[rec.focus].clear = 0 end
             grid_dirty = true
           end
         end
@@ -1545,7 +1573,7 @@ function random_rec_clock()
 end
 
 function one_shot_clock()
-  if rec.state == 1 and rec_state_watcher.is_running then
+  if rec[rec.focus].state == 1 and rec_state_watcher.is_running then
     rec_state_watcher:stop()
   end
   if params:get("one_shot_clock_div") < 3 then
@@ -1553,16 +1581,16 @@ function one_shot_clock()
     local rate = divs[params:get("one_shot_clock_div")]
     clock.sync(rate)
   end
-  softcut.position(1,rec.start_point+0.1)
+  softcut.position(1,rec[rec.focus].start_point+0.1)
   softcut.rec_level(1,1)
-  rec.state = 1
+  rec[rec.focus].state = 1
   rec_state_watcher:start()
-  if rec.clear == 1 then rec.clear = 0 end
+  if rec[rec.focus].clear == 1 then rec[rec.focus].clear = 0 end
   grid_dirty = true
 end
 
 function compare_rec_resolution(x)
-  local current_mult = (rec.end_point - rec.start_point) / (1/rec_loop_enc_resolution)
+  local current_mult = (rec[rec.focus].end_point - rec[rec.focus].start_point) / (1/rec_loop_enc_resolution)
   local resolutions =
     { [1] = 10
     , [2] = 100
@@ -1575,9 +1603,9 @@ function compare_rec_resolution(x)
   rec_loop_enc_resolution = resolutions[x]
   if x > 2 then
     local lbr = {1,2,4}
-    rec.end_point = rec.start_point + (((1/rec_loop_enc_resolution)*current_mult)/lbr[params:get("live_buff_rate")])
-    softcut.loop_start(1,rec.start_point)
-    softcut.loop_end(1,rec.end_point)
+    rec[rec.focus].end_point = rec[rec.focus].start_point + (((1/rec_loop_enc_resolution)*current_mult)/lbr[params:get("live_buff_rate")])
+    softcut.loop_start(1,rec[rec.focus].start_point)
+    softcut.loop_end(1,rec[rec.focus].end_point)
     redraw()
   end
 end
@@ -1774,25 +1802,6 @@ osc_in = function(path, args, from)
 
       toggle_buffer(i)
       
-      --[[
-      softcut.level_slew_time(1,0.5)
-      softcut.fade_time(1,0.01)
-      local old_clip = rec.clip
-        
-      for go = 1,2 do
-        local old_min = (1+(8*(rec.clip-1)))
-        local old_max = (9+(8*(rec.clip-1)))
-        local old_range = old_min - old_max
-        rec.clip = i
-        local new_min = (1+(8*(rec.clip-1)))
-        local new_max = (9+(8*(rec.clip-1)))
-        local new_range = new_max - new_min
-        local current_difference = (rec.end_point - rec.start_point)
-        rec.start_point = (((rec.start_point - old_min) * new_range) / old_range) + new_min
-        rec.end_point = rec.start_point + current_difference
-      end
-      --]]
-      
       for j = 1,3 do
         if j ~= i then
           osc.send(dest, "/buffer_LED_"..j, {0})
@@ -1800,26 +1809,9 @@ osc_in = function(path, args, from)
       end
       
       osc.send(dest, "/buffer_LED_"..i, {1})
-        
-      --[[
-      if rec.loop == 0 and not grid.alt then
-        clock.run(one_shot_clock)
-      end
-      
-        
-      softcut.loop_start(1,rec.start_point)
-      softcut.loop_end(1,rec.end_point-0.01)
-      if rec.loop == 1 then
-        if old_clip ~= rec.clip then rec.state = 0 end
-        buff_freeze()
-        if rec.clear == 1 then
-          rec.clear = 0
-        end
-      end
-      --]]
       
       local rec_state_to_osc = nil
-      if rec.state == 0 then
+      if rec[rec.focus].state == 0 then
         rec_state_to_osc = "not recording"
       else
         rec_state_to_osc = "recording"
@@ -1860,17 +1852,17 @@ function osc_redraw(i)
   end
   osc.send(dest, "/pad_sel_"..i.."_"..bank[i].id, {1})
   local rec_state_to_osc = nil
-  if rec.state == 0 then
+  if rec[rec.focus].state == 0 then
     rec_state_to_osc = "not recording"
   else
     rec_state_to_osc = "recording"
   end
   osc.send(dest, "/buffer_state", {rec_state_to_osc})
   for j = 1,3 do
-    if rec.clip ~= j then
+    if rec.focus ~= j then
       osc.send(dest, "/buffer_LED_"..j, {0})
     else
-      osc.send(dest, "/buffer_LED_"..rec.clip, {1})
+      osc.send(dest, "/buffer_LED_"..rec.focus, {1})
     end
   end
 end
@@ -1939,15 +1931,15 @@ function step_sequence()
 end
 
 function sixteen_slices(x)
-  local s_p = rec.start_point
-  local e_p = rec.end_point
+  local s_p = rec[rec.focus].start_point
+  local e_p = rec[rec.focus].end_point
   local distance = e_p-s_p
   local b = bank[x]
   local pad = b.focus_hold and b.focus_pad or b.id
   local function map_em(i)
     b[i].start_point = s_p+((distance/16) * (i-1))
     b[i].end_point = s_p+((distance/16) * (i))
-    b[i].clip = rec.clip
+    b[i].clip = rec.focus
   end
   if not b.focus_hold then
     for i = 1,16 do
@@ -1962,12 +1954,12 @@ function sixteen_slices(x)
 end
 
 function rec_to_pad(b)
-  local s_p = rec.start_point
-  local e_p = rec.end_point
+  local s_p = rec[rec.focus].start_point
+  local e_p = rec[rec.focus].end_point
   local distance = e_p-s_p
   bank[b][bank[b].id].start_point = s_p+((distance/16) * (bank[b].id-1))
   bank[b][bank[b].id].end_point = s_p+((distance/16) * (bank[b].id))
-  bank[b][bank[b].id].clip = rec.clip
+  bank[b][bank[b].id].clip = rec.focus
   if bank[b][bank[b].id].loop == true then
     cheat(b,bank[b].id)
   end
@@ -1977,11 +1969,11 @@ function pad_to_rec(b)
   local pad = bank[b][bank[b].id]
   local s_p = pad.start_point-(8*(pad.clip-1))
   local e_p = pad.end_point-(8*(pad.clip-1))
-  rec.start_point = s_p+(8*(rec.clip-1))
-  rec.end_point = e_p+(8*(rec.clip-1))
-  softcut.loop_start(1,rec.start_point)
-  softcut.loop_end(1,rec.end_point-0.01)
-  softcut.position(1,rec.start_point)
+  rec[rec.focus].start_point = s_p+(8*(rec.focus-1))
+  rec[rec.focus].end_point = e_p+(8*(rec.focus-1))
+  softcut.loop_start(1,rec[rec.focus].start_point)
+  softcut.loop_end(1,rec[rec.focus].end_point-0.01)
+  softcut.position(1,rec[rec.focus].start_point)
 end
 
 function reset_all_banks( banks )
@@ -2126,9 +2118,9 @@ function cheat(b,i)
     end
   end
   --/ OH ALL THIS SUCKS TODO FIXME
-  softcut.fade_time(b+1,0.01)
-  softcut.loop_start(b+1,pad.start_point)
-  softcut.loop_end(b+1,pad.end_point)
+  softcut.fade_time(b+1,variable_fade_time)
+  softcut.loop_start(b+1,pad.start_point-variable_fade_time)
+  softcut.loop_end(b+1,pad.end_point-variable_fade_time)
   softcut.buffer(b+1,pad.mode)
   if pad.pause == false then
     softcut.rate(b+1,pad.rate*pad.offset)
@@ -2141,9 +2133,11 @@ function cheat(b,i)
     softcut.loop(b+1,1)
   end
   if pad.rate > 0 then
-      softcut.position(b+1,pad.start_point+0.05)
+      -- softcut.position(b+1,pad.start_point+0.05)
+      softcut.position(b+1,pad.start_point-variable_fade_time)
   elseif pad.rate < 0 then
-      softcut.position(b+1,pad.end_point-0.05)
+      -- softcut.position(b+1,pad.end_point-variable_fade_time-0.05)
+      softcut.position(b+1,pad.end_point-variable_fade_time)
   end
   if slew_counter[b] ~= nil then
     slew_counter[b].next_tilt = pad.tilt
@@ -2395,9 +2389,9 @@ function buff_freeze()
   softcut.recpre_slew_time(1,0.5)
   softcut.level_slew_time(1,0.5)
   softcut.fade_time(1,0.01)
-  rec.state = (rec.state + 1)%2
-  softcut.rec_level(1,rec.state)
-  if rec.state == 1 then
+  rec[rec.focus].state = (rec[rec.focus].state + 1)%2
+  softcut.rec_level(1,rec[rec.focus].state)
+  if rec[rec.focus].state == 1 then
     softcut.pre_level(1,params:get("live_rec_feedback"))
   else
     softcut.pre_level(1,1)
@@ -2405,15 +2399,15 @@ function buff_freeze()
 end
 
 function buff_flush()
-  softcut.buffer_clear_region_channel(1,rec.start_point, rec.end_point-rec.start_point)
-  rec.state = 0
-  rec.clear = 1
+  softcut.buffer_clear_region_channel(1,rec[rec.focus].start_point, rec[rec.focus].end_point-rec[rec.focus].start_point)
+  rec[rec.focus].state = 0
+  rec[rec.focus].clear = 1
   softcut.rec_level(1,0)
 end
 
 function buff_pause()
-  rec.pause = not rec.pause
-  softcut.rate(1,rec.pause and 0 or 1) -- TODO make this dynamic to include rec rate offsets
+  rec[rec.focus].pause = not rec[rec.focus].pause
+  softcut.rate(1,rec[rec.focus].pause and 0 or 1) -- TODO make this dynamic to include rec rate offsets
 end
 
 function toggle_buffer(i)
@@ -2421,34 +2415,36 @@ function toggle_buffer(i)
   softcut.level_slew_time(1,0.5)
   softcut.fade_time(1,0.01)
   
-  local old_clip = rec.clip
+  local old_clip = rec.focus
   
-  for go = 1,2 do
-    local old_min = (1+(8*(rec.clip-1)))
-    local old_max = (9+(8*(rec.clip-1)))
-    local old_range = old_min - old_max
-    rec.clip = i
-    local new_min = (1+(8*(rec.clip-1)))
-    local new_max = (9+(8*(rec.clip-1)))
-    local new_range = new_max - new_min
-    local current_difference = (rec.end_point - rec.start_point)
-    rec.start_point = (((rec.start_point - old_min) * new_range) / old_range) + new_min
-    rec.end_point = rec.start_point + current_difference
-  end
+  -- for go = 1,2 do
+  --   local old_min = (1+(8*(rec.focus-1)))
+  --   local old_max = (9+(8*(rec.focus-1)))
+  --   local old_range = old_min - old_max
+  --   rec.focus = i
+  --   local new_min = (1+(8*(rec.focus-1)))
+  --   local new_max = (9+(8*(rec.focus-1)))
+  --   local new_range = new_max - new_min
+  --   local current_difference = (rec[rec.focus].end_point - rec[rec.focus].start_point)
+  --   rec[rec.focus].start_point = (((rec[rec.focus].start_point - old_min) * new_range) / old_range) + new_min
+  --   rec[rec.focus].end_point = rec[rec.focus].start_point + current_difference
+  -- end
+
+  rec.focus = i
   
-  if rec.loop == 0 and not grid.alt then
+  if rec[rec.focus].loop == 0 and not grid.alt then
     clock.run(one_shot_clock)
-  elseif rec.loop == 0 and grid.alt then
+  elseif rec[rec.focus].loop == 0 and grid.alt then
     buff_flush()
   end
   
-  softcut.loop_start(1,rec.start_point)
-  softcut.loop_end(1,rec.end_point-0.01)
-  if rec.loop == 1 then
-    if old_clip ~= rec.clip then rec.state = 0 end
+  softcut.loop_start(1,rec[rec.focus].start_point)
+  softcut.loop_end(1,rec[rec.focus].end_point-0.01)
+  if rec[rec.focus].loop == 1 then
+    if old_clip ~= rec.focus then rec[rec.focus].state = 0 end
     buff_freeze()
-    if rec.clear == 1 then
-      rec.clear = 0
+    if rec[rec.focus].clear == 1 then
+      rec[rec.focus].clear = 0
     end
   end
   grid_dirty = true
@@ -2518,7 +2514,7 @@ function collect_samples(i,collection) -- this works!!!
 end
 
 function reload_collected_samples(file,sample)
-  if rec.state == 1 then
+  if rec[rec.focus].state == 1 then
     buff_freeze()
   end
   if file ~= "-" then
@@ -2580,7 +2576,7 @@ function key(n,z)
               -- rightangleslice.init(4,id,'14')
             end
           elseif page.loops_sel == 4 then
-            toggle_buffer(rec.clip)
+            toggle_buffer(rec.focus)
           end
         end
       elseif menu == 3 then
@@ -2605,7 +2601,6 @@ function key(n,z)
               params:set("delay "..sides[page.delay_focus == 1 and 2 or 1]..": "..del.lookup_prm(k,v),params:get("delay "..sides[page.delay_focus]..": "..del.lookup_prm(k,v)))
               grid_dirty = true
             end
-            -- TODO FIX THE FEEDBACK BUMP
           else
             page.delay_section = page.delay_section == 1 and 2 or 1
           end
@@ -2807,13 +2802,6 @@ function key(n,z)
           if page.delay[page.delay_focus].menu_sel[page.delay[page.delay_focus].menu] == 4 then
             local k = page.delay[page.delay_focus].menu
             local v = page.delay[page.delay_focus].menu_sel[page.delay[page.delay_focus].menu]
-            -- have to make sure that if the lines are linked,
-            -- we set them to the same value and reverse together.
-            if delay_links[del.lookup_prm(k,v)] then
-              delay[page.delay_focus == 1 and 2 or 1].reverse = delay[page.delay_focus].reverse
-              del.quick_action(page.delay_focus == 1 and 2 or 1, "reverse")
-            end
-            -- TODO make sure this happens for encoder changes as well!
             del.quick_action(page.delay_focus, "reverse")
           end
         else
@@ -3341,44 +3329,13 @@ function grid_redraw()
             g:led(3+(5*(i-1)),3,led_maps["arp_on"][edition])
           end
         end
-        
-        -- if bank[i].focus_hold == false then
-        --   g:led(1 + (5*(i-1)), math.abs(bank[i][bank[i].id].clip-5),led_maps["clip"][edition])
-        --   g:led(2 + (5*(i-1)), math.abs(bank[i][bank[i].id].mode-5),led_maps["mode"][edition])
-        --   g:led(1+(5*(i-1)),1,led_maps["off"][edition])
-        --   if bank[i][bank[i].id].loop == false then
-        --     g:led(3+(5*(i-1)),4,led_maps["loop_off"][edition])
-        --   elseif bank[i][bank[i].id].loop == true then
-        --     g:led(3+(5*(i-1)),4,led_maps["loop_on"][edition])
-        --   end
-        --   if not arp[i].enabled then
-        --     g:led(3+(5*(i-1)),3,led_maps["off"][edition])
-        --   else
-        --     if arp[i].playing and arp[i].hold then
-        --       g:led(3+(5*(i-1)),3,led_maps["arp_play"][edition])
-        --     elseif arp[i].hold then
-        --       g:led(3+(5*(i-1)),3,led_maps["arp_pause"][edition])
-        --     else
-        --       g:led(3+(5*(i-1)),3,led_maps["arp_on"][edition])
-        --     end
-        --   end
-        -- else
-        --   g:led(1 + (5*(i-1)), math.abs(bank[i][bank[i].focus_pad].clip-5),8)
-        --   g:led(2 + (5*(i-1)), math.abs(bank[i][bank[i].focus_pad].mode-5),6)
-        --   g:led(1+(5*(i-1)),1,10)
-        --   if bank[i][bank[i].focus_pad].loop == false then
-        --     g:led(3+(5*(i-1)),4,2)
-        --   elseif bank[i][bank[i].focus_pad].loop == true then
-        --     g:led(3+(5*(i-1)),4,4)
-        --   end
-        -- end
 
       end
       
-      if rec.clear == 0 then
-        g:led(16,8-rec.clip,rec.state == 1 and led_maps["live_rec"][edition] or led_maps["live_pause"][edition])
-      elseif rec.clear == 1 then
-        g:led(16,8-rec.clip,led_maps["live_empty"][edition])
+      if rec[rec.focus].clear == 0 then
+        g:led(16,8-rec.focus,rec[rec.focus].state == 1 and led_maps["live_rec"][edition] or led_maps["live_pause"][edition])
+      elseif rec[rec.focus].clear == 1 then
+        g:led(16,8-rec.focus,led_maps["live_empty"][edition])
       end
     
     elseif grid_page == 1 then
@@ -3923,17 +3880,6 @@ arc_redraw = function()
       a:led(i,(math.floor(util.linlin(-1,1,10,55,pan_to_led)))+12,4)
     end
   end
-  
-  -- for i = 1,13 do
-  --   local arc_left_delay_level = (params:get("delay L: div/mult") == i and 15 or 5)
-  --   local arc_right_delay_level = (params:get("delay R: div/mult") == i and 15 or 5)
-  --   local arc_try = params:get("delay L: div/mult")
-  --   if arc.alt == nil or arc.alt == 0 then
-  --     a:led(4,(41+((i-1)*4)-16),arc_left_delay_level)
-  --   else
-  --     a:led(4,(41+((i-1)*4)-16),arc_right_delay_level)
-  --   end
-  -- end
 
   arc_meta_level = {}
   for i = 1,6 do
@@ -4093,7 +4039,7 @@ function named_savestate(text)
   tab.save(delay_links,_path.data .. "cheat_codes2/collection-"..collection.."/delays/delay-links.data")
   
   params:write(_path.data.."cheat_codes2/collection-"..collection.."/params/all.pset")
-  tab.save(rec,_path.data .. "cheat_codes2/collection-"..collection.."/rec/rec.data")
+  tab.save(rec,_path.data .. "cheat_codes2/collection-"..collection.."/rec/rec[rec.focus].data")
 
   -- GRID pattern save
   if selected_coll ~= collection then
@@ -4166,9 +4112,13 @@ function named_loadstate(path)
     _norns.key(1,0)
     clock.run(load_screen)
     redraw()
+    -- all_loaded = false
     params:read(_path.data.."cheat_codes2/collection-"..collection.."/params/all.pset")
-    if tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/rec/rec.data") ~= nil then
-      rec = tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/rec/rec.data")
+    -- persistent_state_restore()
+    if tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/rec/rec[rec.focus].data") ~= nil then
+      rec = tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/rec/rec[rec.focus].data")
+      softcut.loop_start(1,rec[rec.focus].start_point)
+      softcut.loop_end(1,rec[rec.focus].end_point-0.01)
     end
     for i = 1,3 do
       if tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/banks/"..i..".data") ~= nil then
