@@ -136,7 +136,7 @@ function tracktions.add(target,entry)
   end
   tracker[target].end_point = reasonable_max
   page.track_sel[page.track_page] = page.track_sel[page.track_page] + 1
-  redraw()
+  screen_dirty = true
 end
 
 function tracktions.append() -- TODO add arguments
@@ -147,7 +147,7 @@ end
 
 function tracktions.remove(target,entry)
   table.remove(tracker[target],page.track_sel[page.track_page])
-  redraw()
+  screen_dirty = true
 end
 
 function tracktions.clear(target)
@@ -189,7 +189,7 @@ function tracktions.advance(target)
       end
       tracker[target].runner = tracker[target].runner + 1
     end
-    redraw()
+    screen_dirty = true
   end
 end
 
@@ -213,7 +213,7 @@ function tracktions.copy_prev(source,destination)
   for k,v in pairs(source) do
     destination[k] = v
   end
-  redraw()
+  screen_dirty = true
 end
 
 return tracktions

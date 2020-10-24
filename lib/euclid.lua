@@ -103,7 +103,7 @@ function euclid.step(target)
       local sign = (euclid.track[target].pad_offset + euclid.track[target].auto_pad_offset) < 0 and -16 or 16
       euclid.track[target].pad_offset = (euclid.track[target].pad_offset + euclid.track[target].auto_pad_offset) % sign
     end
-    redraw()
+    screen_dirty = true
   end
 end
 

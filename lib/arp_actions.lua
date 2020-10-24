@@ -70,7 +70,7 @@ function arp_actions.arpeggiate(target)
     else
       arp[target].playing = false
     end
-    redraw()
+    screen_dirty = true
   end
 end
 

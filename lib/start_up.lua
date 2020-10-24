@@ -23,6 +23,7 @@ function start_up.init()
     softcut.pre_level(1, 0.25)
     softcut.position(i, 1)
     softcut.phase_quant(i, 0.01)
+    -- softcut.phase_quant(i, 1/15)
     softcut.rec_offset(i, -0.0003)
     softcut.enable(i, 1)
     softcut.rate_slew_time(4,0.2)
@@ -30,6 +31,7 @@ function start_up.init()
   
   softcut.event_phase(phase)
   softcut.poll_start_phase()
+  softcut.event_render(on_render)
   
   softcut.level(5,1)
   softcut.pan(5,-1)
@@ -255,7 +257,7 @@ function start_up.init()
         selected[i].x = (math.ceil(bank[i].id/4)+(5*(i-1)))
         selected[i].y = 8-((bank[i].id-1)%4)
         cheat(i,bank[i].id)
-        redraw()
+        screen_dirty = true
         grid_dirty = true
       end
     end)
@@ -271,7 +273,7 @@ function start_up.init()
     params:add_control("rate slew time "..i, "rate slew time "..banks[i], controlspec.new(0,3,'lin',0.01,0))
     params:set_action("rate slew time "..i, function(x) softcut.rate_slew_time(i+1,x) end)
     params:add_control("pan "..i, "pan "..banks[i], controlspec.new(-1,1,'lin',0.01,0))
-    params:set_action("pan "..i, function(x) softcut.pan(i+1,x) bank[i][bank[i].id].pan = x redraw() end)
+    params:set_action("pan "..i, function(x) softcut.pan(i+1,x) bank[i][bank[i].id].pan = x screen_dirty = true end)
     params:add_control("pan slew "..i,"pan slew "..banks[i], controlspec.new(0.,200.,'lin',0.1,5.0))
     params:set_action("pan slew "..i, function(x) softcut.pan_slew_time(i+1,x) end)
     params:add_control("level "..i, "pad level "..banks[i], controlspec.new(0,127,'lin',1,64))
@@ -312,7 +314,7 @@ function start_up.init()
     local sides = {"L","R"}
     params:add_separator("delay output "..sides[i-3])
     params:add_control("delay "..sides[i-3]..": global level", "delay "..sides[i-3]..": global level", controlspec.new(0,1,'lin',0,0,""))
-    params:set_action("delay "..sides[i-3]..": global level", function(x) softcut.level(i+1,x) redraw() encoder_actions.check_delay_links(sides[i-3], sides[i-3] == "L" and "R" or "L","global level") end)
+    params:set_action("delay "..sides[i-3]..": global level", function(x) softcut.level(i+1,x) screen_dirty = true encoder_actions.check_delay_links(sides[i-3], sides[i-3] == "L" and "R" or "L","global level") end)
     params:add_option("delay "..sides[i-3]..": mode", "delay "..sides[i-3]..": mode", {"clocked", "free"},1)
     params:set_action("delay "..sides[i-3]..": mode", function(x)
       if x == 1 then
@@ -323,7 +325,7 @@ function start_up.init()
         softcut.loop_end(i+1,delay[i-3].free_end_point)
       end
       encoder_actions.check_delay_links(sides[i-3], sides[i-3] == "L" and "R" or "L","mode")
-      redraw()
+      screen_dirty = true
     end)
     params:add_option("delay "..sides[i-3]..": div/mult", "--> clocked div/mult: ",
     {"x16"   ,"x15 3/4"   ,"x15 2/3"   ,"x15 1/2"   ,"x15 1/3"   ,"x15 1/4"
@@ -351,7 +353,7 @@ function start_up.init()
       delay[i-3].end_point = delay_time
       softcut.loop_end(i+1,delay[i-3].end_point)
       encoder_actions.check_delay_links(sides[i-3], sides[i-3] == "L" and "R" or "L","div/mult")
-      redraw()
+      screen_dirty = true
     end)
     params:add{
       type='control',
@@ -420,7 +422,7 @@ function start_up.init()
     params:set_action("delay "..sides[i-3]..": feedback",
     function(x)
       softcut.pre_level(i+1,(x/100))
-      redraw()
+      screen_dirty = true
       encoder_actions.check_delay_links(sides[i-3], sides[i-3] == "L" and "R" or "L","feedback")
     end)
     params:add{type = "trigger", id = "save_delay_"..sides[i-3], name = "***** save delay "..sides[i-3].." ***** [K3]", action = function() del.save_delay(i-3) end}	

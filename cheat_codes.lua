@@ -71,6 +71,42 @@ function screenshot()
   end
 end
 
+-- waveform stuff
+local interval = 0
+waveform_samples = {}
+scale = 25
+
+function on_render(ch, start, i, s)
+  -- cursor = util.clamp(cursor, 1, #s)
+  waveform_samples = s
+  interval = i
+  screen_dirty = true
+  if ch == 2 then
+    if start < 33 then
+      clip[1].waveform_samples = s
+    elseif start < 65 then
+      clip[2].waveform_samples = s
+    else
+      clip[3].waveform_samples = s
+    end
+  elseif ch == 1 then
+    if start < 9 then
+      rec[1].waveform_samples = s
+    elseif start < 17 then
+      rec[2].waveform_samples = s
+    else
+      rec[3].waveform_samples = s
+    end
+  end
+    
+end
+
+function update_waveform(buffer,winstart,winend,samples)
+  softcut.render_buffer(buffer, winstart, winend - winstart, 128)
+end
+
+--/ waveform stuff
+
 function rerun()
   norns.script.load(norns.state.script)
 end
@@ -99,6 +135,8 @@ for i = 1,3 do
   clip[i].start_point = nil
   clip[i].end_point = nil
   clip[i].mode = 1
+  clip[i].waveform_samples = {}
+  clip[i].waveform_rendered = false
 end
 
 pre_cc2_sample = { false, false, false }
@@ -113,6 +151,7 @@ clip[3].max = clip[3].min + clip[3].sample_length
 live = {}
 for i = 1,3 do
   live[i] = {}
+  live[i].waveform_samples = {}
 end
 live[1].min = 1
 live[1].max = 9
@@ -715,6 +754,7 @@ function init()
     rec[i].loop = 1
     rec[i].clear = 1
     rec[i].rate_offset = 1.0
+    rec[i].waveform_samples = {}
   end
 
   params:add_group("GRID",1)
@@ -902,10 +942,14 @@ function init()
   grid_page = 0
   
   page = {}
+  page.loops = {}
+  page.loops.frame = 1
+  page.loops.sel = 1
+  page.loops.top_option_set = 1
   page.main_sel = 1
   page.loops_sel = 1
   page.loops_page = 0
-  page.loops_view = {1,1,1,1}
+  page.loops_view = {4,1,1,1}
   page.levels_sel = 0
   page.panning_sel = 1
   page.filtering_sel = 0
@@ -1051,6 +1095,13 @@ function init()
       grid_dirty = false
     end
   end
+
+  function draw_screen()
+    if screen_dirty then
+      redraw()
+      screen_dirty = false
+    end
+  end
   
   softcut.poll_start_phase()
   
@@ -1065,7 +1116,10 @@ function init()
           rec[rec.focus].state = 0
           rec_state_watcher:stop()
           grid_dirty = true
-          redraw()
+          if menu == 2 then
+            screen_dirty = true
+            print("stopped")
+          end
         end
       end
     end
@@ -1210,6 +1264,7 @@ function init()
     function()
       draw_grid()
       arc_redraw()
+      draw_screen()
     end
     , 1/30, -1)
   hardware_redraw:start()
@@ -1221,6 +1276,10 @@ function init()
   -- else
   --   named_loadstate("/home/we/dust/data/cheat_codes2/names/DEFAULT.cc2")
   -- end
+
+  for i = 1,3 do
+    update_waveform(1,live[i].min,live[i].max,128)
+  end
 
 end
 
@@ -1606,7 +1665,7 @@ function compare_rec_resolution(x)
     rec[rec.focus].end_point = rec[rec.focus].start_point + (((1/rec_loop_enc_resolution)*current_mult)/lbr[params:get("live_buff_rate")])
     softcut.loop_start(1,rec[rec.focus].start_point)
     softcut.loop_end(1,rec[rec.focus].end_point)
-    redraw()
+    screen_dirty = true
   end
 end
 
@@ -1614,7 +1673,7 @@ function globally_clocked()
   while true do
     clock.sync(1/4)
     if menu == 7 then
-      redraw()
+      screen_dirty = true
     end
     -- grid_redraw()
     update_tempo()
@@ -1665,7 +1724,7 @@ osc_in = function(path, args, from)
       if args[1] ~= 0 then
         bank[i].id = util.round(args[1])
         cheat(i,bank[i].id)
-        redraw()
+        screen_dirty = true
         osc_redraw(i)
       end
     elseif path == "/randomize_this_bank_"..i then
@@ -1872,7 +1931,20 @@ poll_position_new = {}
 phase = function(n, x)
   poll_position_new[n] = x
   if menu == 2 then
-    redraw()
+    if page.loops.sel < 4 then
+      -- does this need to update if it's not being shown? yes.
+      local rec_on = 0;
+      for i = 1,3 do
+        if rec[i].state == 1 then
+          rec_on = i
+        end
+      end
+      -- if bank[page.loops.sel][bank[page.loops.sel].id].mode == 1 and rec_on ~= 0 and rec[rec_on].state == 1 then
+      if rec_on ~= 0 and rec[rec_on].state == 1 then
+        update_waveform(1,rec[rec_on].start_point,rec[rec_on].end_point,128)
+      end
+    end
+    screen_dirty = true
   end
 end
 
@@ -2188,6 +2260,7 @@ function cheat(b,i)
   if all_loaded and params:get("midi_echo_enabled") == 2 then
     mc.redraw(pad)
   end
+
 end
 
 function envelope(i)
@@ -2331,7 +2404,7 @@ function easing_slew(i)
     end
   end
   if menu == 5 then
-    redraw()
+    screen_dirty = true
   end
 end
 
@@ -2448,6 +2521,7 @@ function toggle_buffer(i)
     end
   end
   grid_dirty = true
+  update_waveform(1,rec[rec.focus].start_point,rec[rec.focus].end_point,128)
 end
 
 function update_delays()
@@ -2461,6 +2535,15 @@ function update_delays()
       softcut.loop_end(i+4,delay[i].free_end_point)
     end
   end
+end
+
+function sample_callback(path,i)
+  if path ~= "cancel" and path ~= "" then
+    load_sample(path,i)
+  end
+  _norns.key(1,1)
+  _norns.key(1,0)
+  key1_hold = false
 end
 
 function load_sample(file,sample)
@@ -2486,6 +2569,11 @@ function load_sample(file,sample)
   end
   for i = 1,3 do
     pre_cc2_sample[i] = false
+  end
+  update_waveform(2,clip[sample].min,clip[sample].max,128)
+  clip[sample].waveform_samples = waveform_samples
+  if params:get("clip "..sample.." sample") ~= file then
+    params:set("clip "..sample.." sample", file, 1)
   end
 end
 
@@ -2558,12 +2646,11 @@ function key(n,z)
       elseif menu == 2 then
         local id = page.loops_sel
         if not key1_hold then
-          page.loops_sel = (page.loops_sel % 4) + 1
-          id = page.loops_sel
+          page.loops.frame = (page.loops.frame%2)+1
         else
-          if page.loops_sel < 4 then
-            local id = page.loops_sel
-            if page.loops_view[id] == 1 then
+          if page.loops.sel < 4 then
+            local id = page.loops.sel
+            if page.loops.frame == 2 then
               bank[id][bank[id].id].loop = not bank[id][bank[id].id].loop
               if bank[id][bank[id].id].loop then
                 softcut.loop(id+1,1)
@@ -2573,7 +2660,11 @@ function key(n,z)
               end
               grid_dirty = true
             else
-              -- rightangleslice.init(4,id,'14')
+              if bank[id][bank[id].id].mode == 2 then
+                _norns.key(1,1)
+                _norns.key(1,0)
+                fileselect.enter(_path.audio,function(n) sample_callback(n,bank[id][bank[id].id].clip) end)
+              end
             end
           elseif page.loops_sel == 4 then
             toggle_buffer(rec.focus)
@@ -2619,13 +2710,13 @@ function key(n,z)
             if page.time_page_sel[time_nav] == 1 then
               if midi_pat[time_nav].playmode < 3 then
                 if midi_pat[time_nav].rec == 0 then
-                  if midi_pat[time_nav].count == 0 then
+                  if midi_pat[time_nav].count == 0 and not key1_hold then
                     if midi_pat[time_nav].playmode == 1 then
                       midi_pat[time_nav]:rec_start()
                     else
                       midi_pat[time_nav].rec_clock = clock.run(synced_record_start,midi_pat[time_nav],time_nav)
                     end
-                  else
+                  elseif midi_pat[time_nav].count ~= 0 and not key1_hold then
                     if midi_pat[time_nav].play == 1 then
                       midi_pat[time_nav].overdub = midi_pat[time_nav].overdub == 0 and 1 or 0
                     end
@@ -2659,7 +2750,7 @@ function key(n,z)
               shuffle_midi_pat(id)
               ("random midi pat!")
             end
-          elseif page.time_page_sel[time_nav] == 5 then
+          elseif page.time_page_sel[time_nav] == 4 then
             if not key1_hold then
               if g.device ~= nil then
                 random_grid_pat(id,3)
@@ -2856,9 +2947,27 @@ function key(n,z)
         page.arp_alt[page.arp_page_sel] = not page.arp_alt[page.arp_page_sel]
       else
         key1_hold = true
+        if menu == 2 and page.loops.sel < 4 and page.loops.frame == 2 then
+          local mode = bank[page.loops.sel][bank[page.loops.sel].id].mode
+          local min = bank[page.loops.sel][bank[page.loops.sel].id].start_point
+          local max = bank[page.loops.sel][bank[page.loops.sel].id].end_point
+          update_waveform(mode,min,max,128)
+        end
       end
       
     elseif n == 1 and z == 0 then
+      if menu == 2 and page.loops.sel < 4 then
+        local mode = bank[page.loops.sel][bank[page.loops.sel].id].mode
+        local min =
+        { rec[bank[page.loops.sel][bank[page.loops.sel].id].clip].start_point
+        , clip[bank[page.loops.sel][bank[page.loops.sel].id].clip].min
+        }
+        local max =
+        { rec[bank[page.loops.sel][bank[page.loops.sel].id].clip].end_point
+        , clip[bank[page.loops.sel][bank[page.loops.sel].id].clip].max
+        }
+        update_waveform(mode,min[mode],max[mode],128)
+      end 
       if menu ~= 5 and menu ~= 11 then
         key1_hold = false
       end
@@ -2921,7 +3030,7 @@ function key(n,z)
     end
   end
   adjust_key1_timing()
-  redraw()
+  screen_dirty = true
   grid_dirty = true
 end
 
@@ -2947,7 +3056,6 @@ function redraw()
   screen.font_size(8)
   main_menu.init()
   screen.update()
-  screenshot()
 end
 
 --GRID
@@ -3679,7 +3787,7 @@ function grid_pattern_execute(entry)
         end
       end
       grid_dirty = true
-      redraw()
+      screen_dirty = true
     end
   end
 end
@@ -3756,7 +3864,7 @@ function new_arc_pattern_execute(entry)
   else
     slew_filter(id,entry.prev_tilt,entry.tilt,bank[id][bank[id].id].q,bank[id][bank[id].id].q,15)
   end
-  redraw()
+  screen_dirty = true
 end
 
 function arc_delay_pattern_execute(entry)
@@ -3770,7 +3878,7 @@ function arc_delay_pattern_execute(entry)
     arc_p[4].right_delay_value = entry.right_delay_value
     params:set("delay R: div/mult",entry.right_delay_value)
   end
-  redraw()
+  screen_dirty = true
 end
 
 function zilchmo(k,i)
@@ -3778,7 +3886,7 @@ function zilchmo(k,i)
   lit = {}
   -- grid_redraw()
   grid_dirty = true
-  redraw()
+  screen_dirty = true
 end
 
 function pad_copy(destination, source)
@@ -4111,7 +4219,7 @@ function named_loadstate(path)
     _norns.key(1,1)
     _norns.key(1,0)
     clock.run(load_screen)
-    redraw()
+    screen_dirty = true
     -- all_loaded = false
     params:read(_path.data.."cheat_codes2/collection-"..collection.."/params/all.pset")
     -- persistent_state_restore()

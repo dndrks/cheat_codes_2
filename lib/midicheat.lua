@@ -15,7 +15,7 @@ function mc.move_start(target,val) -- expects (bank[x][y],0-127)
   target.start_point = util.round(util.clamp(util.linlin(0,127,lo,max,val),lo,hi),0.1)
   softcut.loop_start(target.bank_id+1,target.start_point)
   params:set("start point "..target.bank_id,val,"true")
-  redraw()
+  screen_dirty = true
 end
 
 function mc.move_end(target,val) -- expects (bank[x][y],0-127)
@@ -25,7 +25,7 @@ function mc.move_end(target,val) -- expects (bank[x][y],0-127)
   target.end_point = util.round(util.clamp(util.linlin(0,127,min,hi,val),lo,hi),0.1)
   softcut.loop_end(target.bank_id+1,target.end_point)
   params:set("end point "..target.bank_id,val,"true")
-  redraw()
+  screen_dirty = true
 end
 
 function mc.adjust_filter(target,val) -- expects (x,0-127)
@@ -38,7 +38,7 @@ function mc.adjust_filter(target,val) -- expects (x,0-127)
   end
   local pad = bank[target][bank[target].id]
   slew_filter(target,slew_counter[target].prev_tilt,pad.tilt,pad.q,pad.q,15)
-  redraw()
+  screen_dirty = true
 end
 
 function mc.adjust_pad_level(target,val) -- expects (bank[x][y],0-127)
@@ -50,7 +50,7 @@ function mc.adjust_pad_level(target,val) -- expects (bank[x][y],0-127)
     softcut.level_cut_cut(target.bank_id +1,6,(target.right_delay_level*target.level)*bank[target.bank_id].global_level)
   end
   params:set("level "..target.bank_id,val,"true")
-  redraw()
+  screen_dirty = true
 end
 
 function mc.adjust_bank_level(target,val)
@@ -62,7 +62,7 @@ function mc.adjust_bank_level(target,val)
     softcut.level_cut_cut(target.bank_id +1,6,(target.right_delay_level*target.level)*bank[target.bank_id].global_level)
   end
   params:set("bank level "..target.bank_id,val,"true")
-  redraw()
+  screen_dirty = true
 end
 
 function mc.redraw(target) -- expects (bank[x][y])
@@ -94,7 +94,7 @@ function mc.cheat(target,note) -- expects (x,0-127)
     end
   end
   grid_dirty = true
-  redraw()
+  screen_dirty = true
 end
 
 function mc.zilch(target,note) -- expects (x,0-127)
@@ -148,7 +148,7 @@ function mc.zilch(target,note) -- expects (x,0-127)
     mc.redraw(bank[target][bank[target].id])
   end
 
-  redraw()
+  screen_dirty = true
 
 end
 

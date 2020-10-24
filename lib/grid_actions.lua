@@ -101,7 +101,7 @@ function grid_actions.init(x,y,z)
             end
           end
         end
-        redraw()
+        screen_dirty = true
       elseif z == 0 and x > 0 + (5*(i-1)) and x <= 4 + (5*(i-1)) and y >=5 then
         if not bank[i].focus_hold then
           local released_pad = (math.abs(y-9)+((x-1)*4))-(20*(i-1))
@@ -151,7 +151,7 @@ function grid_actions.init(x,y,z)
           zmap[k1].held = 0
           zilch_leds[zilch_id][k1][y] = 0
           grid_dirty = true
-          redraw()
+          screen_dirty = true
         end
       end
     end
@@ -186,7 +186,7 @@ function grid_actions.init(x,y,z)
           zmap[k1].held = 0
           zilch_leds[zilch_id][k1][y] = 0
           grid_dirty = true
-          redraw()
+          screen_dirty = true
         end
       end
     end
@@ -310,7 +310,7 @@ function grid_actions.init(x,y,z)
           help_menu = "welcome"
         end
       end
-      redraw()
+      screen_dirty = true
       -- grid_redraw()
     end
     
@@ -332,7 +332,7 @@ function grid_actions.init(x,y,z)
           end
         end
         if z == 0 then
-          redraw()
+          screen_dirty = true
           if bank[current].focus_hold == false then
             if params:string("preview_clip_change") == "yes" or bank[current][bank[current].id].loop then
               cheat(current,bank[current].id)
@@ -496,7 +496,7 @@ function grid_actions.init(x,y,z)
                 menu = 2
                 page.loops_sel = math.floor((x/4))
               end
-              redraw()
+              screen_dirty = true
             end
           elseif bank[i].alt_lock or grid.alt then
             if y == 2 then
@@ -639,7 +639,7 @@ function grid_actions.init(x,y,z)
       
       if x == 16 and y == 8 then
         grid.alt = z == 1 and true or false
-        redraw()
+        screen_dirty = true
         -- grid_redraw()
       end
     
@@ -674,7 +674,7 @@ function grid_actions.init(x,y,z)
     
     if x == 16 and y == 2 then
       grid.loop_mod = z
-      redraw()
+      screen_dirty = true
       -- grid_redraw()
     end
     
@@ -706,7 +706,7 @@ function grid_actions.init(x,y,z)
           end
         end
       end
-      redraw()
+      screen_dirty = true
     end
   
   elseif grid_page == 2 then
@@ -881,7 +881,7 @@ function grid_actions.init(x,y,z)
           zmap[k1].held = 0
           zilch_leds[zilch_id][k1][k2] = 0
           grid_dirty = true
-          redraw()
+          screen_dirty = true
         end
       end
     end
@@ -903,7 +903,7 @@ function grid_actions.init(x,y,z)
           elseif grid_page == 0 then
             help_menu = "welcome"
           end
-          redraw()
+          screen_dirty = true
         end
       else
         grid_page = 2
@@ -976,7 +976,7 @@ function grid_actions.toggle_pad_loop(i)
   if menu == 11 then
     help_menu = "loop"
   end
-  redraw()
+  screen_dirty = true
 end
 
 return grid_actions
