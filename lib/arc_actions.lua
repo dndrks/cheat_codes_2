@@ -39,7 +39,7 @@ function aa.init(n,d)
   else
     aa.change_param_focus(d)
   end
-  screen_dirty = true
+  if menu ~= 1 then screen_dirty = true end
 end
 
 function aa.new_pattern_watch(enc)

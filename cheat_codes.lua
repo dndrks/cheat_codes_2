@@ -80,7 +80,7 @@ function on_render(ch, start, i, s)
   -- cursor = util.clamp(cursor, 1, #s)
   waveform_samples = s
   interval = i
-  screen_dirty = true
+  if menu ~= 1 then screen_dirty = true end
   if ch == 2 then
     if start < 33 then
       clip[1].waveform_samples = s
@@ -945,7 +945,7 @@ function init()
   page.loops = {}
   page.loops.frame = 1
   page.loops.sel = 1
-  page.loops.top_option_set = 1
+  page.loops.top_option_set = {1,1,1,1}
   page.main_sel = 1
   page.loops_sel = 1
   page.loops_page = 0
@@ -1117,7 +1117,7 @@ function init()
           rec_state_watcher:stop()
           grid_dirty = true
           if menu == 2 then
-            screen_dirty = true
+            if menu ~= 1 then screen_dirty = true end
             print("stopped")
           end
         end
@@ -1665,7 +1665,7 @@ function compare_rec_resolution(x)
     rec[rec.focus].end_point = rec[rec.focus].start_point + (((1/rec_loop_enc_resolution)*current_mult)/lbr[params:get("live_buff_rate")])
     softcut.loop_start(1,rec[rec.focus].start_point)
     softcut.loop_end(1,rec[rec.focus].end_point)
-    screen_dirty = true
+    if menu ~= 1 then screen_dirty = true end
   end
 end
 
@@ -1673,7 +1673,7 @@ function globally_clocked()
   while true do
     clock.sync(1/4)
     if menu == 7 then
-      screen_dirty = true
+      if menu ~= 1 then screen_dirty = true end
     end
     -- grid_redraw()
     update_tempo()
@@ -1724,7 +1724,7 @@ osc_in = function(path, args, from)
       if args[1] ~= 0 then
         bank[i].id = util.round(args[1])
         cheat(i,bank[i].id)
-        screen_dirty = true
+        if menu ~= 1 then screen_dirty = true end
         osc_redraw(i)
       end
     elseif path == "/randomize_this_bank_"..i then
@@ -1931,7 +1931,7 @@ poll_position_new = {}
 phase = function(n, x)
   poll_position_new[n] = x
   if menu == 2 then
-    if page.loops.sel < 4 then
+    -- if page.loops.sel < 4 then
       -- does this need to update if it's not being shown? yes.
       local rec_on = 0;
       for i = 1,3 do
@@ -1943,8 +1943,8 @@ phase = function(n, x)
       if rec_on ~= 0 and rec[rec_on].state == 1 then
         update_waveform(1,rec[rec_on].start_point,rec[rec_on].end_point,128)
       end
-    end
-    screen_dirty = true
+    -- end
+    if menu ~= 1 then screen_dirty = true end
   end
 end
 
@@ -2404,7 +2404,7 @@ function easing_slew(i)
     end
   end
   if menu == 5 then
-    screen_dirty = true
+    if menu ~= 1 then screen_dirty = true end
   end
 end
 
@@ -2666,7 +2666,7 @@ function key(n,z)
                 fileselect.enter(_path.audio,function(n) sample_callback(n,bank[id][bank[id].id].clip) end)
               end
             end
-          elseif page.loops_sel == 4 then
+          elseif page.loops.sel == 4 and page.loops.frame == 2 then
             toggle_buffer(rec.focus)
           end
         end
@@ -2899,14 +2899,20 @@ function key(n,z)
           menu = 1
         end
       elseif menu == 2 then
-        if key1_hold and page.loops_sel ~= 4 then
-          if page.loops_view[page.loops_sel] == 1 then
-            sync_clock_to_loop(bank[page.loops_sel][bank[page.loops_sel].id],"audio")
-          elseif page.loops_view[page.loops_sel] == 2 then
-            rightangleslice.init(4,id,'14')
+        if page.loops.frame == 2 and key1_hold then
+          if page.loops.sel == 4 then
+            buff_flush()
+          else
+            sync_clock_to_loop(bank[page.loops.sel][bank[page.loops.sel].id],"audio")
           end
-        elseif key1_hold and page.loops_sel == 4 then
-          buff_pause()
+        -- if key1_hold and page.loops_sel ~= 4 then
+        --   if page.loops_view[page.loops_sel] == 1 then
+        --     sync_clock_to_loop(bank[page.loops_sel][bank[page.loops_sel].id],"audio")
+        --   elseif page.loops_view[page.loops_sel] == 2 then
+        --     rightangleslice.init(4,id,'14')
+        --   end
+        -- elseif key1_hold and page.loops_sel == 4 then
+        --   buff_pause()
         else
           menu = 1
         end
@@ -3787,7 +3793,7 @@ function grid_pattern_execute(entry)
         end
       end
       grid_dirty = true
-      screen_dirty = true
+      if menu ~= 1 then screen_dirty = true end
     end
   end
 end
@@ -3864,7 +3870,7 @@ function new_arc_pattern_execute(entry)
   else
     slew_filter(id,entry.prev_tilt,entry.tilt,bank[id][bank[id].id].q,bank[id][bank[id].id].q,15)
   end
-  screen_dirty = true
+  if menu ~= 1 then screen_dirty = true end
 end
 
 function arc_delay_pattern_execute(entry)
@@ -3878,7 +3884,7 @@ function arc_delay_pattern_execute(entry)
     arc_p[4].right_delay_value = entry.right_delay_value
     params:set("delay R: div/mult",entry.right_delay_value)
   end
-  screen_dirty = true
+  if menu ~= 1 then screen_dirty = true end
 end
 
 function zilchmo(k,i)
@@ -3886,7 +3892,7 @@ function zilchmo(k,i)
   lit = {}
   -- grid_redraw()
   grid_dirty = true
-  screen_dirty = true
+  if menu ~= 1 then screen_dirty = true end
 end
 
 function pad_copy(destination, source)

@@ -70,7 +70,7 @@ function arp_actions.arpeggiate(target)
     else
       arp[target].playing = false
     end
-    screen_dirty = true
+    if menu ~= 1 then screen_dirty = true end
   end
 end
 

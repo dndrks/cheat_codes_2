@@ -12,7 +12,7 @@ function encoder_actions.init(n,d)
 
       if page.loops.frame == 1 then
         if key1_hold then
-          page.loops.top_option_set = util.clamp(page.loops.top_option_set + d,1,2)
+          page.loops.top_option_set[page.loops.sel] = util.clamp(page.loops.top_option_set[page.loops.sel] + d,1,2)
         else
           page.loops.sel = util.clamp(page.loops.sel+d,1,4)
         end
@@ -35,43 +35,10 @@ function encoder_actions.init(n,d)
             end
           end
         else
-          -- if page.loops_view[id] ~= 1 then
-          --   ea.change_buffer(rec[rec.focus],d)
-          -- else
-          --   ea.move_rec_window(rec[rec.focus],d)
-          -- end
-          -- ea.sc.move_rec_window(rec[rec.focus])
+          ea.move_rec_window(rec[rec.focus],d)
+          ea.sc.move_rec_window(rec[rec.focus])
         end
       end
-      -- local id = page.loops_sel
-      -- if key1_hold then
-      --   page.loops_view[id] = util.clamp(page.loops_view[id]+d,1,3)
-      -- else
-      --   if id ~= 4 then
-      --     if page.loops_view[id] > 1 then
-      --       ea.change_pad(id,d)
-      --     else
-      --       local which_pad = nil
-      --       if bank[id].focus_hold == false then
-      --         which_pad = bank[id].id
-      --       else
-      --         which_pad = bank[id].focus_pad
-      --       end
-      --       local resolution = loop_enc_resolution
-      --       ea.move_play_window(bank[id][which_pad],d/resolution)
-      --       if bank[id].focus_hold == false then
-      --         ea.sc.move_play_window(id)
-      --       end
-      --     end
-      --   else
-      --     if page.loops_view[id] ~= 1 then
-      --       ea.change_buffer(rec[rec.focus],d)
-      --     else
-      --       ea.move_rec_window(rec[rec.focus],d)
-      --     end
-      --     ea.sc.move_rec_window(rec[rec.focus])
-      --   end
-      -- end
     elseif menu == 6 then
       page.delay_focus = util.clamp(page.delay_focus+d,1,2)
     elseif menu == 7 then
@@ -101,7 +68,7 @@ function encoder_actions.init(n,d)
         end
 
         if page.loops.frame == 1 then
-          if page.loops.top_option_set == 1 then
+          if page.loops.top_option_set[page.loops.sel] == 1 then
             ea.change_pad_clip(id,d)
             if key1_hold then
               for i = 1,16 do
@@ -115,7 +82,7 @@ function encoder_actions.init(n,d)
                 end
               end
             end
-          elseif page.loops.top_option_set == 2 then
+          elseif page.loops.top_option_set[page.loops.sel] == 2 then
             if not bank[id].focus_hold then
               params:delta("rate "..id,d)
             end
@@ -134,87 +101,29 @@ function encoder_actions.init(n,d)
             ea.sc.move_start(id)
           end
         end
+
+      elseif id == 4 then
+        if page.loops.frame == 1 and not key1_hold then
+          params:delta("live_rec_feedback",d)
+        elseif page.loops.frame == 1 and key1_hold then
+          params:delta("rec_loop",d)
+        elseif page.loops.frame == 2 then
+          local lbr = {1,2,4}
+          local res;
+          if params:get("rec_loop_enc_resolution") == 1 then
+            res = key1_hold and d/100 or d/10
+          else
+            res = d/rec_loop_enc_resolution
+          end
+          if d >= 0 and util.round(rec[rec.focus].start_point + ((res)/lbr[params:get("live_buff_rate")]),0.01) < util.round(rec[rec.focus].end_point,0.01) then
+            rec[rec.focus].start_point = util.clamp(rec[rec.focus].start_point+((res)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.focus-1))),(8.9+(8*(rec.focus-1))))
+          elseif d < 0 then
+            rec[rec.focus].start_point = util.clamp(rec[rec.focus].start_point+((res)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.focus-1))),(8.9+(8*(rec.focus-1))))
+          end
+          softcut.loop_start(1, rec[rec.focus].start_point)
+        end
+
       end
-          
-
-
-
-      -- local id = page.loops_sel
-      -- if id ~=4 then
-      --   if page.loops_view[id] == 2 then
-      --     local focused_pad = nil
-      --     -- if grid_pat[id].play == 0 and grid_pat[id].tightened_start == 0 and not arp[id].playing and midi_pat[id].play == 0 then
-      --     if not bank[id].focus_hold then
-      --       focused_pad = bank[id].id
-      --     else
-      --       focused_pad = bank[id].focus_pad
-      --     end
-      --     if not bank[id].focus_hold then
-      --       params:delta("rate "..id,d)
-      --     end
-      --     if key1_hold then
-      --       for i = 1,16 do
-      --         if i ~= focused_pad then
-      --           bank[id][i].rate = bank[id][focused_pad].rate
-      --         end
-      --       end
-      --     end
-      --   elseif page.loops_view[id] == 3 then
-      --     ea.change_pad_clip(id,d)
-      --     local focused_pad = nil
-      --     -- if grid_pat[id].play == 0 and grid_pat[id].tightened_start == 0 and not arp[id].playing and midi_pat[id].play == 0 then
-      --     if not bank[id].focus_hold then
-      --       focused_pad = bank[id].id
-      --     else
-      --       focused_pad = bank[id].focus_pad
-      --     end
-      --     if key1_hold then
-      --       for i = 1,16 do
-      --         if i ~= focused_pad then
-      --           if bank[id][focused_pad].mode ~= bank[id][i].mode then
-      --             local old_mode = bank[id][i].mode
-      --             bank[id][i].mode = bank[id][focused_pad].mode
-      --             change_mode(bank[id][i],old_mode)
-      --           end
-      --           jump_clip(id,i,bank[id][focused_pad].clip)
-      --         end
-      --       end
-      --     end
-      --   elseif page.loops_view[id] == 1 or page.loops_view[id] == 4 then
-      --     local which_pad = nil
-      --     if bank[id].focus_hold == false then
-      --       which_pad = bank[id].id
-      --     else
-      --       which_pad = bank[id].focus_pad
-      --     end
-      --     local resolution = loop_enc_resolution * (key1_hold and 10 or 1)
-      --     ea.move_start(bank[id][which_pad],d/resolution)
-      --     if bank[id].focus_hold == false then
-      --       ea.sc.move_start(id)
-      --     end
-      --   end
-      -- elseif id == 4 then
-      --   if page.loops_view[id] == 3 then
-      --     params:delta("rec_loop",d)
-      --   elseif page.loops_view[id] == 2 then
-      --     params:delta("random_rec_clock_prob",d)
-      --   elseif page.loops_view[id] == 1 then
-      --     local lbr = {1,2,4}
-      --     local res;
-      --     if params:get("rec_loop_enc_resolution") == 1 then
-      --       res = key1_hold and d/100 or d/10
-      --     else
-      --       res = d/rec_loop_enc_resolution
-      --     end
-      --     if d >= 0 and util.round(rec[rec.focus].start_point + ((res)/lbr[params:get("live_buff_rate")]),0.01) < util.round(rec[rec.focus].end_point,0.01) then
-      --       rec[rec.focus].start_point = util.clamp(rec[rec.focus].start_point+((res)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.focus-1))),(8.9+(8*(rec.focus-1))))
-      --     elseif d < 0 then
-      --       rec[rec.focus].start_point = util.clamp(rec[rec.focus].start_point+((res)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.focus-1))),(8.9+(8*(rec.focus-1))))
-      --     end
-      --     softcut.loop_start(1, rec[rec.focus].start_point)
-      --   end
-      -- end
-
 
     elseif menu == 6 then
 
@@ -239,31 +148,6 @@ function encoder_actions.init(n,d)
         elseif page_line[pattern_page] >= 7 then
           page.time_scroll[pattern_page] = 3
         end
-      
-      -- if pattern_page < 4 and bank[pattern_page].crow_execute ~= 1 then
-      --   page_line[pattern_page] = util.clamp(page_line[pattern_page]+d,1,8)
-      --   if page_line[pattern_page] < 4 then
-      --     page.time_scroll[pattern_page] = 1
-      --   elseif page_line[pattern_page] < 7 then
-      --     page.time_scroll[pattern_page] = 2
-      --   elseif page_line[pattern_page] >= 7 then
-      --     page.time_scroll[pattern_page] = 3
-      --   end
-      -- elseif pattern_page < 4 then
-      --   page_line[pattern_page] = util.clamp(page_line[pattern_page]+d,1,8)
-      --   if page_line[pattern_page] < 4 then
-      --     page.time_scroll[pattern_page] = 1
-      --   elseif page_line[pattern_page] == 4 and bank[pattern_page].crow_execute == 1 then
-      --     if page.time_scroll[pattern_page] == 1 then
-      --       page_line[pattern_page] = 5
-      --       page.time_scroll[pattern_page] = 2
-      --     else
-      --       page_line[pattern_page] = 3
-      --       page.time_scroll[pattern_page] = 1
-      --     end
-      --   elseif page_line[pattern_page] > 4 and bank[pattern_page].crow_execute == 1 then
-      --     page.time_scroll[pattern_page] = 2
-      --   end
 
       elseif pattern_page >=4 then
         page_line[pattern_page] = util.clamp(page_line[pattern_page]+d,1,7)
@@ -326,7 +210,7 @@ function encoder_actions.init(n,d)
         end
 
         if page.loops.frame == 1 then
-          if page.loops.top_option_set == 1 then
+          if page.loops.top_option_set[page.loops.sel] == 1 then
             local current_offset = (math.log(bank[id][focused_pad].offset)/math.log(0.5))*-12
             current_offset = util.clamp(current_offset+d,-36,24)
             if current_offset > -1 and current_offset < 1 then
@@ -343,7 +227,7 @@ function encoder_actions.init(n,d)
                 end
               end
             end
-          elseif page.loops.top_option_set == 2 then
+          elseif page.loops.top_option_set[page.loops.sel] == 2 then
             bank[id][focused_pad].rate_slew = util.clamp(bank[id][focused_pad].rate_slew+d/10,0,4)
             softcut.rate_slew_time(id+1,bank[id][focused_pad].rate_slew)
             if key1_hold then
@@ -362,88 +246,28 @@ function encoder_actions.init(n,d)
             softcut.loop_end(id+1, bank[id][bank[id].id].end_point)
           end
         end
+
+      elseif id == 4 then
+        if page.loops.frame == 1 and not key1_hold then
+          params:delta("random_rec_clock_prob",d)
+        elseif page.loops.frame == 1 and key1_hold then
+          params:delta("live_buff_rate",d)
+        elseif page.loops.frame == 2 then
+          local lbr = {1,2,4}
+          local res;
+          if params:get("rec_loop_enc_resolution") == 1 then
+            res = key1_hold and d/100 or d/10
+          else
+            res = d/rec_loop_enc_resolution
+          end
+          if d <= 0 and util.round(rec[rec.focus].start_point,0.01) < util.round(rec[rec.focus].end_point + ((res)/lbr[params:get("live_buff_rate")]),0.01) then
+            rec[rec.focus].end_point = util.clamp(rec[rec.focus].end_point+((res)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.focus-1))),(9+(8*(rec.focus-1))))
+          elseif d > 0 and rec[rec.focus].end_point+((res)/lbr[params:get("live_buff_rate")]) <= 9+(8*(rec.focus-1)) then
+            rec[rec.focus].end_point = util.clamp(rec[rec.focus].end_point+((res)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.focus-1))),(9+(8*(rec.focus-1))))
+          end
+          softcut.loop_end(1, rec[rec.focus].end_point-0.01)
+        end
       end
-
-
-      -- local id = page.loops_sel
-      -- if id ~= 4 then
-      --   if page.loops_view[id] == 3 then
-      --     local focused_pad = nil
-      --     -- if grid_pat[id].play == 0 and grid_pat[id].tightened_start == 0 and not arp[id].playing and midi_pat[id].play == 0 then
-      --     if not bank[id].focus_hold then
-      --       focused_pad = bank[id].id
-      --     else
-      --       focused_pad = bank[id].focus_pad
-      --     end
-      --     local current_offset = (math.log(bank[id][focused_pad].offset)/math.log(0.5))*-12
-      --     current_offset = util.clamp(current_offset+d,-36,24)
-      --     if current_offset > -1 and current_offset < 1 then
-      --       current_offset = 0
-      --     end
-      --     bank[id][focused_pad].offset = math.pow(0.5, -current_offset / 12)
-      --     if grid_pat[id].play == 0 and grid_pat[id].tightened_start == 0 and not arp[id].playing and midi_pat[id].play == 0 then
-      --       cheat(id,bank[id].id)
-      --     end
-      --     if key1_hold then
-      --       for i = 1,16 do
-      --         if i ~= focused_pad then
-      --           bank[id][i].offset = bank[id][focused_pad].offset
-      --         end
-      --       end
-      --     end
-        
-      --   elseif page.loops_view[id] == 2 then
-      --     local focused_pad = nil
-      --     -- if grid_pat[id].play == 0 and grid_pat[id].tightened_start == 0 and not arp[id].playing and midi_pat[id].play == 0 then
-      --     if not bank[id].focus_hold then
-      --       focused_pad = bank[id].id
-      --     else
-      --       focused_pad = bank[id].focus_pad
-      --     end
-      --     bank[id][focused_pad].rate_slew = util.clamp(bank[id][focused_pad].rate_slew+d/10,0,4)
-      --     softcut.rate_slew_time(id+1,bank[id][focused_pad].rate_slew)
-      --     if key1_hold then
-      --       for i = 1,16 do
-      --         if i ~= focused_pad then
-      --           bank[id][i].rate_slew = bank[id][focused_pad].rate_slew
-      --         end
-      --       end
-      --     end
-          
-      --   elseif page.loops_view[id] == 1 or page.loops_view[id] == 4 then
-      --     local which_pad = nil
-      --     if bank[id].focus_hold == false then
-      --       which_pad = bank[id].id
-      --     else
-      --       which_pad = bank[id].focus_pad
-      --     end
-      --     local resolution = loop_enc_resolution * (key1_hold and 10 or 1)
-      --     ea.move_end(bank[id][which_pad],d/resolution)
-      --     if bank[id].focus_hold == false then
-      --       softcut.loop_end(id+1, bank[id][bank[id].id].end_point)
-      --     end
-      --   end
-      -- elseif id == 4 then
-      --   if page.loops_view[id] == 3 then
-      --     params:delta("live_buff_rate",d)
-      --   elseif page.loops_view[id] == 2 then
-      --     params:delta("live_rec_feedback",d)
-      --   elseif page.loops_view[id] == 1 then
-      --     local lbr = {1,2,4}
-      --     local res;
-      --     if params:get("rec_loop_enc_resolution") == 1 then
-      --       res = key1_hold and d/100 or d/10
-      --     else
-      --       res = d/rec_loop_enc_resolution
-      --     end
-      --     if d <= 0 and util.round(rec[rec.focus].start_point,0.01) < util.round(rec[rec.focus].end_point + ((res)/lbr[params:get("live_buff_rate")]),0.01) then
-      --       rec[rec.focus].end_point = util.clamp(rec[rec.focus].end_point+((res)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.focus-1))),(9+(8*(rec.focus-1))))
-      --     elseif d > 0 and rec[rec.focus].end_point+((res)/lbr[params:get("live_buff_rate")]) <= 9+(8*(rec.focus-1)) then
-      --       rec[rec.focus].end_point = util.clamp(rec[rec.focus].end_point+((res)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.focus-1))),(9+(8*(rec.focus-1))))
-      --     end
-      --     softcut.loop_end(1, rec[rec.focus].end_point-0.01)
-      --   end
-      -- end
 
     elseif menu == 6 then
 
@@ -1111,7 +935,7 @@ function ea.move_start(target,delta)
     target.start_point = util.clamp(target.start_point+delta,s_p,s_p+duration)
   end
   if menu == 2 and page.loops.sel < 4 and key1_hold then
-    update_waveform(2,target.start_point,target.end_point,128)
+    update_waveform(target.mode,target.start_point,target.end_point,128)
   end
 end
 
@@ -1122,7 +946,7 @@ function ea.move_end(target,delta)
     target.end_point = util.clamp(target.end_point+delta,s_p,s_p+duration)
   end
   if menu == 2 and page.loops.sel < 4 and key1_hold then
-    update_waveform(2,target.start_point,target.end_point,128)
+    update_waveform(target.mode,target.start_point,target.end_point,128)
   end
 end
 
