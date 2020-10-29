@@ -395,10 +395,7 @@ function random_grid_pat(which,mode)
       pattern.rec_clock_time = vals_to_dur[note_val]
     end
     if pattern.playmode == 3 or pattern.playmode == 4 then
-      --clock.sync(1/4)
-      -- new stuff!
       pattern.playmode = 2
-      -- /new stuff!
     end
     local potential_total = pattern.rec_clock_time*4
     -- local count = auto_pat == 1 and math.random(2,24) or 16
@@ -687,6 +684,8 @@ end
 
 key1_hold = false
 key1_hold_and_modify = false
+key2_hold = false
+key2_hold_and_modify = false
 
 grid.alt = false
 -- grid.alt_pp = 0
@@ -1669,6 +1668,28 @@ function compare_rec_resolution(x)
   end
 end
 
+function compare_loop_resolution(target,x)
+  for i = 1,16 do
+    local pad = bank[target][i]
+    local resolutions =
+      { [1] = 10
+      , [2] = 100
+      , [3] = 1/(clock.get_beat_sec()/4)
+      , [4] = 1/(clock.get_beat_sec()/2)
+      , [5] = 1/(clock.get_beat_sec())
+      , [6] = (1/(clock.get_beat_sec()))/2
+      , [7] = (1/(clock.get_beat_sec()))/4
+      }
+    loop_enc_resolution[pad.bank_id] = resolutions[x]
+    if x > 2 then
+      pad.end_point = pad.start_point + (((1/loop_enc_resolution[pad.bank_id])))
+    end
+  end
+  softcut.loop_start(target+1,bank[target][bank[target].id].start_point)
+  softcut.loop_end(target+1,bank[target][bank[target].id].end_point)
+  if menu ~= 1 then screen_dirty = true end
+end
+
 function globally_clocked()
   while true do
     clock.sync(1/4)
@@ -1931,19 +1952,20 @@ poll_position_new = {}
 phase = function(n, x)
   poll_position_new[n] = x
   if menu == 2 then
-    -- if page.loops.sel < 4 then
-      -- does this need to update if it's not being shown? yes.
-      local rec_on = 0;
-      for i = 1,3 do
-        if rec[i].state == 1 then
-          rec_on = i
-        end
+    local rec_on = 0;
+    for i = 1,3 do
+      if rec[i].state == 1 then
+        rec_on = i
       end
-      -- if bank[page.loops.sel][bank[page.loops.sel].id].mode == 1 and rec_on ~= 0 and rec[rec_on].state == 1 then
-      if rec_on ~= 0 and rec[rec_on].state == 1 then
-        update_waveform(1,rec[rec_on].start_point,rec[rec_on].end_point,128)
+    end
+    if rec_on ~= 0 and rec[rec_on].state == 1 then
+      if page.loops.sel ~= 4 then
+        local pad = bank[page.loops.sel][bank[page.loops.sel].id]
+        update_waveform(1,key1_hold and pad.start_point or live[rec_on].min,key1_hold and pad.end_point or live[rec_on].max,128)
+      elseif page.loops.sel == 4 then
+        update_waveform(1,key1_hold and rec[rec.focus].start_point or live[rec_on].min,key1_hold and rec[rec.focus].end_point or live[rec_on].max,128)
       end
-    -- end
+    end
     if menu ~= 1 then screen_dirty = true end
   end
 end
@@ -1962,6 +1984,9 @@ function update_tempo()
   local interval_pats = (60/t) / d_pat
   if pre_bpm ~= bpm then
     compare_rec_resolution(params:get("rec_loop_enc_resolution"))
+    for i = 1,3 do
+      compare_loop_resolution(i,params:get("loop_enc_resolution_"..i))
+    end
     if math.abs(pre_bpm - bpm) >= 1 then
       --print("a change in time!")
     end
@@ -2476,6 +2501,7 @@ function buff_flush()
   rec[rec.focus].state = 0
   rec[rec.focus].clear = 1
   softcut.rec_level(1,0)
+  update_waveform(1,rec[rec.focus].start_point, rec[rec.focus].end_point,128)
 end
 
 function buff_pause()
@@ -2521,7 +2547,7 @@ function toggle_buffer(i)
     end
   end
   grid_dirty = true
-  update_waveform(1,rec[rec.focus].start_point,rec[rec.focus].end_point,128)
+  update_waveform(1,key1_hold and rec[rec.focus].start_point or live[rec.focus].min,key1_hold and rec[rec.focus].end_point or live[rec.focus].max,128)
 end
 
 function update_delays()
@@ -2622,6 +2648,8 @@ function adjust_key1_timing()
     else
       if metro[31].time ~= 0.1 then metro[31].time = 0.1 end
     end
+  -- else
+  --   metro[31].time = 0.01
   end
 end
 
@@ -2645,20 +2673,35 @@ function key(n,z)
         menu = page.main_sel + 1
       elseif menu == 2 then
         local id = page.loops_sel
-        if not key1_hold then
+        if key2_hold then
+          if page.loops.sel < 4 then
+            local id = page.loops.sel
+            bank[id][bank[id].id].loop = not bank[id][bank[id].id].loop
+            if bank[id][bank[id].id].loop then
+              softcut.loop(id+1,1)
+              cheat(id,bank[id].id)
+            else
+              softcut.loop(id+1,0)
+            end
+            if page.loops.frame == 1 then
+              for i = 1,16 do
+                bank[id][i].loop = bank[id][bank[id].id].loop
+              end
+            end
+          elseif page.loops.sel == 4 then
+            toggle_buffer(rec.focus)
+          end
+          grid_dirty = true
+          key2_hold_and_modify = true
+        end
+        if not key1_hold and not key2_hold then
           page.loops.frame = (page.loops.frame%2)+1
-        else
+        elseif key1_hold and not key2_hold then
           if page.loops.sel < 4 then
             local id = page.loops.sel
             if page.loops.frame == 2 then
-              bank[id][bank[id].id].loop = not bank[id][bank[id].id].loop
-              if bank[id][bank[id].id].loop then
-                softcut.loop(id+1,1)
-                cheat(id,bank[id].id)
-              else
-                softcut.loop(id+1,0)
-              end
-              grid_dirty = true
+              rightangleslice.init(4,id,'23')
+              update_waveform(bank[id][bank[id].id].mode,bank[id][bank[id].id].start_point,bank[id][bank[id].id].end_point,128)
             else
               if bank[id][bank[id].id].mode == 2 then
                 _norns.key(1,1)
@@ -2667,7 +2710,7 @@ function key(n,z)
               end
             end
           elseif page.loops.sel == 4 and page.loops.frame == 2 then
-            toggle_buffer(rec.focus)
+            -- something else
           end
         end
       elseif menu == 3 then
@@ -2864,7 +2907,18 @@ function key(n,z)
         end
       end
 
+
     elseif n == 2 and z == 1 then
+      if menu == 2 then
+        key2_hold = true
+        key2_hold_and_modify = false
+      end
+    elseif n == 2 and z == 0 and key2_hold_and_modify then
+      key2_hold = false
+      key2_hold_and_modify = false
+    elseif n == 2 and z == 0 and not key2_hold_and_modify then
+      key2_hold = false
+      key2_hold_and_modify = false
       if menu == 11 then
         if help_menu ~= "welcome" then
           help_menu = "welcome"
@@ -2914,7 +2968,9 @@ function key(n,z)
         -- elseif key1_hold and page.loops_sel == 4 then
         --   buff_pause()
         else
-          menu = 1
+          if page.loops.frame == 1 then
+            menu = 1
+          end
         end
       else
         menu = 1
@@ -2953,26 +3009,44 @@ function key(n,z)
         page.arp_alt[page.arp_page_sel] = not page.arp_alt[page.arp_page_sel]
       else
         key1_hold = true
-        if menu == 2 and page.loops.sel < 4 and page.loops.frame == 2 then
-          local mode = bank[page.loops.sel][bank[page.loops.sel].id].mode
-          local min = bank[page.loops.sel][bank[page.loops.sel].id].start_point
-          local max = bank[page.loops.sel][bank[page.loops.sel].id].end_point
+        if menu == 2 and page.loops.sel < 4 and page.loops.frame == 2 and not key2_hold then
+          local focused_pad;
+          if bank[page.loops.sel].focus_hold then
+            focused_pad = bank[page.loops.sel].focus_pad
+          elseif grid_pat[page.loops.sel].play == 0 and midi_pat[page.loops.sel].play == 0 and not arp[page.loops.sel].playing and rytm.track[page.loops.sel].k == 0 then
+            focused_pad = bank[page.loops.sel].id
+          else
+            focused_pad = bank[page.loops.sel].focus_pad
+          end
+          local mode = bank[page.loops.sel][focused_pad].mode
+          local min = bank[page.loops.sel][focused_pad].start_point
+          local max = bank[page.loops.sel][focused_pad].end_point
           update_waveform(mode,min,max,128)
+        elseif menu == 2 and page.loops.sel < 4 and page.loops.frame == 2 and key2_hold then
+          if bank[page.loops.sel][bank[page.loops.sel].id].mode == 2 then
+            _norns.key(1,0)
+            fileselect.enter(_path.audio,function(n) sample_callback(n,bank[page.loops.sel][bank[page.loops.sel].id].clip) end)
+            if key2_hold then key2_hold = false end
+          end
+        elseif menu == 2 and page.loops.sel == 4 and page.loops.frame == 2 then
+          update_waveform(1,rec[rec.focus].start_point,rec[rec.focus].end_point,128)
         end
       end
       
     elseif n == 1 and z == 0 then
-      if menu == 2 and page.loops.sel < 4 then
+      if menu == 2 and page.loops.sel < 4 and not key2_hold then
         local mode = bank[page.loops.sel][bank[page.loops.sel].id].mode
         local min =
-        { rec[bank[page.loops.sel][bank[page.loops.sel].id].clip].start_point
+        { live[bank[page.loops.sel][bank[page.loops.sel].id].clip].min
         , clip[bank[page.loops.sel][bank[page.loops.sel].id].clip].min
         }
         local max =
-        { rec[bank[page.loops.sel][bank[page.loops.sel].id].clip].end_point
+        { live[bank[page.loops.sel][bank[page.loops.sel].id].clip].max
         , clip[bank[page.loops.sel][bank[page.loops.sel].id].clip].max
         }
         update_waveform(mode,min[mode],max[mode],128)
+      elseif menu == 2 and page.loops.sel == 4 then
+        update_waveform(1,live[rec.focus].min,live[rec.focus].max,128)
       end 
       if menu ~= 5 and menu ~= 11 then
         key1_hold = false

@@ -70,7 +70,7 @@ function start_up.init()
   
   --params:add_separator()
   
-  params:add_group("loops + buffers", 18)
+  params:add_group("loops + buffers", 20)
 
   params:add_separator("clips")
   
@@ -163,20 +163,32 @@ function start_up.init()
     end
   )
   
-  --params:add_option("loop_enc_resolution", "play loop enc resolution", {"0.1","0.01","1/16","1/8","1/4","1/2","1 bar"}, 1)
-  params:add_option("loop_enc_resolution", "play loop enc resolution", {"0.1","0.01"}, 1)
-  params:set_action("loop_enc_resolution", function(x)
-    local resolutions =
-    { [1] = 10
-    , [2] = 100
-    , [3] = 1/(clock.get_beat_sec()/4)
-    , [4] = 1/(clock.get_beat_sec()/2)
-    , [5] = 1/(clock.get_beat_sec())
-    , [6] = (1/(clock.get_beat_sec()))/2
-    , [7] = (1/(clock.get_beat_sec()))/4
-    }
-    loop_enc_resolution = resolutions[x]
-  end)
+  loop_enc_resolution = {}
+  local banks = {"(a)","(b)","(c)"}
+  for i = 1,3 do
+    params:add_option("loop_enc_resolution_"..i, "loops enc resolution "..banks[i], {"0.1","0.01","1/16","1/8","1/4","1/2","1 bar"}, 1)
+    params:set_action("loop_enc_resolution_"..i, function(x)
+      local resolutions =
+      { [1] = 10
+      , [2] = 100
+      , [3] = 1/(clock.get_beat_sec()/4)
+      , [4] = 1/(clock.get_beat_sec()/2)
+      , [5] = 1/(clock.get_beat_sec())
+      , [6] = (1/(clock.get_beat_sec()))/2
+      , [7] = (1/(clock.get_beat_sec()))/4
+      }
+      loop_enc_resolution[i] = resolutions[x]
+      for j = 1,16 do
+        local pad = bank[i][j]
+        if x > 2 then
+          pad.end_point = pad.start_point + (((1/loop_enc_resolution[pad.bank_id])))
+          if menu ~= 1 then screen_dirty = true end
+        end
+      end
+      softcut.loop_start(i+1,bank[i][bank[i].id].start_point)
+      softcut.loop_end(i+1,bank[i][bank[i].id].end_point)
+    end)
+  end
 
   params:add_option("preview_clip_change", "preview clip changes?", {"yes","no"},1)
   params:set_action("preview_clip_change", function() if all_loaded then persistent_state_save() end end)
@@ -248,7 +260,7 @@ function start_up.init()
   end
   
   for i = 1,3 do
-    banks = {"(a)","(b)","(c)"}
+    local banks = {"(a)","(b)","(c)"}
     params:add_separator(banks[i])
     params:add_control("current pad "..i, "current pad "..banks[i], controlspec.new(1,16,'lin',1,1))
     params:set_action("current pad "..i, function(x)
@@ -262,7 +274,6 @@ function start_up.init()
       end
     end)
     local rates = {-4,-2,-1,-0.5,-0.25,-0.125,0.125,0.25,0.5,1,2,4}
-    --params:add_control("rate "..i, "rate "..banks[i].." (RAW)", controlspec.new(1,12,'lin',1,10))
     params:add_option("rate "..i, "rate "..banks[i], {"-4x","-2x","-1x","-0.5x","-0.25x","-0.125x","0.125x","0.25x","0.5x","1x","2x","4x"}, 10)
     params:set_action("rate "..i, function(x)
       bank[i][bank[i].id].rate = rates[x]

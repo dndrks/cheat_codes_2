@@ -75,7 +75,15 @@ function main_menu.init()
       screen.move(128,10)
 
       if page.loops.sel < 4 then
-        local pad = bank[page.loops.sel].focus_hold and bank[page.loops.sel][bank[page.loops.sel].focus_pad] or bank[page.loops.sel][bank[page.loops.sel].id]
+        local pad;
+        if bank[page.loops.sel].focus_hold then
+          pad = bank[page.loops.sel][bank[page.loops.sel].focus_pad]
+        elseif grid_pat[page.loops.sel].play == 0 and midi_pat[page.loops.sel].play == 0 and not arp[page.loops.sel].playing and rytm.track[page.loops.sel].k == 0 then
+          pad = bank[page.loops.sel][bank[page.loops.sel].id]
+        else
+          pad = bank[page.loops.sel][bank[page.loops.sel].focus_pad]
+        end
+        -- local pad = bank[page.loops.sel].focus_hold and bank[page.loops.sel][bank[page.loops.sel].focus_pad] or bank[page.loops.sel][bank[page.loops.sel].id]
         local off = pad.mode == 1 and (((pad.clip-1)*8)+1) or clip[pad.clip].min
         local display_end = pad.mode == 1 and (pad.end_point == 8.99 and 9 or pad.end_point) or pad.end_point
         screen.text_right("s: "..string.format("%.4g",(util.round(pad.start_point,0.0001))-off).."s | e: "..string.format("%.4g",(display_end)-off).."s")
@@ -90,12 +98,22 @@ function main_menu.init()
     -- waveform testing
     if page.loops.sel < 4 then
 
-      local pad = bank[page.loops.sel].focus_hold and bank[page.loops.sel][bank[page.loops.sel].focus_pad] or bank[page.loops.sel][bank[page.loops.sel].id]
+      local pad;
+      if bank[page.loops.sel].focus_hold then
+        pad = bank[page.loops.sel][bank[page.loops.sel].focus_pad]
+      elseif grid_pat[page.loops.sel].play == 0 and midi_pat[page.loops.sel].play == 0 and not arp[page.loops.sel].playing and rytm.track[page.loops.sel].k == 0 then
+        pad = bank[page.loops.sel][bank[page.loops.sel].id]
+      else
+        pad = bank[page.loops.sel][bank[page.loops.sel].focus_pad]
+      end
+
+      -- local pad = bank[page.loops.sel].focus_hold and bank[page.loops.sel][bank[page.loops.sel].focus_pad] or bank[page.loops.sel][bank[page.loops.sel].id]
       
-      if page.loops.frame == 1 and key1_hold then
-        screen.level(screen_levels[4])
+      if (page.loops.frame == 1 and key1_hold and not key2_hold) or (page.loops.frame == 2 and key2_hold and not key1_hold) then
+        screen.level(3)
         screen.move(70,25)
-        screen.text_center("E1: change control sets")
+        screen.text_center("E1: controls"..((page.loops.frame == 2 and key2_hold) and " / K3: loop pad" or ""))
+        screen.level(((page.loops.frame == 1 and key1_hold and not key2_hold)) and screen_levels[4] or screen_levels[1])
         screen.move(0,25+(10*page.loops.top_option_set[page.loops.sel]))
         screen.text(">")
         screen.level(page.loops.top_option_set[page.loops.sel] == 1 and 15 or 3)
@@ -111,14 +129,16 @@ function main_menu.init()
         if pad.mode == 2 and page.loops.top_option_set[page.loops.sel] == 1 then
           screen.level(15)
           screen.move(0,55)
-          screen.text("(K3: load clip)")
+          screen.text(((page.loops.frame == 1 and key1_hold and not key2_hold)) and "(K3: load clip)" or "(K1: load clip)")
         end
-      else
 
+      else
         screen.level(screen_levels[1])
         screen.move(0,40)
         local which_pad;
-        if bank[page.loops.sel].focus_hold == false then
+        if bank[page.loops.sel].focus_hold then
+          which_pad = bank[page.loops.sel].focus_pad
+        elseif grid_pat[page.loops.sel].play == 0 and midi_pat[page.loops.sel].play == 0 and not arp[page.loops.sel].playing and rytm.track[page.loops.sel].k == 0 then
           which_pad = bank[page.loops.sel].id
         else
           which_pad = bank[page.loops.sel].focus_pad
@@ -126,6 +146,14 @@ function main_menu.init()
         if not grid.alt then
           local loops_to_screen_options = {"a", "b", "c"}
           screen.text(loops_to_screen_options[page.loops.sel]..""..which_pad)
+          screen.move(0,50)
+          if which_pad ~= bank[page.loops.sel].id then
+            screen.level(3)
+            screen.text(loops_to_screen_options[page.loops.sel]..""..bank[page.loops.sel].id)
+            screen.level(screen_levels[1])
+          end
+          screen.move(3,30)
+          screen.text_center(bank[page.loops.sel][which_pad].loop == false and "" or "∞")
         else
           local loops_to_screen_options = {"(a)","(b)","(c)"}
           screen.text(loops_to_screen_options[page.loops.sel])
@@ -139,13 +167,13 @@ function main_menu.init()
 
         local start_point =
         {
-          rec[pad.clip].start_point
+          live[pad.clip].min
         , clip[pad.clip].min
         }
 
         local end_point =
         {
-          rec[pad.clip].end_point
+          live[pad.clip].max
         , clip[pad.clip].max
         }
 
@@ -194,13 +222,13 @@ function main_menu.init()
       {
         [1] =
         {
-          (pad.mode == 1 and ("Live"..(key1_hold and " (all): " or ": ")..pad.clip) or ("Clip"..(key1_hold and " (all): " or ": ")..pad.clip))
-        , ("offset"..(key1_hold and " (all): " or ": ")..(string.format("%.0f",((math.log(pad.offset)/math.log(0.5))*-12))).." st")
+          (pad.mode == 1 and ("Live"..(page.loops.frame == 1 and " (all): " or ": ")..pad.clip) or ("Clip"..(page.loops.frame == 1 and " (all): " or ": ")..pad.clip))
+        , ("offset"..(page.loops.frame == 1 and " (all): " or ": ")..(string.format("%.0f",((math.log(pad.offset)/math.log(0.5))*-12))).." st")
         }
       , [2] =
         {
-          ("rate"..(key1_hold and " (all): " or ": ")..string.format("%.4g",pad.rate).."x")
-        , ("slew"..(key1_hold and " (all): " or ": ")..string.format("%.1f",pad.rate_slew).."s")
+          ("rate"..(page.loops.frame == 1 and " (all): " or ": ")..string.format("%.4g",pad.rate).."x")
+        , ("slew"..(page.loops.frame == 1 and " (all): " or ": ")..string.format("%.1f",pad.rate_slew).."s")
         }
       , [3] =
         {
@@ -214,24 +242,36 @@ function main_menu.init()
       {
         [1] =
         {
-          ("K2: window -> BPM")
-        , ("K3: loop")
+          ("K2: dur -> BPM")
+        , ("K3: random")
         }
       }
 
       if page.loops.frame == 1 then
         screen.level(screen_levels[4])
-        screen.move(0,63)
-        screen.text(sets[page.loops.top_option_set[page.loops.sel]][1])
-        screen.move(128,63)
-        screen.text_right(sets[page.loops.top_option_set[page.loops.sel]][2])
+        if key2_hold then
+          screen.move(64,63)
+          screen.text_center("K3: toggle looping, all pads")
+        else
+          screen.move(0,63)
+          screen.text(sets[page.loops.top_option_set[page.loops.sel]][1])
+          screen.move(128,63)
+          screen.text_right(sets[page.loops.top_option_set[page.loops.sel]][2])
+        end
+      -- elseif page.loops.frame == 2 and key1_hold and not key2_hold then
       elseif page.loops.frame == 2 and key1_hold then
         screen.level(screen_levels[1])
         screen.move(0,63)
         screen.text(key_gestures[1][1])
         screen.move(128,63)
         screen.text_right(key_gestures[1][2])
-      else
+      elseif page.loops.frame == 2 and key2_hold and not key1_hold then
+        screen.level(screen_levels[1])
+        screen.move(0,63)
+        screen.text(sets[page.loops.top_option_set[page.loops.sel]][1])
+        screen.move(128,63)
+        screen.text_right(sets[page.loops.top_option_set[page.loops.sel]][2])
+      elseif page.loops.frame == 2 and not key2_hold and not key1_hold then
         screen.level(screen_levels[1])
         screen.move(0,63)
         screen.text(sets[3][1])
@@ -244,7 +284,7 @@ function main_menu.init()
 
     elseif page.loops.sel == 4 then
 
-      if page.loops.frame == 1 and key1_hold then
+      if (page.loops.frame == 1 and key1_hold and not key2_hold) then
         screen.level(screen_levels[4])
         screen.move(70,25)
         screen.text_center("E1: change control sets")
@@ -334,16 +374,26 @@ function main_menu.init()
 
           if page.loops.frame == 1 then
             screen.level(screen_levels[4])
-            screen.move(0,63)
-            screen.text(sets[page.loops.top_option_set[page.loops.sel]][1])
-            screen.move(128,63)
-            screen.text_right(sets[page.loops.top_option_set[page.loops.sel]][2])
+            if key2_hold then
+              screen.move(64,63)
+              screen.text_center("K3: toggle recording")
+            else
+              screen.move(0,63)
+              screen.text(sets[page.loops.top_option_set[page.loops.sel]][1])
+              screen.move(128,63)
+              screen.text_right(sets[page.loops.top_option_set[page.loops.sel]][2])
+            end
           elseif page.loops.frame == 2 then
             screen.level(screen_levels[1])
-            screen.move(0,63)
-            screen.text(key1_hold and key_gestures[1][1] or sets[3][1])
-            screen.move(128,63)
-            screen.text_right(key1_hold and key_gestures[1][2] or sets[3][2])
+            if key2_hold then
+              screen.move(64,63)
+              screen.text_center("K3: toggle recording")
+            else
+              screen.move(0,63)
+              screen.text(key1_hold and key_gestures[1][1] or sets[3][1])
+              screen.move(128,63)
+              screen.text_right(key1_hold and key_gestures[1][2] or sets[3][2])
+            end
           end
 
         end
