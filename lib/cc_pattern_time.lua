@@ -329,4 +329,19 @@ function pattern:set_overdub(s)
   end
 end
 
+function pattern:restore_defaults()
+  self:clear()
+  self.mode = "unquantized"
+  if self.name == "midi_pat[1]" or self.name == "midi_pat[2]" or self.name == "midi_pat[3]" then
+    print("resetting midi_pat")
+    self.tightened_start = 0
+    self.auto_snap = 0
+    self.quantize = 0
+    self.playmode = 1
+    self.random_pitch_range = 5
+    self.rec_clock_time = 8
+    self.first_touch = false
+  end
+end
+
 return pattern

@@ -45,8 +45,12 @@ function encoder_actions.init(n,d)
             end
           end
         else
-          ea.move_rec_window(rec[rec.focus],d)
-          ea.sc.move_rec_window(rec[rec.focus])
+          if key1_hold then
+            ea.change_buffer(rec[rec.focus],d)
+          else
+            ea.move_rec_window(rec[rec.focus],d)
+            ea.sc.move_rec_window(rec[rec.focus])
+          end
         end
       end
     elseif menu == 6 then
@@ -150,9 +154,9 @@ function encoder_actions.init(n,d)
         end
 
       elseif id == 4 then
-        if page.loops.frame == 1 and not key1_hold then
+        if page.loops.frame == 1 and page.loops.top_option_set[id] == 1 then
           params:delta("live_rec_feedback",d)
-        elseif page.loops.frame == 1 and key1_hold then
+        elseif page.loops.frame == 1 and page.loops.top_option_set[id] == 2 then
           params:delta("rec_loop",d)
         elseif page.loops.frame == 2 then
           local lbr = {1,2,4}
@@ -168,6 +172,9 @@ function encoder_actions.init(n,d)
             rec[rec.focus].start_point = util.clamp(rec[rec.focus].start_point+((res)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.focus-1))),(8.9+(8*(rec.focus-1))))
           end
           softcut.loop_start(1, rec[rec.focus].start_point)
+          if key1_hold then
+            update_waveform(1,rec[rec.focus].start_point,rec[rec.focus].end_point,128)
+          end
         end
 
       end
@@ -261,15 +268,16 @@ function encoder_actions.init(n,d)
         if page.loops.frame == 1 then
           if page.loops.top_option_set[page.loops.sel] == 1 then
             local current_offset = (math.log(bank[id][focused_pad].offset)/math.log(0.5))*-12
-            current_offset = util.clamp(current_offset+d,-36,24)
-            if current_offset > -1 and current_offset < 1 then
+            current_offset = util.clamp(current_offset+d/32,-36,24)
+            if current_offset > -0.0001 and current_offset < 0.0001 then
               current_offset = 0
             end
             bank[id][focused_pad].offset = math.pow(0.5, -current_offset / 12)
             if grid_pat[id].play == 0 and grid_pat[id].tightened_start == 0 and not arp[id].playing and midi_pat[id].play == 0 then
-              if params:get("preview_clip_change") == 1 then
-                cheat(id,bank[id].id)
-              end
+              -- if params:get("preview_clip_change") == 1 then
+                -- cheat(id,bank[id].id)
+                softcut.rate(id+1, bank[id][focused_pad].rate*bank[id][focused_pad].offset)
+              -- end
             end
             -- if key1_hold then
               for i = 1,16 do
@@ -294,15 +302,16 @@ function encoder_actions.init(n,d)
           if key2_hold then
             if page.loops.top_option_set[page.loops.sel] == 1 then
               local current_offset = (math.log(bank[id][focused_pad].offset)/math.log(0.5))*-12
-              current_offset = util.clamp(current_offset+d,-36,24)
-              if current_offset > -1 and current_offset < 1 then
+              current_offset = util.clamp(current_offset+d/32,-36,24)
+              if current_offset > -0.0001 and current_offset < 0.0001 then
                 current_offset = 0
               end
               bank[id][focused_pad].offset = math.pow(0.5, -current_offset / 12)
               if grid_pat[id].play == 0 and grid_pat[id].tightened_start == 0 and not arp[id].playing and midi_pat[id].play == 0 then
-                if params:get("preview_clip_change") == 1 then
-                  cheat(id,bank[id].id)
-                end
+                -- if params:get("preview_clip_change") == 1 then
+                  -- cheat(id,bank[id].id)
+                -- end
+                softcut.rate(id+1, bank[id][focused_pad].rate*bank[id][focused_pad].offset)
               end
             elseif page.loops.top_option_set[page.loops.sel] == 2 then
               bank[id][focused_pad].rate_slew = util.clamp(bank[id][focused_pad].rate_slew+d/10,0,4)
@@ -312,15 +321,15 @@ function encoder_actions.init(n,d)
             local resolution = loop_enc_resolution[id] * (key1_hold and 10 or 1)
             ea.move_end(bank[id][focused_pad],d/resolution)
             if bank[id].focus_hold == false then
-              softcut.loop_end(id+1, bank[id][bank[id].id].end_point)
+              ea.sc.move_end(id)
             end
           end
         end
 
       elseif id == 4 then
-        if page.loops.frame == 1 and not key1_hold then
+        if page.loops.frame == 1 and page.loops.top_option_set[id] == 1 then
           params:delta("random_rec_clock_prob",d)
-        elseif page.loops.frame == 1 and key1_hold then
+        elseif page.loops.frame == 1 and page.loops.top_option_set[id] == 2 then
           params:delta("live_buff_rate",d)
         elseif page.loops.frame == 2 then
           local lbr = {1,2,4}
@@ -336,6 +345,9 @@ function encoder_actions.init(n,d)
             rec[rec.focus].end_point = util.clamp(rec[rec.focus].end_point+((res)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.focus-1))),(9+(8*(rec.focus-1))))
           end
           softcut.loop_end(1, rec[rec.focus].end_point-0.01)
+          if key1_hold then
+            update_waveform(1,rec[rec.focus].start_point,rec[rec.focus].end_point,128)
+          end
         end
       end
 
@@ -990,26 +1002,22 @@ function ea.change_pad_clip(target,delta)
     local tryit = util.clamp(pad.clip+delta,1,3)
     jump_clip(target,focused_pad,tryit)
   end
-  
-  -- FIXME TODO
-  -- pad.start_point = pad.start_point - ((pre_adjust - pad.clip)*8)
-  -- pad.end_point = pad.start_point + current_difference
  
   if grid_pat[target].play == 0 and grid_pat[target].tightened_start == 0 and not arp[target].playing and midi_pat[target].play == 0 then
-    if params:get("preview_clip_change") == 1 then
+    if params:get("preview_clip_change") == 1 or bank[target][bank[target].id].loop then
       cheat(target,bank[target].id)
     end
   end
   
-  if focused_pad == 16 then
-    for i = 1,15 do
-      if bank[target][16].mode ~= bank[target][i].mode then
-        bank[target][i].mode = bank[target][16].mode
-        change_mode(bank[target][i],bank[target][i].mode == 2 and 1 or 2)
-      end
-      jump_clip(target,i,bank[target][16].clip)
-    end
-  end
+  -- if focused_pad == 16 then
+  --   for i = 1,15 do
+  --     if bank[target][16].mode ~= bank[target][i].mode then
+  --       bank[target][i].mode = bank[target][16].mode
+  --       change_mode(bank[target][i],bank[target][i].mode == 2 and 1 or 2)
+  --     end
+  --     jump_clip(target,i,bank[target][16].clip)
+  --   end
+  -- end
   
   grid_dirty = true
 
@@ -1062,6 +1070,11 @@ end
 function ea.sc.move_start(target)
   pad = bank[target][bank[target].id]
   softcut.loop_start(target+1, pad.start_point)
+end
+
+function ea.sc.move_end(target)
+  pad = bank[target][bank[target].id]
+  softcut.loop_end(target+1, pad.end_point)
 end
 
 function ea.check_delay_links(orig,dest,prm)

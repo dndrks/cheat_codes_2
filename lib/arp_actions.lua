@@ -49,7 +49,8 @@ end
 
 function arp_actions.arpeggiate(target)
   while true do
-    clock.sync(arp[target].time)
+    -- clock.sync(arp[target].time)
+    clock.sync(bank[target][bank[target].id].arp_time)
     if #arp[target].notes > 0 then
       if arp[target].pause == false then
         if arp[target].mode == "fwd" then

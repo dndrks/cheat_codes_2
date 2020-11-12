@@ -6,14 +6,22 @@ function mc.init()
   for i = 1,3 do
     mc.redraw(bank[i][bank[i].id])
   end
+  for i = 1,4 do
+    if midi_dev[i].name == "Midi Fighter Twister" then
+      mc.mft_redraw(bank[1][bank[1].id],"all")
+    end
+  end
 end
 
 function mc.move_start(target,val) -- expects (bank[x][y],0-127)
   local lo = target.mode == 1 and live[target.clip].min or clip[target.clip].min
   local hi = target.end_point-0.1
   local max = target.mode == 1 and live[target.clip].max or clip[target.clip].max
+  local save_this = target.start_point
   target.start_point = util.round(util.clamp(util.linlin(0,127,lo,max,val),lo,hi),0.1)
-  softcut.loop_start(target.bank_id+1,target.start_point)
+  if save_this ~= target.start_point then
+    softcut.loop_start(target.bank_id+1,target.start_point)
+  end
   params:set("start point "..target.bank_id,val,"true")
   if menu ~= 1 then screen_dirty = true end
 end
@@ -22,8 +30,11 @@ function mc.move_end(target,val) -- expects (bank[x][y],0-127)
   local lo = target.start_point+0.1
   local hi = target.mode == 1 and live[target.clip].max or clip[target.clip].max
   local min = target.mode == 1 and live[target.clip].min or clip[target.clip].min
+  local save_this = target.end_point
   target.end_point = util.round(util.clamp(util.linlin(0,127,min,hi,val),lo,hi),0.1)
-  softcut.loop_end(target.bank_id+1,target.end_point)
+  if save_this ~= target.end_point then
+    softcut.loop_end(target.bank_id+1,target.end_point)
+  end
   params:set("end point "..target.bank_id,val,"true")
   if menu ~= 1 then screen_dirty = true end
 end
@@ -77,6 +88,45 @@ function mc.redraw(target) -- expects (bank[x][y])
   midi_dev[params:get("midi_control_device")]:cc(3,tilt_to_cc,params:get("bank_"..target.bank_id.."_midi_channel"))
   local level_to_cc = util.round(util.linlin(0,2,0,127,target.level))
   midi_dev[params:get("midi_control_device")]:cc(4,level_to_cc,params:get("bank_"..target.bank_id.."_midi_channel"))
+end
+
+function mc.enc_redraw(target)
+  local duration = target.mode == 1 and 8 or clip[target.clip].sample_length
+  local min = target.mode == 1 and live[target.clip].min or clip[target.clip].min
+  local max = target.mode == 1 and live[target.clip].max or clip[target.clip].max
+  local start_to_cc = util.round(util.linlin(min,max,0,127,target.start_point))
+  midi_dev[params:get("midi_enc_control_device")]:cc(1,start_to_cc,params:get("bank_"..target.bank_id.."_midi_enc_channel"))
+  local end_to_cc = util.round(util.linlin(min,max,0,127,target.end_point))
+  midi_dev[params:get("midi_enc_control_device")]:cc(2,end_to_cc,params:get("bank_"..target.bank_id.."_midi_enc_channel"))
+  local tilt_to_cc = util.round(util.linlin(-1,1,0,127,target.tilt))
+  midi_dev[params:get("midi_enc_control_device")]:cc(3,tilt_to_cc,params:get("bank_"..target.bank_id.."_midi_enc_channel"))
+  local level_to_cc = util.round(util.linlin(0,2,0,127,target.level))
+  midi_dev[params:get("midi_enc_control_device")]:cc(4,level_to_cc,params:get("bank_"..target.bank_id.."_midi_enc_channel"))
+end
+
+function mc.mft_redraw(target,parameter)
+  local duration = target.mode == 1 and 8 or clip[target.clip].sample_length
+  local min = target.mode == 1 and live[target.clip].min or clip[target.clip].min
+  local max = target.mode == 1 and live[target.clip].max or clip[target.clip].max
+  local start_to_cc = util.round(util.linlin(min,max,0,127,target.start_point))
+  if parameter == "start_point" then
+    midi_dev[params:get("midi_enc_control_device")]:cc(1,start_to_cc,params:get("bank_"..target.bank_id.."_midi_enc_channel"))
+    midi_dev[params:get("midi_enc_control_device")]:cc(1,start_to_cc,5)
+  elseif parameter == "end_point" then
+    local end_to_cc = util.round(util.linlin(min,max,0,127,target.end_point))
+    midi_dev[params:get("midi_enc_control_device")]:cc(2,end_to_cc,params:get("bank_"..target.bank_id.."_midi_enc_channel"))
+    midi_dev[params:get("midi_enc_control_device")]:cc(2,end_to_cc,5)
+  elseif parameter == "all" then
+    midi_dev[params:get("midi_enc_control_device")]:cc(1,start_to_cc,params:get("bank_"..target.bank_id.."_midi_enc_channel"))
+    midi_dev[params:get("midi_enc_control_device")]:cc(1,start_to_cc,5)
+    local end_to_cc = util.round(util.linlin(min,max,0,127,target.end_point))
+    midi_dev[params:get("midi_enc_control_device")]:cc(2,end_to_cc,params:get("bank_"..target.bank_id.."_midi_enc_channel"))
+    midi_dev[params:get("midi_enc_control_device")]:cc(2,end_to_cc,5)
+  end
+  -- local tilt_to_cc = util.round(util.linlin(-1,1,0,127,target.tilt))
+  -- midi_dev[params:get("midi_enc_control_device")]:cc(3,tilt_to_cc,params:get("bank_"..target.bank_id.."_midi_enc_channel"))
+  -- local level_to_cc = util.round(util.linlin(0,2,0,127,target.level))
+  -- midi_dev[params:get("midi_enc_control_device")]:cc(4,level_to_cc,params:get("bank_"..target.bank_id.."_midi_enc_channel"))
 end
 
 function mc.cheat(target,note) -- expects (x,0-127)

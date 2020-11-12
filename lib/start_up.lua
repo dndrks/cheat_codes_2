@@ -24,7 +24,7 @@ function start_up.init()
     softcut.position(i, 1)
     softcut.phase_quant(i, 0.01)
     -- softcut.phase_quant(i, 1/15)
-    softcut.rec_offset(i, -0.0003)
+    -- softcut.rec_offset(i, -0.0003)
     softcut.enable(i, 1)
     softcut.rate_slew_time(4,0.2)
   end
@@ -46,7 +46,7 @@ function start_up.init()
   softcut.pre_level(5, 0.5)
   softcut.recpre_slew_time(5,0.01)
   softcut.position(5, 41)
-  softcut.rec_offset(5, -0.0003)
+  -- softcut.rec_offset(5, -0.0003)
   softcut.enable(5, 1)
   
   softcut.level(6,1)
@@ -65,7 +65,7 @@ function start_up.init()
   softcut.pre_level(6, 0.5)
   softcut.recpre_slew_time(6,0.01)
   softcut.position(6, 71)
-  softcut.rec_offset(6, -0.0003)
+  -- softcut.rec_offset(6, -0.0003)
   softcut.enable(6, 1)
   
   --params:add_separator()
@@ -92,15 +92,15 @@ function start_up.init()
       rec[rec.focus].loop = 2-x
       softcut.loop(1,rec[rec.focus].loop)
       softcut.position(1,rec[rec.focus].start_point)
-      --rec[rec.focus].state = 1
-      rec[rec.focus].state = 0
-      --rec[rec.focus].clear = 0
+      -- rec[rec.focus].state = 0
       softcut.rec_level(1,rec[rec.focus].state)
-      if x == 2 then
-        --rec_state_watcher:start()
-        softcut.pre_level(1,params:get("live_rec_feedback"))
-      elseif x == 1 then
-        softcut.pre_level(1,params:get("live_rec_feedback"))
+      if rec[rec.focus].state == 1 then
+        if x == 2 then
+          --rec_state_watcher:start()
+          softcut.pre_level(1,params:get("live_rec_feedback"))
+        elseif x == 1 then
+          softcut.pre_level(1,params:get("live_rec_feedback"))
+        end
       end
     end
   )
@@ -131,9 +131,9 @@ function start_up.init()
   params:add{id="live_rec_feedback", name="live rec feedback", type="control", 
   controlspec=controlspec.new(0,1.0,'lin',0,0.25,""),
   action=function(x)
-    -- if rec[rec.focus].state == 1 then
+    if rec[rec.focus].state == 1 then
       softcut.pre_level(1,x)
-    -- end
+    end
   end}
   
   params:add_option("live_buff_rate", "live buffer max", {"8 sec", "16 sec", "32 sec"}, 1)

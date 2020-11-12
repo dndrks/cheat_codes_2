@@ -58,7 +58,6 @@ function grid_actions.init(x,y,z)
             end
             pad_clipboard = nil
             if bank[i].quantize_press == 0 then
-              -- if (arp[i].enabled or (menu == 9)) and grid_pat[i].rec == 0 and not arp[i].pause then
               if arp[i].enabled and grid_pat[i].rec == 0 and not arp[i].pause then
                 if arp[i].down == 0 and params:string("arp_"..i.."_hold_style") == "last pressed" then
                   for j = #arp[i].notes,1,-1 do
@@ -111,7 +110,7 @@ function grid_actions.init(x,y,z)
           if (arp[i].enabled and not arp[i].hold) or (menu == 9 and not arp[i].hold) then
             arps.momentary(i, released_pad, "off")
             arp[i].down = arp[i].down - 1
-          elseif (arp[i].enabled and arp[i].hold) or (menu == 9 and arp[i].hold) then
+          elseif (arp[i].enabled and arp[i].hold and not arp[i].pause) or (menu == 9 and arp[i].hold and not arp[i].pause) then
             arp[i].down = arp[i].down - 1
           end
         end

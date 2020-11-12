@@ -121,7 +121,6 @@ function zilchmos.start_end_default( pad )
     duration = pad.mode == 1 and 8 or clip[pad.clip].sample_length
     pad.start_point = ((duration/16)*(pad.pad_id-1)) + clip[pad.clip].min
     pad.end_point = pad.start_point + (duration/16)
-    print(duration, pad.start_point, pad.end_point)
   end
 end
 
@@ -162,14 +161,6 @@ function zilchmos.start_random( pad )
     min_start = math.floor(((duration*(pad.clip-1))+1) * 100)
   end
   pad.start_point = math.random(min_start,max_end)/100
-
-
-  --[[
-  local duration = pad.mode == 1 and 8 or math.modf(clip[pad.clip].sample_length)
-  local max_end = math.floor(pad.end_point * 100)
-  local min_start = math.floor(((duration*(pad.clip-1))+1) * 100)
-  pad.start_point = math.random(min_start,max_end)/100
-  --]]
 
 end
 
@@ -346,6 +337,7 @@ end
 function zilchmos.sc.start_end( pad, i )
   softcut.loop_start(i+1,pad.start_point)
   softcut.loop_end(i+1,pad.end_point)
+  -- softcut.position(i+1,pad.start_point)
 end
 
 function zilchmos.sc._end( pad, i )

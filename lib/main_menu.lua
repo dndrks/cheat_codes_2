@@ -223,12 +223,12 @@ function main_menu.init()
         [1] =
         {
           (pad.mode == 1 and ("Live"..(page.loops.frame == 1 and " (all): " or ": ")..pad.clip) or ("Clip"..(page.loops.frame == 1 and " (all): " or ": ")..pad.clip))
-        , ("offset"..(page.loops.frame == 1 and " (all): " or ": ")..(string.format("%.0f",((math.log(pad.offset)/math.log(0.5))*-12))).." st")
+        , ("shft"..(page.loops.frame == 1 and " (all): " or ": ")..(string.format("%.2f",((math.log(pad.offset)/math.log(0.5))*-12))).." st")
         }
       , [2] =
         {
           ("rate"..(page.loops.frame == 1 and " (all): " or ": ")..string.format("%.4g",pad.rate).."x")
-        , ("slew"..(page.loops.frame == 1 and " (all): " or ": ")..string.format("%.1f",pad.rate_slew).."s")
+        , ("rmp"..(page.loops.frame == 1 and " (all): " or ": ")..string.format("%.1f",pad.rate_slew).."s")
         }
       , [3] =
         {
@@ -368,7 +368,7 @@ function main_menu.init()
             [1] =
             {
               ("K2: erase")
-            , ("K3: toggle rec")
+            , ("")
             }
           }
 
@@ -893,7 +893,7 @@ function main_menu.init()
         screen.text(track_edit_to_banks[rytm.track_edit].." auto off: "..rytm.track[rytm.track_edit].auto_pad_offset)
       end
     end
-    local labels = {"(k","n)","o","+/-"}
+    local labels = {"(k","n)","r","+/-"}
     local spaces = {5,20,105,120}
     for i = 1,2 do
       screen.level((not key1_hold and rytm.screen_focus == "left") and 15 or 3)
@@ -975,7 +975,8 @@ function main_menu.init()
     screen.level(page.arp_param[page.arp_page_sel] == 1 and 15 or 3)
     local banks = {"a","b","c"}
     local pad = tostring(banks[page.arp_page_sel]..bank[page.arp_page_sel].id)
-    screen.text_right((page.arp_alt[page.arp_page_sel] and (pad..": ") or "")..deci_to_frac[tostring(util.round(focus_arp.time, 0.0001))])
+    -- screen.text_right((page.arp_alt[page.arp_page_sel] and (pad..": ") or "")..deci_to_frac[tostring(util.round(focus_arp.time, 0.0001))])
+    screen.text_right((page.arp_alt[page.arp_page_sel] and (pad..": ") or "")..deci_to_frac[tostring(util.round(bank[page.arp_page_sel][bank[page.arp_page_sel].id].arp_time, 0.0001))])
     screen.move(125,30)
     screen.level(page.arp_param[page.arp_page_sel] == 2 and 15 or 3)
     screen.text_right(focus_arp.mode)
@@ -1077,57 +1078,6 @@ function main_menu.init()
     screen.move_rel(5,0)
     screen.level(page.rnd_page_section == 2 and (edit_line == 6 and 15 or 3) or 3)
     screen.text(params_to_maxs[current.param][1])
-
-  elseif menu == 11 then
-    screen.move(0,10)
-    screen.level(3)
-    screen.text("help")
-    if help_menu == "welcome" then
-      help_menus.welcome()
-    elseif help_menu == "banks" then
-      help_menus.banks()
-    elseif help_menu == "zilchmo_4" then
-      help_menus.zilchmo4()
-    elseif help_menu == "zilchmo_3" then
-      help_menus.zilchmo3()
-    elseif help_menu == "zilchmo_2" then
-      help_menus.zilchmo2()
-    elseif help_menu == "grid patterns" then
-      help_menus.grid_pattern()
-    elseif help_menu == "alt" then
-      help_menus.alt()
-    elseif help_menu == "loop" then
-      help_menus.loop()
-    elseif help_menu == "mode" then
-      help_menus.mode()
-    elseif help_menu == "buffer jump" then
-      help_menus.buffer_jump()
-    elseif help_menu == "buffer switch" then
-      help_menus.buffer_switch()
-    elseif help_menu == "arc params" then
-      help_menus.arc_params()
-    elseif help_menu == "arc patterns" then
-      help_menus.arc_pattern()
-    elseif help_menu == "meta page" then
-      help_menus.meta_page()
-    elseif help_menu == "meta: slots" then
-      help_menus.meta_slots()
-    elseif help_menu == "meta: clock" then
-      help_menus.meta_clock()
-    elseif help_menu == "meta: step" then
-      help_menus.meta_step()
-    elseif help_menu == "meta: duration" then
-      help_menus.meta_duration()
-    elseif help_menu == "meta: alt" then
-      help_menus.meta_alt()
-    elseif help_menu == "meta: toggle" then
-      help_menus.meta_toggle()
-    elseif help_menu == "meta: loop mod" then
-      help_menus.meta_loop_mod()
-    end
-    screen.level(3)
-    screen.move(0,64)
-    screen.text("...")
   
   elseif menu == "load screen" then
     screen.level(15)
@@ -1177,7 +1127,7 @@ function main_menu.init()
     screen.move(62,64)
     screen.font_size(10)
     if dots ~= "saved!" then
-      screen.text_center("K2 or K3 to cancel")
+      screen.text_center("K3 to cancel")
     end
     screen.font_size(8)
   elseif menu == "delete screen" then
@@ -1191,7 +1141,7 @@ function main_menu.init()
     screen.move(62,64)
     screen.font_size(10)
     if dots ~= "deleted!" then
-      screen.text_center("K2 or K3 to cancel")
+      screen.text_center("K3 to cancel")
     end
     screen.font_size(8)
   elseif menu == "canceled overwrite screen" or menu == "canceled delete screen" then
@@ -1209,6 +1159,7 @@ function save_screen(text)
   named_savestate(text)
   clock.sleep(0.75)
   menu = 1
+  screen_dirty = true
 end
 
 function load_screen()
@@ -1222,6 +1173,7 @@ function load_screen()
   dots = "loaded!"
   clock.sleep(0.75)
   menu = 1
+  screen_dirty = true
   if not collection_loaded then
     _norns.key(1,1)
     _norns.key(1,0)
@@ -1232,6 +1184,7 @@ function load_fail_screen()
   menu = "load fail screen"
   clock.sleep(1)
   menu = 1
+  screen_dirty = true
   if not collection_loaded then
     _norns.key(1,1)
     _norns.key(1,0)
@@ -1250,12 +1203,14 @@ function overwrite_screen(text)
   clock.sleep(0.33)
   named_savestate(text)
   menu = 1
+  screen_dirty = true
 end
 
 function canceled_save()
   menu = "canceled overwrite screen"
   clock.sleep(0.75)
   menu = 1
+  screen_dirty = true
 end
 
 function delete_screen(text)
@@ -1270,12 +1225,14 @@ function delete_screen(text)
   clock.sleep(0.33)
   named_delete(text)
   menu = 1
+  screen_dirty = true
 end
 
 function canceled_delete()
   menu = "canceled delete screen"
   clock.sleep(0.75)
   menu = 1
+  screen_dirty = true
 end
 
 return main_menu

@@ -10,7 +10,6 @@
 local pattern_time = include 'lib/cc_pattern_time'
 fileselect = require 'fileselect'
 textentry = require 'textentry'
-help_menus = include 'lib/help_menus'
 main_menu = include 'lib/main_menu'
 encoder_actions = include 'lib/encoder_actions'
 arc_actions = include 'lib/arc_actions'
@@ -18,7 +17,6 @@ rightangleslice = include 'lib/zilchmos'
 start_up = include 'lib/start_up'
 grid_actions = include 'lib/grid_actions'
 easingFunctions = include 'lib/easing'
-midicontrol = include 'lib/midicheat'
 arps = include 'lib/arp_actions'
 rnd = include 'lib/rnd_actions'
 del = include 'lib/delay'
@@ -1056,6 +1054,9 @@ function init()
     grid_pat[sel]:watch(grid_p[sel])
   end
 
+  function record_arp()
+  end
+
   counter_two = {}
   counter_two.key_up = metro.init()
   counter_two.key_up.time = 0.05
@@ -1117,7 +1118,7 @@ function init()
           grid_dirty = true
           if menu == 2 then
             if menu ~= 1 then screen_dirty = true end
-            print("stopped")
+            -- print("stopped")
           end
         end
       end
@@ -1136,9 +1137,10 @@ function init()
     params:set("osc_IP","none")
     params:set("osc_port","none")
     osc_communication = false
+    osc_echo = false
   end}
 
-  params:add_group("MIDI keyboard setup",9)
+  params:add_group("MIDI keyboard/OP-Z setup",9)
   params:add_option("midi_control_enabled", "enable MIDI control?", {"no","yes"},1)
   params:set_action("midi_control_enabled", function() if all_loaded then persistent_state_save() end end)
   params:add_option("midi_control_device", "MIDI control device",{"port 1", "port 2", "port 3", "port 4"},1)
@@ -1155,6 +1157,19 @@ function init()
     params:set_action("bank_"..i.."_pad_midi_base", function() if all_loaded then persistent_state_save() end end)
   end
 
+  params:add_group("MIDI encoder setup",6)
+  params:add_option("midi_enc_control_enabled", "enable MIDI enc control?", {"no","yes"},1)
+  params:set_action("midi_enc_control_enabled", function() if all_loaded then persistent_state_save() end end)
+  params:add_option("midi_enc_control_device", "MIDI enc device",{"port 1", "port 2", "port 3", "port 4"},2)
+  params:set_action("midi_enc_control_device", function() if all_loaded then persistent_state_save() end end)
+  params:add_option("midi_enc_echo_enabled", "enable MIDI enc echo?", {"no","yes"},1)
+  params:set_action("midi_enc_echo_enabled", function() if all_loaded then persistent_state_save() end end)
+  local bank_names = {"(a)","(b)","(c)"}
+  for i = 1,3 do
+    params:add_number("bank_"..i.."_midi_enc_channel", "bank "..bank_names[i].." enc channel:",1,16,i)
+    params:set_action("bank_"..i.."_midi_enc_channel", function() if all_loaded then persistent_state_save() end end)
+  end
+
   crow_init()
   
   task_id = clock.run(globally_clocked)
@@ -1168,7 +1183,13 @@ function init()
   midi_dev = {}
   for j = 1,4 do
     midi_dev[j] = midi.connect(j)
+    if midi_dev[j].name == "Midi Fighter Twister" then
+      params:set("midi_enc_control_enabled",2)
+      params:set("midi_enc_control_device",j)
+      params:set("midi_enc_echo_enabled",2)
+    end
     midi_dev[j].event = function(data)
+      screen_dirty = true
       local d = midi.to_msg(data)
       if params:get("midi_control_enabled") == 2 and j == params:get("midi_control_device") then
         for i = 1,3 do
@@ -1222,6 +1243,44 @@ function init()
             end
           end
         end
+      elseif params:get("midi_enc_control_enabled") == 2 and j == params:get("midi_enc_control_device") then
+        -- TODO: refine this, shouldn't have to call all 3...
+        if midi_dev[j].name ~= "Midi Fighter Twister" then 
+          for i = 1,3 do
+            if d.ch == params:get("bank_"..i.."_midi_enc_channel") then
+              if d.type == "cc" then
+                if d.cc == 1 then
+                  mc.move_start(bank[i][bank[i].id],d.val)
+                elseif d.cc == 2 then
+                  mc.move_end(bank[i][bank[i].id],d.val)
+                elseif d.cc == 3 then
+                  mc.adjust_filter(i,d.val)
+                elseif d.cc == 4 then
+                  mc.adjust_pad_level(bank[i][bank[i].id],d.val)
+                end
+              end
+            end
+          end
+        elseif midi_dev[j].name == "Midi Fighter Twister" then
+          -- tab.print(d)
+          if d.ch == 1 or d.ch == 5 then
+            if d.cc == 1 or d.cc == 17 or d.cc == 33 then
+              local id = math.floor(d.cc/16)+1
+              encoder_actions.move_start(bank[id][bank[id].id],d.val == 63 and (d.ch == 1 and -0.1 or -0.01) or (d.ch == 1 and 0.1 or 0.01))
+              mc.mft_redraw(bank[id][bank[id].id],"start_point")
+              if bank[id].focus_hold == false then
+                encoder_actions.sc.move_start(id)
+              end
+            elseif d.cc == 2 then
+              encoder_actions.move_end(bank[1][bank[1].id],d.val == 63 and (d.ch == 1 and -0.1 or -0.01) or (d.ch == 1 and 0.1 or 0.01))
+              mc.mft_redraw(bank[1][bank[1].id],"end_point")
+              if bank[1].focus_hold == false then
+                encoder_actions.sc.move_end(1)
+              end
+            end
+          end
+        end
+        
       end
     end
   end
@@ -1261,9 +1320,9 @@ function init()
 
   hardware_redraw = metro.init(
     function()
-      draw_grid()
-      arc_redraw()
-      draw_screen()
+      if all_loaded then draw_grid() end
+      if all_loaded then arc_redraw() end
+      if all_loaded then draw_screen() end
     end
     , 1/30, -1)
   hardware_redraw:start()
@@ -1343,12 +1402,6 @@ function grid_pattern_watch(target,pad)
     grid_p[target].pause = bank[target][bank[target].id].pause
     grid_p[target].mode = bank[target][bank[target].id].mode
     grid_p[target].clip = bank[target][bank[target].id].clip
-    --[[
-    if grid_pat[target].rec == 1 and grid_pat[target].count == 0 then
-      print("grid happening")
-      clock.run(synced_pattern_record,grid_pat[target])
-    end
-    --]]
     grid_pat[target]:watch(grid_p[target])
   else
     grid_pat[target]:watch("pause")
@@ -1741,12 +1794,12 @@ osc_in = function(path, args, from)
     osc_communication = true
   end
   for i = 1,3 do
+    local target = bank[i][bank[i].id]
     if path == "/pad_sel_"..i then
       if args[1] ~= 0 then
         bank[i].id = util.round(args[1])
         cheat(i,bank[i].id)
         if menu ~= 1 then screen_dirty = true end
-        osc_redraw(i)
       end
     elseif path == "/randomize_this_bank_"..i then
       random_grid_pat(i,3)
@@ -1759,144 +1812,101 @@ osc_in = function(path, args, from)
       grid_pat[i]:stop()
       grid_pat[i].tightened_start = 0
 
-    elseif path == "/rate_"..i then
-      for j = 7,12 do
-        osc.send(dest, "/rate_"..i.."_"..j, {0})
+    elseif path == "/pad_rate_"..i then
+      target.rate = args[1]
+      softcut.rate(i+1,target.rate)
+    elseif path == "/bank_rate_"..i then
+      for j = 1,16 do
+        bank[i][j].rate = args[1]
       end
-      if params:get("rate "..i) > 6 then
-        params:set("rate "..i, util.round(args[1]))
-        osc.send(dest, "/rate_"..i.."_"..params:get("rate "..i), {1})
+      softcut.rate(i+1,target.rate)
+    elseif path == "/pad_rev_"..i then
+      target.rate = target.rate * - 1
+      softcut.rate(i+1,target.rate)
+    elseif path == "/bank_rev_"..i then
+      local direction;
+      if target.rate > 0 then
+        direction = 1
       else
-        params:set("rate "..i, math.abs(util.round(args[1])-13))
-        osc.send(dest, "/rate_"..i.."_"..math.abs(params:get("rate "..i)-13), {1})
+        direction = -1
       end
-      osc.send(dest, "/rate_"..i, {params:get("rate "..i)})
-    elseif path == "/rate_rev_"..i then
-      params:set("rate "..i, math.abs(params:get("rate "..i)-13))
-    elseif path == "/pad_loop_single_"..i then
-      if args[1] == 1 then
-        bank[i][bank[i].id].loop = true
-        softcut.loop(i+1,1)
-      elseif args[1] == 0 then
-        bank[i][bank[i].id].loop = false
-        softcut.loop(i+1,0)
+      for j = 1,16 do
+        bank[i][j].rate = math.abs(bank[i][j].rate)*(-1*direction)
       end
-    elseif path == "/pad_loop_all_"..i then
-      if args[1] == 1 then
-        for j = 1,16 do
-          bank[i][j].loop = true
-        end
-      elseif args[1] == 0 then
-        for j = 1,16 do
-          bank[i][j].loop = false
-        end
+      softcut.rate(i+1,target.rate)
+    elseif path == "/bank_rand_rate_"..i then
+      for j = 1,16 do
+        bank[i][j].rate = math.pow(2,math.random(-3,2))*((math.random(1,2)*2)-3)
       end
-      softcut.loop(i+1,bank[i][bank[i].id].loop == true and 1 or 0)
-      local loop_to_osc = nil
-      if bank[i][bank[i].id].loop == false then
-        loop_to_osc = 0
-      else
-        loop_to_osc = 1
+      softcut.rate(i+1,target.rate)
+    elseif path == "/sixteenths_"..i then
+      for j = 1,16 do
+        local pad = bank[i][j]
+        local duration = pad.mode == 1 and 8 or clip[pad.clip].sample_length
+        local s_p = pad.mode == 1 and live[pad.clip].min or clip[pad.clip].min
+        pad.end_point = pad.start_point + (clock.get_beat_sec()/4)
       end
-      osc.send(dest, "/pad_loop_single_"..i, {loop_to_osc})
-    elseif path == "/pad_start_"..i then
-      params:set("start point "..i, util.round(args[1]))
-      osc.send(dest, "/pad_start_display_"..i, {tonumber(string.format("%.2f",bank[i][bank[i].id].start_point - (8*(bank[i][bank[i].id].clip-1))))})
-    elseif path == "/pad_end_"..i then
-      params:set("end point "..i, util.round(args[1]))
-      osc.send(dest, "/pad_end_display_"..i, {tonumber(string.format("%.2f",bank[i][bank[i].id].end_point - (8*(bank[i][bank[i].id].clip-1))))})
-    elseif path == "/pad_window_"..i then
-      local current_difference = (bank[i][bank[i].id].end_point - bank[i][bank[i].id].start_point)
-      if bank[i][bank[i].id].start_point + current_difference <= (9+(8*(bank[i][bank[i].id].clip-1))) then
-        bank[i][bank[i].id].start_point = util.clamp(bank[i][bank[i].id].start_point + args[1]/25,(1+(8*(bank[i][bank[i].id].clip-1))),(9+(8*(bank[i][bank[i].id].clip-1))))
-        bank[i][bank[i].id].end_point = bank[i][bank[i].id].start_point + current_difference
-      else
-        bank[i][bank[i].id].end_point = (9+(8*(bank[i][bank[i].id].clip-1)))
-        bank[i][bank[i].id].start_point = bank[i][bank[i].id].end_point - current_difference
-      end
-      softcut.loop_start(i+1,bank[i][bank[i].id].start_point)
-      softcut.loop_end(i+1,bank[i][bank[i].id].end_point)
-      osc.send(dest, "/pad_start_"..i, {(bank[i][bank[i].id].start_point*100)-((8*(bank[i][bank[i].id].clip-1))*100)})
-      osc.send(dest, "/pad_start_display_"..i, {tonumber(string.format("%.2f",(bank[i][bank[i].id].start_point) - (8*(bank[i][bank[i].id].clip-1))))})
-      osc.send(dest, "/pad_end_"..i, {(bank[i][bank[i].id].end_point*100)-((8*(bank[i][bank[i].id].clip-1))*100)})
-      osc.send(dest, "/pad_end_display_"..i, {tonumber(string.format("%.2f",bank[i][bank[i].id].end_point - (8*(bank[i][bank[i].id].clip-1))))})
-    elseif path == "/rand_pat_"..i then
-      random_grid_pat(i,3)
-    elseif path == "/stop_pat_"..i then
-      if grid_pat[i].play == 1 then
-        grid_pat[i]:stop()
-      elseif grid_pat[i].tightened_start == 1 then
-        grid_pat[i].tightened_start = 0
-        grid_pat[i].step = grid_pat[i].start_point
-        quantized_grid_pat[i].current_step = grid_pat[i].start_point
-        quantized_grid_pat[i].sub_step = 1
-      end
-    elseif path == "/start_pat_"..i then
-      if grid_pat[i].quantize == 0 then
-        if grid_pat[i].play == 0 then
-          --grid_pat[i]:start()
-          start_pattern(grid_pat[i])
-          osc.send(dest, "/start_pat_"..i, {1})
+      softcut.loop_start(i+1,target.start_point)
+      softcut.loop_end(i+1,target.end_point)
+    elseif path == "/chop_"..i then
+      for j = 1,16 do
+        local duration;
+        local pad = bank[i][j]
+        if pad.mode == 1 then
+          --slice within bounds
+          duration = rec[rec.focus].end_point-rec[rec.focus].start_point
+          local s_p = rec[rec.focus].start_point+(8*(pad.clip-1))
+          pad.start_point = (s_p+(duration/16) * (pad.pad_id-1))
+          pad.end_point = (s_p+((duration/16) * (pad.pad_id)))
         else
-          grid_pat[i]:stop()
-          osc.send(dest, "/start_pat_"..i, {0})
-        end
-      else
-        better_grid_pat_q_clock(i)
-      end
-    elseif path == "/pad_loop_slice_"..i then
-      local bpm_to_sixteenth = clock.get_beat_sec()/4
-      bank[i][bank[i].id].end_point = bank[i][bank[i].id].start_point + bpm_to_sixteenth
-      softcut.loop_end(i+1,bank[i][bank[i].id].end_point)
-      osc_redraw(i)
-    elseif path == "/pad_loop_double_"..i then
-      local which_pad = bank[i].id
-      local double = (bank[i][which_pad].end_point - bank[i][which_pad].start_point)*2
-      local maximum_val = 9+(8*(bank[i][which_pad].clip-1))
-      local minimum_val = 1+(8*(bank[i][which_pad].clip-1))
-      if bank[i][which_pad].start_point - double >= minimum_val then
-        bank[i][which_pad].start_point = bank[i][which_pad].end_point - double
-      elseif bank[i][which_pad].start_point - double < minimum_val then
-        if bank[i][which_pad].end_point + double < maximum_val then
-          bank[i][which_pad].end_point = bank[i][which_pad].end_point + double
+          duration = pad.mode == 1 and 8 or clip[pad.clip].sample_length
+          pad.start_point = ((duration/16)*(pad.pad_id-1)) + clip[pad.clip].min
+          pad.end_point = pad.start_point + (duration/16)
         end
       end
-      softcut.loop_start(i+1,bank[i][which_pad].start_point)
-      softcut.loop_end(i+1,bank[i][which_pad].end_point)
-      osc_redraw(i)
-    elseif path == "/pad_loop_halve_"..i then
-      local which_pad = bank[i].id
-      local halve = ((bank[i][which_pad].end_point - bank[i][which_pad].start_point)/2)/2
-      bank[i][which_pad].start_point = bank[i][which_pad].start_point + halve
-      bank[i][which_pad].end_point = bank[i][which_pad].end_point - halve
-      softcut.loop_start(i+1,bank[i][bank[i].id].start_point)
-      softcut.loop_end(i+1,bank[i][bank[i].id].end_point)
-      osc_redraw(i)
-    elseif path == "/pad_loop_rand_"..i then
-      bank[i][bank[i].id].start_point = (math.random(10,75)/10)+(8*(bank[i][bank[i].id].clip-1))
-      bank[i][bank[i].id].end_point = bank[i][bank[i].id].start_point + (math.random(1,15)/10)
-      softcut.loop_start(i+1,bank[i][bank[i].id].start_point)
-      softcut.loop_end(i+1,bank[i][bank[i].id].end_point)
-      osc_redraw(i)
-    elseif path == "/rec_clip_"..i then
-
-      toggle_buffer(i)
-      
-      for j = 1,3 do
-        if j ~= i then
-          osc.send(dest, "/buffer_LED_"..j, {0})
+      softcut.loop_start(i+1,target.start_point)
+      softcut.loop_end(i+1,target.end_point)
+    elseif path == "/rand_loop_points_"..i then
+      for j = 1,16 do
+        local duration, max_end, min_start;
+        local pad = bank[i][j]
+        if pad.mode == 1 and pad.clip == rec.focus then
+          duration = rec[rec.focus].end_point-rec[rec.focus].start_point
+          max_end = math.floor(pad.end_point * 100)-10
+          if max_end < math.floor(rec[rec.focus].start_point * 100) then
+            min_start = math.floor(((duration*(pad.clip-1))+1) * 100)
+          else
+            min_start = math.floor(rec[rec.focus].start_point * 100) -- this sucks...
+          end
+        elseif pad.mode == 2 then
+          max_end = math.floor(pad.end_point * 100)
+          min_start = math.floor(clip[pad.clip].min * 100)
+        else
+          duration = pad.mode == 1 and 8 or math.modf(clip[pad.clip].sample_length)
+          max_end = math.floor(pad.end_point * 100)
+          min_start = math.floor(((duration*(pad.clip-1))+1) * 100)
         end
+        pad.start_point = math.random(min_start,max_end)/100
+        if pad.mode == 1 and pad.clip == rec.focus then
+          duration = rec[rec.focus].end_point-rec[rec.focus].start_point
+          max_end = math.floor(rec[rec.focus].end_point*100)
+          if pad.start_point > rec[rec.focus].start_point then
+            min_start = math.floor(pad.start_point * 100)+10
+          else
+            min_start = math.floor(rec[rec.focus].start_point * 100)
+          end
+        elseif pad.mode == 2 then
+          max_end = math.floor(clip[pad.clip].max * 100)
+          min_start = math.floor(pad.start_point * 100)
+        else
+          duration = util.round(clip[pad.clip].sample_length)
+          max_end = math.floor(((duration*pad.clip)+1) * 100)
+          min_start = math.floor(pad.start_point * 100)
+        end
+        pad.end_point = math.random(min_start,max_end)/100
       end
-      
-      osc.send(dest, "/buffer_LED_"..i, {1})
-      
-      local rec_state_to_osc = nil
-      if rec[rec.focus].state == 0 then
-        rec_state_to_osc = "not recording"
-      else
-        rec_state_to_osc = "recording"
-      end
-      osc.send(dest, "/buffer_state", {rec_state_to_osc})
+      softcut.loop_start(i+1,target.start_point)
+      softcut.loop_end(i+1,target.end_point)
 
     end
   end
@@ -1905,45 +1915,53 @@ end
 osc.event = osc_in
 
 function osc_redraw(i)
-  local loop_to_osc = nil
-  if bank[i][bank[i].id].loop == false then
-    loop_to_osc = 0
-  else
-    loop_to_osc = 1
-  end
-  osc.send(dest, "/pad_loop_single_"..i, {loop_to_osc})
-  osc.send(dest, "/rate_"..i, {params:get("rate "..i)})
-  for j = 7,12 do
-    osc.send(dest, "/rate_"..i.."_"..j, {0})
-  end
-  if params:get("rate "..i) > 6 then
-    osc.send(dest, "/rate_"..i.."_"..params:get("rate "..i), {1})
-    osc.send(dest, "/rate_rev_"..i,{0})
-  else
-    osc.send(dest, "/rate_"..i.."_"..math.abs(params:get("rate "..i)-13), {1})
-    osc.send(dest, "/rate_rev_"..i,{1})
-  end
-  osc.send(dest, "/pad_start_"..i, {(bank[i][bank[i].id].start_point*100)-((8*(bank[i][bank[i].id].clip-1))*100)})
-  osc.send(dest, "/pad_start_display_"..i, {tonumber(string.format("%.2f",(bank[i][bank[i].id].start_point) - (8*(bank[i][bank[i].id].clip-1))))})
-  osc.send(dest, "/pad_end_"..i, {(bank[i][bank[i].id].end_point*100)-((8*(bank[i][bank[i].id].clip-1))*100)})
-  osc.send(dest, "/pad_end_display_"..i, {tonumber(string.format("%.2f",bank[i][bank[i].id].end_point - (8*(bank[i][bank[i].id].clip-1))))})
-  for j = 1,16 do
-    osc.send(dest, "/pad_sel_"..i.."_"..j, {0})
-  end
-  osc.send(dest, "/pad_sel_"..i.."_"..bank[i].id, {1})
-  local rec_state_to_osc = nil
-  if rec[rec.focus].state == 0 then
-    rec_state_to_osc = "not recording"
-  else
-    rec_state_to_osc = "recording"
-  end
-  osc.send(dest, "/buffer_state", {rec_state_to_osc})
-  for j = 1,3 do
-    if rec.focus ~= j then
-      osc.send(dest, "/buffer_LED_"..j, {0})
-    else
-      osc.send(dest, "/buffer_LED_"..rec.focus, {1})
-    end
+  if osc_echo then
+    local target = bank[i][bank[i].id]
+    osc.send(dest, "/pad_start_point_"..i, {target.start_point})
+    osc.send(dest, "/pad_end_point_"..i, {target.end_point})
+    osc.send(dest, "/pad_rate_"..i, {target.rate})
+    -- local loop_to_osc = nil
+    -- if bank[i][bank[i].id].loop == false then
+    --   loop_to_osc = 0
+    -- else
+    --   loop_to_osc = 1
+    -- end
+    -- osc.send(dest, "/pad_loop_single_"..i, {loop_to_osc})
+    -- osc.send(dest, "/rate_"..i, {params:get("rate "..i)})
+    -- for j = 7,12 do
+    --   osc.send(dest, "/rate_"..i.."_"..j, {0})
+    -- end
+    -- if params:get("rate "..i) > 6 then
+    --   osc.send(dest, "/rate_"..i.."_"..params:get("rate "..i), {1})
+    --   osc.send(dest, "/rate_rev_"..i,{0})
+    -- else
+    --   osc.send(dest, "/rate_"..i.."_"..math.abs(params:get("rate "..i)-13), {1})
+    --   osc.send(dest, "/rate_rev_"..i,{1})
+    -- end
+    -- -- osc.send(dest, "/pad_start_"..i, {(bank[i][bank[i].id].start_point*100)-((8*(bank[i][bank[i].id].clip-1))*100)})
+    -- osc.send(dest, "/pad_start_"..i, {(bank[i][bank[i].id].start_point)})
+    -- -- osc.send(dest, "/pad_start_display_"..i, {tonumber(string.format("%.2f",(bank[i][bank[i].id].start_point) - (8*(bank[i][bank[i].id].clip-1))))})
+    -- -- osc.send(dest, "/pad_end_"..i, {(bank[i][bank[i].id].end_point*100)-((8*(bank[i][bank[i].id].clip-1))*100)})
+    -- osc.send(dest, "/pad_end_"..i, {(bank[i][bank[i].id].end_point)})
+    -- osc.send(dest, "/pad_end_display_"..i, {tonumber(string.format("%.2f",bank[i][bank[i].id].end_point - (8*(bank[i][bank[i].id].clip-1))))})
+    -- for j = 1,16 do
+    --   osc.send(dest, "/pad_sel_"..i.."_"..j, {0})
+    -- end
+    -- osc.send(dest, "/pad_sel_"..i.."_"..bank[i].id, {1})
+    -- local rec_state_to_osc = nil
+    -- if rec[rec.focus].state == 0 then
+    --   rec_state_to_osc = "not recording"
+    -- else
+    --   rec_state_to_osc = "recording"
+    -- end
+    -- osc.send(dest, "/buffer_state", {rec_state_to_osc})
+    -- for j = 1,3 do
+    --   if rec.focus ~= j then
+    --     osc.send(dest, "/buffer_LED_"..j, {0})
+    --   else
+    --     osc.send(dest, "/buffer_LED_"..rec.focus, {1})
+    --   end
+    -- end
   end
 end
 
@@ -2282,8 +2300,33 @@ function cheat(b,i)
   if osc_communication == true then
     osc_redraw(b)
   end
-  if all_loaded and params:get("midi_echo_enabled") == 2 then
-    mc.redraw(pad)
+  -- TODO VERIFY OP-Z
+  -- if all_loaded and params:get("midi_echo_enabled") == 2 then
+  --   mc.redraw(pad)
+  -- end
+
+  if all_loaded and params:get("midi_enc_echo_enabled") == 2 then
+    if midi_dev[params:get("midi_enc_control_device")].name == "Midi Fighter Twister" then
+      mc.mft_redraw(pad,"all")
+    else
+      mc.enc_redraw(pad)
+    end
+  end
+
+  -- redraw waveform if it's zoomed in and the pad changes
+  if menu == 2 and page.loops.sel == b and page.loops.frame == 2 and not key2_hold and key1_hold then
+    local focused_pad;
+    if bank[page.loops.sel].focus_hold then
+      focused_pad = bank[page.loops.sel].focus_pad
+    elseif grid_pat[page.loops.sel].play == 0 and midi_pat[page.loops.sel].play == 0 and not arp[page.loops.sel].playing and rytm.track[page.loops.sel].k == 0 then
+      focused_pad = bank[page.loops.sel].id
+    else
+      focused_pad = bank[page.loops.sel].focus_pad
+    end
+    local mode = bank[page.loops.sel][focused_pad].mode
+    local min = bank[page.loops.sel][focused_pad].start_point
+    local max = bank[page.loops.sel][focused_pad].end_point
+    update_waveform(mode,min,max,128)
   end
 
 end
@@ -2700,8 +2743,22 @@ function key(n,z)
           if page.loops.sel < 4 then
             local id = page.loops.sel
             if page.loops.frame == 2 then
-              rightangleslice.init(4,id,'23')
-              update_waveform(bank[id][bank[id].id].mode,bank[id][bank[id].id].start_point,bank[id][bank[id].id].end_point,128)
+              local which_pad;
+              if bank[id].focus_hold then
+                which_pad = bank[id].focus_pad
+              elseif grid_pat[id].play == 0 and midi_pat[id].play == 0 and not arp[id].playing and rytm.track[id].k == 0 then
+                which_pad = bank[id].id
+              else
+                which_pad = bank[id].focus_pad
+              end
+              -- rightangleslice.init(4,id,'23')
+              rightangleslice.start_end_random(bank[id][which_pad])
+              update_waveform(bank[id][which_pad].mode,bank[id][which_pad].start_point,bank[id][which_pad].end_point,128)
+              -- if grid_pat[id].play == 1 and midi_pat[id].play == 0 and not arp[id].playing and rytm.track[id].k == 0 then
+                if bank[id].id == which_pad then
+                  rightangleslice.sc.start_end(bank[id][which_pad],id)
+                end
+              -- end
             else
               if bank[id][bank[id].id].mode == 2 then
                 _norns.key(1,1)
@@ -4093,9 +4150,9 @@ function persistent_state_save()
   io.write("preview_clip_change: "..params:get("preview_clip_change").."\n")
   io.write("zilchmo_patterning: "..params:get("zilchmo_patterning").."\n")
   io.write("LED_style: "..params:get("LED_style").."\n")
-  for i = 1,3 do
-    io.write("sync_clock_to_pattern_"..i..": "..params:get("sync_clock_to_pattern_"..i).."\n")
-  end
+  -- for i = 1,3 do
+  --   io.write("sync_clock_to_pattern_"..i..": "..params:get("sync_clock_to_pattern_"..i).."\n")
+  -- end
   io.write("arc_patterning: "..params:get("arc_patterning").."\n")
   io.close(file)
 end
@@ -4311,6 +4368,10 @@ function named_loadstate(path)
     for i = 1,3 do
       if tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/banks/"..i..".data") ~= nil then
         bank[i] = tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/banks/"..i..".data")
+        if bank[i][bank[i].id].loop then
+          softcut.loop(i+1,1)
+          cheat(i,bank[i].id)
+        end
       end
       if tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/step-seq/"..i..".data") ~= nil then
         step_seq[i] = tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/step-seq/"..i..".data")
@@ -4365,6 +4426,7 @@ function named_loadstate(path)
     end
 
     for i = 1,3 do
+      midi_pat[i]:restore_defaults()
       local dirname = _path.data .. "cheat_codes2/collection-"..selected_coll.."/patterns/midi"..i..".data"
       if os.rename(dirname, dirname) ~= nil then
         load_midi_pattern(i)
@@ -5015,6 +5077,9 @@ function save_midi_pattern(which)
     io.write("metro prev time: "..midi_pat[which].prev_time .. "\n")
     io.write("pattern start point: " .. midi_pat[which].start_point .. "\n")
     io.write("pattern end point: " .. midi_pat[which].end_point .. "\n")
+    io.write("playmode: " .. midi_pat[which].playmode .. "\n")
+    io.write("random_pitch_range: " .. midi_pat[which].random_pitch_range .. "\n")
+    io.write("rec_clock_time: " .. midi_pat[which].rec_clock_time .. "\n")
   else
     io.write("no data present")
   end
@@ -5041,6 +5106,14 @@ function load_midi_pattern(which)
       midi_pat[which].prev_time = tonumber(string.match(io.read(), ': (.*)'))
       midi_pat[which].start_point = tonumber(string.match(io.read(), ': (.*)'))
       midi_pat[which].end_point = tonumber(string.match(io.read(), ': (.*)'))
+      local full_param, first, second;
+      for i = 1,3 do
+        full_param = io.read()
+        first = full_param:match("(.+):")
+        second = full_param:match(": (.*)")
+        midi_pat[which][first] = full_param ~= nil and tonumber(second) or midi_pat[which][first]
+      end
+      print("loaded midi pat "..which)
     end
     io.close(file)
   else
