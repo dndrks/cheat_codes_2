@@ -40,6 +40,7 @@ function grid_actions.init(x,y,z)
       if grid.alt then
         if x == 1+(5*(i-1)) and y == 1 and z == 1 then
           bank[i].focus_hold = not bank[i].focus_hold
+          mc.mft_redraw(bank[i][bank[i].focus_hold and bank[i].focus_pad or bank[i].id],"all")
         end
       end
     end
@@ -83,11 +84,7 @@ function grid_actions.init(x,y,z)
         else
           if not grid.alt then
             bank[i].focus_pad = (math.abs(y-9)+((x-1)*4))-(20*(i-1))
-            --[[
-            if tracker[i].recording then
-              add_to_tracker(i,{bank[i].focus_pad,0.25,"next"})
-            end
-            --]]
+            mc.mft_redraw(bank[i][bank[i].focus_pad],"all")
           elseif grid.alt then
             if not pad_clipboard then
               pad_clipboard = {}

@@ -1274,7 +1274,10 @@ function init()
           end
 
           if d.ch == 1 or d.ch == 5 then
-            if d.cc == 1 or d.cc == 17 or d.cc == 33 then
+            if d.cc == 0 or d.cc == 16 or d.cc == 32 then
+              local id = math.floor(d.cc/16)+1
+              encoder_actions.change_pad(bank[id][check_focus_hold(id)].bank_id, d.val == 63 and -1 or 1)
+            elseif d.cc == 1 or d.cc == 17 or d.cc == 33 then
               -- pad start point
               local id = math.floor(d.cc/16)+1
               encoder_actions.move_start(bank[id][check_focus_hold(id)], d.val == 63 and (d.ch == 1 and -0.1 or -0.01) or (d.ch == 1 and 0.1 or 0.01))
@@ -1302,7 +1305,7 @@ function init()
             elseif d.cc == 4 or d.cc == 20 or d.cc == 36 then
               --pad level
               local id = math.floor(d.cc/16)+1
-              bank[id][check_focus_hold(id)].level = util.clamp(bank[id][check_focus_hold(id)].level+(d.val == 63 and (d.ch == 1 and -0.1 or -0.01) or (d.ch == 1 and 0.1 or 0.01)),0,2)
+              bank[id][check_focus_hold(id)].level = util.clamp(bank[id][check_focus_hold(id)].level+(d.val == 63 and (d.ch == 1 and -0.01 or -0.001) or (d.ch == 1 and 0.01 or 0.001)),0,2)
               if bank[id][check_focus_hold(id)].envelope_mode == 2 or bank[id][check_focus_hold(id)].enveloped == false then
                 if bank[id].focus_hold == false then
                   softcut.level_slew_time(id+1,1.0)
@@ -1311,10 +1314,11 @@ function init()
                   softcut.level_cut_cut(id+1,6,(bank[id][check_focus_hold(id)].right_delay_level*bank[id][check_focus_hold(id)].level)*bank[id].global_level)
                 end
               end
+              mc.mft_redraw(bank[id][check_focus_hold(id)],"pad_level")
             elseif d.cc == 5 or d.cc == 21 or d.cc == 37 then
               --bank level
               local id = math.floor(d.cc/16)+1
-              bank[id].global_level = util.clamp(bank[id].global_level+(d.val == 63 and (d.ch == 1 and -0.1 or -0.01) or (d.ch == 1 and 0.1 or 0.01)),0,2)
+              bank[id].global_level = util.clamp(bank[id].global_level+(d.val == 63 and (d.ch == 1 and -0.01 or -0.001) or (d.ch == 1 and 0.01 or 0.001)),0,2)
               if bank[id][check_focus_hold(id)].envelope_mode == 2 or bank[id][check_focus_hold(id)].enveloped == false then
                 if bank[id].focus_hold == false then
                   softcut.level_slew_time(id+1,1.0)
@@ -1323,17 +1327,20 @@ function init()
                   softcut.level_cut_cut(id+1,6,(bank[id][check_focus_hold(id)].right_delay_level*bank[id][check_focus_hold(id)].level)*bank[id].global_level)
                 end
               end
+              mc.mft_redraw(bank[id][check_focus_hold(id)],"bank_level")
             elseif d.cc == 8 or d.cc == 24 or d.cc == 40 then
               --pad / bank pan
               local id = math.floor(d.cc/16)+1
               if d.ch == 5 then
+                local pre_pan = bank[id][check_focus_hold(id)].pan
                 for i = 1,16 do
-                  bank[id][i].pan = util.clamp(bank[id][i].pan+(d.val == 63 and -0.01 or 0.01),-1,1)
+                  bank[id][i].pan = util.clamp(pre_pan+(d.val == 63 and -0.01 or 0.01),-1,1)
                 end
               elseif d.ch == 1 then
                 bank[id][check_focus_hold(id)].pan = util.clamp(bank[id][check_focus_hold(id)].pan+(d.val == 63 and -0.01 or 0.01),-1,1)
               end
               softcut.pan(id+1, bank[id][check_focus_hold(id)].pan)
+              mc.mft_redraw(bank[id][check_focus_hold(id)],"pan")
             elseif d.cc == 9 or d.cc == 25 or d.cc == 41 then
               --bank / pad filter cutoff
               local id = math.floor(d.cc/16)+1
@@ -1351,7 +1358,9 @@ function init()
                 elseif d.val == 65 and util.round(bank[id][check_focus_hold(id)].tilt*100) > 0 and util.round(bank[id][check_focus_hold(id)].tilt*100) < 32 then
                   bank[id][check_focus_hold(id)].tilt = 0.32
                 end
-                slew_filter(id,slew_counter[id].prev_tilt,bank[id][check_focus_hold(id)].tilt,bank[id][check_focus_hold(id)].q,bank[id][check_focus_hold(id)].q,15)
+                if bank[id].focus_hold == false then
+                  slew_filter(id,slew_counter[id].prev_tilt,bank[id][check_focus_hold(id)].tilt,bank[id][check_focus_hold(id)].q,bank[id][check_focus_hold(id)].q,15)
+                end
               elseif d.ch == 1 then
                 if slew_counter[id] ~= nil then
                   slew_counter[id].prev_tilt = bank[id][bank[id].id].tilt
@@ -1368,12 +1377,16 @@ function init()
                     bank[id][j].tilt = 0.32
                   end
                 end
-                slew_filter(id,slew_counter[id].prev_tilt,bank[id][bank[id].id].tilt,bank[id][bank[id].id].q,bank[id][bank[id].id].q,15)
+                if bank[id].focus_hold == false then
+                  slew_filter(id,slew_counter[id].prev_tilt,bank[id][bank[id].id].tilt,bank[id][bank[id].id].q,bank[id][bank[id].id].q,15)
+                end
               end
+              mc.mft_redraw(bank[id][check_focus_hold(id)],"filter_tilt")
             elseif d.cc == 10 or d.cc == 26 or d.cc == 42 then
               --bank / pad filter q
               local id = math.floor(d.cc/16)+1
-              params:delta("filter "..id.." q",(d.val == 63 and -1 or 1)*-1)
+              params:delta("filter "..id.." q",(d.val == 63 and -0.5 or 0.5)*-1)
+              mc.mft_redraw(bank[id][check_focus_hold(id)],"filter_q")
             elseif d.cc == 12 or d.cc == 28 or d.cc == 44 then
               -- pad / bank L delay send
               local id = math.floor(d.cc/16)+1
@@ -2432,7 +2445,9 @@ function cheat(b,i)
 
   if all_loaded and params:get("midi_enc_echo_enabled") == 2 then
     if midi_dev[params:get("midi_enc_control_device")].name == "Midi Fighter Twister" then
-      mc.mft_redraw(pad,"all")
+      if bank[pad.bank_id].focus_hold == false then
+        mc.mft_redraw(pad,"all")
+      end
     else
       mc.enc_redraw(pad)
     end
