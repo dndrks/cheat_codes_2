@@ -40,6 +40,11 @@ function main_menu.init()
     elseif target.device == nil and params:get("midi_control_enabled") == 2 then
       screen.text_right("(no midi device!)")
     end
+    if mft_connected ~= nil and mft_connected then
+      screen.move(128,60)
+      screen.level(3)
+      screen.text_right("(MFT)")
+    end
     if selected_coll ~= 0 then
       screen.move(128,10)
       screen.level(3)

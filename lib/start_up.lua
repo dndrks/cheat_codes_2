@@ -187,6 +187,9 @@ function start_up.init()
       end
       softcut.loop_start(i+1,bank[i][bank[i].id].start_point)
       softcut.loop_end(i+1,bank[i][bank[i].id].end_point)
+      if all_loaded then
+        mc.mft_redraw(bank[i][bank[i].id],"all")
+      end
     end)
   end
 
@@ -195,7 +198,7 @@ function start_up.init()
   
   --params:add_option("zilchmo_bind_rand","bind random zilchmo?", {"no","yes"}, 1)
   
-  params:add_group("grid/arc pattern params",22)
+  params:add_group("patterns + arps",22)
   params:add_separator("patterns")
   params:add_option("zilchmo_patterning", "grid pat style", { "classic", "rad sauce" })
   params:set_action("zilchmo_patterning", function() if all_loaded then persistent_state_save() end end)
@@ -244,12 +247,12 @@ function start_up.init()
     params:add_option("rand_pattern_"..i.."_note_length", "rand pat "..i.." note length", {"1/16", "1/8", "1/4", "1/2", "1", "rand"},6)
   end
 
-  params:add_separator("arps")
+  params:add_separator("arps (grid only)")
   for i = 1,3 do
     params:add_option("arp_"..i.."_hold_style", "arp "..i.." hold style", {"last pressed","additive"},1)
   end
   
-  params:add_group("manual control params",34)
+  params:add_group("manual control",34)
 
   params:add_separator("arc encoders")
   for i = 1,3 do
@@ -309,7 +312,7 @@ function start_up.init()
       end)
   end
   
-  params:add_group("delay params",51)
+  params:add_group("delays",51)
 
   params:add_separator("manage delay audio")
   params:add{type = "trigger", id = "save_left_delay", name = "** save L delay", action = function() del.save_delay(1) end}

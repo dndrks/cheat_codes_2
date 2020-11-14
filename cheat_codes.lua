@@ -1180,14 +1180,40 @@ function init()
     clock.internal.start(bpm)
   end
 
+  local midi_dev_max;
+  for k,v in pairs(midi.devices) do
+    midi_dev_max = midi.devices[k].id
+  end
+  for i = 1,midi_dev_max do
+    if midi.devices[i] ~= nil and midi.devices[i].name == "Midi Fighter Twister" then
+      params:set("midi_enc_control_enabled",2)
+      params:set("midi_enc_control_device",midi.devices[i].port)
+      params:set("midi_enc_echo_enabled",2)
+      mft_connected = true
+    end
+    -- if midi.devices[i] ~= nil and midi.devices[i].name == "OP-Z" then
+    --   params:set("midi_control_enabled",2)
+    --   params:set("midi_control_device",midi.devices[i].port)
+    --   params:set("midi_echo_enabled",2)
+    --   opz_connected = true
+    -- end
+  end
+
   midi_dev = {}
   for j = 1,4 do
     midi_dev[j] = midi.connect(j)
-    if midi_dev[j].name == "Midi Fighter Twister" then
-      params:set("midi_enc_control_enabled",2)
-      params:set("midi_enc_control_device",j)
-      params:set("midi_enc_echo_enabled",2)
-    end
+    -- if midi_dev[j].name == "Midi Fighter Twister" then
+    --   params:set("midi_enc_control_enabled",2)
+    --   params:set("midi_enc_control_device",j)
+    --   params:set("midi_enc_echo_enabled",2)
+    --   mft_connected = true
+    -- end
+    -- if midi.devices[j] ~= nil and midi.devices[j].name == "Midi Fighter Twister" then
+    --   params:set("midi_enc_control_enabled",2)
+    --   params:set("midi_enc_control_device",midi.devices[j].port)
+    --   params:set("midi_enc_echo_enabled",2)
+    --   mft_connected = true
+    -- end
     midi_dev[j].event = function(data)
       screen_dirty = true
       local d = midi.to_msg(data)
@@ -1261,9 +1287,10 @@ function init()
               end
             end
           end
+        
         elseif midi_dev[j].name == "Midi Fighter Twister" then
           
-          tab.print(d)
+          -- tab.print(d)
 
           local function check_focus_hold(id)
             if bank[id].focus_hold == true then
@@ -1277,10 +1304,14 @@ function init()
             if d.cc == 0 or d.cc == 16 or d.cc == 32 then
               local id = math.floor(d.cc/16)+1
               encoder_actions.change_pad(bank[id][check_focus_hold(id)].bank_id, d.val == 63 and -1 or 1)
+              if bank[id].focus_hold then
+                mc.mft_redraw(bank[id][bank[id].focus_pad],"all")
+              end
             elseif d.cc == 1 or d.cc == 17 or d.cc == 33 then
               -- pad start point
               local id = math.floor(d.cc/16)+1
-              encoder_actions.move_start(bank[id][check_focus_hold(id)], d.val == 63 and (d.ch == 1 and -0.1 or -0.01) or (d.ch == 1 and 0.1 or 0.01))
+              local resolution = loop_enc_resolution[id] / 10
+              encoder_actions.move_start(bank[id][check_focus_hold(id)], (d.val == 63 and (d.ch == 1 and -0.1 or -0.01) or (d.ch == 1 and 0.1 or 0.01))/resolution)
               mc.mft_redraw(bank[id][check_focus_hold(id)],"start_point")
               if bank[id].focus_hold == false then
                 encoder_actions.sc.move_start(id)
@@ -1288,7 +1319,8 @@ function init()
             elseif d.cc == 2 or d.cc == 18 or d.cc == 34 then
               -- pad end point
               local id = math.floor(d.cc/16)+1
-              encoder_actions.move_end(bank[id][check_focus_hold(id)], d.val == 63 and (d.ch == 1 and -0.1 or -0.01) or (d.ch == 1 and 0.1 or 0.01))
+              local resolution = loop_enc_resolution[id] / 10
+              encoder_actions.move_end(bank[id][check_focus_hold(id)], (d.val == 63 and (d.ch == 1 and -0.1 or -0.01) or (d.ch == 1 and 0.1 or 0.01))/resolution)
               mc.mft_redraw(bank[id][check_focus_hold(id)],"end_point")
               if bank[id].focus_hold == false then
                 encoder_actions.sc.move_end(id)
@@ -1296,7 +1328,8 @@ function init()
             elseif d.cc == 3 or d.cc == 19 or d.cc == 35 then
               -- pad window
               local id = math.floor(d.cc/16)+1
-              encoder_actions.move_play_window(bank[id][check_focus_hold(id)], d.val == 63 and (d.ch == 1 and -0.1 or -0.01) or (d.ch == 1 and 0.1 or 0.01))
+              local resolution = loop_enc_resolution[id] / 10
+              encoder_actions.move_play_window(bank[id][check_focus_hold(id)], (d.val == 63 and (d.ch == 1 and -0.1 or -0.01) or (d.ch == 1 and 0.1 or 0.01))/resolution)
               mc.mft_redraw(bank[id][check_focus_hold(id)],"start_point")
               mc.mft_redraw(bank[id][check_focus_hold(id)],"end_point")
               if bank[id].focus_hold == false then
@@ -1341,7 +1374,7 @@ function init()
               end
               softcut.pan(id+1, bank[id][check_focus_hold(id)].pan)
               mc.mft_redraw(bank[id][check_focus_hold(id)],"pan")
-            elseif d.cc == 9 or d.cc == 25 or d.cc == 41 then
+            elseif d.cc == 10 or d.cc == 26 or d.cc == 42 then
               --bank / pad filter cutoff
               local id = math.floor(d.cc/16)+1
               if d.ch == 5 then
@@ -1382,7 +1415,7 @@ function init()
                 end
               end
               mc.mft_redraw(bank[id][check_focus_hold(id)],"filter_tilt")
-            elseif d.cc == 10 or d.cc == 26 or d.cc == 42 then
+            elseif d.cc == 11 or d.cc == 27 or d.cc == 43 then
               --bank / pad filter q
               local id = math.floor(d.cc/16)+1
               params:delta("filter "..id.." q",(d.val == 63 and -0.5 or 0.5)*-1)
@@ -1414,6 +1447,19 @@ function init()
                   local this_one = 1 == 1 and 2 or 1
                   softcut.level_cut_cut(util.round(item/2)+1,(this_one)+4,(target[check_focus_hold(id)][prm[this_one]]*target[check_focus_hold(id)].level)*target.global_level)
                 end
+              end
+            end
+          elseif d.ch == 2 then
+            if d.cc == 0 or d.cc == 16 or d.cc == 32 then
+              local id = math.floor(d.cc/16)+1
+              bank[id].focus_hold = d.val == 127 and true or false
+              mc.mft_redraw(bank[id][check_focus_hold(id)],"all")
+              grid_dirty = true
+            end
+          elseif d.ch == 4 then
+            if d.val == 127 then
+              if d.cc == 0 or d.cc == 1 or d.cc == 2 then
+                mc.mft_redraw(bank[d.cc+1][check_focus_hold(d.cc+1)],"all")
               end
             end
           end

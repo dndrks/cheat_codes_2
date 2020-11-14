@@ -943,12 +943,16 @@ end
 function ea.change_pad(target,delta)
   pad = bank[target]
   if grid_pat[target].play == 0 and grid_pat[target].tightened_start == 0 and not arp[target].playing and midi_pat[target].play == 0 then
-    local pre_pad = pad.id
-    pad.id = util.clamp(pad.id + delta,1,16)
-    selected[target].x = (math.ceil(pad.id/4)+(5*(target-1)))
-    selected[target].y = 8-((pad.id-1)%4)
-    if pre_pad ~= pad.id then
-      cheat(target,pad.id)
+    if not pad.focus_hold then
+      local pre_pad = pad.id
+      pad.id = util.clamp(pad.id + delta,1,16)
+      selected[target].x = (math.ceil(pad.id/4)+(5*(target-1)))
+      selected[target].y = 8-((pad.id-1)%4)
+      if pre_pad ~= pad.id then
+        cheat(target,pad.id)
+      end
+    else
+      pad.focus_pad = util.clamp(pad.focus_pad + delta,1,16)
     end
     if menu == 2 and page.loops.sel < 4 and key1_hold then
       update_waveform(pad[pad.id].mode,pad[pad.id].start_point,pad[pad.id].end_point,128)
