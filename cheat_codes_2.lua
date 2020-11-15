@@ -1136,7 +1136,7 @@ function init()
   already_saved()
   
   params:add_group("OSC setup",3)
-  params:add_text("osc_IP", "OSC IP", "192.168.")
+  params:add_text("osc_IP", "source OSC IP", "192.168.")
   params:set_action("osc_IP", function() dest = {tostring(params:get("osc_IP")), tonumber(params:get("osc_port"))} end)
   params:add_text("osc_port", "OSC port", "9000")
   params:set_action("osc_port", function() dest = {tostring(params:get("osc_IP")), tonumber(params:get("osc_port"))} end)
@@ -1147,7 +1147,7 @@ function init()
     osc_echo = false
   end}
 
-  params:add_group("MIDI keyboard/OP-Z setup",15)
+  params:add_group("MIDI note/OP-Z setup",15)
   params:add_option("midi_control_enabled", "enable MIDI control?", {"no","yes"},1)
   params:set_action("midi_control_enabled", function() if all_loaded then persistent_state_save() end end)
   params:add_option("midi_control_device", "MIDI control device",{"port 1", "port 2", "port 3", "port 4"},1)
@@ -1275,7 +1275,7 @@ function init()
             end
           end
         end
-        if d.type == "cc" then
+        if d.type == "cc" and params:get("midi_echo_enabled") == 2 then
           if d.cc == 1 then
             mc.move_start(bank[i][bank[i].id],d.val)
           elseif d.cc == 2 then
@@ -3169,17 +3169,22 @@ function key(n,z)
 
 
     elseif n == 2 and z == 1 then
-      if menu == 2 then
+      if menu == 2 and not key1_hold then
         -- key2_hold = true
         key2_hold_counter:start()
         key2_hold_and_modify = false
+      elseif menu == 2 then
+        if page.loops.frame == 2 and key1_hold then
+          if page.loops.sel == 4 then
+            buff_flush()
+          else
+            sync_clock_to_loop(bank[page.loops.sel][bank[page.loops.sel].id],"audio")
+          end
+        end
       end
-    elseif n == 2 and z == 0 and key2_hold == false then
-      if menu == 2 then
-        -- print("should release")
-        key2_hold_counter:stop()
-        menu = 1
-      end
+    elseif n == 2 and z == 0 and key2_hold == false and menu == 2 and not key1_hold then
+      key2_hold_counter:stop()
+      menu = 1
     elseif n == 2 and z == 0 and key2_hold_and_modify then
       key2_hold = false
       key2_hold_and_modify = false
