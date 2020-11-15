@@ -134,7 +134,7 @@ function main_menu.init()
         if pad.mode == 2 and page.loops.top_option_set[page.loops.sel] == 1 then
           screen.level(15)
           screen.move(0,55)
-          screen.text(((page.loops.frame == 1 and key1_hold and not key2_hold)) and "(K3: load clip)" or "(K1: load clip)")
+          screen.text(((page.loops.frame == 1 and key1_hold and not key2_hold)) and "(K3: load sample)" or "(K1: load sample)")
         end
 
       else

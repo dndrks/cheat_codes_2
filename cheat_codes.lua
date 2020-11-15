@@ -682,6 +682,13 @@ end
 
 key1_hold = false
 key1_hold_and_modify = false
+key2_hold_counter = metro.init()
+key2_hold_counter.time = 0.25
+key2_hold_counter.count = 1
+key2_hold_counter.event = function()
+  key2_hold = true
+end
+
 key2_hold = false
 key2_hold_and_modify = false
 
@@ -3153,8 +3160,15 @@ function key(n,z)
 
     elseif n == 2 and z == 1 then
       if menu == 2 then
-        key2_hold = true
+        -- key2_hold = true
+        key2_hold_counter:start()
         key2_hold_and_modify = false
+      end
+    elseif n == 2 and z == 0 and key2_hold == false then
+      if menu == 2 then
+        -- print("should release")
+        key2_hold_counter:stop()
+        menu = 1
       end
     elseif n == 2 and z == 0 and key2_hold_and_modify then
       key2_hold = false
@@ -3211,9 +3225,9 @@ function key(n,z)
         -- elseif key1_hold and page.loops_sel == 4 then
         --   buff_pause()
         else
-          if page.loops.frame == 1 then
-            menu = 1
-          end
+          -- if page.loops.frame == 1 then
+          --   menu = 1
+          -- end
         end
       else
         menu = 1
