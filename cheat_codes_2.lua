@@ -1,10 +1,10 @@
--- cheat codes
+-- cheat codes 2
 --          a sample playground
 --
 -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
 -- need help?
--- please see [?] menu
--- for in-app instruction manual
+-- please visit:
+-- llllllll.co/cheat-codes-2
 -- -------------------------------
 
 local pattern_time = include 'lib/cc_pattern_time'
@@ -1147,7 +1147,7 @@ function init()
     osc_echo = false
   end}
 
-  params:add_group("MIDI keyboard/OP-Z setup",9)
+  params:add_group("MIDI keyboard/OP-Z setup",15)
   params:add_option("midi_control_enabled", "enable MIDI control?", {"no","yes"},1)
   params:set_action("midi_control_enabled", function() if all_loaded then persistent_state_save() end end)
   params:add_option("midi_control_device", "MIDI control device",{"port 1", "port 2", "port 3", "port 4"},1)
@@ -1155,13 +1155,20 @@ function init()
   params:add_option("midi_echo_enabled", "enable MIDI echo?", {"no","yes"},1)
   params:set_action("midi_echo_enabled", function() if all_loaded then persistent_state_save() end end)
   local bank_names = {"(a)","(b)","(c)"}
+  params:add_separator("channel")
   for i = 1,3 do
     params:add_number("bank_"..i.."_midi_channel", "bank "..bank_names[i].." pad channel:",1,16,i)
     params:set_action("bank_"..i.."_midi_channel", function() if all_loaded then persistent_state_save() end end)
   end
+  params:add_separator("note = pad 1")
   for i = 1,3 do
-    params:add_number("bank_"..i.."_pad_midi_base", "bank "..bank_names[i].." pad midi base:",0,111,53)
+    params:add_number("bank_"..i.."_pad_midi_base", "bank "..bank_names[i].." midi base:",0,111,53)
     params:set_action("bank_"..i.."_pad_midi_base", function() if all_loaded then persistent_state_save() end end)
+  end
+  params:add_separator("zilchmo")
+  for i = 1,3 do
+    params:add_option("bank_"..i.."_midi_zilchmo_enabled", "bank "..bank_names[i].." midi zilchmo?", {"no","yes"},2)
+    params:set_action("bank_"..i.."_midi_zilchmo_enabled", function() if all_loaded then persistent_state_save() end end)
   end
 
   params:add_group("MIDI encoder setup",6)
@@ -1225,55 +1232,58 @@ function init()
       screen_dirty = true
       local d = midi.to_msg(data)
       if params:get("midi_control_enabled") == 2 and j == params:get("midi_control_device") then
+        local received_ch;
         for i = 1,3 do
           if d.ch == params:get("bank_"..i.."_midi_channel") then
-            if d.note ~= nil then
-              if d.note >= params:get("bank_"..i.."_pad_midi_base") and d.note <= params:get("bank_"..i.."_pad_midi_base") + (not midi_alt and 15 or 22) then
-                if not midi_alt then
-                  if d.type == "note_on" then
-                    mc.cheat(i,d.note-(params:get("bank_"..i.."_pad_midi_base")-1))
-                    if midi_pat[i].rec == 1 and midi_pat[i].count == 0 then
-                      if midi_pat[i].playmode == 2 then
-                        --clock.run(synced_pattern_record,midi_pat[i]) -- i think we'll want this in a separate function...
-                      end
-                    end
-                    midi_pattern_watch(i, d.note-(params:get("bank_"..i.."_pad_midi_base")-1))
-                    if menu == 9 then
-                      page.arp_page_sel = i
-                      arps.momentary(i, bank[i].id, "on")
-                    end
-                  elseif d.type == "note_off" then
-                    if menu == 9 then
-                      if not arp[i].hold and page.arp_page_sel == i  then
-                        local targeted_pad = d.note-(params:get("bank_"..i.."_pad_midi_base")-1)
-                        arps.momentary(i, targeted_pad, "off")
-                      end
-                    end
-                  end
-                elseif midi_alt then
-                  if d.type == "note_on" then
-                    mc.zilch(i,d.note-(params:get("bank_"..i.."_pad_midi_base")-1))
+            received_ch = i
+          end
+        end
+        local i = received_ch
+        if d.note ~= nil then
+          if d.note >= params:get("bank_"..i.."_pad_midi_base") and d.note <= params:get("bank_"..i.."_pad_midi_base") + (not midi_alt and 15 or 22) then
+            if not midi_alt then
+              if d.type == "note_on" then
+                mc.cheat(i,d.note-(params:get("bank_"..i.."_pad_midi_base")-1))
+                if midi_pat[i].rec == 1 and midi_pat[i].count == 0 then
+                  if midi_pat[i].playmode == 2 then
+                    --clock.run(synced_pattern_record,midi_pat[i]) -- i think we'll want this in a separate function...
                   end
                 end
-              elseif d.note == params:get("bank_"..i.."_pad_midi_base") + 23 then
-                if d.type == "note_on" then
-                  midi_alt = true
-                else
-                  midi_alt = false
+                midi_pattern_watch(i, d.note-(params:get("bank_"..i.."_pad_midi_base")-1))
+                if menu == 9 then
+                  page.arp_page_sel = i
+                  arps.momentary(i, bank[i].id, "on")
+                end
+              elseif d.type == "note_off" then
+                if menu == 9 then
+                  if not arp[i].hold and page.arp_page_sel == i  then
+                    local targeted_pad = d.note-(params:get("bank_"..i.."_pad_midi_base")-1)
+                    arps.momentary(i, targeted_pad, "off")
+                  end
                 end
               end
-            end
-            if d.type == "cc" then
-              if d.cc == 1 then
-                mc.move_start(bank[i][bank[i].id],d.val)
-              elseif d.cc == 2 then
-                mc.move_end(bank[i][bank[i].id],d.val)
-              elseif d.cc == 3 then
-                mc.adjust_filter(i,d.val)
-              elseif d.cc == 4 then
-                mc.adjust_pad_level(bank[i][bank[i].id],d.val)
+            elseif midi_alt then
+              if params:get("bank_"..i.."_midi_zilchmo_enabled") == 2 and d.type == "note_on" then
+                mc.zilch(i,d.note-(params:get("bank_"..i.."_pad_midi_base")-1))
               end
             end
+          elseif d.note == params:get("bank_"..i.."_pad_midi_base") + 23 then
+            if d.type == "note_on" then
+              midi_alt = true
+            else
+              midi_alt = false
+            end
+          end
+        end
+        if d.type == "cc" then
+          if d.cc == 1 then
+            mc.move_start(bank[i][bank[i].id],d.val)
+          elseif d.cc == 2 then
+            mc.move_end(bank[i][bank[i].id],d.val)
+          elseif d.cc == 3 then
+            mc.adjust_filter(i,d.val)
+          elseif d.cc == 4 then
+            mc.adjust_pad_level(bank[i][bank[i].id],d.val)
           end
         end
       elseif params:get("midi_enc_control_enabled") == 2 and j == params:get("midi_enc_control_device") then
@@ -4354,6 +4364,9 @@ function persistent_state_save()
   --   io.write("sync_clock_to_pattern_"..i..": "..params:get("sync_clock_to_pattern_"..i).."\n")
   -- end
   io.write("arc_patterning: "..params:get("arc_patterning").."\n")
+  for i = 1,3 do
+    io.write("bank_"..i.."_midi_zilchmo_enabled: "..params:get("bank_"..i.."_midi_zilchmo_enabled").."\n")
+  end
   io.close(file)
 end
 
