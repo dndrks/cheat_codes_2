@@ -617,18 +617,29 @@ function grid_actions.init(x,y,z)
         if x == 16 and y == i and z == 1 then
           if step_seq[8-i].held == 0 then
             if grid.alt then
-              step_seq[8-i].current_step = step_seq[8-i].start_point
-              step_seq[8-i].meta_step = 1
-              step_seq[8-i].meta_meta_step = 1
-              if step_seq[8-i].active == 1 and step_seq[8-i][step_seq[8-i].current_step].assigned_to ~= 0 then
-                test_load(step_seq[8-i][step_seq[8-i].current_step].assigned_to+(((8-i)-1)*8),8-i)
-              end
+              clock.run(reset_step_seq,y)
+              -- step_seq[8-i].current_step = step_seq[8-i].start_point
+              -- step_seq[8-i].meta_step = 1
+              -- step_seq[8-i].meta_meta_step = 1
+              -- if step_seq[8-i].active == 1 and step_seq[8-i][step_seq[8-i].current_step].assigned_to ~= 0 then
+              --   test_load(step_seq[8-i][step_seq[8-i].current_step].assigned_to+(((8-i)-1)*8),8-i)
+              -- end
             else
               step_seq[8-i].active = (step_seq[8-i].active + 1)%2
             end
           else
             step_seq[8-i][step_seq[8-i].held].loop_pattern = (step_seq[8-i][step_seq[8-i].held].loop_pattern + 1)%2
           end
+        end
+      end
+
+      function reset_step_seq(i) -- TODO: funky on some...
+        clock.sync(4)
+        step_seq[8-i].current_step = step_seq[8-i].start_point
+        step_seq[8-i].meta_step = 1
+        step_seq[8-i].meta_meta_step = 1
+        if step_seq[8-i].active == 1 and step_seq[8-i][step_seq[8-i].current_step].assigned_to ~= 0 then
+          test_load(step_seq[8-i][step_seq[8-i].current_step].assigned_to+(((8-i)-1)*8),8-i)
         end
       end
       

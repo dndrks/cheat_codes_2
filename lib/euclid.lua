@@ -84,8 +84,15 @@ end
 function euclid.reset_pattern(target)
   euclid.reset[target] = true
   clock.cancel(euclid.clock[target])
-  euclid.track[target].pos = 0
+  euclid.track[target].pos = 1
   euclid.reset[target] = false
+  -- euclid.clock[target] = clock.run(euclid.step,target)
+  clock.run(euclid.synced_restart,target)
+end
+
+function euclid.synced_restart(target)
+  clock.sync(4)
+  euclid.trig(target)
   euclid.clock[target] = clock.run(euclid.step,target)
 end
 
