@@ -1171,13 +1171,15 @@ function init()
     params:set_action("bank_"..i.."_midi_zilchmo_enabled", function() if all_loaded then persistent_state_save() end end)
   end
 
-  params:add_group("MIDI encoder setup",6)
+  params:add_group("MIDI encoder setup",7)
   params:add_option("midi_enc_control_enabled", "enable MIDI enc control?", {"no","yes"},1)
   params:set_action("midi_enc_control_enabled", function() if all_loaded then persistent_state_save() end end)
   params:add_option("midi_enc_control_device", "MIDI enc device",{"port 1", "port 2", "port 3", "port 4"},2)
   params:set_action("midi_enc_control_device", function() if all_loaded then persistent_state_save() end end)
   params:add_option("midi_enc_echo_enabled", "enable MIDI enc echo?", {"no","yes"},1)
   params:set_action("midi_enc_echo_enabled", function() if all_loaded then persistent_state_save() end end)
+  params:add_trigger("ping_for_MFT","refresh for MFT (K3)")
+  params:set_action("ping_for_MFT",function(x) ping_midi_devices() end)
   local bank_names = {"(a)","(b)","(c)"}
   for i = 1,3 do
     params:add_number("bank_"..i.."_midi_enc_channel", "bank "..bank_names[i].." enc channel:",1,16,i)
@@ -1194,24 +1196,26 @@ function init()
     clock.internal.start(bpm)
   end
 
-  local midi_dev_max;
-  for k,v in pairs(midi.devices) do
-    midi_dev_max = midi.devices[k].id
-  end
-  for i = 1,midi_dev_max do
-    if midi.devices[i] ~= nil and midi.devices[i].name == "Midi Fighter Twister" then
-      params:set("midi_enc_control_enabled",2)
-      params:set("midi_enc_control_device",midi.devices[i].port)
-      params:set("midi_enc_echo_enabled",2)
-      mft_connected = true
-    end
-    -- if midi.devices[i] ~= nil and midi.devices[i].name == "OP-Z" then
-    --   params:set("midi_control_enabled",2)
-    --   params:set("midi_control_device",midi.devices[i].port)
-    --   params:set("midi_echo_enabled",2)
-    --   opz_connected = true
-    -- end
-  end
+  -- local midi_dev_max;
+  -- for k,v in pairs(midi.devices) do
+  --   midi_dev_max = midi.devices[k].id
+  -- end
+  -- for i = 1,midi_dev_max do
+  --   if midi.devices[i] ~= nil and midi.devices[i].name == "Midi Fighter Twister" then
+  --     params:set("midi_enc_control_enabled",2)
+  --     params:set("midi_enc_control_device",midi.devices[i].port)
+  --     params:set("midi_enc_echo_enabled",2)
+  --     mft_connected = true
+  --   end
+  --   -- if midi.devices[i] ~= nil and midi.devices[i].name == "OP-Z" then
+  --   --   params:set("midi_control_enabled",2)
+  --   --   params:set("midi_control_device",midi.devices[i].port)
+  --   --   params:set("midi_echo_enabled",2)
+  --   --   opz_connected = true
+  --   -- end
+  -- end
+
+  ping_midi_devices()
 
   midi_dev = {}
   for j = 1,4 do
@@ -1543,6 +1547,34 @@ function init()
 end
 
 ---
+
+function ping_midi_devices()
+  mft_connected = false
+  local midi_dev_max;
+  for k,v in pairs(midi.devices) do
+    midi_dev_max = midi.devices[k].id
+  end
+  for i = 1,midi_dev_max do
+    if midi.devices[i] ~= nil and midi.devices[i].name == "Midi Fighter Twister" then
+      params:set("midi_enc_control_enabled",2)
+      params:set("midi_enc_control_device",midi.devices[i].port)
+      params:set("midi_enc_echo_enabled",2)
+      mft_connected = true
+    end
+    -- if midi.devices[i] ~= nil and midi.devices[i].name == "OP-Z" then
+    --   params:set("midi_control_enabled",2)
+    --   params:set("midi_control_device",midi.devices[i].port)
+    --   params:set("midi_echo_enabled",2)
+    --   opz_connected = true
+    -- end
+  end
+  screen_dirty = true
+  if all_loaded and mft_connected then
+    for i = 1,3 do
+      mc.mft_redraw(bank[i][bank[i].id],"all")
+    end
+  end
+end
 
 function sync_clock_to_loop(source,style)
   local dur = 0
@@ -1950,10 +1982,10 @@ function globally_clocked()
     if menu == 7 then
       if menu ~= 1 then screen_dirty = true end
     end
-    -- grid_redraw()
     update_tempo()
-    step_sequence()
+    -- step_sequence()
     for i = 1,3 do
+      step_sequence(i)
       if grid_pat[i].led == nil then
         grid_pat[i].led = 0
         grid_dirty = true
@@ -2220,8 +2252,8 @@ function rec_count()
   rec_time = rec_time + 0.01
 end
 
-function step_sequence()
-  for i = 1,3 do
+function step_sequence(i)
+  -- for i = 1,3 do
     if step_seq[i].active == 1 then
       step_seq[i].meta_step = step_seq[i].meta_step + 1
       if step_seq[i].meta_step > step_seq[i].meta_duration then step_seq[i].meta_step = 1 end
@@ -2240,7 +2272,7 @@ function step_sequence()
         end
       end
     end
-  end
+  -- end
   if grid_page == 1 then
     grid_dirty = true
   end
@@ -2501,10 +2533,10 @@ function cheat(b,i)
   if osc_communication == true then
     osc_redraw(b)
   end
-  -- TODO VERIFY OP-Z
-  -- if all_loaded and params:get("midi_echo_enabled") == 2 then
-  --   mc.redraw(pad)
-  -- end
+
+  if all_loaded and params:get("midi_control_enabled") == 1 and params:get("midi_echo_enabled") == 2 then
+    mc.redraw(pad)
+  end
 
   if all_loaded and params:get("midi_enc_echo_enabled") == 2 then
     if midi_dev[params:get("midi_enc_control_device")].name == "Midi Fighter Twister" then
@@ -4664,6 +4696,8 @@ function named_loadstate(path)
     collection_loaded = false
     clock.run(load_fail_screen)
   end
+
+  ping_midi_devices()
 
   grid_dirty = true
 

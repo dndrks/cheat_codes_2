@@ -634,10 +634,12 @@ function grid_actions.init(x,y,z)
       end
 
       function reset_step_seq(i) -- TODO: funky on some...
-        clock.sync(4)
-        step_seq[8-i].current_step = step_seq[8-i].start_point
-        step_seq[8-i].meta_step = 1
+        step_seq[8-i].active = (step_seq[8-i].active + 1)%2
         step_seq[8-i].meta_meta_step = 1
+        step_seq[8-i].meta_step = 1
+        step_seq[8-i].current_step = step_seq[8-i].start_point
+        clock.sync(1)
+        step_seq[8-i].active = (step_seq[8-i].active + 1)%2
         if step_seq[8-i].active == 1 and step_seq[8-i][step_seq[8-i].current_step].assigned_to ~= 0 then
           test_load(step_seq[8-i][step_seq[8-i].current_step].assigned_to+(((8-i)-1)*8),8-i)
         end
