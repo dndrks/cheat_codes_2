@@ -18,6 +18,8 @@ a sample playground for norns
 
 ### [discussion](https://l.llllllll.co/cheat-codes-2)
 
+---
+
 #### OP-Z setup notes
 
 you’ll need to make some adjustments to OP-Z’s MIDI settings, so grab a screen and navigate to the OP-Z’s MIDI SETUP menus!
