@@ -39,6 +39,7 @@ function zilchmos.init(k,i,coll)
   if not b.focus_hold then
     sc_action( b[p], i ) -- and then update softcut if we're in perform mode
   end
+  mc.mft_redraw(b[p],"all")
 end
 
 -- this function tanks a single bank, and applies function fn to each pad

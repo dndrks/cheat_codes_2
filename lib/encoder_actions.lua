@@ -102,6 +102,12 @@ function encoder_actions.init(n,d)
             -- if not bank[id].focus_hold then
             if bank[id].focus_hold then
               local rates ={-4,-2,-1,-0.5,-0.25,-0.125,0,0.125,0.25,0.5,1,2,4}
+              if bank[id][focused_pad].fifth then
+                bank[id][focused_pad].fifth = false
+              end
+              if tab.key(rates,bank[id][focused_pad].rate) == nil then
+                bank[id][focused_pad].rate = 1
+              end
               bank[id][focused_pad].rate = rates[util.clamp(tab.key(rates,bank[id][focused_pad].rate)+d,1,#rates)]
               if bank[id][focused_pad].pause == false and bank[id].id == focused_pad then
                 softcut.rate(id+1, bank[id][focused_pad].rate*bank[id][focused_pad].offset)
@@ -110,6 +116,12 @@ function encoder_actions.init(n,d)
               params:delta("rate "..id,d)
             else
               local rates ={-4,-2,-1,-0.5,-0.25,-0.125,0,0.125,0.25,0.5,1,2,4}
+              if bank[id][focused_pad].fifth then
+                bank[id][focused_pad].fifth = false
+              end
+              if tab.key(rates,bank[id][focused_pad].rate) == nil then
+                bank[id][focused_pad].rate = 1
+              end
               bank[id][focused_pad].rate = rates[util.clamp(tab.key(rates,bank[id][focused_pad].rate)+d,1,#rates)]
               if bank[id][focused_pad].pause == false and bank[id].id == focused_pad then
                 softcut.rate(id+1, bank[id][focused_pad].rate*bank[id][focused_pad].offset)
@@ -130,6 +142,12 @@ function encoder_actions.init(n,d)
             elseif page.loops.top_option_set[page.loops.sel] == 2 then
               if bank[id].focus_hold then
                 local rates ={-4,-2,-1,-0.5,-0.25,-0.125,0,0.125,0.25,0.5,1,2,4}
+                if bank[id][focused_pad].fifth then
+                  bank[id][focused_pad].fifth = false
+                end
+                if tab.key(rates,bank[id][focused_pad].rate) == nil then
+                  bank[id][focused_pad].rate = 1
+                end
                 bank[id][focused_pad].rate = rates[util.clamp(tab.key(rates,bank[id][focused_pad].rate)+d,1,#rates)]
                 if bank[id][focused_pad].pause == false and bank[id].id == focused_pad then
                   softcut.rate(id+1, bank[id][focused_pad].rate*bank[id][focused_pad].offset)
@@ -138,6 +156,12 @@ function encoder_actions.init(n,d)
                 params:delta("rate "..id,d)
               else
                 local rates ={-4,-2,-1,-0.5,-0.25,-0.125,0,0.125,0.25,0.5,1,2,4}
+                if bank[id][focused_pad].fifth then
+                  bank[id][focused_pad].fifth = false
+                end
+                if tab.key(rates,bank[id][focused_pad].rate) == nil then
+                  bank[id][focused_pad].rate = 1
+                end
                 bank[id][focused_pad].rate = rates[util.clamp(tab.key(rates,bank[id][focused_pad].rate)+d,1,#rates)]
                 if bank[id][focused_pad].pause == false and bank[id].id == focused_pad then
                   softcut.rate(id+1, bank[id][focused_pad].rate*bank[id][focused_pad].offset)

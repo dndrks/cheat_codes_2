@@ -1382,6 +1382,50 @@ function init()
                 end
               end
               mc.mft_redraw(bank[id][check_focus_hold(id)],"bank_level")
+            elseif d.cc == 6 or d.cc == 22 or d.cc == 38 then
+              --pad semitones
+              local id = math.floor(d.cc/16)+1
+              local current_offset = (math.log(bank[id][check_focus_hold(id)].offset)/math.log(0.5))*-12
+              current_offset = util.clamp(current_offset+(d.val == 63 and -1 or 1)/32,-1,1)
+              if current_offset > -0.0001 and current_offset < 0.0001 then
+                current_offset = 0
+              end
+              bank[id][check_focus_hold(id)].offset = math.pow(0.5, -current_offset / 12)
+              if d.ch == 5 then
+                local this_pad = check_focus_hold(id)
+                for i = 1,16 do
+                  bank[id][i].offset = bank[id][check_focus_hold(id)].offset
+                end
+              end
+              if bank[id][check_focus_hold(id)].pause == false and bank[id].id == check_focus_hold(id) then
+                if bank[id].focus_hold == false then
+                  softcut.rate(id+1, bank[id][check_focus_hold(id)].rate*bank[id][check_focus_hold(id)].offset)
+                end
+              end
+              mc.mft_redraw(bank[id][check_focus_hold(id)],"pad_offset")
+            elseif d.cc == 7 or d.cc == 23 or d.cc == 39 then
+              --pad rate
+              local id = math.floor(d.cc/16)+1
+              local rates ={-4,-2,-1,-0.5,-0.25,-0.125,0,0.125,0.25,0.5,1,2,4}
+              if bank[id][check_focus_hold(id)].fifth then
+                bank[id][check_focus_hold(id)].fifth = false
+              end
+              if tab.key(rates,bank[id][check_focus_hold(id)].rate) == nil then
+                bank[id][check_focus_hold(id)].rate = 1
+              end
+              bank[id][check_focus_hold(id)].rate = rates[util.clamp(tab.key(rates,bank[id][check_focus_hold(id)].rate)+(d.val == 63 and -1 or 1),1,#rates)]
+              if d.ch == 5 then
+                local this_pad = check_focus_hold(id)
+                for i = 1,16 do
+                  bank[id][i].rate = bank[id][check_focus_hold(id)].rate
+                end
+              end
+              if bank[id][check_focus_hold(id)].pause == false and bank[id].id == check_focus_hold(id) then
+                if bank[id].focus_hold == false then
+                  softcut.rate(id+1, bank[id][check_focus_hold(id)].rate*bank[id][check_focus_hold(id)].offset)
+                end
+              end
+              mc.mft_redraw(bank[id][check_focus_hold(id)],"pad_rate")
             elseif d.cc == 8 or d.cc == 24 or d.cc == 40 then
               --pad / bank pan
               local id = math.floor(d.cc/16)+1
@@ -3880,7 +3924,7 @@ function grid_redraw()
           g:led((i*5), 9-step_seq[i][step_seq[i].held].meta_meta_duration,led_maps["meta_duration"][edition])
         end
         if step_seq[i].held == 0 then
-          g:led(16,8-i,(step_seq[i].active*6)+2)
+          g:led(16,8-i,edition == 3 and (15*step_seq[i].active) or ((step_seq[i].active*6)+2))
         else
           g:led(16,8-i,step_seq[i][step_seq[i].held].loop_pattern*4)
         end
@@ -3891,8 +3935,8 @@ function grid_redraw()
         for j = 1,8 do
           local current = math.floor(i/5)+1
           local show = step_seq[current].held == 0 and pattern_saver[current].load_slot or step_seq[current][step_seq[current].held].assigned_to
-          g:led(i,j,(5*pattern_saver[current].saved[9-j])+2)
-          g:led(i,j,j == (9 - show) and 15 or ((5*pattern_saver[current].saved[9-j])+2))
+          g:led(i,j,edition == 3 and (15*pattern_saver[current].saved[9-j]) or ((5*pattern_saver[current].saved[9-j])+2))
+          g:led(i,j,j == (9 - show) and 15 or (edition == 3 and (15*pattern_saver[current].saved[9-j]) or ((5*pattern_saver[current].saved[9-j])+2)))
         end
       end
       
@@ -4477,7 +4521,7 @@ function pre_delete(text)
 end
 
 function pre_save(text)
-  if text ~= 'cancel' then
+  if text ~= 'cancel' and text ~= nil then
     collection_save_clock = clock.run(save_screen,text)
     _norns.key(1,1)
     _norns.key(1,0)
