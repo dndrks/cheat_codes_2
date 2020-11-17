@@ -914,7 +914,7 @@ function ea.move_play_window(target,delta)
   local current_difference = (target.end_point - target.start_point)
   local s_p = target.mode == 1 and live[target.clip].min or clip[target.clip].min
   local current_clip = duration*(target.clip-1)
-  local reasonable_max = target.mode == 1 and 9 or clip[target.clip].max
+  local reasonable_max = target.mode == 1 and live[target.clip].max or clip[target.clip].max
 
   if params:get("loop_enc_resolution_"..target.bank_id) > 2 then
 
@@ -1063,12 +1063,16 @@ function ea.move_start(target,delta)
 end
 
 function ea.move_end(target,delta)
-  local duration = target.mode == 1 and 8 or clip[target.clip].sample_length
+  -- local duration = target.mode == 1 and 8 or clip[target.clip].sample_length
+  local duration = target.mode == 1 and live[target.clip].max or clip[target.clip].max
   local s_p = target.mode == 1 and live[target.clip].min or clip[target.clip].min
 
   if delta > 0 then
-    if target.end_point + delta <= duration + 1 then
-      target.end_point = util.clamp(target.end_point+delta,s_p,duration+1)
+    print(target.end_point + delta, target.end_point + delta<= duration, util.round(target.end_point + delta,0.01), duration)
+    if util.round(target.end_point + delta,0.01) <= duration then
+      target.end_point = util.clamp(target.end_point+delta,s_p,duration)
+    else
+      target.end_point = duration
     end
   else
     if target.start_point < ((target.end_point+delta) - 0.04) then
