@@ -5,7 +5,7 @@ a sample playground for norns
 ### requirements
 
 ### hard requirements:
-- norns (201115 or later)
+- norns or norns shield (201115 or later)
 
 ### encouraged:
 - grid (128 only, all editions)
