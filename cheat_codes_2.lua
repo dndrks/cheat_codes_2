@@ -776,7 +776,18 @@ function init()
   params:add_group("collections",7)
   params:add_separator("load/save")
   params:add_trigger("load", "load collection")
-  params:set_action("load", function(x) fileselect.enter(_path.data.."cheat_codes2/names/", named_loadstate) end)
+  params:set_action("load",
+  function(x)
+    local dirname = _path.data.."cheat_codes_2/"
+    if os.rename(dirname, dirname) == nil then
+      os.execute("mkdir " .. dirname)
+    end
+    local dirname = _path.data.."cheat_codes_2/names/"
+    if os.rename(dirname, dirname) == nil then
+      os.execute("mkdir " .. dirname)
+    end
+    fileselect.enter(_path.data.."cheat_codes_2/names/", named_loadstate)
+  end)
   params:add_option("collect_live","collect Live buffers?",{"no","yes"})
   params:add_trigger("save", "save new collection")
   params:set_action("save", function(x)
@@ -784,14 +795,14 @@ function init()
   end)
   params:add_separator("danger zone!")
   params:add_trigger("overwrite_coll", "overwrite loaded collection")
-  -- params:set_action("overwrite_coll", function(x) fileselect.enter(_path.data.."cheat_codes2/names/", named_overwrite) end)
+  -- params:set_action("overwrite_coll", function(x) fileselect.enter(_path.data.."cheat_codes_2/names/", named_overwrite) end)
   params:set_action("overwrite_coll", function(x)
     if selected_coll ~= 0 then
-      named_overwrite(_path.data.."cheat_codes2/names/"..selected_coll..".cc2")
+      named_overwrite(_path.data.."cheat_codes_2/names/"..selected_coll..".cc2")
     end
   end)
   params:add_trigger("delete_coll", "delete collection")
-  params:set_action("delete_coll", function(x) fileselect.enter(_path.data.."cheat_codes2/names/", pre_delete) end)
+  params:set_action("delete_coll", function(x) fileselect.enter(_path.data.."cheat_codes_2/names/", pre_delete) end)
   
   menu = 1
   
@@ -1577,11 +1588,11 @@ function init()
   hardware_redraw:start()
 
 
-  -- local file = io.open("/home/we/dust/data/cheat_codes2/names/DEFAULT.cc2", "r")
+  -- local file = io.open("/home/we/dust/data/cheat_codes_2/names/DEFAULT.cc2", "r")
   -- if file == nil then
   --   named_savestate("DEFAULT")
   -- else
-  --   named_loadstate("/home/we/dust/data/cheat_codes2/names/DEFAULT.cc2")
+  --   named_loadstate("/home/we/dust/data/cheat_codes_2/names/DEFAULT.cc2")
   -- end
 
   for i = 1,3 do
@@ -4429,7 +4440,12 @@ end
 --file loading
 
 function persistent_state_save()
-  local file = io.open(_path.data.. "cheat_codes2/persistent_state.data", "w+")
+  local dirname = _path.data.."cheat_codes_2/"
+  -- local collection = tonumber(string.format("%.0f",params:get("collection")))
+  if os.rename(dirname, dirname) == nil then
+    os.execute("mkdir " .. dirname)
+  end
+  local file = io.open(_path.data.. "cheat_codes_2/persistent_state.data", "w+")
   io.output(file)
   io.write("midi_control_enabled: "..params:get("midi_control_enabled").."\n")
   io.write("midi_control_device: "..params:get("midi_control_device").."\n")
@@ -4460,10 +4476,10 @@ function count_lines_in(file)
 end
 
 function persistent_state_restore()
-  local file = io.open(_path.data .. "cheat_codes2/persistent_state.data", "r")
+  local file = io.open(_path.data .. "cheat_codes_2/persistent_state.data", "r")
   if file then
     io.input(file)
-    for i = 1,count_lines_in(_path.data.. "cheat_codes2/persistent_state.data") do
+    for i = 1,count_lines_in(_path.data.. "cheat_codes_2/persistent_state.data") do
       local s = io.read()
       local param,val = s:match("(.+): (.+)")
       params:set(param,tonumber(val))
@@ -4533,52 +4549,52 @@ end
 function named_savestate(text)
   
   local collection = text
-  local dirname = _path.data.."cheat_codes2/"
+  local dirname = _path.data.."cheat_codes_2/"
   -- local collection = tonumber(string.format("%.0f",params:get("collection")))
   if os.rename(dirname, dirname) == nil then
     os.execute("mkdir " .. dirname)
   end
 
-  local dirname = _path.data.."cheat_codes2/names/"
+  local dirname = _path.data.."cheat_codes_2/names/"
   if os.rename(dirname, dirname) == nil then
     os.execute("mkdir " .. dirname)
   end
-  local name_file = io.open(_path.data .. "cheat_codes2/names/"..collection..".cc2", "w+")
+  local name_file = io.open(_path.data .. "cheat_codes_2/names/"..collection..".cc2", "w+")
   io.output(name_file)
   io.write(collection)
   io.close(name_file)
   
-  local dirname = _path.data.."cheat_codes2/collection-"..collection.."/"
+  local dirname = _path.data.."cheat_codes_2/collection-"..collection.."/"
   if os.rename(dirname, dirname) == nil then
     os.execute("mkdir " .. dirname)
   end
 
   local dirnames = {"banks/","params/","arc-rec/","patterns/","step-seq/","arps/","euclid/","rnd/","delays/","rec/","misc/"}
   for i = 1,#dirnames do
-    local directory = _path.data.."cheat_codes2/collection-"..collection.."/"..dirnames[i]
+    local directory = _path.data.."cheat_codes_2/collection-"..collection.."/"..dirnames[i]
     if os.rename(directory, directory) == nil then
       os.execute("mkdir " .. directory)
     end
   end
 
   for i = 1,3 do
-    tab.save(bank[i],_path.data .. "cheat_codes2/collection-"..collection.."/banks/"..i..".data")
-    tab.save(step_seq[i],_path.data .. "cheat_codes2/collection-"..collection.."/step-seq/"..i..".data")
-    tab.save(arp[i],_path.data .. "cheat_codes2/collection-"..collection.."/arps/"..i..".data")
-    tab.save(rytm.track[i],_path.data .. "cheat_codes2/collection-"..collection.."/euclid/euclid"..i..".data")
-    tab.save(rnd[i],_path.data .. "cheat_codes2/collection-"..collection.."/rnd/"..i..".data")
+    tab.save(bank[i],_path.data .. "cheat_codes_2/collection-"..collection.."/banks/"..i..".data")
+    tab.save(step_seq[i],_path.data .. "cheat_codes_2/collection-"..collection.."/step-seq/"..i..".data")
+    tab.save(arp[i],_path.data .. "cheat_codes_2/collection-"..collection.."/arps/"..i..".data")
+    tab.save(rytm.track[i],_path.data .. "cheat_codes_2/collection-"..collection.."/euclid/euclid"..i..".data")
+    tab.save(rnd[i],_path.data .. "cheat_codes_2/collection-"..collection.."/rnd/"..i..".data")
     if params:get("collect_live") == 2 then
       collect_samples(i,collection)
     end
   end
 
   for i = 1,2 do
-    tab.save(delay[i],_path.data .. "cheat_codes2/collection-"..collection.."/delays/delay"..(i == 1 and "L" or "R")..".data")
+    tab.save(delay[i],_path.data .. "cheat_codes_2/collection-"..collection.."/delays/delay"..(i == 1 and "L" or "R")..".data")
   end
-  tab.save(delay_links,_path.data .. "cheat_codes2/collection-"..collection.."/delays/delay-links.data")
+  tab.save(delay_links,_path.data .. "cheat_codes_2/collection-"..collection.."/delays/delay-links.data")
   
-  params:write(_path.data.."cheat_codes2/collection-"..collection.."/params/all.pset")
-  tab.save(rec,_path.data .. "cheat_codes2/collection-"..collection.."/rec/rec[rec.focus].data")
+  params:write(_path.data.."cheat_codes_2/collection-"..collection.."/params/all.pset")
+  tab.save(rec,_path.data .. "cheat_codes_2/collection-"..collection.."/rec/rec[rec.focus].data")
 
   -- GRID pattern save
   if selected_coll ~= collection then
@@ -4606,10 +4622,10 @@ function named_savestate(text)
     if arc_rec_dirty[i] then
       save_arc_pattern(i)
     else
-      local file = io.open(_path.data .. "cheat_codes2/collection-"..selected_coll.."/arc-rec/encoder-"..i..".data", "r")
+      local file = io.open(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/arc-rec/encoder-"..i..".data", "r")
       if file then
         io.input(file)
-        os.remove(_path.data .. "cheat_codes2/collection-"..selected_coll.."/arc-rec/encoder-"..i..".data")
+        os.remove(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/arc-rec/encoder-"..i..".data")
         io.close(file)
       end
     end
@@ -4617,7 +4633,7 @@ function named_savestate(text)
   --/ ARC rec save
 
   -- misc save
-  local file = io.open(_path.data .. "cheat_codes2/collection-"..selected_coll.."/misc/misc.data", "w+")
+  local file = io.open(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/misc/misc.data", "w+")
   if file then
     io.output(file)
     io.write("clock_tempo: "..params:get("clock_tempo").."\n")
@@ -4628,20 +4644,19 @@ function named_savestate(text)
 end
 
 function named_loadstate(path)
-
-  print("loading...")
-  for j = 1,3 do
-    for k = 1,7 do
-      if rnd[j][k].clock ~= nil then
-        -- print(rnd[j][k].clock)
-        clock.cancel(rnd[j][k].clock)
-      end
-    end
-  end
-  reset_all_banks(bank)
-  print(path)
   local file = io.open(path, "r")
   if file then
+    print("loading...")
+    for j = 1,3 do
+      for k = 1,7 do
+        if rnd[j][k].clock ~= nil then
+          -- print(rnd[j][k].clock)
+          clock.cancel(rnd[j][k].clock)
+        end
+      end
+    end
+    reset_all_banks(bank)
+    print(path)
     io.input(file)
     local collection = io.read()
     io.close(file)
@@ -4652,29 +4667,29 @@ function named_loadstate(path)
     clock.run(load_screen)
     screen_dirty = true
     -- all_loaded = false
-    params:read(_path.data.."cheat_codes2/collection-"..collection.."/params/all.pset")
+    params:read(_path.data.."cheat_codes_2/collection-"..collection.."/params/all.pset")
     -- persistent_state_restore()
-    if tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/rec/rec[rec.focus].data") ~= nil then
-      rec = tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/rec/rec[rec.focus].data")
+    if tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/rec/rec[rec.focus].data") ~= nil then
+      rec = tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/rec/rec[rec.focus].data")
       softcut.loop_start(1,rec[rec.focus].start_point)
       softcut.loop_end(1,rec[rec.focus].end_point-0.01)
     end
     for i = 1,3 do
-      if tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/banks/"..i..".data") ~= nil then
-        bank[i] = tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/banks/"..i..".data")
+      if tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/banks/"..i..".data") ~= nil then
+        bank[i] = tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/banks/"..i..".data")
         if bank[i][bank[i].id].loop then
           softcut.loop(i+1,1)
           cheat(i,bank[i].id)
         end
       end
-      if tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/step-seq/"..i..".data") ~= nil then
-        step_seq[i] = tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/step-seq/"..i..".data")
+      if tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/step-seq/"..i..".data") ~= nil then
+        step_seq[i] = tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/step-seq/"..i..".data")
       end
-      if tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/arps/"..i..".data") ~= nil then
-        arp[i] = tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/arps/"..i..".data")
+      if tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/arps/"..i..".data") ~= nil then
+        arp[i] = tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/arps/"..i..".data")
       end
-      if tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/rnd/"..i..".data") ~= nil then
-        rnd[i] = tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/rnd/"..i..".data")
+      if tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/rnd/"..i..".data") ~= nil then
+        rnd[i] = tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/rnd/"..i..".data")
         for j = 1,#rnd[i] do
           rnd[i][j].clock = nil
           if rnd[i][j].playing then
@@ -4687,8 +4702,8 @@ function named_loadstate(path)
         reload_collected_samples(_path.dust.."audio/cc2_live-audio/"..collection.."/".."cc2_"..collection.."-"..i..".wav",i)
       end
       
-      if tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/euclid/euclid"..i..".data") ~= nil then
-        rytm.track[i] = tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/euclid/euclid"..i..".data")
+      if tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/euclid/euclid"..i..".data") ~= nil then
+        rytm.track[i] = tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/euclid/euclid"..i..".data")
       end
       
     end
@@ -4697,13 +4712,13 @@ function named_loadstate(path)
     rytm.restore_collection()
 
     for i = 1,2 do
-      if tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/delays/delay"..(i == 1 and "L" or "R")..".data") ~= nil then
-        delay[i] = tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/delays/delay"..(i == 1 and "L" or "R")..".data")
+      if tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/delays/delay"..(i == 1 and "L" or "R")..".data") ~= nil then
+        delay[i] = tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/delays/delay"..(i == 1 and "L" or "R")..".data")
       end
     end
 
-    if tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/delays/delay-links.data") ~= nil then
-      delay_links = tab.load(_path.data .. "cheat_codes2/collection-"..collection.."/delays/delay-links.data")
+    if tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/delays/delay-links.data") ~= nil then
+      delay_links = tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/delays/delay-links.data")
     end
 
     -- GRID pattern restore
@@ -4721,13 +4736,13 @@ function named_loadstate(path)
 
     for i = 1,3 do
       midi_pat[i]:restore_defaults()
-      local dirname = _path.data .. "cheat_codes2/collection-"..selected_coll.."/patterns/midi"..i..".data"
+      local dirname = _path.data .. "cheat_codes_2/collection-"..selected_coll.."/patterns/midi"..i..".data"
       if os.rename(dirname, dirname) ~= nil then
         load_midi_pattern(i)
       end
     end
 
-    local file = io.open(_path.data .. "cheat_codes2/collection-"..selected_coll.."/misc/misc.data", "r")
+    local file = io.open(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/misc/misc.data", "r")
     if file then
       io.input(file)
       params:set("clock_tempo", tonumber(string.match(io.read(), ': (.*)')))
@@ -4811,17 +4826,17 @@ end
 
 function save_pattern(source,slot,style)
 
-  local dirname = _path.data.."cheat_codes2/collection-"..selected_coll.."/"
+  local dirname = _path.data.."cheat_codes_2/collection-"..selected_coll.."/"
   if os.rename(dirname, dirname) == nil then
     os.execute("mkdir " .. dirname)
   end
-  local dirname = _path.data.."cheat_codes2/collection-"..selected_coll.."/patterns/"
+  local dirname = _path.data.."cheat_codes_2/collection-"..selected_coll.."/patterns/"
   if os.rename(dirname, dirname) == nil then
     os.execute("mkdir " .. dirname)
   end
 
-  local file = io.open(_path.data .. "cheat_codes2/collection-"..selected_coll.."/patterns/"..slot..".data", "w+")
-  -- local file = io.open(_path.data .. "cheat_codes2/pattern"..selected_coll.."_"..slot..".data", "w+")
+  local file = io.open(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/patterns/"..slot..".data", "w+")
+  -- local file = io.open(_path.data .. "cheat_codes_2/pattern"..selected_coll.."_"..slot..".data", "w+")
   io.output(file)
   if style == "pattern" then
     io.write("stored pad pattern: collection "..selected_coll.." + slot "..slot.."\n")
@@ -4909,7 +4924,7 @@ function save_pattern(source,slot,style)
     --/GIRAFFE
     print("saved pattern "..source.." to slot "..slot)
   elseif style == "arp" then
-    tab.save(arp[source],_path.data .. "cheat_codes2/collection-"..selected_coll.."/patterns/"..slot..".data")
+    tab.save(arp[source],_path.data .. "cheat_codes_2/collection-"..selected_coll.."/patterns/"..slot..".data")
     print("saved arp "..source.." to slot "..slot)
   end
 end
@@ -4917,10 +4932,10 @@ end
 function already_saved()
   for i = 1,24 do
     local line_count = 0
-    local file = io.open(_path.data .. "cheat_codes2/collection-"..selected_coll.."/patterns/"..i..".data", "r")
+    local file = io.open(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/patterns/"..i..".data", "r")
     if file then
       io.input(file)
-      for lines in io.lines(_path.data .. "cheat_codes2/collection-"..selected_coll.."/patterns/"..i..".data") do
+      for lines in io.lines(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/patterns/"..i..".data") do
         line_count = line_count + 1
       end
       if line_count > 0 then
@@ -4930,7 +4945,7 @@ function already_saved()
         local current = math.floor((i-1)/8)+1
         pattern_saver[current].saved[i-(8*(current-1))] = 0
         -- print("killing yr file4387")
-        os.remove(_path.data .. "cheat_codes2/collection-"..selected_coll.."/patterns/"..i..".data")
+        os.remove(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/patterns/"..i..".data")
       end
       io.close(file)
     else
@@ -4942,7 +4957,7 @@ end
 
 function one_point_two()
   for i = 1,24 do
-    local file = io.open(_path.data .. "cheat_codes2/collection-"..selected_coll.."/patterns/"..i..".data", "r")
+    local file = io.open(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/patterns/"..i..".data", "r")
     if file then
       io.input(file)
       local current = math.floor((i-1)/8)+1
@@ -4961,15 +4976,15 @@ end
 
 function clear_zero()
   for i = 1,24 do
-    local file = io.open(_path.data .. "cheat_codes2/collection-0/patterns/"..i..".data", "r")
+    local file = io.open(_path.data .. "cheat_codes_2/collection-0/patterns/"..i..".data", "r")
     if file then
       io.input(file)
       local line_count = 0
-      for lines in io.lines(_path.data .. "cheat_codes2/collection-0/patterns/"..i..".data") do
+      for lines in io.lines(_path.data .. "cheat_codes_2/collection-0/patterns/"..i..".data") do
         line_count = line_count + 1
       end
       if line_count > 0 then
-        os.remove(_path.data .. "cheat_codes2/collection-0/patterns/"..i..".data")
+        os.remove(_path.data .. "cheat_codes_2/collection-0/patterns/"..i..".data")
         print("cleared default pattern")
       end
       io.close(file)
@@ -4978,7 +4993,7 @@ function clear_zero()
 end
 
 function delete_pattern(slot)
-  local file = io.open(_path.data .. "cheat_codes2/collection-"..selected_coll.."/patterns/"..slot..".data", "w+")
+  local file = io.open(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/patterns/"..slot..".data", "w+")
   io.output(file)
   io.write()
   io.close(file)
@@ -4987,8 +5002,8 @@ end
 
 function copy_pattern_across_coll(read_coll,write_coll,slot)
   print("4610: "..read_coll,write_coll,slot)
-  local infile = io.open(_path.data .. "cheat_codes2/collection-"..read_coll.."/patterns/"..slot..".data", "r")
-  local outfile = io.open(_path.data .. "cheat_codes2/collection-"..write_coll.."/patterns/"..slot..".data", "w+")
+  local infile = io.open(_path.data .. "cheat_codes_2/collection-"..read_coll.."/patterns/"..slot..".data", "r")
+  local outfile = io.open(_path.data .. "cheat_codes_2/collection-"..write_coll.."/patterns/"..slot..".data", "w+")
   io.output(outfile)
   for line in infile:lines() do
     if line == "stored pad pattern: collection "..read_coll.." + slot "..slot then
@@ -5003,8 +5018,8 @@ function copy_pattern_across_coll(read_coll,write_coll,slot)
 end
 
 function shadow_pattern(read_coll,write_coll,slot)
-  local infile = io.open(_path.data .. "cheat_codes2/collection-"..read_coll.."/patterns/"..slot..".data", "r")
-  local outfile = io.open(_path.data .. "cheat_codes2/collection-"..write_coll.."/patterns/shadow-pattern_"..slot..".data", "w+")
+  local infile = io.open(_path.data .. "cheat_codes_2/collection-"..read_coll.."/patterns/"..slot..".data", "r")
+  local outfile = io.open(_path.data .. "cheat_codes_2/collection-"..write_coll.."/patterns/shadow-pattern_"..slot..".data", "w+")
   io.output(outfile)
   for line in infile:lines() do
     -- io.write(line.."\n")
@@ -5024,7 +5039,7 @@ function meta_shadow(coll)
       if pattern_saver[i].saved[j] == 1 then
         shadow_pattern(coll,coll,j+(8*(i-1)))
       elseif pattern_saver[i].saved[j] == 0 then
-        local file = io.open(_path.data .. "cheat_codes2/collection-"..coll.."/patterns/shadow-pattern_"..j+(8*(i-1))..".data", "w+")
+        local file = io.open(_path.data .. "cheat_codes_2/collection-"..coll.."/patterns/shadow-pattern_"..j+(8*(i-1))..".data", "w+")
         if file then
           io.output(file)
           io.write()
@@ -5037,11 +5052,11 @@ end
 
 function clear_empty_shadows(coll)
   for i = 1,24 do
-    local file = io.open(_path.data .. "cheat_codes2/collection-"..coll.."/patterns/shadow-pattern_"..i..".data", "r")
+    local file = io.open(_path.data .. "cheat_codes_2/collection-"..coll.."/patterns/shadow-pattern_"..i..".data", "r")
     if file then
       io.input(file)
       local line_count = 0
-      for lines in io.lines(_path.data .. "cheat_codes2/collection-"..coll.."/patterns/shadow-pattern_"..i..".data") do
+      for lines in io.lines(_path.data .. "cheat_codes_2/collection-"..coll.."/patterns/shadow-pattern_"..i..".data") do
         line_count = line_count + 1
       end
       if line_count > 0 then
@@ -5050,7 +5065,7 @@ function clear_empty_shadows(coll)
       else
         local current = math.floor((i-1)/8)+1
         pattern_saver[current].saved[i-(8*(current-1))] = 0
-        os.remove(_path.data .. "cheat_codes2/collection-"..coll.."/patterns/shadow-pattern_"..i..".data")
+        os.remove(_path.data .. "cheat_codes_2/collection-"..coll.."/patterns/shadow-pattern_"..i..".data")
       end
       io.close(file)
     else
@@ -5061,8 +5076,8 @@ function clear_empty_shadows(coll)
 end
 
 function shadow_to_play(coll,slot)
-  local infile = io.open(_path.data .. "cheat_codes2/collection-"..coll.."/patterns/shadow-pattern_"..slot..".data", "r")
-  local outfile = io.open(_path.data .. "cheat_codes2/collection-"..coll.."/patterns/"..slot..".data", "w+")
+  local infile = io.open(_path.data .. "cheat_codes_2/collection-"..coll.."/patterns/shadow-pattern_"..slot..".data", "r")
+  local outfile = io.open(_path.data .. "cheat_codes_2/collection-"..coll.."/patterns/"..slot..".data", "w+")
   io.output(outfile)
   if infile then
     for line in infile:lines() do
@@ -5083,7 +5098,7 @@ function meta_copy_coll(read_coll,write_coll)
       if pattern_saver[i].saved[j] == 1 then
         copy_pattern_across_coll(read_coll,write_coll,j+(8*(i-1)))
       elseif pattern_saver[i].saved[j] == 0 then
-        local file = io.open(_path.data .. "cheat_codes2/collection-"..write_coll.."/patterns/"..j+(8*(i-1))..".data", "w+")
+        local file = io.open(_path.data .. "cheat_codes_2/collection-"..write_coll.."/patterns/"..j+(8*(i-1))..".data", "w+")
         if file then
           io.output(file)
           io.write()
@@ -5096,7 +5111,7 @@ end
 
 function load_pattern(slot,destination)
   local ignore_external_timing = false
-  local file = io.open(_path.data .. "cheat_codes2/collection-"..selected_coll.."/patterns/"..slot..".data", "r")
+  local file = io.open(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/patterns/"..slot..".data", "r")
   if file then
     io.input(file)
     if io.read() == "stored pad pattern: collection "..selected_coll.." + slot "..slot then
@@ -5220,8 +5235,8 @@ function load_pattern(slot,destination)
       --/new stuff, quantum and time_beats!
     else
       -- print("it's an arp!")
-      arp[destination] = tab.load(_path.data .. "cheat_codes2/collection-"..selected_coll.."/patterns/"..slot..".data")
-      -- arp[destination] = tab.load(_path.data .. "cheat_codes2/pattern"..selected_coll.."_"..slot..".data")
+      arp[destination] = tab.load(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/patterns/"..slot..".data")
+      -- arp[destination] = tab.load(_path.data .. "cheat_codes_2/pattern"..selected_coll.."_"..slot..".data")
       ignore_external_timing = true
     end
 
@@ -5252,11 +5267,11 @@ function cleanup()
   
   --need all this to just happen at cleanup after save
   for i = 1,24 do
-    local file = io.open(_path.data .. "cheat_codes2/collection-"..selected_coll.."/patterns/"..i..".data", "r")
+    local file = io.open(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/patterns/"..i..".data", "r")
     if file then
       io.input(file)
       local line_count = 0
-      for lines in io.lines(_path.data .. "cheat_codes2/collection-"..selected_coll.."/patterns/"..i..".data") do
+      for lines in io.lines(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/patterns/"..i..".data") do
         line_count = line_count + 1
       end
       if line_count > 0 then
@@ -5265,7 +5280,7 @@ function cleanup()
       else
         local current = math.floor((i-1)/8)+1
         pattern_saver[current].saved[i-(8*(current-1))] = 0
-        os.remove(_path.data .. "cheat_codes2/collection-"..selected_coll.."/patterns/"..i..".data")
+        os.remove(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/patterns/"..i..".data")
       end
       io.close(file)
     else
@@ -5280,7 +5295,7 @@ end
 -- arc pattern stuff!
 
 function save_arc_pattern(which)
-  local file = io.open(_path.data .. "cheat_codes2/collection-"..selected_coll.."/arc-rec/encoder-"..which..".data", "w+")
+  local file = io.open(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/arc-rec/encoder-"..which..".data", "w+")
   io.output(file)
   io.write("stored arc pattern: collection "..selected_coll.." + encoder "..which.."\n")
   for j = 1,4 do
@@ -5309,7 +5324,7 @@ function save_arc_pattern(which)
 end
 
 function load_arc_pattern(which)
-  local file = io.open(_path.data .. "cheat_codes2/collection-"..selected_coll.."/arc-rec/encoder-"..which..".data", "r")
+  local file = io.open(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/arc-rec/encoder-"..which..".data", "r")
   if file then
     io.input(file)
     if io.read() == "stored arc pattern: collection "..selected_coll.." + encoder "..which then
@@ -5357,7 +5372,7 @@ function load_arc_pattern(which)
 end
 
 function save_midi_pattern(which)
-  local file = io.open(_path.data .. "cheat_codes2/collection-"..selected_coll.."/patterns/midi"..which..".data", "w+")
+  local file = io.open(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/patterns/midi"..which..".data", "w+")
   io.output(file)
   if midi_pat[which].count > 0 then
     io.write("stored midi pattern: collection "..selected_coll..", pattern "..which.."\n")
@@ -5384,7 +5399,7 @@ function save_midi_pattern(which)
 end
 
 function load_midi_pattern(which)
-  local file = io.open(_path.data .. "cheat_codes2/collection-"..selected_coll.."/patterns/midi"..which..".data", "r")
+  local file = io.open(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/patterns/midi"..which..".data", "r")
   if file then
     io.input(file)
     if io.read() == "stored midi pattern: collection "..selected_coll..", pattern "..which then

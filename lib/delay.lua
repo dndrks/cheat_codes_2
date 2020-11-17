@@ -184,24 +184,24 @@ end
 
 function delays.savestate(source,collection)
   local del_name = source == 1 and "L" or "R"
-  local dirname = _path.data.."cheat_codes2/delays/"
+  local dirname = _path.data.."cheat_codes_2/delays/"
   if os.rename(dirname, dirname) == nil then
     os.execute("mkdir " .. dirname)
   end
   
-  local dirname = _path.data.."cheat_codes2/delays/collection-"..collection.."/"
+  local dirname = _path.data.."cheat_codes_2/delays/collection-"..collection.."/"
   if os.rename(dirname, dirname) == nil then
     os.execute("mkdir " .. dirname)
   end
 
-  tab.save(delay_bundle[source],_path.data .. "cheat_codes2/delays/collection-"..collection.."/"..del_name..".data")
+  tab.save(delay_bundle[source],_path.data .. "cheat_codes_2/delays/collection-"..collection.."/"..del_name..".data")
 end
 
 function delays.loadstate(collection)
   local del_name = {"L","R"}
   for i = 1,2 do
-    if tab.load(_path.data .. "cheat_codes2/delays/collection-"..collection.."/"..del_name[i]..".data") ~= nil then
-      delay_bundle[i] = tab.load(_path.data .. "cheat_codes2/delays/collection-"..collection.."/"..del_name[i]..".data")
+    if tab.load(_path.data .. "cheat_codes_2/delays/collection-"..collection.."/"..del_name[i]..".data") ~= nil then
+      delay_bundle[i] = tab.load(_path.data .. "cheat_codes_2/delays/collection-"..collection.."/"..del_name[i]..".data")
     end
   end
 end

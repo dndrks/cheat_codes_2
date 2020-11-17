@@ -198,7 +198,7 @@ function start_up.init()
   
   --params:add_option("zilchmo_bind_rand","bind random zilchmo?", {"no","yes"}, 1)
   
-  params:add_group("patterns + arps",22)
+  params:add_group("patterns + arps",23)
   params:add_separator("patterns")
   params:add_option("zilchmo_patterning", "grid pat style", { "classic", "rad sauce" })
   params:set_action("zilchmo_patterning", function() if all_loaded then persistent_state_save() end end)
@@ -251,6 +251,19 @@ function start_up.init()
   for i = 1,3 do
     params:add_option("arp_"..i.."_hold_style", "arp "..i.." hold style", {"last pressed","additive"},1)
   end
+
+  params:add_trigger("arp_panic","arp reset (K3)")
+  params:set_action("arp_panic",
+    function (x)
+      if all_loaded == true then
+        print("here")
+        for i = 1,3 do
+          clock.cancel(arp_clock[i])
+          arp_clock[i] = clock.run(arps.arpeggiate,i)
+        end
+      end
+    end
+  )
   
   params:add_group("manual control",34)
 

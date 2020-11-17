@@ -2,6 +2,8 @@ local arp_actions = {}
 
 arp = {}
 
+arp_clock = {}
+
 function arp_actions.init(target)
     arp[target] = {}
     arp[target].playing = false
@@ -16,8 +18,9 @@ function arp_actions.init(target)
     arp[target].end_point = 1
     arp[target].down = 0
     -- arp[target].clock = clock.run(arp_actions.arpeggiate, target)
-    clock.run(arp_actions.arpeggiate, target)
+    -- clock.run(arp_actions.arpeggiate, target)
     arp[target].retrigger = true
+    arp_clock[target] = clock.run(arp_actions.arpeggiate,target)
 end
 
 function arp_actions.find_index(tab,el)
@@ -149,26 +152,26 @@ end
 
 function arp_actions.savestate()
   local collection = params:get("collection")
-  local dirname = _path.data.."cheat_codes2/arp/"
+  local dirname = _path.data.."cheat_codes_2/arp/"
   if os.rename(dirname, dirname) == nil then
     os.execute("mkdir " .. dirname)
   end
   
-  local dirname = _path.data.."cheat_codes2/arp/collection-"..collection.."/"
+  local dirname = _path.data.."cheat_codes_2/arp/collection-"..collection.."/"
   if os.rename(dirname, dirname) == nil then
     os.execute("mkdir " .. dirname)
   end
 
   for i = 1,3 do
-    tab.save(arp[i],_path.data .. "cheat_codes2/arp/collection-"..collection.."/"..i..".data")
+    tab.save(arp[i],_path.data .. "cheat_codes_2/arp/collection-"..collection.."/"..i..".data")
   end
 end
 
 function arp_actions.loadstate()
   local collection = params:get("collection")
   for i = 1,3 do
-    if tab.load(_path.data .. "cheat_codes2/arp/collection-"..collection.."/"..i..".data") ~= nil then
-      arp[i] = tab.load(_path.data .. "cheat_codes2/arp/collection-"..collection.."/"..i..".data")
+    if tab.load(_path.data .. "cheat_codes_2/arp/collection-"..collection.."/"..i..".data") ~= nil then
+      arp[i] = tab.load(_path.data .. "cheat_codes_2/arp/collection-"..collection.."/"..i..".data")
       -- arp[i].clock = nil
       -- arp[i].pause = true
       -- arp[i].playing = false
