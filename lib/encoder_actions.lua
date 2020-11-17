@@ -1063,26 +1063,18 @@ function ea.move_start(target,delta)
 end
 
 function ea.move_end(target,delta)
-  -- local duration = target.mode == 1 and 8 or clip[target.clip].sample_length
   local duration = target.mode == 1 and live[target.clip].max or clip[target.clip].max
   local s_p = target.mode == 1 and live[target.clip].min or clip[target.clip].min
 
   if delta > 0 then
-    print(target.end_point + delta, target.end_point + delta<= duration, util.round(target.end_point + delta,0.01), duration)
     if util.round(target.end_point + delta,0.01) <= duration then
-      target.end_point = util.clamp(target.end_point+delta,s_p,duration)
-    else
-      target.end_point = duration
+      target.end_point = util.clamp(util.round(target.end_point + delta,0.01),s_p,duration)
     end
   else
     if target.start_point < ((target.end_point+delta) - 0.04) then
-      target.end_point = util.clamp(target.end_point+delta,s_p,s_p+duration)
+      target.end_point = util.clamp(util.round(target.end_point + delta,0.01),s_p,s_p+duration)
     end
   end
-
-  -- if target.start_point < ((target.end_point+delta) - 0.04) then
-  --   target.end_point = util.clamp(target.end_point+delta,s_p,s_p+duration)
-  -- end
   if menu == 2 and page.loops.sel < 4 and key1_hold then
     update_waveform(target.mode,target.start_point,target.end_point,128)
   end
