@@ -1,4 +1,4 @@
-# cheat codes 2 beta
+# cheat codes 2
 
 a sample playground for norns
 
