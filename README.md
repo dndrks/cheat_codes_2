@@ -14,6 +14,10 @@ a sample playground for norns
 - Midi Fighter Twister ([cheat codes template](https://github.com/dndrks/cheat-codes-docs/blob/main/assets/downloadables/cc-mft.mfs))
 - max for live ([cheat codes osc control device](https://github.com/dndrks/cheat-codes-docs/blob/main/assets/downloadables/cc-osc.amxd))
 
+### [documentation](https://github.com/dndrks/cheat-codes-docs/raw/main/assets/images/pdf/cheat_codes_2.pdf)
+
+### [discussion](https://l.llllllll.co/cheat-codes-2)
+
 #### OP-Z setup notes
 
 you’ll need to make some adjustments to OP-Z’s MIDI settings, so grab a screen and navigate to the OP-Z’s MIDI SETUP menus!
@@ -38,7 +42,3 @@ MIDI control device whatever port your OP-Z is on
 enable MIDI echo? yes, this allows the encoders on OP-Z to be used like arc!  
 
 from there, you’ll want to set the bank MIDI channels to match the tracks from the OP-Z. they’re defaulted to 1/2/3, which on a factory-set OP-Z are the first, second, and third tracks.
-
-### [documentation](https://github.com/dndrks/cheat-codes-docs/raw/main/assets/images/pdf/cheat_codes_2.pdf)
-
-### [discussion](https://l.llllllll.co/cheat-codes-2)
