@@ -4,7 +4,7 @@
 -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
 -- need help?
 -- please visit:
--- llllllll.co/cheat-codes-2
+-- l.llllllll.co/cheat-codes-2
 -- -------------------------------
 
 local pattern_time = include 'lib/cc_pattern_time'
