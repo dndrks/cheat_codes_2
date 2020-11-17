@@ -8,7 +8,7 @@ a sample playground for norns
 - norns (201115 or later)
 
 ### encouraged:
-- grid (128 only, all editions)
+- grid (made for 128, all editions)
 - arc
 - OP-Z (see below)
 - Midi Fighter Twister ([cheat codes template](https://github.com/dndrks/cheat-codes-docs/blob/main/assets/downloadables/cc-mft.mfs)) <~~ right-click and save
