@@ -11,8 +11,8 @@ a sample playground for norns
 - grid (made for 128, all editions)
 - arc
 - OP-Z (see below)
-- Midi Fighter Twister ([cheat codes template](https://github.com/dndrks/cheat-codes-docs/blob/main/assets/downloadables/cc-mft.mfs)) <~~ right-click and save
-- max for live ([cheat codes osc control device](https://github.com/dndrks/cheat-codes-docs/blob/main/assets/downloadables/cc-osc.amxd)) <~~ right-click and save
+- Midi Fighter Twister ([template](https://llllllll.co/uploads/short-url/so1QoxfHVWn29a4YNkybdVEIQgi.mfs))
+- max for live ([device](https://llllllll.co/uploads/short-url/cckkpyWjH3ywfaHfYzOmV27GS3m.amxd)) <~~ right-click and save
 
 ### [documentation](https://github.com/dndrks/cheat-codes-docs/raw/main/assets/images/pdf/cheat_codes_2.pdf)
 
