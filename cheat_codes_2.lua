@@ -3840,7 +3840,7 @@ function grid_redraw()
       
       for i = 1,3 do
         if bank[i].focus_hold then
-          g:led(4*i,4,(10*bank[i][bank[i].focus_pad].crow_pad_execute)+5)
+          g:led(4+(5*(i-1)),4,(10*bank[i][bank[i].focus_pad].crow_pad_execute)+5)
         end
         -- if bank[i].focus_hold == true then
         --   g:led(5*i,5,(10*bank[i][bank[i].focus_pad].crow_pad_execute)+5)
