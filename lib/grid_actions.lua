@@ -116,7 +116,7 @@ function grid_actions.init(x,y,z)
     
     -- zilchmo 3+4 handling
     if x == 4 or x == 5 or x == 9 or x == 10 or x == 14 or x == 15 then
-      if y <= 4 then
+      if ((x == 4 or x == 9 or x == 14) and y <= 3) or ((x == 5 or x == 10 or x == 15) and y <= 4) then
         local zilch_id = x%5 == 0 and 4 or 3
         local zmap = zilches[zilch_id]
         local k1 = util.round(x/5)
@@ -451,20 +451,21 @@ function grid_actions.init(x,y,z)
     end
     
     if y == 5 then
-      if z == 1 then
-        for i = 1,3 do
-          if bank[i].focus_hold == true then
-            if x == i*5 then
-              bank[i][bank[i].focus_pad].crow_pad_execute = (bank[i][bank[i].focus_pad].crow_pad_execute + 1)%2
-              if grid.alt then
-                for j = 1,16 do
-                  bank[i][j].crow_pad_execute = bank[i][bank[i].focus_pad].crow_pad_execute
-                end
-              end
-            end
-          end
-        end
-      end
+      --CROW
+      -- if z == 1 then
+      --   for i = 1,3 do
+      --     if bank[i].focus_hold == true then
+      --       if x == i*5 then
+      --         bank[i][bank[i].focus_pad].crow_pad_execute = (bank[i][bank[i].focus_pad].crow_pad_execute + 1)%2
+      --         if grid.alt then
+      --           for j = 1,16 do
+      --             bank[i][j].crow_pad_execute = bank[i][bank[i].focus_pad].crow_pad_execute
+      --           end
+      --         end
+      --       end
+      --     end
+      --   end
+      -- end
       if x == 5 or x == 10 or x == 15 then
         if not grid.alt then
           bank[x/5].alt_lock = z == 1 and true or false
@@ -489,8 +490,8 @@ function grid_actions.init(x,y,z)
             else
               if key1_hold == true then key1_hold = false end
               if y == 4 then
-                menu = 2
-                page.loops_sel = math.floor((x/4))
+                --CROW
+                bank[i][bank[i].focus_pad].crow_pad_execute = (bank[i][bank[i].focus_pad].crow_pad_execute + 1)%2
               end
               if menu ~= 1 then screen_dirty = true end
             end
@@ -501,15 +502,20 @@ function grid_actions.init(x,y,z)
             if y == 3 then
               grid_actions.kill_arp(i)
             end
-            if y == 4 then
+            if y == 4 and not bank[i].focus_hold then
               local current = math.floor(x/5)+1
-              for i = 1,16 do
-                bank[current][i].rate = 1
-                if bank[current][i].fifth == true then
-                  bank[current][i].fifth = false
+              for j = 1,16 do
+                bank[current][j].rate = 1
+                if bank[current][j].fifth == true then
+                  bank[current][j].fifth = false
                 end
               end
               softcut.rate(current+1,1*bank[current][bank[current].id].offset)
+            elseif y == 4 and bank[i].focus_hold then
+              bank[i][bank[i].focus_pad].crow_pad_execute = (bank[i][bank[i].focus_pad].crow_pad_execute + 1)%2
+              for j = 1,16 do
+                bank[i][j].crow_pad_execute = bank[i][bank[i].focus_pad].crow_pad_execute
+              end
             end
           end
           ---

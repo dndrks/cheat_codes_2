@@ -113,7 +113,7 @@ function aa.move_window(target, delta)
     target.start_point = target.end_point - current_difference
   end
   if menu == 2 and page.loops_view[target.bank_id] == 4 and key1_hold then
-    update_content(2,target.start_point,target.end_point,128)
+    update_waveform(2,target.start_point,target.end_point,128)
   end
 end
 
@@ -130,7 +130,7 @@ function aa.move_start(target, delta)
     target.start_point = util.clamp(target.start_point+adjusted_delta,s_p,s_p+duration)
   end
   if menu == 2 and page.loops_view[target.bank_id] == 4 and key1_hold then
-    update_content(2,target.start_point,target.end_point,128)
+    update_waveform(2,target.start_point,target.end_point,128)
   end
 end
 
@@ -147,7 +147,7 @@ function aa.move_end(target, delta)
     target.end_point = util.clamp(target.end_point+adjusted_delta,s_p,s_p+duration)
   end
   if menu == 2 and page.loops_view[target.bank_id] == 4 and key1_hold then
-    update_content(2,target.start_point,target.end_point,128)
+    update_waveform(2,target.start_point,target.end_point,128)
   end
 
 end

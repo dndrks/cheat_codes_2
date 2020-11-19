@@ -559,14 +559,15 @@ function encoder_actions.init(n,d)
         if not key1_hold then
           if page_line[pattern_page] == 1 then
             page.time_arc_loop[pattern_page-3] = util.clamp(page.time_arc_loop[pattern_page-3]+d,1,3)
-            if g.device == nil then
+            -- if g.device == nil then
               arc_param[pattern_page-3] = page.time_arc_loop[pattern_page-3]
-            end
+              grid_dirty = true
+            -- end
           end
         else
-          if page.page_line_sel[page.time_sel] <= 4 then
+          if page.time_page_sel[page.time_sel] <= 4 then
             local id = page.time_sel-3
-            local val = page.page_line_sel[page.time_sel]
+            local val = page.time_page_sel[page.time_sel]
             arc_pat[id][val].time_factor = util.clamp(arc_pat[id][val].time_factor + d/10,0.1,10)
           end
         end
