@@ -63,17 +63,23 @@ function main_menu.init()
     , page.loops.frame == 2 and 3 or 15
     }
 
-    if page.loops.frame == 1 then
+    if page.loops.frame == 1 or (page.loops.frame == 2 and page.loops.sel == 5) then
     
-      local header = {"a","b","c","L"}
-      for i = 1,4 do
-        screen.level(page.loops.sel == i and screen_levels[4] or 3)
-        screen.move(60+(i*15),10)
-        screen.text_right(header[i])
+      if page.loops.frame == 2 and page.loops.sel == 5 and key1_hold then
+        screen.move(50+(5*15),13)
+        screen.level(15)
+        screen.text_right("E1: cycle")
+      else
+        local header = {"a","b","c","L","#"}
+        for i = 1,#header do
+          screen.level(page.loops.sel == i and screen_levels[4] or 3)
+          screen.move(50+(i*15),10)
+          screen.text_right(header[i])
+        end
+        screen.level(page.loops.sel == page.loops.sel and screen_levels[4] or 3)
+        screen.move(50+(page.loops.sel*15),13)
+        screen.text_right("_")
       end
-      screen.level(page.loops.sel == page.loops.sel and screen_levels[4] or 3)
-      screen.move(60+(page.loops.sel*15),13)
-      screen.text_right("_")
     
     elseif page.loops.frame == 2 then
 
@@ -403,6 +409,29 @@ function main_menu.init()
 
         end
       
+      end
+
+    elseif page.loops.sel == 5 then
+      local pad_fine_options =
+      {
+        "start_point"
+      , "end_point"
+      , "rate"
+      , "offset"
+      
+      }
+      for i = 1,4 do
+        local id;
+        screen.line_width(1)
+        if i < 4 then
+          id = bank[i].focus_pad
+        elseif i == 4 then
+          id = rec.focus
+        end
+        screen.move(0,8+(i*14))
+        screen.level(page.loops.meta_sel == i and screen_levels[1] or 3)
+        local loops_to_screen_options = {"a", "b", "c", "L"}
+        screen.text(loops_to_screen_options[i]..""..id)
       end
 
     end

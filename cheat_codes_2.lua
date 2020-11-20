@@ -960,6 +960,8 @@ function init()
   page.loops = {}
   page.loops.frame = 1
   page.loops.sel = 1
+  page.loops.meta_sel = 1
+  page.loops.meta_option_set = {1,1,1,1}
   page.loops.top_option_set = {1,1,1,1}
   page.main_sel = 1
   page.loops_sel = 1
@@ -1135,7 +1137,7 @@ function init()
           rec_state_watcher:stop()
           grid_dirty = true
           if menu == 2 then
-            if menu ~= 1 then screen_dirty = true end
+            if page.loops.sel ~= 5 then screen_dirty = true end
             -- print("stopped")
           end
         end
@@ -2272,7 +2274,7 @@ phase = function(n, x)
         update_waveform(1,key1_hold and rec[rec.focus].start_point or live[rec_on].min,key1_hold and rec[rec.focus].end_point or live[rec_on].max,128)
       end
     end
-    if menu ~= 1 then screen_dirty = true end
+    if page.loops.sel ~= 5 then screen_dirty = true end
   end
 end
 

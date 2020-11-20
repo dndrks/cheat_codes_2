@@ -14,11 +14,11 @@ function encoder_actions.init(n,d)
         if key1_hold then
           page.loops.top_option_set[page.loops.sel] = util.clamp(page.loops.top_option_set[page.loops.sel] + d,1,2)
         else
-          page.loops.sel = util.clamp(page.loops.sel+d,1,4)
+          page.loops.sel = util.clamp(page.loops.sel+d,1,5)
         end
       elseif page.loops.frame == 2 then
         local id = page.loops.sel
-        if id ~= 4 then
+        if id < 4 then
           if key1_hold then
             ea.change_pad(id,d)
           elseif key2_hold then
@@ -44,12 +44,23 @@ function encoder_actions.init(n,d)
               ea.sc.move_play_window(id)
             end
           end
-        else
+        elseif id == 4 then
           if key1_hold then
             ea.change_buffer(rec[rec.focus],d)
           else
             ea.move_rec_window(rec[rec.focus],d)
             ea.sc.move_rec_window(rec[rec.focus])
+          end
+        elseif id == 5 then
+          if key1_hold then
+            if page.loops.meta_sel < 4 then
+              bank[page.loops.meta_sel].focus_pad = util.clamp(bank[page.loops.meta_sel].focus_pad + d,1,16)
+            elseif page.loops.meta_sel == 4 then
+              rec.focus = util.clamp(rec.focus + d,1,3)
+            end
+            grid_dirty = true
+          else
+            page.loops.meta_sel = util.clamp(page.loops.meta_sel + d,1,4)
           end
         end
       end
