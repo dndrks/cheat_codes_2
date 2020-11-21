@@ -4,6 +4,37 @@ local ea = encoder_actions
 ea.sc = {}
 
 function encoder_actions.init(n,d)
+  
+  local function check_loops_id(d,func)
+
+    if page.loops.frame == 2 then
+      if page.loops.meta_sel ~= 4 then
+        local i = page.loops.meta_sel
+        if bank[i].focus_hold then
+          id = bank[i].focus_pad
+        elseif page.loops.frame == 1 then
+          id = bank[i].id
+        elseif page.loops.frame == 2 then
+          if grid_pat[i].play == 0 and midi_pat[i].play == 0 and not arp[i].playing and rytm.track[i].k == 0 then
+            id = bank[i].id
+          else
+            if key1_hold and page.loops.meta_sel == i then
+              id = bank[i].focus_pad
+            else
+              id = bank[i].id
+            end
+          end
+        end
+        local resolution = key1_hold and 100 or 10
+        ea[func](bank[i][id],d/resolution)
+        if bank[i].focus_hold == false or bank[i].focus_pad == bank[i].id then
+          ea.sc[func](i)
+        end
+      end
+    end
+
+  end
+
   if n == 1 then
 
     if menu == 1 then
@@ -211,7 +242,9 @@ function encoder_actions.init(n,d)
             update_waveform(1,rec[rec.focus].start_point,rec[rec.focus].end_point,128)
           end
         end
-
+      
+      elseif id == 5 then
+        check_loops_id(d,"move_start")
       end
 
     elseif menu == 6 then
@@ -384,6 +417,9 @@ function encoder_actions.init(n,d)
             update_waveform(1,rec[rec.focus].start_point,rec[rec.focus].end_point,128)
           end
         end
+      
+      elseif id == 5 then
+        check_loops_id(d,"move_end")
       end
 
     elseif menu == 6 then

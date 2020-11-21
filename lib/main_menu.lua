@@ -469,6 +469,7 @@ function main_menu.init()
               end
             end
           end
+
           local pad = bank[i][id]
 
           local off = pad.mode == 1 and (((pad.clip-1)*8)+1) or clip[pad.clip].min
@@ -481,6 +482,27 @@ function main_menu.init()
           , "r: "..bank[i][id].rate
           , "offset"
           }
+
+          screen.level(page.loops.meta_sel == i and 15 or 3)
+          screen.move(15,8+(i*14))
+          screen.line(115,8+(i*14))
+          screen.close()
+          screen.stroke()
+          local duration = bank[i][id].mode == 1 and 8 or clip[bank[i][id].clip].sample_length
+          local s_p = bank[i][id].mode == 1 and live[bank[i][id].clip].min or clip[bank[i][id].clip].min
+          local e_p = bank[i][id].mode == 1 and live[bank[i][id].clip].max or clip[bank[i][id].clip].max
+          local start_to_screen = util.linlin(s_p,e_p,15,115,bank[i][id].start_point)
+          screen.move(start_to_screen,21+(14*(i-1)))
+          screen.text("|")
+          local end_to_screen = util.linlin(s_p,e_p,15,115,bank[i][id].end_point)
+          screen.move(end_to_screen,27+(14*(i-1)))
+          screen.text("|")
+          if bank[i].focus_hold == false or bank[i].id == bank[i].focus_pad then
+            local current_to_screen = util.linlin(s_p,e_p,15,115,poll_position_new[i+1])
+            screen.move(current_to_screen,24+(14*(i-1)))
+            screen.text("|")
+          end
+
         elseif i == 4 then
           id = rec.focus
           local off = ((id-1)*8)+1
@@ -491,34 +513,37 @@ function main_menu.init()
             "s: "..string.format("%.4g",(util.round(rec[id].start_point,0.0001)-off)*mult).."s"
           , "e: "..string.format("%.4g",(rec[id].end_point-off)*mult).."s"
           }
+
         end
+
         screen.move(0,8+(i*14))
         screen.level(page.loops.meta_sel == i and screen_levels[1] or 3)
         local loops_to_screen_options = {"a", "b", "c", "L"}
         screen.text(loops_to_screen_options[i]..""..id)
-        -- if page.loops.focus_hold[i] or (i < 4 and bank[i].focus_hold) then
+
         if i < 4 then
           if (bank[i].focus_hold) or (page.loops.frame == 2 and key1_hold and page.loops.meta_sel == i and (grid_pat[i].play == 1 or midi_pat[i].play == 1 or arp[i].playing or rytm.track[i].k ~= 0)) then
             -- draw lock
-            screen.level(screen_levels[1])
-            for j = 15,20 do
-              for k = 4,8 do
+            screen.level(page.loops.meta_sel == i and 15 or 3)
+            for j = 120,125 do
+              for k = 5,9 do
                 screen.pixel(j,k+(i*14))
               end
             end
-            screen.pixel(16,3+(i*14))
-            screen.pixel(16,2+(i*14))
-            screen.pixel(17,1+(i*14))
-            screen.pixel(18,1+(i*14))
-            screen.pixel(19,3+(i*14))
-            screen.pixel(19,2+(i*14))
+            screen.pixel(121,4+(i*14))
+            screen.pixel(121,3+(i*14))
+            screen.pixel(122,2+(i*14))
+            screen.pixel(123,2+(i*14))
+            screen.pixel(124,4+(i*14))
+            screen.pixel(124,3+(i*14))
             screen.fill()
           end
         end
-        screen.move(27,8+(i*14))
-        screen.text(options[1])
-        screen.move(67,8+(i*14))
-        screen.text(options[2])
+        -- screen.move(27,8+(i*14))
+        -- screen.text(options[1])
+        -- screen.move(67,8+(i*14))
+        -- screen.text(options[2])
+
       end
     end
     
