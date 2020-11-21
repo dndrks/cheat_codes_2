@@ -963,6 +963,7 @@ function init()
   page.loops.meta_sel = 1
   page.loops.meta_option_set = {1,1,1,1}
   page.loops.top_option_set = {1,1,1,1}
+  page.loops.focus_hold = {false, false, false, false}
   page.main_sel = 1
   page.loops_sel = 1
   page.loops_page = 0
@@ -3391,6 +3392,12 @@ function key(n,z)
           end
         elseif menu == 2 and page.loops.sel == 4 and page.loops.frame == 2 then
           update_waveform(1,rec[rec.focus].start_point,rec[rec.focus].end_point,128)
+        elseif menu == 2 and page.loops.sel == 5 and page.loops.frame == 2 then
+          local id = page.loops.meta_sel
+          if id < 4 and (grid_pat[id].play == 1 or midi_pat[id].play == 1 or arp[id].playing or rytm.track[id].k ~= 0) then
+            bank[id].focus_pad = bank[id].id
+          -- page.loops.focus_hold[page.loops.meta_sel] = not page.loops.focus_hold[page.loops.meta_sel]
+          end
         end
       end
       

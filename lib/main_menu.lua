@@ -66,9 +66,9 @@ function main_menu.init()
     if page.loops.frame == 1 or (page.loops.frame == 2 and page.loops.sel == 5) then
     
       if page.loops.frame == 2 and page.loops.sel == 5 and key1_hold then
-        screen.move(50+(5*15),13)
-        screen.level(15)
-        screen.text_right("E1: cycle")
+        -- screen.move(50+(5*15),13)
+        -- screen.level(15)
+        -- screen.text_right("E1: cycle")
       else
         local header = {"a","b","c","L","#"}
         for i = 1,#header do
@@ -112,11 +112,21 @@ function main_menu.init()
       local pad;
       if bank[page.loops.sel].focus_hold then
         pad = bank[page.loops.sel][bank[page.loops.sel].focus_pad]
-      elseif grid_pat[page.loops.sel].play == 0 and midi_pat[page.loops.sel].play == 0 and not arp[page.loops.sel].playing and rytm.track[page.loops.sel].k == 0 then
+      elseif page.loops.frame == 1 then
         pad = bank[page.loops.sel][bank[page.loops.sel].id]
-      else
-        pad = bank[page.loops.sel][bank[page.loops.sel].focus_pad]
+      elseif page.loops.frame == 2 then
+        if grid_pat[page.loops.sel].play == 0 and midi_pat[page.loops.sel].play == 0 and not arp[page.loops.sel].playing and rytm.track[page.loops.sel].k == 0 then
+          pad = bank[page.loops.sel][bank[page.loops.sel].id]
+        else
+          pad = bank[page.loops.sel][bank[page.loops.sel].focus_pad]
+        end
       end
+
+      -- elseif grid_pat[page.loops.sel].play == 0 and midi_pat[page.loops.sel].play == 0 and not arp[page.loops.sel].playing and rytm.track[page.loops.sel].k == 0 then
+      --   pad = bank[page.loops.sel][bank[page.loops.sel].id]
+      -- else
+      --   pad = bank[page.loops.sel][bank[page.loops.sel].focus_pad]
+      -- end
 
       -- local pad = bank[page.loops.sel].focus_hold and bank[page.loops.sel][bank[page.loops.sel].focus_pad] or bank[page.loops.sel][bank[page.loops.sel].id]
       
@@ -149,11 +159,22 @@ function main_menu.init()
         local which_pad;
         if bank[page.loops.sel].focus_hold then
           which_pad = bank[page.loops.sel].focus_pad
-        elseif grid_pat[page.loops.sel].play == 0 and midi_pat[page.loops.sel].play == 0 and not arp[page.loops.sel].playing and rytm.track[page.loops.sel].k == 0 then
+        elseif page.loops.frame == 1 then
           which_pad = bank[page.loops.sel].id
-        else
-          which_pad = bank[page.loops.sel].focus_pad
+        elseif page.loops.frame == 2 then
+          if grid_pat[page.loops.sel].play == 0 and midi_pat[page.loops.sel].play == 0 and not arp[page.loops.sel].playing and rytm.track[page.loops.sel].k == 0 then
+            which_pad = bank[page.loops.sel].id
+          else
+            which_pad = bank[page.loops.sel].focus_pad
+          end
         end
+
+        -- elseif grid_pat[page.loops.sel].play == 0 and midi_pat[page.loops.sel].play == 0 and not arp[page.loops.sel].playing and rytm.track[page.loops.sel].k == 0 then
+        --   which_pad = bank[page.loops.sel].id
+        -- else
+        --   which_pad = bank[page.loops.sel].focus_pad
+        -- end
+
         if not grid.alt then
           local loops_to_screen_options = {"a", "b", "c"}
           screen.text(loops_to_screen_options[page.loops.sel]..""..which_pad)
@@ -163,7 +184,23 @@ function main_menu.init()
             screen.text(loops_to_screen_options[page.loops.sel]..""..bank[page.loops.sel].id)
             screen.level(screen_levels[1])
           end
-          screen.move(3,30)
+          if (bank[page.loops.sel].focus_hold) or (page.loops.frame == 2 and (grid_pat[page.loops.sel].play == 1 or midi_pat[page.loops.sel].play == 1 or arp[page.loops.sel].playing or rytm.track[page.loops.sel].k ~= 0)) then
+            -- draw lock
+            screen.level(screen_levels[1])
+            for j = 1,6 do
+              for k = 5,9 do
+                screen.pixel(j,k+15)
+              end
+            end
+            screen.pixel(2,19)
+            screen.pixel(2,18)
+            screen.pixel(3,17)
+            screen.pixel(4,17)
+            screen.pixel(5,18)
+            screen.pixel(5,19)
+            screen.fill()
+          end
+          screen.move(3,33)
           screen.text_center(bank[page.loops.sel][which_pad].loop == false and "" or "∞")
         else
           local loops_to_screen_options = {"(a)","(b)","(c)"}
@@ -412,28 +449,77 @@ function main_menu.init()
       end
 
     elseif page.loops.sel == 5 then
-      local pad_fine_options =
-      {
-        "start_point"
-      , "end_point"
-      , "rate"
-      , "offset"
-      
-      }
       for i = 1,4 do
         local id;
+        local options;
         screen.line_width(1)
         if i < 4 then
-          id = bank[i].focus_pad
+          if bank[i].focus_hold then
+            id = bank[i].focus_pad
+          elseif page.loops.frame == 1 then
+            id = bank[i].id
+          elseif page.loops.frame == 2 then
+            if grid_pat[i].play == 0 and midi_pat[i].play == 0 and not arp[i].playing and rytm.track[i].k == 0 then
+              id = bank[i].id
+            else
+              if key1_hold and page.loops.meta_sel == i then
+                id = bank[i].focus_pad
+              else
+                id = bank[i].id
+              end
+            end
+          end
+          local pad = bank[i][id]
+
+          local off = pad.mode == 1 and (((pad.clip-1)*8)+1) or clip[pad.clip].min
+          local display_end = pad.mode == 1 and (pad.end_point == 8.99 and 9 or pad.end_point) or pad.end_point
+
+          options =
+          {
+            "s: "..string.format("%.4g",(util.round(pad.start_point,0.0001))-off).."s"
+          , "e: "..string.format("%.4g",(display_end)-off).."s"
+          , "r: "..bank[i][id].rate
+          , "offset"
+          }
         elseif i == 4 then
           id = rec.focus
+          local off = ((id-1)*8)+1
+          local mults = {1,2,4}
+          local mult = mults[params:get("live_buff_rate")]
+          options =
+          {
+            "s: "..string.format("%.4g",(util.round(rec[id].start_point,0.0001)-off)*mult).."s"
+          , "e: "..string.format("%.4g",(rec[id].end_point-off)*mult).."s"
+          }
         end
         screen.move(0,8+(i*14))
         screen.level(page.loops.meta_sel == i and screen_levels[1] or 3)
         local loops_to_screen_options = {"a", "b", "c", "L"}
         screen.text(loops_to_screen_options[i]..""..id)
+        -- if page.loops.focus_hold[i] or (i < 4 and bank[i].focus_hold) then
+        if i < 4 then
+          if (bank[i].focus_hold) or (page.loops.frame == 2 and key1_hold and page.loops.meta_sel == i and (grid_pat[i].play == 1 or midi_pat[i].play == 1 or arp[i].playing or rytm.track[i].k ~= 0)) then
+            -- draw lock
+            screen.level(screen_levels[1])
+            for j = 15,20 do
+              for k = 4,8 do
+                screen.pixel(j,k+(i*14))
+              end
+            end
+            screen.pixel(16,3+(i*14))
+            screen.pixel(16,2+(i*14))
+            screen.pixel(17,1+(i*14))
+            screen.pixel(18,1+(i*14))
+            screen.pixel(19,3+(i*14))
+            screen.pixel(19,2+(i*14))
+            screen.fill()
+          end
+        end
+        screen.move(27,8+(i*14))
+        screen.text(options[1])
+        screen.move(67,8+(i*14))
+        screen.text(options[2])
       end
-
     end
     
   elseif menu == 3 then

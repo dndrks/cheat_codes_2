@@ -54,7 +54,7 @@ function encoder_actions.init(n,d)
         elseif id == 5 then
           if key1_hold then
             if page.loops.meta_sel < 4 then
-              bank[page.loops.meta_sel].focus_pad = util.clamp(bank[page.loops.meta_sel].focus_pad + d,1,16)
+              ea.change_pad(page.loops.meta_sel,d)
             elseif page.loops.meta_sel == 4 then
               rec.focus = util.clamp(rec.focus + d,1,3)
             end
