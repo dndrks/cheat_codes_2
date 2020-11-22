@@ -266,7 +266,7 @@ function start_up.init()
   )
   
   params:add_group("manual control",34)
-  params:hide("manual control")
+  -- params:hide("manual control")
 
   params:add_separator("arc encoders")
   for i = 1,3 do

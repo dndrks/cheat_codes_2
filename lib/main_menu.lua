@@ -475,15 +475,8 @@ function main_menu.init()
           local off = pad.mode == 1 and (((pad.clip-1)*8)+1) or clip[pad.clip].min
           local display_end = pad.mode == 1 and (pad.end_point == 8.99 and 9 or pad.end_point) or pad.end_point
 
-          options =
-          {
-            "s: "..string.format("%.4g",(util.round(pad.start_point,0.0001))-off).."s"
-          , "e: "..string.format("%.4g",(display_end)-off).."s"
-          , "r: "..bank[i][id].rate
-          , "offset"
-          }
 
-          screen.level(page.loops.meta_sel == i and 15 or 3)
+          screen.level(page.loops.frame == 2 and (page.loops.meta_sel == i and 15 or 3) or 3)
           screen.move(15,8+(i*14))
           screen.line(115,8+(i*14))
           screen.close()
@@ -508,11 +501,7 @@ function main_menu.init()
           local off = ((id-1)*8)+1
           local mults = {1,2,4}
           local mult = mults[params:get("live_buff_rate")]
-          options =
-          {
-            "s: "..string.format("%.4g",(util.round(rec[id].start_point,0.0001)-off)*mult).."s"
-          , "e: "..string.format("%.4g",(rec[id].end_point-off)*mult).."s"
-          }
+
 
         end
 

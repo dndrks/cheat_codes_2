@@ -104,6 +104,23 @@ function mc.enc_redraw(target)
   midi_dev[params:get("midi_enc_control_device")]:cc(4,level_to_cc,params:get("bank_"..target.bank_id.."_midi_enc_channel"))
 end
 
+function mc.params_redraw(target)
+  local duration = target.mode == 1 and 8 or clip[target.clip].sample_length
+  local min = target.mode == 1 and live[target.clip].min or clip[target.clip].min
+  local max = target.mode == 1 and live[target.clip].max or clip[target.clip].max
+  local start_to_cc = util.round(util.linlin(min,max,0,127,target.start_point))
+  params:set("current pad "..tonumber(string.format("%.0f",target.bank_id)),target.pad_id,"true")
+  params:set("start point "..tonumber(string.format("%.0f",target.bank_id)),start_to_cc,"true")
+  local end_to_cc = util.round(util.linlin(min,max,0,127,target.end_point))
+  params:set("end point "..tonumber(string.format("%.0f",target.bank_id)),end_to_cc,"true")
+  local pad_level_to_cc = util.round(util.linlin(0,2,0,127,target.level))
+  params:set("level "..tonumber(string.format("%.0f",target.bank_id)),pad_level_to_cc,"true")
+  local bank_level_to_cc = util.round(util.linlin(0,2,0,127,bank[target.bank_id].global_level))
+  params:set("bank level "..tonumber(string.format("%.0f",target.bank_id)),bank_level_to_cc,"true")
+  params:set("pan "..tonumber(string.format("%.0f",target.bank_id)),target.pan,"true")
+  local offset_to_cc = util.round(util.linlin(-1,1,0,127,(math.log(target.offset)/math.log(0.5))*-12))
+end
+
 function mc.mft_redraw(target,parameter)
   -- TODO: these need to redraw on the right target.bank_id CCs...
   -- TODO: when the bank is changed on MFT, redraw these
