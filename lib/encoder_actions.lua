@@ -4,29 +4,32 @@ local ea = encoder_actions
 ea.sc = {}
 
 function encoder_actions.init(n,d)
+
+  local function returns_target(i)
+    if bank[i].focus_hold then
+      return bank[i].focus_pad
+    elseif page.loops.frame == 1 then
+      return bank[i].id
+    elseif page.loops.frame == 2 then
+      if grid_pat[i].play == 0 and midi_pat[i].play == 0 and not arp[i].playing and rytm.track[i].k == 0 then
+        return bank[i].id
+      else
+        if key1_hold and page.loops.meta_sel == i then
+          return bank[i].focus_pad
+        else
+          return bank[i].id
+        end
+      end
+    end
+  end
   
-  local function check_loops_id(d,func)
+  local function adjust_loops(d,func)
 
     if page.loops.frame == 2 then
       if page.loops.meta_sel ~= 4 then
         local i = page.loops.meta_sel
-        if bank[i].focus_hold then
-          id = bank[i].focus_pad
-        elseif page.loops.frame == 1 then
-          id = bank[i].id
-        elseif page.loops.frame == 2 then
-          if grid_pat[i].play == 0 and midi_pat[i].play == 0 and not arp[i].playing and rytm.track[i].k == 0 then
-            id = bank[i].id
-          else
-            if key1_hold and page.loops.meta_sel == i then
-              id = bank[i].focus_pad
-            else
-              id = bank[i].id
-            end
-          end
-        end
         local resolution = key1_hold and 100 or 10
-        ea[func](bank[i][id],d/resolution)
+        ea[func](bank[i][returns_target(i)],d/resolution)
         if bank[i].focus_hold == false or bank[i].focus_pad == bank[i].id then
           ea.sc[func](i)
         end
@@ -83,15 +86,17 @@ function encoder_actions.init(n,d)
             ea.sc.move_rec_window(rec[rec.focus])
           end
         elseif id == 5 then
-          if key1_hold then
+          if key1_hold and not key2_hold then
             if page.loops.meta_sel < 4 then
               ea.change_pad(page.loops.meta_sel,d)
             elseif page.loops.meta_sel == 4 then
               rec.focus = util.clamp(rec.focus + d,1,3)
             end
             grid_dirty = true
-          else
+          elseif not key1_hold and not key2_hold then
             page.loops.meta_sel = util.clamp(page.loops.meta_sel + d,1,4)
+          elseif key2_hold and not key1_hold then
+            adjust_loops(d,"move_play_window")
           end
         end
       end
@@ -244,7 +249,7 @@ function encoder_actions.init(n,d)
         end
       
       elseif id == 5 then
-        check_loops_id(d,"move_start")
+        adjust_loops(d,"move_start")
       end
 
     elseif menu == 6 then
@@ -419,7 +424,7 @@ function encoder_actions.init(n,d)
         end
       
       elseif id == 5 then
-        check_loops_id(d,"move_end")
+        adjust_loops(d,"move_end")
       end
 
     elseif menu == 6 then
