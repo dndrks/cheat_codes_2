@@ -112,10 +112,11 @@ function zilchmos.start_end_default( pad )
   local duration;
   if pad.mode == 1 then
     --slice within bounds
-    duration = rec[rec.focus].end_point-rec[rec.focus].start_point
-    local s_p = rec[rec.focus].start_point+(8*(pad.clip-1))
-    -- pad.start_point = (rec[rec.focus].start_point+((duration/16) * (pad.pad_id-1)))+((pad.clip-1)*8)
-    -- pad.end_point = (rec[rec.focus].start_point+((duration/16) * (pad.pad_id)))+((pad.clip-1)*8)
+    -- duration = rec[rec.focus].end_point-rec[rec.focus].start_point
+    -- local s_p = rec[rec.focus].start_point+(8*(pad.clip-1))
+    duration = rec[pad.clip].end_point-rec[pad.clip].start_point
+    -- local s_p = rec[pad.clip].start_point+(8*(pad.clip-1))
+    local s_p = rec[pad.clip].start_point
     pad.start_point = (s_p+(duration/16) * (pad.pad_id-1))
     pad.end_point = (s_p+((duration/16) * (pad.pad_id)))
   else
