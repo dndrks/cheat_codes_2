@@ -98,8 +98,7 @@ function aa.move_window(target, delta)
   local duration = target.mode == 1 and 8 or clip[target.clip].sample_length
   local current_difference = (target.end_point - target.start_point)
   local s_p = target.mode == 1 and live[target.clip].min or clip[target.clip].min
-  local current_clip = duration*(target.clip-1)
-  local reasonable_max = target.mode == 1 and 9 or clip[target.clip].max
+  local reasonable_max = target.mode == 1 and live[target.clip].max or clip[target.clip].max
   local adjusted_delta = force and (duration > 15 and (delta/25) or (delta/100)) or (delta/300)
   if target.start_point + current_difference <= reasonable_max then
     target.start_point = util.clamp(target.start_point + adjusted_delta, s_p, reasonable_max)
