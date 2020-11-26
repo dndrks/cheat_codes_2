@@ -8,7 +8,7 @@ a sample playground for norns
 - norns (201115 or later)
 
 ### encouraged:
-- grid (made for 128, all editions)
+- grid (64 or 128, all editions)
 - arc
 - OP-Z (see below)
 - Midi Fighter Twister ([template](https://llllllll.co/uploads/short-url/so1QoxfHVWn29a4YNkybdVEIQgi.mfs))
