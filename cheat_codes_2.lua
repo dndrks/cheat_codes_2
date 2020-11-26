@@ -1997,7 +1997,11 @@ function one_shot_clock()
     local rate = divs[params:get("one_shot_clock_div")]
     clock.sync(rate)
   end
-  softcut.position(1,rec[rec.focus].start_point+0.1) -- TODO CLARIFY IF THIS IS REAL ANYMORE
+  -- softcut.loop_start(1,rec[rec.focus].start_point-0.05)
+  softcut.loop_start(1,rec[rec.focus].start_point-(params:get("one_shot_latency_offset")))
+  softcut.loop_end(1,rec[rec.focus].end_point-0.01)
+  softcut.position(1,rec[rec.focus].start_point-((params:get("one_shot_latency_offset")-0.01))) -- TODO CLARIFY IF THIS IS REAL ANYMORE
+  -- softcut.position(1,rec[rec.focus].start_point+0.01)
   rec.play_segment = rec.focus
   softcut.rec_level(1,1)
   rec[rec.focus].state = 1
@@ -4862,6 +4866,11 @@ function persistent_state_save()
     io.write("bank_"..i.."_midi_zilchmo_enabled: "..params:get("bank_"..i.."_midi_zilchmo_enabled").."\n")
   end
   io.write("grid_size: "..params:get("grid_size").."\n")
+  -- io.write("rec_loop_1: "..params:get("rec_loop_1").."\n")
+  -- io.write("rec_loop_2: "..params:get("rec_loop_2").."\n")
+  -- io.write("rec_loop_3: "..params:get("rec_loop_3").."\n")
+  -- io.write("one_shot_clock_div: "..params:get("one_shot_clock_div").."\n")
+  -- io.write("rec_loop_enc_resolution: "..params:get("rec_loop_enc_resolution").."\n")
   io.close(file)
 end
 
