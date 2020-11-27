@@ -4336,22 +4336,22 @@ function grid_redraw()
         -- end
         
         --arc control
-        if a.device ~= nil then
-          g:led(1,8,arc_param[bank_64] == 1 and 5 or 0)
-          g:led(2,8,arc_param[bank_64] == 1 and 5 or 0)
-          g:led(3,8,arc_param[bank_64] == 1 and 5 or 0)
-          if arc_param[bank_64] == 4 then
-            for x = 1,3 do
-              g:led(x,8,led_maps["arc_param_show"][edition])
-            end
-          elseif arc_param[j/5] == 5 then
-            g:led(1,8,led_maps["arc_param_show"][edition])
-            g:led(2,8,led_maps["arc_param_show"][edition])
-          elseif arc_param[j/5] == 6 then
-            g:led(2,8,led_maps["arc_param_show"][edition])
-            g:led(3,8,led_maps["arc_param_show"][edition])
-          end
-        end
+        -- if a.device ~= nil then
+        --   g:led(1,8,arc_param[bank_64] == 1 and 5 or 0)
+        --   g:led(2,8,arc_param[bank_64] == 1 and 5 or 0)
+        --   g:led(3,8,arc_param[bank_64] == 1 and 5 or 0)
+        --   if arc_param[bank_64] == 4 then
+        --     for x = 1,3 do
+        --       g:led(x,8,led_maps["arc_param_show"][edition])
+        --     end
+        --   elseif arc_param[bank_64] == 5 then
+        --     g:led(1,8,led_maps["arc_param_show"][edition])
+        --     g:led(2,8,led_maps["arc_param_show"][edition])
+        --   elseif arc_param[bank_64] == 6 then
+        --     g:led(2,8,led_maps["arc_param_show"][edition])
+        --     g:led(3,8,led_maps["arc_param_show"][edition])
+        --   end
+        -- end
         
         --4x4 pads
         if bank[bank_64].focus_hold == false then
