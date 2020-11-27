@@ -279,10 +279,6 @@ function grid_actions.init(x,y,z)
           else
             arc_pat[current][a_p]:start()
           end
-          if menu == 11 then
-            help_menu = "arc patterns"
-            which_bank = current
-          end
         end
       end
       

@@ -1263,8 +1263,6 @@ function init()
     midi_dev[j].event = function(data)
       screen_dirty = true
       local d = midi.to_msg(data)
-      print("here's what is incoming: ")
-      tab.print(d)
       if params:get("midi_control_enabled") == 2 and j == params:get("midi_control_device") then
         local received_ch;
         for i = 1,3 do
@@ -1273,11 +1271,15 @@ function init()
           end
         end
         local i = received_ch
-        if d.note ~= nil then
+        print(d.note, i)
+        if d.note ~= nil and i ~= nil then
+          print("note :"..d.note, "type: "..d.type, "bank "..i.." midi base: "..params:get("bank_"..i.."_pad_midi_base"), "midi_alt? "..(midi_alt == true and "true" or "false"), "pad: "..d.note-(params:get("bank_"..i.."_pad_midi_base")-1))
           if d.note >= params:get("bank_"..i.."_pad_midi_base") and d.note <= params:get("bank_"..i.."_pad_midi_base") + (not midi_alt and 15 or 22) then
+            print("note is within range")
             if not midi_alt then
+              print("there is no midi_alt")
               if d.type == "note_on" then
-                print("***this should trigger bank "..i..", pad "..d.note-(params:get("bank_"..i.."_pad_midi_base")-1))
+                print("triggering bank "..i..", pad "..d.note-(params:get("bank_"..i.."_pad_midi_base")-1))
                 mc.cheat(i,d.note-(params:get("bank_"..i.."_pad_midi_base")-1))
                 if midi_pat[i].rec == 1 and midi_pat[i].count == 0 then
                   if midi_pat[i].playmode == 2 then
