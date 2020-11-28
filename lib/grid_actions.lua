@@ -279,10 +279,6 @@ function grid_actions.init(x,y,z)
           else
             arc_pat[current][a_p]:start()
           end
-          if menu == 11 then
-            help_menu = "arc patterns"
-            which_bank = current
-          end
         end
       end
       
@@ -443,9 +439,9 @@ function grid_actions.init(x,y,z)
               if y == 8 then
                 -- sixteen_slices(x/5)
               elseif y == 7 then
-                rec_to_pad(x/5)
+                -- rec_to_pad(x/5)
               elseif y == 6 then
-                pad_to_rec(x/5)
+                -- pad_to_rec(x/5)
               end
             end
           end
@@ -943,6 +939,7 @@ function grid_actions.init(x,y,z)
 
     grid_dirty = true
     
+  -- 64 grid / grid 64
   elseif params:string("grid_size") == "64" then
     if grid_page_64 == 0 then
       
@@ -957,6 +954,62 @@ function grid_actions.init(x,y,z)
         if x == 8 and y == 4 and z == 1 then
           b.focus_hold = not b.focus_hold
           mc.mft_redraw(b[b.focus_hold and b.focus_pad or b.id],"all")
+        end
+      end
+
+      --arc parameters
+      if y == 2 then
+        if x == 6 or x ==7 or x == 8 then
+          if not grid.alt then
+            if z == 1 then
+              table.insert(arc_switcher[bank_64],x)
+              held_query[bank_64] = #arc_switcher[bank_64]
+            elseif z == 0 then
+              held_query[bank_64] = held_query[bank_64] - 1
+              if held_query[bank_64] == 0 then
+                if #arc_switcher[bank_64] == 1 then
+                  arc_param[bank_64] = arc_switcher[bank_64][1] == 6 and 1 or (arc_switcher[bank_64][1] == 7 and 2 or 3)
+                elseif #arc_switcher[bank_64] == 2 then
+                  total = arc_switcher[bank_64][1] + arc_switcher[bank_64][2]
+                  if total == 13 then
+                    arc_param[bank_64] = 5
+                  elseif total == 15 then
+                    arc_param[bank_64] = 6
+                  end
+                elseif #arc_switcher[bank_64] == 3 then
+                  arc_param[bank_64] = 4
+                elseif #arc_switcher[bank_64] > 3 then
+                  arc_switcher[bank_64] = {}
+                end
+                arc_switcher[bank_64] = {}
+              end
+            end
+          end
+        end
+      end
+      
+      --arc recorders
+      if x == 8 and y == 3 and z == 0 then
+        local current = bank_64
+        local a_p; -- this will index the arc encoder recorders
+        if arc_param[current] == 1 or arc_param[current] == 2 or arc_param[current] == 3 then
+          a_p = 1
+        else
+          a_p = arc_param[current] - 2
+        end
+        if grid.alt then
+          arc_pat[current][a_p]:rec_stop()
+          arc_pat[current][a_p]:stop()
+          arc_pat[current][a_p]:clear()
+        elseif arc_pat[current][a_p].rec == 1 then
+          arc_pat[current][a_p]:rec_stop()
+          arc_pat[current][a_p]:start()
+        elseif arc_pat[current][a_p].count == 0 then
+          arc_pat[current][a_p]:rec_start()
+        elseif arc_pat[current][a_p].play == 1 then
+          arc_pat[current][a_p]:stop()
+        else
+          arc_pat[current][a_p]:start()
         end
       end
       

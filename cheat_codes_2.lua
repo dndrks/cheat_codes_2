@@ -1248,62 +1248,51 @@ function init()
   midi_dev = {}
   for j = 1,4 do
     midi_dev[j] = midi.connect(j)
-    -- if midi_dev[j].name == "Midi Fighter Twister" then
-    --   params:set("midi_enc_control_enabled",2)
-    --   params:set("midi_enc_control_device",j)
-    --   params:set("midi_enc_echo_enabled",2)
-    --   mft_connected = true
-    -- end
-    -- if midi.devices[j] ~= nil and midi.devices[j].name == "Midi Fighter Twister" then
-    --   params:set("midi_enc_control_enabled",2)
-    --   params:set("midi_enc_control_device",midi.devices[j].port)
-    --   params:set("midi_enc_echo_enabled",2)
-    --   mft_connected = true
-    -- end
+    local trigger_bank = {nil,nil,nil}
     midi_dev[j].event = function(data)
       screen_dirty = true
       local d = midi.to_msg(data)
       if params:get("midi_control_enabled") == 2 and j == params:get("midi_control_device") then
-        local received_ch;
+        local target_bank;
         for i = 1,3 do
           if d.ch == params:get("bank_"..i.."_midi_channel") then
-            received_ch = i
+            -- target_bank = i
+            trigger_bank[i] = true
+          else
+            trigger_bank[i] = false
           end
         end
-        local i = received_ch
-        if d.note ~= nil then
-          if d.note >= params:get("bank_"..i.."_pad_midi_base") and d.note <= params:get("bank_"..i.."_pad_midi_base") + (not midi_alt and 15 or 22) then
-            if not midi_alt then
+        -- local i = target_bank
+        for i = 1,3 do
+          if d.note ~= nil and trigger_bank[i] then
+            if d.note >= params:get("bank_"..i.."_pad_midi_base") and d.note <= params:get("bank_"..i.."_pad_midi_base") + (not midi_alt and 15 or 22) then
+              if not midi_alt then
+                if d.type == "note_on" then
+                  mc.cheat(i,d.note-(params:get("bank_"..i.."_pad_midi_base")-1))
+                  midi_pattern_watch(i, d.note-(params:get("bank_"..i.."_pad_midi_base")-1))
+                  if menu == 9 then
+                    page.arp_page_sel = i
+                    arps.momentary(i, bank[i].id, "on")
+                  end
+                elseif d.type == "note_off" then
+                  if menu == 9 then
+                    if not arp[i].hold and page.arp_page_sel == i  then
+                      local targeted_pad = d.note-(params:get("bank_"..i.."_pad_midi_base")-1)
+                      arps.momentary(i, targeted_pad, "off")
+                    end
+                  end
+                end
+              elseif midi_alt then
+                if params:get("bank_"..i.."_midi_zilchmo_enabled") == 2 and d.type == "note_on" then
+                  mc.zilch(i,d.note-(params:get("bank_"..i.."_pad_midi_base")-1))
+                end
+              end
+            elseif d.note == params:get("bank_"..i.."_pad_midi_base") + 23 then
               if d.type == "note_on" then
-                mc.cheat(i,d.note-(params:get("bank_"..i.."_pad_midi_base")-1))
-                if midi_pat[i].rec == 1 and midi_pat[i].count == 0 then
-                  if midi_pat[i].playmode == 2 then
-                    --clock.run(synced_pattern_record,midi_pat[i]) -- i think we'll want this in a separate function...
-                  end
-                end
-                midi_pattern_watch(i, d.note-(params:get("bank_"..i.."_pad_midi_base")-1))
-                if menu == 9 then
-                  page.arp_page_sel = i
-                  arps.momentary(i, bank[i].id, "on")
-                end
-              elseif d.type == "note_off" then
-                if menu == 9 then
-                  if not arp[i].hold and page.arp_page_sel == i  then
-                    local targeted_pad = d.note-(params:get("bank_"..i.."_pad_midi_base")-1)
-                    arps.momentary(i, targeted_pad, "off")
-                  end
-                end
+                midi_alt = true
+              else
+                midi_alt = false
               end
-            elseif midi_alt then
-              if params:get("bank_"..i.."_midi_zilchmo_enabled") == 2 and d.type == "note_on" then
-                mc.zilch(i,d.note-(params:get("bank_"..i.."_pad_midi_base")-1))
-              end
-            end
-          elseif d.note == params:get("bank_"..i.."_pad_midi_base") + 23 then
-            if d.type == "note_on" then
-              midi_alt = true
-            else
-              midi_alt = false
             end
           end
         end
@@ -4274,6 +4263,8 @@ function grid_redraw()
       end
       
       g:refresh()
+
+    --64 grid / grid 64
     elseif params:string("grid_size") == "64" then
       g:all(0)
       local edition = params:get("LED_style")
@@ -4284,6 +4275,23 @@ function grid_redraw()
 
         for x = 1,3 do
           g:led(x,1,x == bank_64 and 12 or 4)
+        end
+
+        --arc recorders
+        local a_p; -- this will index the arc encoder recorders
+        if arc_param[bank_64] == 1 or arc_param[bank_64] == 2 or arc_param[bank_64] == 3 then
+          a_p = 1
+        else
+          a_p = arc_param[bank_64] - 2
+        end
+        if arc_pat[bank_64][a_p].rec == 1 then
+          g:led(8,3,led_maps["arc_rec_rec"][edition])
+        elseif arc_pat[bank_64][a_p].play == 1 then
+          g:led(8,3,led_maps["arc_rec_play"][edition])
+        elseif arc_pat[bank_64][a_p].count > 0 then
+          g:led(8,3,led_maps["arc_rec_pause"][edition])
+        else
+          g:led(8,3,led_maps["arc_rec_off"][edition])
         end
         
         --main playable grid
@@ -4335,23 +4343,23 @@ function grid_redraw()
         --   g:led(7,8,led_maps["arc_rec_off"][edition])
         -- end
         
-        --arc control
-        -- if a.device ~= nil then
-        --   g:led(1,8,arc_param[bank_64] == 1 and 5 or 0)
-        --   g:led(2,8,arc_param[bank_64] == 1 and 5 or 0)
-        --   g:led(3,8,arc_param[bank_64] == 1 and 5 or 0)
-        --   if arc_param[bank_64] == 4 then
-        --     for x = 1,3 do
-        --       g:led(x,8,led_maps["arc_param_show"][edition])
-        --     end
-        --   elseif arc_param[bank_64] == 5 then
-        --     g:led(1,8,led_maps["arc_param_show"][edition])
-        --     g:led(2,8,led_maps["arc_param_show"][edition])
-        --   elseif arc_param[bank_64] == 6 then
-        --     g:led(2,8,led_maps["arc_param_show"][edition])
-        --     g:led(3,8,led_maps["arc_param_show"][edition])
-        --   end
-        -- end
+        -- arc control
+        if a.device ~= nil then
+          g:led(6,2,arc_param[bank_64] == 1 and led_maps["arc_param_show"][edition] or 0)
+          g:led(7,2,arc_param[bank_64] == 2 and led_maps["arc_param_show"][edition] or 0)
+          g:led(8,2,arc_param[bank_64] == 3 and led_maps["arc_param_show"][edition] or 0)
+          if arc_param[bank_64] == 4 then
+            for x = 6,8 do
+              g:led(x,2,led_maps["arc_param_show"][edition])
+            end
+          elseif arc_param[bank_64] == 5 then
+            g:led(6,2,led_maps["arc_param_show"][edition])
+            g:led(7,2,led_maps["arc_param_show"][edition])
+          elseif arc_param[bank_64] == 6 then
+            g:led(7,2,led_maps["arc_param_show"][edition])
+            g:led(8,2,led_maps["arc_param_show"][edition])
+          end
+        end
         
         --4x4 pads
         if bank[bank_64].focus_hold == false then
