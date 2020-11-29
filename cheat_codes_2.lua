@@ -1,6 +1,6 @@
 -- cheat codes 2
 --          a sample playground
--- patch: 201128
+-- patch: 201129
 -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
 -- need help?
 -- please visit:
@@ -1253,46 +1253,43 @@ function init()
       screen_dirty = true
       local d = midi.to_msg(data)
       if params:get("midi_control_enabled") == 2 and j == params:get("midi_control_device") then
-        local target_bank;
+        local received_ch;
         for i = 1,3 do
           if d.ch == params:get("bank_"..i.."_midi_channel") then
-            -- target_bank = i
-            trigger_bank[i] = true
-          else
-            trigger_bank[i] = false
+            received_ch = i
           end
         end
-        -- local i = target_bank
-        for i = 1,3 do
-          if d.note ~= nil and trigger_bank[i] then
-            if d.note >= params:get("bank_"..i.."_pad_midi_base") and d.note <= params:get("bank_"..i.."_pad_midi_base") + (not midi_alt and 15 or 22) then
-              if not midi_alt then
-                if d.type == "note_on" then
-                  mc.cheat(i,d.note-(params:get("bank_"..i.."_pad_midi_base")-1))
-                  midi_pattern_watch(i, d.note-(params:get("bank_"..i.."_pad_midi_base")-1))
-                  if menu == 9 then
-                    page.arp_page_sel = i
-                    arps.momentary(i, bank[i].id, "on")
-                  end
-                elseif d.type == "note_off" then
-                  if menu == 9 then
-                    if not arp[i].hold and page.arp_page_sel == i  then
-                      local targeted_pad = d.note-(params:get("bank_"..i.."_pad_midi_base")-1)
-                      arps.momentary(i, targeted_pad, "off")
-                    end
-                  end
-                end
-              elseif midi_alt then
-                if params:get("bank_"..i.."_midi_zilchmo_enabled") == 2 and d.type == "note_on" then
-                  mc.zilch(i,d.note-(params:get("bank_"..i.."_pad_midi_base")-1))
-                end
-              end
-            elseif d.note == params:get("bank_"..i.."_pad_midi_base") + 23 then
+        local i = received_ch
+        if d.note ~= nil and i ~= nil then
+          if d.note >= params:get("bank_"..i.."_pad_midi_base") and d.note <= params:get("bank_"..i.."_pad_midi_base") + (not midi_alt and 15 or 22) then
+            if not midi_alt then
               if d.type == "note_on" then
-                midi_alt = true
-              else
-                midi_alt = false
+                mc.cheat(i,d.note-(params:get("bank_"..i.."_pad_midi_base")-1))
+                if midi_pat[i].rec == 1 and midi_pat[i].count == 0 then
+                end
+                midi_pattern_watch(i, d.note-(params:get("bank_"..i.."_pad_midi_base")-1))
+                if menu == 9 then
+                  page.arp_page_sel = i
+                  arps.momentary(i, bank[i].id, "on")
+                end
+              elseif d.type == "note_off" then
+                if menu == 9 then
+                  if not arp[i].hold and page.arp_page_sel == i  then
+                    local targeted_pad = d.note-(params:get("bank_"..i.."_pad_midi_base")-1)
+                    arps.momentary(i, targeted_pad, "off")
+                  end
+                end
               end
+            elseif midi_alt then
+              if params:get("bank_"..i.."_midi_zilchmo_enabled") == 2 and d.type == "note_on" then
+                mc.zilch(i,d.note-(params:get("bank_"..i.."_pad_midi_base")-1))
+              end
+            end
+          elseif d.note == params:get("bank_"..i.."_pad_midi_base") + 23 then
+            if d.type == "note_on" then
+              midi_alt = true
+            else
+              midi_alt = false
             end
           end
         end
