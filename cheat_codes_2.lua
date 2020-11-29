@@ -1,6 +1,6 @@
 -- cheat codes 2
 --          a sample playground
--- patch: 201129
+-- patch: 201128
 -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
 -- need help?
 -- please visit:
@@ -1295,16 +1295,16 @@ function init()
               end
             end
           end
-          if d.type == "cc" and params:get("midi_echo_enabled") == 2 then
-            if d.cc == 1 then
-              mc.move_start(bank[i][bank[i].id],d.val)
-            elseif d.cc == 2 then
-              mc.move_end(bank[i][bank[i].id],d.val)
-            elseif d.cc == 3 then
-              mc.adjust_filter(i,d.val)
-            elseif d.cc == 4 then
-              mc.adjust_pad_level(bank[i][bank[i].id],d.val)
-            end
+        end
+        if d.type == "cc" and params:get("midi_echo_enabled") == 2 then
+          if d.cc == 1 then
+            mc.move_start(bank[i][bank[i].id],d.val)
+          elseif d.cc == 2 then
+            mc.move_end(bank[i][bank[i].id],d.val)
+          elseif d.cc == 3 then
+            mc.adjust_filter(i,d.val)
+          elseif d.cc == 4 then
+            mc.adjust_pad_level(bank[i][bank[i].id],d.val)
           end
         end
       elseif params:get("midi_enc_control_enabled") == 2 and j == params:get("midi_enc_control_device") then
