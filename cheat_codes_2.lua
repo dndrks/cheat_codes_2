@@ -1,6 +1,6 @@
 -- cheat codes 2
 --          a sample playground
--- patch: 201129
+-- patch: 201203
 -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
 -- need help?
 -- please visit:
@@ -1615,7 +1615,7 @@ function ping_midi_devices()
   for i = 1,midi_dev_max do
     if midi.devices[i] ~= nil and midi.devices[i].name == "Midi Fighter Twister" then
       params:set("midi_enc_control_enabled",2)
-      params:set("midi_enc_control_device",midi.devices[i].port)
+      params:set("midi_enc_control_device",midi.devices[i].port ~= nil and midi.devices[i].port or 1)
       params:set("midi_enc_echo_enabled",2)
       mft_connected = true
     end

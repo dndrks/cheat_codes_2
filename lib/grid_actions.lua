@@ -39,7 +39,7 @@ function grid_actions.init(x,y,z)
     if grid_page == 0 then
       
       for i = 1,3 do
-        if grid.alt then
+        if grid.alt or bank[i].alt_lock then
           if x == 1+(5*(i-1)) and y == 1 and z == 1 then
             bank[i].focus_hold = not bank[i].focus_hold
             mc.mft_redraw(bank[i][bank[i].focus_hold and bank[i].focus_pad or bank[i].id],"all")
@@ -950,7 +950,7 @@ function grid_actions.init(x,y,z)
         b = bank[x]
       end
       
-      if grid.alt then
+      if grid.alt or b.alt_lock then
         if x == 8 and y == 4 and z == 1 then
           b.focus_hold = not b.focus_hold
           mc.mft_redraw(b[b.focus_hold and b.focus_pad or b.id],"all")
