@@ -22,6 +22,7 @@ rnd = include 'lib/rnd_actions'
 del = include 'lib/delay'
 rytm = include 'lib/euclid'
 mc = include 'lib/midicheat'
+sharer = include 'lib/sharer'
 math.randomseed(os.time())
 variable_fade_time = 0.01
 
@@ -721,7 +722,7 @@ zilch_leds =
 }
 
 function init()
-
+  sharer.setup("cheat_codes_2")
   clock.run(check_page_for_k1)
 
   collection_loaded = false
