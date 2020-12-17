@@ -96,28 +96,28 @@ function arp_actions.random(target)
   arp[target].step = math.random(arp[target].end_point)	
 end
 
-local direction = {}
+arp_direction = {}
 
 for i = 1,3 do
-    direction[i] = "positive"
+  arp_direction[i] = "positive"
 end
 
 function arp_actions.pendulum(target)
-    if direction[target] == "positive" then
+    if arp_direction[target] == "positive" then
         arp[target].step = arp[target].step + 1
         if arp[target].step > arp[target].end_point then
             arp[target].step = arp[target].end_point
         end
-    elseif direction[target] == "negative" then
+    elseif arp_direction[target] == "negative" then
         arp[target].step = arp[target].step - 1
         if arp[target].step == arp[target].start_point - 1 then
             arp[target].step = arp[target].start_point
         end
     end
     if arp[target].step == arp[target].end_point and arp[target].step ~= arp[target].start_point then
-        direction[target] = "negative"
+      arp_direction[target] = "negative"
     elseif arp[target].step == arp[target].start_point then
-        direction[target] = "positive"
+      arp_direction[target] = "positive"
     end
 end
 

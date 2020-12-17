@@ -70,7 +70,7 @@ function start_up.init()
   
   --params:add_separator()
   
-  params:add_group("loops + buffers", 23)
+  params:add_group("loops + buffers", 27)
 
   params:add_separator("clips")
   
@@ -85,26 +85,6 @@ function start_up.init()
 
   params:add_separator("live")
 
-
-  -- params:add_option("rec_loop", "live rec behavior", {"loop","1-shot"}, 1)
-  -- params:set_action("rec_loop",
-  --   function(x)
-  --     rec[rec.focus].loop = 2-x
-  --     softcut.loop(1,rec[rec.focus].loop)
-  --     softcut.position(1,rec[rec.focus].start_point)
-  --     -- rec[rec.focus].state = 0
-  --     softcut.rec_level(1,rec[rec.focus].state)
-  --     if rec[rec.focus].state == 1 then
-  --       if x == 2 then
-  --         --rec_state_watcher:start()
-  --         softcut.pre_level(1,params:get("live_rec_feedback"))
-  --       elseif x == 1 then
-  --         softcut.pre_level(1,params:get("live_rec_feedback"))
-  --       end
-  --     end
-  --   end
-  -- )
-
   for i = 1,3 do
     params:add_option("rec_loop_"..i, "live "..i.." rec behavior", {"loop","1-shot"}, 1)
     params:set_action("rec_loop_"..i,
@@ -114,14 +94,14 @@ function start_up.init()
         if rec.focus == i then
           softcut.loop(1,rec[rec.focus].loop)
           softcut.position(1,rec[rec.focus].start_point)
-          -- rec[rec.focus].state = 0
           softcut.rec_level(1,rec[rec.focus].state)
           if rec[rec.focus].state == 1 then
             if x == 2 then
               --rec_state_watcher:start()
-              softcut.pre_level(1,params:get("live_rec_feedback"))
+              run_one_shot_rec_clock()
+              softcut.pre_level(1,params:get("live_rec_feedback_"..rec.focus))
             elseif x == 1 then
-              softcut.pre_level(1,params:get("live_rec_feedback"))
+              softcut.pre_level(1,params:get("live_rec_feedback_"..rec.focus))
             end
           end
         end
@@ -158,13 +138,15 @@ function start_up.init()
     end
   end)
 
-  params:add{id="live_rec_feedback", name="live rec feedback", type="control", 
-  controlspec=controlspec.new(0,1.0,'lin',0,0.25,""),
-  action=function(x)
-    if rec[rec.focus].state == 1 then
-      softcut.pre_level(1,x)
-    end
-  end}
+  for i = 1,3 do
+    params:add{id="live_rec_feedback_"..i, name="live "..i.." rec feedback", type="control", 
+    controlspec=controlspec.new(0,1.0,'lin',0,0.25,""),
+    action=function(x)
+      if rec.focus == i and rec[rec.focus].state == 1 then
+        softcut.pre_level(1,x)
+      end
+    end}
+  end
   
   params:add_option("live_buff_rate", "live buffer max", {"8 sec", "16 sec", "32 sec"}, 1)
   params:set_action("live_buff_rate", function(x)
@@ -174,8 +156,10 @@ function start_up.init()
     local rate_offset = {0,-12,-24}
     params:set("offset",rate_offset[x])
   end)
-
-  params:add_control("random_rec_clock_prob", "random rec probability", controlspec.new(0, 100, 'lin', 1, 0, "%"))
+  
+  for i = 1,3 do
+    params:add_control("random_rec_clock_prob_"..i, "rand rec "..i.." probability", controlspec.new(0, 100, 'lin', 1, 0, "%"))
+  end
 
   params:add_separator("global")
 
@@ -295,7 +279,16 @@ function start_up.init()
     end
   )
   
-  params:add_group("manual control",34)
+  params:add_group("manual control",84)
+
+  params:add{type='binary',name="alt key",id='alt key',behavior='momentary',
+  action=function(x)
+    if all_loaded then
+      grid.alt = x == 1 and true or false
+      grid_dirty = true
+    end
+  end
+}
   -- params:hide("manual control")
 
   params:add_separator("arc encoders")
@@ -305,6 +298,154 @@ function start_up.init()
       arc_param[i] = x
     end)
   end
+
+  params:add_separator("pattern trigs")
+
+  for i = 1,3 do
+    params:add{type='binary',name="midi pat "..i.." rec",id='midi pat '..i..' rec',behavior='trigger',
+      action=function()
+        if all_loaded then
+          -- if x == 1 then
+            -- print(i)
+            if midi_pat[i].rec == 0 then
+              if midi_pat[i].count == 0 and not grid.alt then
+                midi_pattern_recording(i,"start")
+              elseif midi_pat[i].count ~= 0 and not grid.alt then
+                toggle_midi_pattern_overdub(i)
+              elseif grid.alt then
+                if midi_pat[i].count > 0 then
+                  midi_pat[i]:rec_stop()
+                  if midi_pat[i].clock ~= nil then
+                    print("clearing clock: "..midi_pat[i].clock)
+                    clock.cancel(midi_pat[i].clock)
+                  end
+                  midi_pat[i]:clear()
+                end
+              end
+            elseif midi_pat[i].rec == 1 then
+              if not grid.alt then
+                midi_pattern_recording(i,"stop")
+              end
+            end
+          -- end
+        end
+      end
+    }
+  end
+
+  for i = 1,3 do
+    params:add{type='binary',name="random pattern "..i,id='random pat '..i,behavior='trigger',
+      action=function()
+        if all_loaded then
+          -- if x == 1 then
+            if g.device ~= nil then
+              random_grid_pat(i,3)
+            else
+              random_midi_pat(i)
+            end
+          -- end
+        end
+      end
+    }
+  end
+
+  for i = 1,3 do
+    params:add{type='binary',name="shuffle pattern "..i,id='shuffle pat '..i,behavior='trigger',
+      action=function(x)
+        if all_loaded then
+          if x == 1 then
+            if g.device ~= nil then
+              random_grid_pat(id,2)
+            else
+              shuffle_midi_pat(id)
+            end
+          end
+        end
+      end
+    }
+  end
+
+  params:add_separator("live recording trigs")
+
+  for i = 1,3 do
+    params:add{type='binary',name="rec live "..i,id='rec live '..i,behavior='trigger',
+      action=function()
+        if all_loaded then
+          if not grid.alt then
+            toggle_buffer(i)
+          else
+            buff_flush()
+          end
+        end
+      end
+    }
+  end
+
+  params:add_separator("zilchmos: global trigs")
+
+  local global_zilches =
+  {
+    {"0.5x rate","0.5x_rate"}
+  , {"2x rate","2x_rate"}
+  , {"reverse rate","reverse_rate"}
+  , {"reverse pan","reverse_pan"}
+  , {"random pan","random_pan"}
+  , {"pause","pause"}
+  , {"random start","random_start"}
+  , {"random end","random_end"}
+  , {"random window","random_window"}
+  }
+
+  for i = 1,#global_zilches do
+    params:add{type='binary',name=global_zilches[i][1],id=global_zilches[i][2],behavior='momentary',
+      action=function(x)
+        if all_loaded then
+          mc.midi_mod_table[global_zilches[i][1]] = x == 1 and true or false
+        end
+      end
+    }
+  end
+
+  params:add_separator("zilchmos: local trigs")
+
+  local local_zilches =
+  {
+    {"a: 0.5x rate","a_0.5x_rate"}
+  , {"b: 0.5x rate","b_0.5x_rate"}
+  , {"c: 0.5x rate","c_0.5x_rate"}
+  , {"a: 2x rate","a_2x_rate"}
+  , {"b: 2x rate","b_2x_rate"}
+  , {"c: 2x rate","c_2x_rate"}
+  , {"a: reverse rate","a_reverse_rate"}
+  , {"b: reverse rate","b_reverse_rate"}
+  , {"c: reverse rate","c_reverse_rate"}
+  , {"a: random pan","a_random_pan"}
+  , {"b: random pan","b_random_pan"}
+  , {"c: random pan","c_random_pan"}
+  , {"a: pause","a_pause"}
+  , {"b: pause","b_pause"}
+  , {"c: pause","c_pause"}
+  , {"a: random start","a_random_start"}
+  , {"b: random start","b_random_start"}
+  , {"c: random start","c_random_start"}
+  , {"a: random end","a_random_end"}
+  , {"b: random end","b_random_end"}
+  , {"c: random end","c_random_end"}
+  , {"a: random window","a_random_window"}
+  , {"b: random window","b_random_window"}
+  , {"c: random window","c_random_window"}
+  }
+
+  for i = 1,#local_zilches do
+    params:add{type='binary',name=local_zilches[i][1],id=local_zilches[i][2],behavior='momentary',
+      action=function(x)
+        if all_loaded then
+          mc.midi_mod_table[local_zilches[i][1]] = x == 1 and true or false
+        end
+      end
+    }
+  end
+    
   
   for i = 1,3 do
     local banks = {"(a)","(b)","(c)"}
@@ -323,7 +464,9 @@ function start_up.init()
     local rates = {-4,-2,-1,-0.5,-0.25,-0.125,0.125,0.25,0.5,1,2,4}
     params:add_option("rate "..i, "rate "..banks[i], {"-4x","-2x","-1x","-0.5x","-0.25x","-0.125x","0.125x","0.25x","0.5x","1x","2x","4x"}, 10)
     params:set_action("rate "..i, function(x)
-      bank[i][bank[i].id].rate = rates[x]
+      for p = (grid.alt and 1 or bank[i].id),(grid.alt and 16 or bank[i].id) do
+        bank[i][p].rate = rates[x]
+      end
       if bank[i][bank[i].id].pause == false then
         softcut.rate(i+1, bank[i][bank[i].id].rate*bank[i][bank[i].id].offset)
       end
@@ -331,12 +474,20 @@ function start_up.init()
     params:add_control("rate slew time "..i, "rate slew time "..banks[i], controlspec.new(0,3,'lin',0.01,0))
     params:set_action("rate slew time "..i, function(x) softcut.rate_slew_time(i+1,x) end)
     params:add_control("pan "..i, "pan "..banks[i], controlspec.new(-1,1,'lin',0.01,0))
-    params:set_action("pan "..i, function(x) softcut.pan(i+1,x) bank[i][bank[i].id].pan = x screen_dirty = true end)
+    params:set_action("pan "..i, function(x)
+      softcut.pan(i+1,x)
+      for p = (grid.alt and 1 or bank[i].id),(grid.alt and 16 or bank[i].id) do
+        bank[i][p].pan = x
+      end
+      screen_dirty = true
+    end)
     params:add_control("pan slew "..i,"pan slew "..banks[i], controlspec.new(0.,200.,'lin',0.1,5.0))
     params:set_action("pan slew "..i, function(x) softcut.pan_slew_time(i+1,x) end)
     params:add_control("level "..i, "pad level "..banks[i], controlspec.new(0,127,'lin',1,64))
     params:set_action("level "..i, function(x)
-      mc.adjust_pad_level(bank[i][bank[i].id],x)
+      for p = (grid.alt and 1 or bank[i].id),(grid.alt and 16 or bank[i].id) do
+        mc.adjust_pad_level(bank[i][p],x)
+      end
       if all_loaded then mc.redraw(bank[i][bank[i].id]) end
       end)
     params:add_control("bank level "..i, "bank level "..banks[i], controlspec.new(0,127,'lin',1,64))

@@ -398,8 +398,8 @@ function main_menu.init()
           {
             [1] =
             {
-              ("feed: "..string.format("%0.f",params:get("live_rec_feedback")*100).."%")
-            , ("rnd prob: "..params:get("random_rec_clock_prob").."%")
+              ("feed: "..string.format("%0.f",params:get("live_rec_feedback_"..rec.focus)*100).."%")
+            , ("rnd prob: "..params:get("random_rec_clock_prob_"..rec.focus).."%")
             }
           , [2] =
             {

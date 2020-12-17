@@ -393,10 +393,6 @@ function grid_actions.init(x,y,z)
             if grid.alt then
               buff_flush()
             end
-            
-            if menu == 11 then
-              help_menu = "buffer switch"
-            end
           end
         end
       end
@@ -1419,9 +1415,19 @@ function grid_actions.arp_handler(i)
         arp[i].pause = true
         arp[i].playing = false
       else
-        arp[i].step = arp[i].start_point-1
+        local arp_start =
+        {
+          ["fwd"] = arp[i].start_point - 1
+        , ["bkwd"] = arp[i].end_point + 1
+        , ["pend"] = arp[i].start_point
+        , ["rnd"] = arp[i].start_point - 1
+        }
+        arp[i].step = arp_start[arp[i].mode]
         arp[i].pause = false
         arp[i].playing = true
+        if arp[i].mode == "pend" then
+          arp_direction[i] = "negative"
+        end
       end
     end
   end
