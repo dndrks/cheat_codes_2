@@ -349,7 +349,7 @@ local function refresh_params_vports()
 end
 
 function mc.pad_to_note_params()
-  params:add_group("pad to MIDI note setup",25)
+  params:add_group("pad to note setup",33)
   refresh_params_vports()
   local banks = {"a","b","c"}
   mc_notes = {{},{},{}}
@@ -357,7 +357,7 @@ function mc.pad_to_note_params()
   for i = 1, #MU.SCALES do
     table.insert(mc_scale_names, string.lower(MU.SCALES[i].name))
   end
-  params:add_separator("all banks")
+  params:add_separator("global")
   params:add_option("global_pad_to_midi_note_enabled", "MIDI output?", {"no","yes"},1)
   params:set_action("global_pad_to_midi_note_enabled",
   function(x)
@@ -408,7 +408,7 @@ function mc.pad_to_note_params()
       end
     end
   end)
-  params:add{type='binary',name="midi panic",id='midi panic',behavior='trigger',
+  params:add{type='binary',name="MIDI panic",id='midi_panic',behavior='trigger',
   action=function(x)
     if all_loaded then
       if x == 1 then
@@ -422,6 +422,35 @@ function mc.pad_to_note_params()
       end
     end
   end}
+  params:add_option("global_pad_to_jf_note_enabled","Just Friends output?",{"no","yes"},1)
+  params:set_action("global_pad_to_jf_note_enabled",function()
+    if all_loaded then persistent_state_save() end
+  end)
+  
+  local jf_mode;
+
+  crow.ii.jf.event = function( event, value )
+    if event.name == 'mode' then
+      jf_mode = value
+    end
+  end
+  
+  crow.ii.jf.get('mode')
+  
+  params:add_trigger("jf_toggle","toggle JF synth mode")
+  params:set_action("jf_toggle",
+    function(x)
+      crow.ii.jf.get('mode')
+      if jf_mode == 1 then
+        crow.ii.jf.mode(0)
+        crow.ii.jf.get('mode')
+      else
+        crow.ii.jf.mode(1)
+        crow.ii.jf.get('mode')
+      end
+    end
+  )
+  
   for i = 1,3 do
     params:add_separator("bank "..banks[i])
     params:add_option(i.."_pad_to_midi_note_enabled", "bank "..banks[i].." MIDI output?", {"no","yes"},1)
@@ -429,11 +458,29 @@ function mc.pad_to_note_params()
     params:add_option(i.."_pad_to_midi_note_destination", "dest",vports,2)
     params:set_action(i.."_pad_to_midi_note_destination", function() if all_loaded then persistent_state_save() mc.all_midi_notes_off(i) end end)
     params:add_number(i.."_pad_to_midi_note_channel", "channel",1,16,1)
-    params:set_action(i.."_pad_to_midi_note_channel", function() if all_loaded then mc.all_midi_notes_off(i) end end)
+    params:set_action(i.."_pad_to_midi_note_channel", function() if all_loaded then
+        mc.all_midi_notes_off(i)
+        persistent_state_save()
+      end 
+    end)
     params:add_option(i.."_pad_to_midi_note_scale", "scale",mc_scale_names,5)
-    params:set_action(i.."_pad_to_midi_note_scale",function() mc.build_scale(i) end)
+    params:set_action(i.."_pad_to_midi_note_scale",function()
+      mc.build_scale(i)
+      if all_loaded then persistent_state_save() end
+    end)
     params:add_number(i.."_pad_to_midi_note_root", "root note",0,127,60,function(param) return MU.note_num_to_name(param:get(), true) end)
-    params:set_action(i.."_pad_to_midi_note_root",function() mc.build_scale(i) end)
+    params:set_action(i.."_pad_to_midi_note_root",function()
+      mc.build_scale(i)
+      if all_loaded then persistent_state_save() end
+    end)
+    params:add_option(i.."_pad_to_jf_note_enabled", "Just Friends channel",{"none","IDENTITY","2N","3N","4N","5N","6N","all","any"},1)
+    params:set_action(i.."_pad_to_jf_note_enabled",function()
+      if all_loaded then persistent_state_save() end
+    end)
+    params:add_number(i.."_pad_to_jf_note_velocity", "Just Friends velocity",1,10,5)
+    params:set_action(i.."_pad_to_jf_note_velocity",function()
+      if all_loaded then persistent_state_save() end
+    end)
     mc.build_scale(i)
     -- params:add_number(i.."_pad_to_midi_note_duration", "note length",1,16,1)
   end
@@ -453,7 +500,35 @@ function mc.midi_note_from_pad(b,p)
     local note_num = mc_notes[b][p]
     midi_dev[params:get(b.."_pad_to_midi_note_destination")]:note_on(note_num,96,params:get(b.."_pad_to_midi_note_channel"))
     table.insert(active_midi_notes[b], note_num)
+    clock.run(mc.midi_note_from_pad_off,b,p)
   end
+  if params:string("global_pad_to_jf_note_enabled") == "yes" then
+    local jf_destinations =
+    {
+      ["IDENTITY"] = 1
+    , ["2N"] = 2
+    , ["3N"] = 3
+    , ["4N"] = 4
+    , ["5N"] = 5
+    , ["6N"] = 6
+    , ["all"] = 0
+    }
+    if params:string(b.."_pad_to_jf_note_enabled") ~= "none" then
+      local note_num = mc_notes[b][p] - 48
+      local velocity = params:get(b.."_pad_to_jf_note_velocity")
+      if params:string(b.."_pad_to_jf_note_enabled") == "any" then
+        crow.ii.jf.play_note(note_num/12,velocity)
+      else
+        local jf_chan = jf_destinations[params:string(b.."_pad_to_jf_note_enabled")]
+        crow.ii.jf.play_voice(jf_chan,note_num/12,velocity)
+      end
+    end
+  end
+end
+
+function mc.midi_note_from_pad_off(b,p)
+  clock.sleep(bank[b][p].arp_time-(bank[b][p].arp_time/100))
+  mc.all_midi_notes_off(b)
 end
 
 function mc.all_midi_notes_off(b)

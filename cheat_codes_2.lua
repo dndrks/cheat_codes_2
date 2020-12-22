@@ -4906,7 +4906,6 @@ end
 
 function persistent_state_save()
   local dirname = _path.data.."cheat_codes_2/"
-  -- local collection = tonumber(string.format("%.0f",params:get("collection")))
   if os.rename(dirname, dirname) == nil then
     os.execute("mkdir " .. dirname)
   end
@@ -4922,19 +4921,28 @@ function persistent_state_save()
   io.write("preview_clip_change: "..params:get("preview_clip_change").."\n")
   io.write("zilchmo_patterning: "..params:get("zilchmo_patterning").."\n")
   io.write("LED_style: "..params:get("LED_style").."\n")
-  -- for i = 1,3 do
-  --   io.write("sync_clock_to_pattern_"..i..": "..params:get("sync_clock_to_pattern_"..i).."\n")
-  -- end
   io.write("arc_patterning: "..params:get("arc_patterning").."\n")
   for i = 1,3 do
     io.write("bank_"..i.."_midi_zilchmo_enabled: "..params:get("bank_"..i.."_midi_zilchmo_enabled").."\n")
   end
   io.write("grid_size: "..params:get("grid_size").."\n")
-  -- io.write("rec_loop_1: "..params:get("rec_loop_1").."\n")
-  -- io.write("rec_loop_2: "..params:get("rec_loop_2").."\n")
-  -- io.write("rec_loop_3: "..params:get("rec_loop_3").."\n")
-  -- io.write("one_shot_clock_div: "..params:get("one_shot_clock_div").."\n")
-  -- io.write("rec_loop_enc_resolution: "..params:get("rec_loop_enc_resolution").."\n")
+  io.write("global_pad_to_midi_note_enabled: "..params:get("global_pad_to_midi_note_enabled").."\n")
+  io.write("global_pad_to_midi_note_destination: "..params:get("global_pad_to_midi_note_destination").."\n")
+  io.write("global_pad_to_midi_note_channel: "..params:get("global_pad_to_midi_note_channel").."\n")
+  io.write("global_pad_to_midi_note_scale: "..params:get("global_pad_to_midi_note_scale").."\n")
+  io.write("global_pad_to_midi_note_root: "..params:get("global_pad_to_midi_note_root").."\n")
+  for i = 1,3 do
+    io.write(i.."_pad_to_midi_note_enabled: "..params:get(i.."_pad_to_midi_note_enabled").."\n")
+    io.write(i.."_pad_to_midi_note_destination: "..params:get(i.."_pad_to_midi_note_destination").."\n")
+    io.write(i.."_pad_to_midi_note_channel: "..params:get(i.."_pad_to_midi_note_channel").."\n")
+    io.write(i.."_pad_to_midi_note_scale: "..params:get(i.."_pad_to_midi_note_scale").."\n")
+    io.write(i.."_pad_to_midi_note_root: "..params:get(i.."_pad_to_midi_note_root").."\n")
+  end
+  io.write("global_pad_to_jf_note_enabled: "..params:get("global_pad_to_jf_note_enabled").."\n")
+  for i = 1,3 do
+    io.write(i.."_pad_to_jf_note_enabled: "..params:get(i.."_pad_to_jf_note_enabled").."\n")
+    io.write(i.."_pad_to_jf_note_velocity: "..params:get(i.."_pad_to_jf_note_velocity").."\n")
+  end
   io.close(file)
 end
 

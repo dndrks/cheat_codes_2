@@ -273,28 +273,39 @@ function start_up.init()
         print("here")
         for i = 1,3 do
           clock.cancel(arp_clock[i])
+          arp_clock[i] = nil
           arp_clock[i] = clock.run(arps.arpeggiate,i)
         end
       end
     end
   )
   
-  params:add_group("manual control",84)
+  params:add_group("mappable control",89)
 
-  params:add{type='binary',name="alt key",id='alt key',behavior='momentary',
+  params:add{type='binary',name="save mappings",id='save_mappings',behavior='momentary', allow_pmap=false,
+  action=function(x)
+    if all_loaded and x == 1 then
+      norns.pmap.write()
+    end
+  end
+  }
+
+params:add_separator("ALT key")
+
+  params:add{type='binary',name="ALT key",id='alt_key',behavior='momentary',
   action=function(x)
     if all_loaded then
       grid.alt = x == 1 and true or false
       grid_dirty = true
     end
   end
-}
+  }
   -- params:hide("manual control")
 
   params:add_separator("arc encoders")
   for i = 1,3 do
-    params:add_option("enc "..i.." param", "enc "..i.." param", {"loop window", "loop start", "loop end", "filter tilt", "level", "pan"})
-    params:set_action("enc "..i.." param", function(x)
+    params:add_option("enc_"..i.."_param", "enc "..i.." param", {"loop window", "loop start", "loop end", "filter tilt", "level", "pan"})
+    params:set_action("enc_"..i.."_param", function(x)
       arc_param[i] = x
     end)
   end
@@ -302,7 +313,7 @@ function start_up.init()
   params:add_separator("pattern trigs")
 
   for i = 1,3 do
-    params:add{type='binary',name="midi pat "..i.." rec",id='midi pat '..i..' rec',behavior='trigger',
+    params:add{type='binary',name="midi pat "..i.." rec",id='midi_pat_'..i..' rec',behavior='trigger',
       action=function()
         if all_loaded then
           -- if x == 1 then
@@ -334,7 +345,7 @@ function start_up.init()
   end
 
   for i = 1,3 do
-    params:add{type='binary',name="random pattern "..i,id='random pat '..i,behavior='trigger',
+    params:add{type='binary',name="random pattern "..i,id='random_pat_'..i,behavior='trigger',
       action=function()
         if all_loaded then
           -- if x == 1 then
@@ -350,7 +361,7 @@ function start_up.init()
   end
 
   for i = 1,3 do
-    params:add{type='binary',name="shuffle pattern "..i,id='shuffle pat '..i,behavior='trigger',
+    params:add{type='binary',name="shuffle pattern "..i,id='shuffle_pat_'..i,behavior='trigger',
       action=function(x)
         if all_loaded then
           if x == 1 then
@@ -368,7 +379,7 @@ function start_up.init()
   params:add_separator("live recording trigs")
 
   for i = 1,3 do
-    params:add{type='binary',name="rec live "..i,id='rec live '..i,behavior='trigger',
+    params:add{type='binary',name="rec live "..i,id='rec_live_'..i,behavior='trigger',
       action=function()
         if all_loaded then
           if not grid.alt then
@@ -381,7 +392,7 @@ function start_up.init()
     }
   end
 
-  params:add_separator("zilchmos: global trigs")
+  params:add_separator("zilchmos: global mods")
 
   local global_zilches =
   {
@@ -406,7 +417,7 @@ function start_up.init()
     }
   end
 
-  params:add_separator("zilchmos: local trigs")
+  params:add_separator("zilchmos: local mods")
 
   local local_zilches =
   {
@@ -445,10 +456,9 @@ function start_up.init()
       end
     }
   end
-    
   
   for i = 1,3 do
-    local banks = {"(a)","(b)","(c)"}
+    local banks = {"(a) values","(b) values","(c) values"}
     params:add_separator(banks[i])
     params:add_control("current pad "..i, "current pad "..banks[i], controlspec.new(1,16,'lin',1,1))
     params:set_action("current pad "..i, function(x)
@@ -505,6 +515,13 @@ function start_up.init()
       mc.move_end(bank[i][bank[i].id],x)
       if all_loaded then mc.redraw(bank[i][bank[i].id]) end
       end)
+    params:add{type='binary',name="toggle loop "..banks[i],id="loop_"..i,behavior='momentary',
+      action=function(x)
+        if x == 1 then
+          grid_actions.toggle_pad_loop(i)
+        end
+      end
+    }
   end
   
   params:add_group("delays",51)

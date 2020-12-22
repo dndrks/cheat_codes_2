@@ -1455,9 +1455,6 @@ function grid_actions.toggle_pad_loop(i)
   if bank[i].focus_hold == false then
     softcut.loop(i+1,bank[i][which_pad].loop == true and 1 or 0)
   end
-  if menu == 11 then
-    help_menu = "loop"
-  end
   if menu ~= 1 then screen_dirty = true end
 end
 
