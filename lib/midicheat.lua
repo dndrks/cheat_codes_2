@@ -344,7 +344,7 @@ end
 local vports = {}
 local function refresh_params_vports()
   for i = 1,#midi.vports do
-    vports[i] = midi.vports[i].name ~= "none" and (tostring(i)..": "..util.trim_string_to_width(midi.vports[i].name,70)) or tostring(i)..": empty"
+    vports[i] = midi.vports[i].name ~= "none" and (tostring(i)..": "..util.trim_string_to_width(midi.vports[i].name,70)) or tostring(i)..": [device]"
   end
 end
 
