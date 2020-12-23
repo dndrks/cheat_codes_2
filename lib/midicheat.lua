@@ -378,7 +378,7 @@ function mc.pad_to_note_params()
       end
     end
   end)
-  params:add_number("global_pad_to_midi_note_channel", "channel",1,16,1)
+  params:add_number("global_pad_to_midi_note_channel", "MIDI channel",1,16,1)
   params:set_action("global_pad_to_midi_note_channel",
   function(x)
     if all_loaded then
@@ -388,6 +388,20 @@ function mc.pad_to_note_params()
       end
     end
   end)
+  params:add{type='binary',name="MIDI panic",id='midi_panic',behavior='trigger',
+  action=function(x)
+    if all_loaded then
+      if x == 1 then
+        for i = 1,128 do
+          for j = 1,3 do
+            for z = 1,16 do
+            midi_dev[params:get(j.."_pad_to_midi_note_destination")]:note_off(i, nil, z)
+            end
+          end
+        end
+      end
+    end
+  end}
   params:add_option("global_pad_to_midi_note_scale", "scale",mc_scale_names,5)
   params:set_action("global_pad_to_midi_note_scale",
   function(x)
@@ -418,20 +432,6 @@ function mc.pad_to_note_params()
       end
     end
   end)
-  params:add{type='binary',name="MIDI panic",id='midi_panic',behavior='trigger',
-  action=function(x)
-    if all_loaded then
-      if x == 1 then
-        for i = 1,128 do
-          for j = 1,3 do
-            for z = 1,16 do
-            midi_dev[params:get(j.."_pad_to_midi_note_destination")]:note_off(i, nil, z)
-            end
-          end
-        end
-      end
-    end
-  end}
   params:add_option("global_pad_to_jf_note_enabled","Just Friends output?",{"no","yes"},1)
   params:set_action("global_pad_to_jf_note_enabled",function()
     if all_loaded then persistent_state_save() end
@@ -465,9 +465,9 @@ function mc.pad_to_note_params()
     params:add_separator("bank "..banks[i])
     params:add_option(i.."_pad_to_midi_note_enabled", "bank "..banks[i].." MIDI output?", {"no","yes"},1)
     params:set_action(i.."_pad_to_midi_note_enabled", function() if all_loaded then persistent_state_save() mc.all_midi_notes_off(i) end end)
-    params:add_option(i.."_pad_to_midi_note_destination", "dest",vports,2)
+    params:add_option(i.."_pad_to_midi_note_destination", "MIDI dest",vports,2)
     params:set_action(i.."_pad_to_midi_note_destination", function() if all_loaded then persistent_state_save() mc.all_midi_notes_off(i) end end)
-    params:add_number(i.."_pad_to_midi_note_channel", "channel",1,16,1)
+    params:add_number(i.."_pad_to_midi_note_channel", "MIDI channel",1,16,1)
     params:set_action(i.."_pad_to_midi_note_channel", function() if all_loaded then
         mc.all_midi_notes_off(i)
         persistent_state_save()
@@ -529,7 +529,7 @@ function mc.midi_note_from_pad(b,p)
     , ["all"] = 0
     }
     if params:string(b.."_pad_to_jf_note_enabled") ~= "none" then
-      local note_num = mc_notes[b][p] - 48
+      local note_num = mc_notes[b][p] - 60
       local velocity = params:get(b.."_pad_to_jf_note_velocity")
       if params:string(b.."_pad_to_jf_note_enabled") == "any" then
         crow.ii.jf.play_note(note_num/12,velocity)
