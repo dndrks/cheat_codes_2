@@ -4937,6 +4937,7 @@ function persistent_state_save()
     io.write(i.."_pad_to_midi_note_channel: "..params:get(i.."_pad_to_midi_note_channel").."\n")
     io.write(i.."_pad_to_midi_note_scale: "..params:get(i.."_pad_to_midi_note_scale").."\n")
     io.write(i.."_pad_to_midi_note_root: "..params:get(i.."_pad_to_midi_note_root").."\n")
+    io.write(i.."_pad_to_midi_note_root_octave: "..params:get(i.."_pad_to_midi_note_root_octave").."\n")
   end
   io.write("global_pad_to_jf_note_enabled: "..params:get("global_pad_to_jf_note_enabled").."\n")
   for i = 1,3 do
@@ -4948,7 +4949,7 @@ end
 
 function count_lines_in(file)
   lines = {}
-  for line in io.lines(file) do 
+  for line in io.lines(file) do
     lines[#lines + 1] = line
   end
   return #lines

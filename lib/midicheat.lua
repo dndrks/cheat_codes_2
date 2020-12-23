@@ -349,7 +349,7 @@ local function refresh_params_vports()
 end
 
 function mc.pad_to_note_params()
-  params:add_group("pad to note setup",33)
+  params:add_group("pad to note setup",37)
   refresh_params_vports()
   local banks = {"a","b","c"}
   mc_notes = {{},{},{}}
@@ -398,13 +398,23 @@ function mc.pad_to_note_params()
       end
     end
   end)
-  params:add_number("global_pad_to_midi_note_root", "root note",0,127,60,function(param) return MU.note_num_to_name(param:get(), true) end)
+  params:add_number("global_pad_to_midi_note_root", "root note",0,11,0,function(param) return MU.note_num_to_name(param:get(), false) end)
   params:set_action("global_pad_to_midi_note_root",
   function(x)
     if all_loaded then
       persistent_state_save()
       for i = 1,3 do
         params:set(i.."_pad_to_midi_note_root",x)
+      end
+    end
+  end)
+  params:add_option("global_pad_to_midi_note_root_octave", "octave", {"-4","-3","-2","-1","middle","+1","+2","+3","+4","+5"},5)
+  params:set_action("global_pad_to_midi_note_root_octave",
+  function(x)
+    if all_loaded then
+      persistent_state_save()
+      for i = 1,3 do
+        params:set(i.."_pad_to_midi_note_root_octave",x)
       end
     end
   end)
@@ -468,8 +478,13 @@ function mc.pad_to_note_params()
       mc.build_scale(i)
       if all_loaded then persistent_state_save() end
     end)
-    params:add_number(i.."_pad_to_midi_note_root", "root note",0,127,60,function(param) return MU.note_num_to_name(param:get(), true) end)
+    params:add_number(i.."_pad_to_midi_note_root", "root note",0,11,0,function(param) return MU.note_num_to_name(param:get(), false) end)
     params:set_action(i.."_pad_to_midi_note_root",function()
+      mc.build_scale(i)
+      if all_loaded then persistent_state_save() end
+    end)
+    params:add_option(i.."_pad_to_midi_note_root_octave", "octave", {"-4","-3","-2","-1","middle","+1","+2","+3","+4","+5"},5)
+    params:set_action(i.."_pad_to_midi_note_root_octave",function()
       mc.build_scale(i)
       if all_loaded then persistent_state_save() end
     end)
@@ -487,7 +502,7 @@ function mc.pad_to_note_params()
 end
 
 function mc.build_scale(target)
-  mc_notes[target] = MU.generate_scale_of_length(params:get(target.."_pad_to_midi_note_root"), params:get(target.."_pad_to_midi_note_scale"), 16)
+  mc_notes[target] = MU.generate_scale_of_length(params:get(target.."_pad_to_midi_note_root")+(12*params:get(target.."_pad_to_midi_note_root_octave")), params:get(target.."_pad_to_midi_note_scale"), 16)
   local num_to_add = 16 - #mc_notes[target]
   for i = 1, num_to_add do
     table.insert(mc_notes[target], mc_notes[target][16 - num_to_add])
