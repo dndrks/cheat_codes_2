@@ -1,6 +1,6 @@
 -- cheat codes 2
 --          a sample playground
--- patch: 201203
+-- patch: 201223
 -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
 -- need help?
 -- please visit:
@@ -8,6 +8,7 @@
 -- -------------------------------
 
 local pattern_time = include 'lib/cc_pattern_time'
+MU = require "musicutil"
 fileselect = require 'fileselect'
 textentry = require 'textentry'
 main_menu = include 'lib/main_menu'
@@ -105,7 +106,7 @@ end
 
 --/ waveform stuff
 
-function rerun()
+function r()
   norns.script.load(norns.state.script)
 end
 
@@ -1162,7 +1163,9 @@ function init()
   rec_state_watcher.count = -1
   
   already_saved()
-  
+
+  params:add_separator("cheat codes external zone")
+
   params:add_group("OSC setup",3)
   params:add_text("osc_IP", "source OSC IP", "192.168.")
   params:set_action("osc_IP", function() dest = {tostring(params:get("osc_IP")), tonumber(params:get("osc_port"))} end)
@@ -1175,18 +1178,47 @@ function init()
     osc_echo = false
   end}
 
-  params:add_group("MIDI note/OP-Z setup",15)
+  params:add_group("MIDI note/OP-Z setup",16)
   params:add_option("midi_control_enabled", "enable MIDI control?", {"no","yes"},1)
   params:set_action("midi_control_enabled", function() if all_loaded then persistent_state_save() end end)
-  params:add_option("midi_control_device", "MIDI control device",{"port 1", "port 2", "port 3", "port 4"},1)
+  -- params:add_option("midi_control_device", "MIDI control device",{"port 1", "port 2", "port 3", "port 4"},1)
+  
+  local vports = {}
+  local function refresh_params_vports()
+    for i = 1,#midi.vports do
+      vports[i] = midi.vports[i].name ~= "none" and util.trim_string_to_width(midi.vports[i].name,70) or tostring(i)..": [device]"
+    end
+  end
+
+  refresh_params_vports()
+
+  params:add_option("midi_control_device", "MIDI ctrl dev",vports,1)
   params:set_action("midi_control_device", function() if all_loaded then persistent_state_save() end end)
   params:add_option("midi_echo_enabled", "enable MIDI echo?", {"no","yes"},1)
   params:set_action("midi_echo_enabled", function() if all_loaded then persistent_state_save() end end)
   local bank_names = {"(a)","(b)","(c)"}
   params:add_separator("channel")
+  params:add_option("midi_control_channel_distribution", "channel distribution: ",{"multi","single"})
+  params:set_action("midi_control_channel_distribution", function(x)
+    if all_loaded then
+      persistent_state_save() 
+      if x == 2 then
+        for i = 1,3 do params:set("bank_"..i.."_midi_channel",params:get("bank_1_midi_channel")) end
+      end
+    end
+  end)
   for i = 1,3 do
     params:add_number("bank_"..i.."_midi_channel", "bank "..bank_names[i].." pad channel:",1,16,i)
-    params:set_action("bank_"..i.."_midi_channel", function() if all_loaded then persistent_state_save() end end)
+    params:set_action("bank_"..i.."_midi_channel", function(x)
+      if all_loaded then
+        persistent_state_save()
+        if params:get("midi_control_channel_distribution") == 2 then
+          for j = 1,3 do
+            params:set("bank_"..(j~=i and j or i).."_midi_channel",x)
+          end
+        end
+      end
+    end)
   end
   params:add_separator("note = pad 1")
   for i = 1,3 do
@@ -1202,7 +1234,7 @@ function init()
   params:add_group("MIDI encoder setup",7)
   params:add_option("midi_enc_control_enabled", "enable MIDI enc control?", {"no","yes"},1)
   params:set_action("midi_enc_control_enabled", function() if all_loaded then persistent_state_save() end end)
-  params:add_option("midi_enc_control_device", "MIDI enc device",{"port 1", "port 2", "port 3", "port 4"},2)
+  params:add_option("midi_enc_control_device", "MIDI enc dev",vports,2)
   params:set_action("midi_enc_control_device", function() if all_loaded then persistent_state_save() end end)
   params:add_option("midi_enc_echo_enabled", "enable MIDI enc echo?", {"no","yes"},1)
   params:set_action("midi_enc_echo_enabled", function() if all_loaded then persistent_state_save() end end)
@@ -1213,6 +1245,8 @@ function init()
     params:add_number("bank_"..i.."_midi_enc_channel", "bank "..bank_names[i].." enc channel:",1,16,i)
     params:set_action("bank_"..i.."_midi_enc_channel", function() if all_loaded then persistent_state_save() end end)
   end
+
+  mc.pad_to_note_params()
 
   crow_init()
   
@@ -1246,62 +1280,71 @@ function init()
   ping_midi_devices()
 
   midi_dev = {}
-  for j = 1,4 do
+  for j = 1,#midi.vports do
     midi_dev[j] = midi.connect(j)
     local trigger_bank = {nil,nil,nil}
+    local b_ch = {}
     midi_dev[j].event = function(data)
       screen_dirty = true
       local d = midi.to_msg(data)
       if params:get("midi_control_enabled") == 2 and j == params:get("midi_control_device") then
         local received_ch;
+        -- local b_ch = {}
         for i = 1,3 do
           if d.ch == params:get("bank_"..i.."_midi_channel") then
-            received_ch = i
+            -- received_ch = i
+            b_ch[i] = d.ch
+          else
+            b_ch[i] = nil
           end
         end
-        local i = received_ch
-        if d.note ~= nil and i ~= nil then
-          if d.note >= params:get("bank_"..i.."_pad_midi_base") and d.note <= params:get("bank_"..i.."_pad_midi_base") + (not midi_alt and 15 or 22) then
-            if not midi_alt then
-              if d.type == "note_on" then
-                mc.cheat(i,d.note-(params:get("bank_"..i.."_pad_midi_base")-1))
-                if midi_pat[i].rec == 1 and midi_pat[i].count == 0 then
-                end
-                midi_pattern_watch(i, d.note-(params:get("bank_"..i.."_pad_midi_base")-1))
-                if menu == 9 then
-                  page.arp_page_sel = i
-                  arps.momentary(i, bank[i].id, "on")
-                end
-              elseif d.type == "note_off" then
-                if menu == 9 then
-                  if not arp[i].hold and page.arp_page_sel == i  then
-                    local targeted_pad = d.note-(params:get("bank_"..i.."_pad_midi_base")-1)
-                    arps.momentary(i, targeted_pad, "off")
+        for i = 1,3 do
+          if b_ch[i] ~= nil then
+        -- local i = received_ch
+            if d.note ~= nil and i ~= nil then
+              if d.note >= params:get("bank_"..i.."_pad_midi_base") and d.note <= params:get("bank_"..i.."_pad_midi_base") + (not midi_alt and 15 or 22) then
+                if not midi_alt then
+                  if d.type == "note_on" then
+                    mc.cheat(i,d.note-(params:get("bank_"..i.."_pad_midi_base")-1))
+                    if midi_pat[i].rec == 1 and midi_pat[i].count == 0 then
+                    end
+                    midi_pattern_watch(i, d.note-(params:get("bank_"..i.."_pad_midi_base")-1))
+                    if menu == 9 then
+                      page.arp_page_sel = i
+                      arps.momentary(i, bank[i].id, "on")
+                    end
+                  elseif d.type == "note_off" then
+                    if menu == 9 then
+                      if not arp[i].hold and page.arp_page_sel == i  then
+                        local targeted_pad = d.note-(params:get("bank_"..i.."_pad_midi_base")-1)
+                        arps.momentary(i, targeted_pad, "off")
+                      end
+                    end
+                  end
+                elseif midi_alt then
+                  if params:get("bank_"..i.."_midi_zilchmo_enabled") == 2 and d.type == "note_on" then
+                    mc.zilch(i,d.note-(params:get("bank_"..i.."_pad_midi_base")-1))
                   end
                 end
-              end
-            elseif midi_alt then
-              if params:get("bank_"..i.."_midi_zilchmo_enabled") == 2 and d.type == "note_on" then
-                mc.zilch(i,d.note-(params:get("bank_"..i.."_pad_midi_base")-1))
+              elseif d.note == params:get("bank_"..i.."_pad_midi_base") + 23 then
+                if d.type == "note_on" then
+                  midi_alt = true
+                else
+                  midi_alt = false
+                end
               end
             end
-          elseif d.note == params:get("bank_"..i.."_pad_midi_base") + 23 then
-            if d.type == "note_on" then
-              midi_alt = true
-            else
-              midi_alt = false
+            if d.type == "cc" and params:get("midi_echo_enabled") == 2 then
+              if d.cc == 1 then
+                mc.move_start(bank[i][bank[i].id],d.val)
+              elseif d.cc == 2 then
+                mc.move_end(bank[i][bank[i].id],d.val)
+              elseif d.cc == 3 then
+                mc.adjust_filter(i,d.val)
+              elseif d.cc == 4 then
+                mc.adjust_pad_level(bank[i][bank[i].id],d.val)
+              end
             end
-          end
-        end
-        if d.type == "cc" and params:get("midi_echo_enabled") == 2 then
-          if d.cc == 1 then
-            mc.move_start(bank[i][bank[i].id],d.val)
-          elseif d.cc == 2 then
-            mc.move_end(bank[i][bank[i].id],d.val)
-          elseif d.cc == 3 then
-            mc.adjust_filter(i,d.val)
-          elseif d.cc == 4 then
-            mc.adjust_pad_level(bank[i][bank[i].id],d.val)
           end
         end
       elseif params:get("midi_enc_control_enabled") == 2 and j == params:get("midi_enc_control_device") then
@@ -1950,28 +1993,38 @@ function random_rec_clock()
     local lbr = {1,2,4}
     local rler = rec_loop_enc_resolution
     local rec_distance = rec[rec.focus].end_point - rec[rec.focus].start_point
-    local bar_count = params:get("rec_loop_enc_resolution") > 2 and (((rec_distance)/(1/rler)) / (rler))*(2*lbr[params:get("live_buff_rate")]) or 1/4
+    local bar_count = params:get("rec_loop_enc_resolution") > 2 and (((rec_distance)/(1/rler)) / (rler))*(2*lbr[params:get("live_buff_rate")]) or (rec_distance/clock.get_beat_sec())/4
     clock.sync(params:get("rec_loop_"..rec.focus) == 1 and 4 or bar_count)
-    local random_rec_prob = params:get("random_rec_clock_prob")
+    local random_rec_prob = params:get("random_rec_clock_prob_"..rec.focus)
     if random_rec_prob > 0 then
       local random_rec_comp = math.random(0,100)
       if random_rec_comp < random_rec_prob then
         if params:get("rec_loop_"..rec.focus) == 1 then
-          buff_freeze()
-          grid_dirty = true
-        elseif params:get("rec_loop_"..rec.focus) == 2 then
-          if not rec_state_watcher.is_running then
-            softcut.position(1,rec[rec.focus].start_point+0.1)
-            softcut.rec_level(1,1)
-            rec[rec.focus].state = 1
-            rec_state_watcher:start()
-            if rec[rec.focus].clear == 1 then rec[rec.focus].clear = 0 end
-            grid_dirty = true
-          end
+          toggle_buffer(rec.focus,true)
+        elseif params:get("rec_loop_"..rec.focus) == 2 and rec[rec.focus].end_point < poll_position_new[1] +0.015 then
+          toggle_buffer(rec.focus,true)
         end
       end
     end
   end
+end
+
+function run_one_shot_rec_clock()
+  one_shot_rec_clock = clock.run(one_shot_clock)
+end
+
+function cancel_one_shot_rec_clock()
+  clock.cancel(one_shot_rec_clock)
+  rec[rec.focus].state = 0
+  rec_state_watcher:stop()
+  rec.stopped = true
+  grid_dirty = true
+  if menu == 2 then
+    if page.loops.sel ~= 5 then
+      screen_dirty = true
+    end
+  end
+  one_shot_rec_clock = nil
 end
 
 function one_shot_clock()
@@ -1984,6 +2037,7 @@ function one_shot_clock()
     clock.sync(rate)
   end
   -- softcut.loop_start(1,rec[rec.focus].start_point-0.05)
+  softcut.pre_level(1,params:get("live_rec_feedback_"..rec.focus))
   softcut.loop_start(1,rec[rec.focus].start_point-(params:get("one_shot_latency_offset")))
   softcut.loop_end(1,rec[rec.focus].end_point-0.01)
   softcut.position(1,rec[rec.focus].start_point-((params:get("one_shot_latency_offset")-0.01))) -- TODO CLARIFY IF THIS IS REAL ANYMORE
@@ -2478,6 +2532,10 @@ end
 
 function cheat(b,i)
   local pad = bank[b][i]
+  if all_loaded then
+    mc.midi_note_from_pad(util.round(b),util.round(i))
+    mc.route_midi_mod(b,i)
+  end
   if env_counter[b].is_running then
     env_counter[b]:stop()
   end
@@ -2589,12 +2647,11 @@ function cheat(b,i)
   end
   if pad.fifth == false then
     if s[pad.rate] ~= nil then
-      params:set("rate "..tonumber(string.format("%.0f",b)),s[pad.rate])
+      params:set("rate "..tonumber(string.format("%.0f",b)),s[pad.rate],true) -- TODO: confirm silent update is good...
     else
       pad.fifth = true
     end
   end
-  -- params:set("current pad "..tonumber(string.format("%.0f",b)),i,"true")
   mc.params_redraw(pad)
   if osc_communication == true then
     osc_redraw(b)
@@ -2834,7 +2891,7 @@ function buff_freeze()
   rec[rec.focus].state = (rec[rec.focus].state + 1)%2
   softcut.rec_level(1,rec[rec.focus].state)
   if rec[rec.focus].state == 1 then
-    softcut.pre_level(1,params:get("live_rec_feedback"))
+    softcut.pre_level(1,params:get("live_rec_feedback_"..rec.focus))
   else
     softcut.pre_level(1,1)
   end
@@ -2846,6 +2903,7 @@ function buff_flush()
   rec[rec.focus].clear = 1
   softcut.rec_level(1,0)
   update_waveform(1,rec[rec.focus].start_point, rec[rec.focus].end_point,128)
+  grid_dirty = true
 end
 
 function buff_pause()
@@ -2853,7 +2911,8 @@ function buff_pause()
   softcut.rate(1,rec[rec.focus].pause and 0 or 1) -- TODO make this dynamic to include rec rate offsets
 end
 
-function toggle_buffer(i)
+function toggle_buffer(i,untrue_alt)
+
   grid_dirty = true
   softcut.level_slew_time(1,0.5)
   softcut.fade_time(1,0.01)
@@ -2865,28 +2924,21 @@ function toggle_buffer(i)
       rec[j].state = 0
     end
   end
-  
-  -- for go = 1,2 do
-  --   local old_min = (1+(8*(rec.focus-1)))
-  --   local old_max = (9+(8*(rec.focus-1)))
-  --   local old_range = old_min - old_max
-  --   rec.focus = i
-  --   local new_min = (1+(8*(rec.focus-1)))
-  --   local new_max = (9+(8*(rec.focus-1)))
-  --   local new_range = new_max - new_min
-  --   local current_difference = (rec[rec.focus].end_point - rec[rec.focus].start_point)
-  --   rec[rec.focus].start_point = (((rec[rec.focus].start_point - old_min) * new_range) / old_range) + new_min
-  --   rec[rec.focus].end_point = rec[rec.focus].start_point + current_difference
-  -- end
 
   rec.focus = i
   
   if rec[rec.focus].loop == 0 and not grid.alt then
-    clock.run(one_shot_clock)
-  elseif rec[rec.focus].loop == 0 and grid.alt then
-    buff_flush()
-  -- elseif rec[rec.focus].loop == 1 and not grid.alt then
-  --   softcut.position(1,rec[rec.focus].start_point)
+    if rec[rec.focus].state == 0 then
+      run_one_shot_rec_clock() -- this runs only if not recording
+    elseif rec[rec.focus].state == 1 and rec_state_watcher.is_running then -- can have both conditions, right?
+      cancel_one_shot_rec_clock()
+    end
+  elseif rec[rec.focus].loop == 0 and (grid.alt and untrue_alt ~= nil) then
+    -- buff_flush()
+  elseif rec[rec.focus].loop == 1 and not grid.alt then
+    if one_shot_rec_clock ~= nil then
+      cancel_one_shot_rec_clock()
+    end
   end
   
   softcut.loop_start(1,rec[rec.focus].start_point)
@@ -2908,6 +2960,7 @@ function toggle_buffer(i)
   end
   grid_dirty = true
   update_waveform(1,key1_hold and rec[rec.focus].start_point or live[rec.focus].min,key1_hold and rec[rec.focus].end_point or live[rec.focus].max,128)
+
 end
 
 function update_delays()
@@ -3010,6 +3063,35 @@ function adjust_key1_timing()
     end
   -- else
   --   metro[31].time = 0.01
+  end
+end
+
+function midi_pattern_recording(id,state)
+  if state == "start" then
+    if midi_pat[id].playmode == 1 then
+      midi_pat[id]:rec_start()
+    else
+      midi_pat[id].rec_clock = clock.run(synced_record_start,midi_pat[id],id)
+    end
+  elseif state == "stop" then
+    midi_pat[id]:rec_stop()
+    if midi_pat[id].playmode == 1 then
+      start_pattern(midi_pat[id])
+    elseif midi_pat[id].playmode == 2 then
+      midi_pat[id]:rec_stop()
+      clock.cancel(midi_pat[id].rec_clock)
+      if midi_pat[id].clock ~= nil then
+        print("clearing clock: "..midi_pat[id].clock)
+        clock.cancel(midi_pat[id].clock)
+      end
+      midi_pat[id]:clear()
+    end
+  end
+end
+
+function toggle_midi_pattern_overdub(id)
+  if midi_pat[id].play == 1 then
+    midi_pat[id].overdub = midi_pat[id].overdub == 0 and 1 or 0
   end
 end
 
@@ -3152,44 +3234,21 @@ function key(n,z)
               if midi_pat[time_nav].playmode < 3 then
                 if midi_pat[time_nav].rec == 0 then
                   if midi_pat[time_nav].count == 0 and not key1_hold then
-                    if midi_pat[time_nav].playmode == 1 then
-                      midi_pat[time_nav]:rec_start()
-                    else
-                      midi_pat[time_nav].rec_clock = clock.run(synced_record_start,midi_pat[time_nav],time_nav)
-                    end
+                    midi_pattern_recording(time_nav,"start")
                   elseif midi_pat[time_nav].count ~= 0 and not key1_hold then
-                    if midi_pat[time_nav].play == 1 then
-                      midi_pat[time_nav].overdub = midi_pat[time_nav].overdub == 0 and 1 or 0
-                    end
+                    toggle_midi_pattern_overdub(time_nav)
                   end
                 elseif midi_pat[time_nav].rec == 1 then
-                  midi_pat[time_nav]:rec_stop()
-                  if midi_pat[time_nav].playmode == 1 then
-                    --midi_pat[time_nav]:start()
-                    start_pattern(midi_pat[time_nav])
-                  elseif midi_pat[time_nav].playmode == 2 then
-                    --midi_pat[time_nav]:start()
-                    print("line 2196")
-                    --start_synced_loop(midi_pat[time_nav])
-                    midi_pat[time_nav]:rec_stop()
-                    clock.cancel(midi_pat[time_nav].rec_clock)
-                    if midi_pat[time_nav].clock ~= nil then
-                      print("clearing clock: "..midi_pat[time_nav].clock)
-                      clock.cancel(midi_pat[time_nav].clock)
-                    end
-                    midi_pat[id]:clear()
-                  end
+                  midi_pattern_recording(time_nav,"stop")
                 end
               end
             end
           end
           if page.time_page_sel[time_nav] == 2 then
             if g.device ~= nil then
-              print("random grid pat!", id)
               random_grid_pat(id,2)
             else
               shuffle_midi_pat(id)
-              ("random midi pat!")
             end
           elseif page.time_page_sel[time_nav] == 4 then
             if not key1_hold then
@@ -4847,7 +4906,6 @@ end
 
 function persistent_state_save()
   local dirname = _path.data.."cheat_codes_2/"
-  -- local collection = tonumber(string.format("%.0f",params:get("collection")))
   if os.rename(dirname, dirname) == nil then
     os.execute("mkdir " .. dirname)
   end
@@ -4863,25 +4921,35 @@ function persistent_state_save()
   io.write("preview_clip_change: "..params:get("preview_clip_change").."\n")
   io.write("zilchmo_patterning: "..params:get("zilchmo_patterning").."\n")
   io.write("LED_style: "..params:get("LED_style").."\n")
-  -- for i = 1,3 do
-  --   io.write("sync_clock_to_pattern_"..i..": "..params:get("sync_clock_to_pattern_"..i).."\n")
-  -- end
   io.write("arc_patterning: "..params:get("arc_patterning").."\n")
   for i = 1,3 do
     io.write("bank_"..i.."_midi_zilchmo_enabled: "..params:get("bank_"..i.."_midi_zilchmo_enabled").."\n")
   end
   io.write("grid_size: "..params:get("grid_size").."\n")
-  -- io.write("rec_loop_1: "..params:get("rec_loop_1").."\n")
-  -- io.write("rec_loop_2: "..params:get("rec_loop_2").."\n")
-  -- io.write("rec_loop_3: "..params:get("rec_loop_3").."\n")
-  -- io.write("one_shot_clock_div: "..params:get("one_shot_clock_div").."\n")
-  -- io.write("rec_loop_enc_resolution: "..params:get("rec_loop_enc_resolution").."\n")
+  io.write("global_pad_to_midi_note_enabled: "..params:get("global_pad_to_midi_note_enabled").."\n")
+  io.write("global_pad_to_midi_note_destination: "..params:get("global_pad_to_midi_note_destination").."\n")
+  io.write("global_pad_to_midi_note_channel: "..params:get("global_pad_to_midi_note_channel").."\n")
+  io.write("global_pad_to_midi_note_scale: "..params:get("global_pad_to_midi_note_scale").."\n")
+  io.write("global_pad_to_midi_note_root: "..params:get("global_pad_to_midi_note_root").."\n")
+  for i = 1,3 do
+    io.write(i.."_pad_to_midi_note_enabled: "..params:get(i.."_pad_to_midi_note_enabled").."\n")
+    io.write(i.."_pad_to_midi_note_destination: "..params:get(i.."_pad_to_midi_note_destination").."\n")
+    io.write(i.."_pad_to_midi_note_channel: "..params:get(i.."_pad_to_midi_note_channel").."\n")
+    io.write(i.."_pad_to_midi_note_scale: "..params:get(i.."_pad_to_midi_note_scale").."\n")
+    io.write(i.."_pad_to_midi_note_root: "..params:get(i.."_pad_to_midi_note_root").."\n")
+    io.write(i.."_pad_to_midi_note_root_octave: "..params:get(i.."_pad_to_midi_note_root_octave").."\n")
+  end
+  io.write("global_pad_to_jf_note_enabled: "..params:get("global_pad_to_jf_note_enabled").."\n")
+  for i = 1,3 do
+    io.write(i.."_pad_to_jf_note_enabled: "..params:get(i.."_pad_to_jf_note_enabled").."\n")
+    io.write(i.."_pad_to_jf_note_velocity: "..params:get(i.."_pad_to_jf_note_velocity").."\n")
+  end
   io.close(file)
 end
 
 function count_lines_in(file)
   lines = {}
-  for line in io.lines(file) do 
+  for line in io.lines(file) do
     lines[#lines + 1] = line
   end
   return #lines
@@ -5006,6 +5074,18 @@ function named_savestate(text)
   tab.save(delay_links,_path.data .. "cheat_codes_2/collection-"..collection.."/delays/delay-links.data")
   
   params:write(_path.data.."cheat_codes_2/collection-"..collection.."/params/all.pset")
+  
+  -- ultimately, i'll want to remember the mappings of specific devices for specific collections...
+  -- norns.pmap.rev[dev][ch][cc]
+  -- dev = vport ID...
+  -- so, see if there are any mappings and if not then ignore that shit...
+  -- otherwise, grab the device name
+  -- if the device is present, then the mapping can restore
+  -- if not, fuck it.
+  -- might also need to `norns.pmap.assign(name,m.dev,m.ch,m.cc)`
+
+  mc.save_mappings(collection)
+
   tab.save(rec,_path.data .. "cheat_codes_2/collection-"..collection.."/rec/rec[rec.focus].data")
 
   -- GRID pattern save
@@ -5156,6 +5236,7 @@ function named_loadstate(path)
       end
     end
 
+    --TODO confirm this is ok, not a namespace collision?
     local file = io.open(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/misc/misc.data", "r")
     if file then
       io.input(file)
@@ -5171,6 +5252,14 @@ function named_loadstate(path)
   end
 
   ping_midi_devices()
+  if file then
+    if tab.load(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/params/mappings.txt") ~= nil then
+      norns.pmap.rev = tab.load(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/params/mappings.txt")
+      norns.pmap.data = tab.load(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/params/map-data.txt")
+      -- BUT, i want the device to be present or reassigned...
+    end
+  end
+    
 
   grid_dirty = true
 
@@ -5231,9 +5320,19 @@ function test_load(slot,destination)
     if grid_pat[destination].count > 0 then
       start_pattern(grid_pat[destination])
     elseif #arp[destination].notes > 0 then
-      arp[destination].step = arp[destination].start_point-1
+      local arp_start =
+      {
+        ["fwd"] = arp[destination].start_point - 1
+      , ["bkwd"] = arp[destination].end_point + 1
+      , ["pend"] = arp[destination].start_point
+      , ["rnd"] = arp[destination].start_point - 1
+      }
+      arp[destination].step = arp_start[arp[destination].mode]
       arp[destination].pause = false
       arp[destination].playing = true
+      if arp[destination].mode == "pend" then
+        arp_direction[destination] = "negative"
+      end
     end
   end
 end

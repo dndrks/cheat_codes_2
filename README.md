@@ -5,14 +5,15 @@ a sample playground for norns
 ### requirements
 
 ### hard requirements:
-- norns (201115 or later)
+- norns (201202 or later)
 
-### encouraged:
-- grid (64 or 128, all editions)
+### encouraged (any or all):
+- grid (64 or 128, all editions -- 256 works as well, just half)
 - arc
-- OP-Z (see below)
+- MIDI keyboard, newer Launchpad (X, Pro or Mini MK3), MIDI button box, or OP-Z (see below)
 - Midi Fighter Twister ([template](https://llllllll.co/uploads/short-url/so1QoxfHVWn29a4YNkybdVEIQgi.mfs))
-- max for live ([device](https://llllllll.co/uploads/short-url/cckkpyWjH3ywfaHfYzOmV27GS3m.amxd)) <~~ right-click and save
+- Max for Live ([device](https://llllllll.co/uploads/short-url/cckkpyWjH3ywfaHfYzOmV27GS3m.amxd))
+- crow for pad-to-trigger or Just Friends note output
 
 ### [documentation](https://github.com/dndrks/cheat-codes-docs/raw/main/assets/images/pdf/cheat_codes_2.pdf)
 

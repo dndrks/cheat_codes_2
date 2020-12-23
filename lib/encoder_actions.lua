@@ -228,7 +228,7 @@ function encoder_actions.init(n,d)
 
       elseif id == 4 then
         if page.loops.frame == 1 and page.loops.top_option_set[id] == 1 then
-          params:delta("live_rec_feedback",d)
+          params:delta("live_rec_feedback_"..rec.focus,d)
         elseif page.loops.frame == 1 and page.loops.top_option_set[id] == 2 then
           params:delta("rec_loop_"..rec.focus,d)
         elseif page.loops.frame == 2 then
@@ -405,7 +405,7 @@ function encoder_actions.init(n,d)
 
       elseif id == 4 then
         if page.loops.frame == 1 and page.loops.top_option_set[id] == 1 then
-          params:delta("random_rec_clock_prob",d)
+          params:delta("random_rec_clock_prob_"..rec.focus,d)
         elseif page.loops.frame == 1 and page.loops.top_option_set[id] == 2 then
           params:delta("live_buff_rate",d)
         elseif page.loops.frame == 2 then

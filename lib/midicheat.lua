@@ -3,6 +3,7 @@ local midicheat = {}
 local mc = midicheat
 
 function mc.init()
+  active_midi_notes = {{},{},{}}
   for i = 1,3 do
     mc.redraw(bank[i][bank[i].id])
   end
@@ -274,6 +275,392 @@ function mc.zilch(target,note) -- expects (x,0-127)
 
   if menu ~= 1 then screen_dirty = true end
 
+end
+
+function mc.pass_midi_device_mappings()
+  local midi_device_mappings = {{},{},{},{}}
+  for i = 1,4 do
+    for j = 1,16 do
+      midi_device_mappings[i][j] = norns.pmap.rev[i][j]
+    end
+  end
+  return midi_device_mappings
+end
+
+function mc.pass_midi_devices_present_during_mapping()
+  local midi_devices_present_during_mapping = {}
+  for i = 1,4 do
+    midi_devices_present_during_mapping[i] = midi.vports[i].name
+  end
+  return midi_devices_present_during_mapping
+end
+
+function mc.deep_copy(orig)
+  local orig_type = type(orig)
+  local copy
+  if orig_type == "table" then
+    copy = {}
+    for orig_key, orig_value in next, orig, nil do
+        copy[mc.deep_copy(orig_key)] = mc.deep_copy(orig_value)
+    end
+    setmetatable(copy, mc.deep_copy(getmetatable(orig)))
+  else
+    copy = orig
+  end
+  return copy
+end
+
+function mc.match_mapping_to_device()
+  local old_mapped_devices = tab.load(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/params/mapped-devices.txt")
+  local switched = {false,false,false,false}
+  local switched_to = {nil,nil,nil,nil}
+  local abandoned = {false,false,false,false}
+  for i = 1,4 do
+    for j = 1,4 do
+      if old_mapped_devices[i] == midi.vports[j].name then
+        norns.pmap.rev[j] = mc.deep_copy(norns.pmap.rev[i])
+        switched[i] = true
+        switched_to[i] = j
+        for k = 1,16 do
+          norns.pmap.rev[i][k] = {}
+        end
+      end
+    end
+  end
+  for k,v in pairs(norns.pmap.data) do
+    if switched[norns.pmap.data[k].dev] then
+      norns.pmap.data[k].dev = switched_to[norns.pmap.data[k].dev]
+      norns.pmap.assign(k,norns.pmap.data[k].dev,norns.pmap.data[k].ch,norns.pmap.data[k].cc)
+    end
+  end
+end
+
+function mc.save_mappings(collection)
+  tab.save(mc.pass_midi_device_mappings(),_path.data.."cheat_codes_2/collection-"..collection.."/params/mappings.txt")
+  tab.save(norns.pmap.data,_path.data.."cheat_codes_2/collection-"..collection.."/params/map-data.txt")
+  tab.save(mc.pass_midi_devices_present_during_mapping(),_path.data.."cheat_codes_2/collection-"..collection.."/params/mapped-devices.txt")
+end
+
+local vports = {}
+local function refresh_params_vports()
+  for i = 1,#midi.vports do
+    vports[i] = midi.vports[i].name ~= "none" and (tostring(i)..": "..util.trim_string_to_width(midi.vports[i].name,70)) or tostring(i)..": [device]"
+  end
+end
+
+function mc.pad_to_note_params()
+  params:add_group("pad to note setup",37)
+  refresh_params_vports()
+  local banks = {"a","b","c"}
+  mc_notes = {{},{},{}}
+  mc_scale_names = {}
+  for i = 1, #MU.SCALES do
+    table.insert(mc_scale_names, string.lower(MU.SCALES[i].name))
+  end
+  params:add_separator("global")
+  params:add_option("global_pad_to_midi_note_enabled", "MIDI output?", {"no","yes"},1)
+  params:set_action("global_pad_to_midi_note_enabled",
+  function(x)
+    if all_loaded then
+      persistent_state_save()
+      for i = 1,3 do
+        params:set(i.."_pad_to_midi_note_enabled",x)
+      end
+    end
+  end)
+  params:add_option("global_pad_to_midi_note_destination", "MIDI dest",vports,2)
+  params:set_action("global_pad_to_midi_note_destination",
+  function(x)
+    if all_loaded then
+      persistent_state_save()
+      for i = 1,3 do
+        params:set(i.."_pad_to_midi_note_destination",x)
+      end
+    end
+  end)
+  params:add_number("global_pad_to_midi_note_channel", "MIDI channel",1,16,1)
+  params:set_action("global_pad_to_midi_note_channel",
+  function(x)
+    if all_loaded then
+      persistent_state_save()
+      for i = 1,3 do
+        params:set(i.."_pad_to_midi_note_channel",x)
+      end
+    end
+  end)
+  params:add{type='binary',name="MIDI panic",id='midi_panic',behavior='trigger',
+  action=function(x)
+    if all_loaded then
+      if x == 1 then
+        for i = 1,128 do
+          for j = 1,3 do
+            for z = 1,16 do
+            midi_dev[params:get(j.."_pad_to_midi_note_destination")]:note_off(i, nil, z)
+            end
+          end
+        end
+      end
+    end
+  end}
+  params:add_option("global_pad_to_midi_note_scale", "scale",mc_scale_names,5)
+  params:set_action("global_pad_to_midi_note_scale",
+  function(x)
+    if all_loaded then
+      persistent_state_save()
+      for i = 1,3 do
+        params:set(i.."_pad_to_midi_note_scale",x)
+      end
+    end
+  end)
+  params:add_number("global_pad_to_midi_note_root", "root note",0,11,0,function(param) return MU.note_num_to_name(param:get(), false) end)
+  params:set_action("global_pad_to_midi_note_root",
+  function(x)
+    if all_loaded then
+      persistent_state_save()
+      for i = 1,3 do
+        params:set(i.."_pad_to_midi_note_root",x)
+      end
+    end
+  end)
+  params:add_option("global_pad_to_midi_note_root_octave", "octave", {"-4","-3","-2","-1","middle","+1","+2","+3","+4","+5"},5)
+  params:set_action("global_pad_to_midi_note_root_octave",
+  function(x)
+    if all_loaded then
+      persistent_state_save()
+      for i = 1,3 do
+        params:set(i.."_pad_to_midi_note_root_octave",x)
+      end
+    end
+  end)
+  params:add_option("global_pad_to_jf_note_enabled","Just Friends output?",{"no","yes"},1)
+  params:set_action("global_pad_to_jf_note_enabled",function()
+    if all_loaded then persistent_state_save() end
+  end)
+  
+  local jf_mode;
+
+  crow.ii.jf.event = function( event, value )
+    if event.name == 'mode' then
+      jf_mode = value
+    end
+  end
+  
+  crow.ii.jf.get('mode')
+  
+  params:add_trigger("jf_toggle","toggle JF synth mode")
+  params:set_action("jf_toggle",
+    function(x)
+      crow.ii.jf.get('mode')
+      if jf_mode == 1 then
+        crow.ii.jf.mode(0)
+        crow.ii.jf.get('mode')
+      else
+        crow.ii.jf.mode(1)
+        crow.ii.jf.get('mode')
+      end
+    end
+  )
+  
+  for i = 1,3 do
+    params:add_separator("bank "..banks[i])
+    params:add_option(i.."_pad_to_midi_note_enabled", "bank "..banks[i].." MIDI output?", {"no","yes"},1)
+    params:set_action(i.."_pad_to_midi_note_enabled", function() if all_loaded then persistent_state_save() mc.all_midi_notes_off(i) end end)
+    params:add_option(i.."_pad_to_midi_note_destination", "MIDI dest",vports,2)
+    params:set_action(i.."_pad_to_midi_note_destination", function() if all_loaded then persistent_state_save() mc.all_midi_notes_off(i) end end)
+    params:add_number(i.."_pad_to_midi_note_channel", "MIDI channel",1,16,1)
+    params:set_action(i.."_pad_to_midi_note_channel", function() if all_loaded then
+        mc.all_midi_notes_off(i)
+        persistent_state_save()
+      end 
+    end)
+    params:add_option(i.."_pad_to_midi_note_scale", "scale",mc_scale_names,5)
+    params:set_action(i.."_pad_to_midi_note_scale",function()
+      mc.build_scale(i)
+      if all_loaded then persistent_state_save() end
+    end)
+    params:add_number(i.."_pad_to_midi_note_root", "root note",0,11,0,function(param) return MU.note_num_to_name(param:get(), false) end)
+    params:set_action(i.."_pad_to_midi_note_root",function()
+      mc.build_scale(i)
+      if all_loaded then persistent_state_save() end
+    end)
+    params:add_option(i.."_pad_to_midi_note_root_octave", "octave", {"-4","-3","-2","-1","middle","+1","+2","+3","+4","+5"},5)
+    params:set_action(i.."_pad_to_midi_note_root_octave",function()
+      mc.build_scale(i)
+      if all_loaded then persistent_state_save() end
+    end)
+    params:add_option(i.."_pad_to_jf_note_enabled", "Just Friends channel",{"none","IDENTITY","2N","3N","4N","5N","6N","all","any"},9)
+    params:set_action(i.."_pad_to_jf_note_enabled",function()
+      if all_loaded then persistent_state_save() end
+    end)
+    params:add_number(i.."_pad_to_jf_note_velocity", "Just Friends velocity",1,10,5)
+    params:set_action(i.."_pad_to_jf_note_velocity",function()
+      if all_loaded then persistent_state_save() end
+    end)
+    mc.build_scale(i)
+    -- params:add_number(i.."_pad_to_midi_note_duration", "note length",1,16,1)
+  end
+end
+
+function mc.build_scale(target)
+  mc_notes[target] = MU.generate_scale_of_length(params:get(target.."_pad_to_midi_note_root")+(12*params:get(target.."_pad_to_midi_note_root_octave")), params:get(target.."_pad_to_midi_note_scale"), 16)
+  local num_to_add = 16 - #mc_notes[target]
+  for i = 1, num_to_add do
+    table.insert(mc_notes[target], mc_notes[target][16 - num_to_add])
+  end
+end
+
+local midi_off = {nil,nil,nil}
+
+function mc.midi_note_from_pad(b,p)
+  if params:string(b.."_pad_to_midi_note_enabled") == "yes" then
+    mc.all_midi_notes_off(b)
+    local note_num = mc_notes[b][p]
+    midi_dev[params:get(b.."_pad_to_midi_note_destination")]:note_on(note_num,96,params:get(b.."_pad_to_midi_note_channel"))
+    table.insert(active_midi_notes[b], note_num)
+    if midi_off[b] ~= nil then clock.cancel(midi_off[b]) end
+    midi_off[b] = clock.run(mc.midi_note_from_pad_off,b,p)
+  end
+  if params:string("global_pad_to_jf_note_enabled") == "yes" then
+    local jf_destinations =
+    {
+      ["IDENTITY"] = 1
+    , ["2N"] = 2
+    , ["3N"] = 3
+    , ["4N"] = 4
+    , ["5N"] = 5
+    , ["6N"] = 6
+    , ["all"] = 0
+    }
+    if params:string(b.."_pad_to_jf_note_enabled") ~= "none" then
+      local note_num = mc_notes[b][p] - 60
+      local velocity = params:get(b.."_pad_to_jf_note_velocity")
+      if params:string(b.."_pad_to_jf_note_enabled") == "any" then
+        crow.ii.jf.play_note(note_num/12,velocity)
+      else
+        local jf_chan = jf_destinations[params:string(b.."_pad_to_jf_note_enabled")]
+        crow.ii.jf.play_voice(jf_chan,note_num/12,velocity)
+      end
+    end
+  end
+end
+
+function mc.midi_note_from_pad_off(b,p)
+  clock.sleep(bank[b][p].arp_time-(bank[b][p].arp_time/100))
+  mc.all_midi_notes_off(b)
+  midi_off[b] = nil
+end
+
+function mc.all_midi_notes_off(b)
+  for _, a in pairs(active_midi_notes[b]) do
+    midi_dev[params:get(b.."_pad_to_midi_note_destination")]:note_off(a, nil, params:get(b.."_pad_to_midi_note_channel"))
+  end
+  active_midi_notes[b] = {}
+end
+
+mc.midi_mod_table =
+{
+  ["0.5x rate"] = false
+, ["2x rate"] = false
+, ["reverse rate"] = false
+, ["hard pan L"] = false
+, ["hard pan C"] = false
+, ["hard pan R"] = false
+, ["nudge pan L"] = false
+, ["nudge pan R"] = false
+, ["reverse pan"] = false
+, ["random pan"] = false
+, ["increase level"] = false
+, ["decrease level"] = false
+, ["pause"] = false
+, ["random start"] = false
+, ["random end"] = false
+, ["random window"] = false
+, ["a: 0.5x rate"] = false
+, ["b: 0.5x rate"] = false
+, ["c: 0.5x rate"] = false
+, ["a: 2x rate"] = false
+, ["b: 2x rate"] = false
+, ["c: 2x rate"] = false
+, ["a: reverse rate"] = false
+, ["b: reverse rate"] = false
+, ["c: reverse rate"] = false
+, ["a: random pan"] = false
+, ["b: random pan"] = false
+, ["c: random pan"] = false
+, ["a: random start"] = false
+, ["b: random start"] = false
+, ["c: random start"] = false
+, ["a: random end"] = false
+, ["b: random end"] = false
+, ["c: random end"] = false
+, ["a: random window"] = false
+, ["b: random window"] = false
+, ["c: random window"] = false
+}
+
+function mc.route_midi_mod(b,p)
+  local midi_mod_actions =
+  {
+    ["0.5x rate"] = {4,'134'}
+  , ["2x rate"] = {4,'124'}
+  , ["reverse rate"] = {4,'14'}
+  , ["hard pan L"] = {3,'1'}
+  , ["hard pan C"] = {3,'2'}
+  , ["hard pan R"] = {3,'3'}
+  , ["nudge pan L"] = {3,'12'}
+  , ["nudge pan R"] = {3,'23'}
+  , ["reverse pan"] = {3,'13'}
+  , ["random pan"] = {3,'123'}
+  , ["increase level"] = {2,'2'}
+  , ["decrease level"] = {2,'1'}
+  , ["pause"] = {2,'12'}
+  , ["random start"] = {4,'12'}
+  , ["random end"] = {4,'34'}
+  , ["random window"] = {4,'23'}
+  , ["a: 0.5x rate"] = {4,'134'}
+  , ["b: 0.5x rate"] = {4,'134'}
+  , ["c: 0.5x rate"] = {4,'134'}
+  , ["a: 2x rate"] = {4,'124'}
+  , ["b: 2x rate"] = {4,'124'}
+  , ["c: 2x rate"] = {4,'124'}
+  , ["a: reverse rate"] = {4,'14'}
+  , ["b: reverse rate"] = {4,'14'}
+  , ["c: reverse rate"] = {4,'14'}
+  , ["a: random pan"] = {3,'123'}
+  , ["b: random pan"] = {3,'123'}
+  , ["c: random pan"] = {3,'123'}
+  , ["a: random start"] = {4,'12'}
+  , ["b: random start"] = {4,'12'}
+  , ["c: random start"] = {4,'12'}
+  , ["a: random end"] = {4,'34'}
+  , ["b: random end"] = {4,'34'}
+  , ["c: random end"] = {4,'34'}
+  , ["a: random window"] = {4,'23'}
+  , ["b: random window"] = {4,'23'}
+  , ["c: random window"] = {4,'23'}
+  }
+  for k,v in pairs(mc.midi_mod_table) do
+    if v then
+      local which = string.sub(k,1,2)
+      if which ~= "a:" and which ~= "b:" and which ~= "c:" then
+        mc.execute_midi_zilch(b,p,midi_mod_actions[k][1],midi_mod_actions[k][2])
+      else
+        local which_banks = {["a:"] = 1, ["b:"] = 2, ["c:"] = 3}
+        if b == which_banks[which] then
+          mc.execute_midi_zilch(b,p,midi_mod_actions[k][1],midi_mod_actions[k][2])
+        end
+      end
+    end
+  end
+end
+
+function mc.execute_midi_zilch(b,p,row,str)
+  for j = (not grid.alt and bank[b].id or 1), (not grid.alt and bank[b].id or 16) do
+    rightangleslice.actions[row][str][1](bank[b][j])
+    if str ~= '12' then
+      rightangleslice.actions[row][str][2](bank[b][j],b)
+    end
+  end
 end
 
 return midicheat
