@@ -509,13 +509,16 @@ function mc.build_scale(target)
   end
 end
 
+local midi_off = {nil,nil,nil}
+
 function mc.midi_note_from_pad(b,p)
   if params:string(b.."_pad_to_midi_note_enabled") == "yes" then
     mc.all_midi_notes_off(b)
     local note_num = mc_notes[b][p]
     midi_dev[params:get(b.."_pad_to_midi_note_destination")]:note_on(note_num,96,params:get(b.."_pad_to_midi_note_channel"))
     table.insert(active_midi_notes[b], note_num)
-    clock.run(mc.midi_note_from_pad_off,b,p)
+    if midi_off[b] ~= nil then clock.cancel(midi_off[b]) end
+    midi_off[b] = clock.run(mc.midi_note_from_pad_off,b,p)
   end
   if params:string("global_pad_to_jf_note_enabled") == "yes" then
     local jf_destinations =
@@ -544,6 +547,7 @@ end
 function mc.midi_note_from_pad_off(b,p)
   clock.sleep(bank[b][p].arp_time-(bank[b][p].arp_time/100))
   mc.all_midi_notes_off(b)
+  midi_off[b] = nil
 end
 
 function mc.all_midi_notes_off(b)
