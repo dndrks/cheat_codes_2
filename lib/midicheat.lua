@@ -488,7 +488,7 @@ function mc.pad_to_note_params()
       mc.build_scale(i)
       if all_loaded then persistent_state_save() end
     end)
-    params:add_option(i.."_pad_to_jf_note_enabled", "Just Friends channel",{"none","IDENTITY","2N","3N","4N","5N","6N","all","any"},1)
+    params:add_option(i.."_pad_to_jf_note_enabled", "Just Friends channel",{"none","IDENTITY","2N","3N","4N","5N","6N","all","any"},9)
     params:set_action(i.."_pad_to_jf_note_enabled",function()
       if all_loaded then persistent_state_save() end
     end)
