@@ -1,6 +1,6 @@
 -- cheat codes 2
 --          a sample playground
--- patch: 201223
+-- patch: 201224
 -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
 -- need help?
 -- please visit:
@@ -4931,6 +4931,7 @@ function persistent_state_save()
   io.write("global_pad_to_midi_note_channel: "..params:get("global_pad_to_midi_note_channel").."\n")
   io.write("global_pad_to_midi_note_scale: "..params:get("global_pad_to_midi_note_scale").."\n")
   io.write("global_pad_to_midi_note_root: "..params:get("global_pad_to_midi_note_root").."\n")
+  io.write("global_pad_to_midi_note_root_octave: "..params:get("global_pad_to_midi_note_root_octave").."\n")
   for i = 1,3 do
     io.write(i.."_pad_to_midi_note_enabled: "..params:get(i.."_pad_to_midi_note_enabled").."\n")
     io.write(i.."_pad_to_midi_note_destination: "..params:get(i.."_pad_to_midi_note_destination").."\n")
