@@ -124,7 +124,7 @@ function rnd.rate(t,i)
     if rnd[t][i].mode == "destructive" then
         bank[t][bank[t].id].rate = rand_rate*(rev == 0 and -1 or 1)
     end
-    softcut.rate(t+1,rand_rate*(rev == 0 and -1 or 1))
+    softcut.rate(t+1,(rand_rate*(rev == 0 and -1 or 1))*bank[t][bank[t].id].offset)
 end
 
 function rnd.loop(t)
