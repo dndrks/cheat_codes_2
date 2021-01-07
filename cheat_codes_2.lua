@@ -23,6 +23,7 @@ rnd = include 'lib/rnd_actions'
 del = include 'lib/delay'
 rytm = include 'lib/euclid'
 mc = include 'lib/midicheat'
+sharer = include 'lib/sharer'
 math.randomseed(os.time())
 variable_fade_time = 0.01
 
@@ -722,6 +723,8 @@ zilch_leds =
 }
 
 function init()
+
+  sharer.setup("cheat_codes_2")
 
   clock.run(check_page_for_k1)
 
@@ -3413,9 +3416,10 @@ function key(n,z)
         end
       elseif menu == 8 then
         if key1_hold then
-          for i = 1,3 do
-            rytm.reset_pattern(i)
-          end
+          rytm.reset_all_patterns()
+          -- for i = 1,3 do
+          --   rytm.reset_pattern(i)
+          -- end
         else
           menu = 1
         end
@@ -5199,7 +5203,9 @@ function named_loadstate(path)
       
       if tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/euclid/euclid"..i..".data") ~= nil then
         rytm.track[i] = tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/euclid/euclid"..i..".data")
+        if rytm.track[i].runner == nil then rytm.track[i].runner = 0 end
       end
+      rytm.reset_all_patterns()
       
     end
 
