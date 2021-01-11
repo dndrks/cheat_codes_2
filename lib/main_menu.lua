@@ -54,6 +54,9 @@ function main_menu.init()
     screen.move(0,10)
     screen.level(3)
     screen.text("loops")
+    if params:get("visual_metro") == 1 then
+      metronome(35,10)
+    end
 
     local screen_levels =
     {
@@ -826,24 +829,25 @@ function main_menu.init()
     screen.move(66,10)
     screen.text_center("bpm: "..params:get("clock_tempo"))
     -- screen.level(3)
-    screen.move(110,10)
-    local show_me_beats = clock.get_beats() % 4
-    local show_me_frac = math.fmod(clock.get_beats(),1)
-    if show_me_frac <= 0.25 then
-      show_me_frac = 1
-    elseif show_me_frac <= 0.5 then
-      show_me_frac = 2
-    elseif show_me_frac <= 0.75 then
-      show_me_frac = 3
-    else
-      show_me_frac = 4
-    end
-    if show_me_frac == 1 then
-      screen.level(15)
-    else
-      screen.level(3)
-    end
-    screen.text((math.modf(show_me_beats)+1).."."..show_me_frac)
+    metronome(110,10)
+    -- screen.move(110,10)
+    -- local show_me_beats = clock.get_beats() % 4
+    -- local show_me_frac = math.fmod(clock.get_beats(),1)
+    -- if show_me_frac <= 0.25 then
+    --   show_me_frac = 1
+    -- elseif show_me_frac <= 0.5 then
+    --   show_me_frac = 2
+    -- elseif show_me_frac <= 0.75 then
+    --   show_me_frac = 3
+    -- else
+    --   show_me_frac = 4
+    -- end
+    -- if show_me_frac == 1 then
+    --   screen.level(15)
+    -- else
+    --   screen.level(3)
+    -- end
+    -- screen.text((math.modf(show_me_beats)+1).."."..show_me_frac)
     screen.level(10)
     screen.move(10,30)
     screen.line(123,30)
@@ -1366,6 +1370,27 @@ function canceled_delete()
   clock.sleep(0.75)
   menu = 1
   screen_dirty = true
+end
+
+function metronome(x,y)
+  local show_me_beats = clock.get_beats() % 4
+  local show_me_frac = math.fmod(clock.get_beats(),1)
+  if show_me_frac <= 0.25 then
+    show_me_frac = 1
+  elseif show_me_frac <= 0.5 then
+    show_me_frac = 2
+  elseif show_me_frac <= 0.75 then
+    show_me_frac = 3
+  else
+    show_me_frac = 4
+  end
+  if show_me_frac == 1 then
+    screen.level(15)
+  else
+    screen.level(3)
+  end
+  screen.move(x,y)
+  screen.text((math.modf(show_me_beats)+1).."."..show_me_frac)
 end
 
 return main_menu

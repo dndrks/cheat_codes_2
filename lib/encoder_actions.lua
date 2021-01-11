@@ -927,22 +927,7 @@ function encoder_actions.init(n,d)
           end
           slew_filter(n,slew_counter[n].prev_tilt,bank[n][bank[n].id].tilt,bank[n][bank[n].id].q,bank[n][bank[n].id].q,15)
         else
-          if slew_counter[n] ~= nil then
-            slew_counter[n].prev_tilt = bank[n][bank[n].id].tilt
-          end
-          for j = 1,16 do
-            bank[n][j].tilt = util.clamp(bank[n][j].tilt+(d/100),-1,1)
-            if d < 0 then
-              if util.round(bank[n][j].tilt*100) < 0 and util.round(bank[n][j].tilt*100) > -9 then
-                bank[n][j].tilt = -0.10
-              elseif util.round(bank[n][j].tilt*100) > 0 and util.round(bank[n][j].tilt*100) < 32 then
-                bank[n][j].tilt = 0.0
-              end
-            elseif d > 0 and util.round(bank[n][j].tilt*100) > 0 and util.round(bank[n][j].tilt*100) < 32 then
-              bank[n][j].tilt = 0.32
-            end
-          end
-          slew_filter(n,slew_counter[n].prev_tilt,bank[n][bank[n].id].tilt,bank[n][bank[n].id].q,bank[n][bank[n].id].q,15)
+          ea.set_filter_cutoff(n,d)
         end
       end
     elseif filt_page == 2 then
@@ -1173,6 +1158,25 @@ end
 
 function ea.set_delay_param(target,prm,val)
   params:set("delay "..target..": "..prm,val)
+end
+
+function ea.set_filter_cutoff(target,d)
+  if slew_counter[target] ~= nil then
+    slew_counter[target].prev_tilt = bank[target][bank[target].id].tilt
+  end
+  for j = 1,16 do
+    bank[target][j].tilt = util.clamp(bank[target][j].tilt+(d/100),-1,1)
+    if d < 0 then
+      if util.round(bank[target][j].tilt*100) < 0 and util.round(bank[target][j].tilt*100) > -9 then
+        bank[target][j].tilt = -0.10
+      elseif util.round(bank[target][j].tilt*100) > 0 and util.round(bank[target][j].tilt*100) < 32 then
+        bank[target][j].tilt = 0.0
+      end
+    elseif d > 0 and util.round(bank[target][j].tilt*100) > 0 and util.round(bank[target][j].tilt*100) < 32 then
+      bank[target][j].tilt = 0.32
+    end
+  end
+  slew_filter(target,slew_counter[target].prev_tilt,bank[target][bank[target].id].tilt,bank[target][bank[target].id].q,bank[target][bank[target].id].q,15)
 end
 
 return encoder_actions

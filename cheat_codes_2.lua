@@ -7,6 +7,21 @@
 -- l.llllllll.co/cheat-codes-2
 -- -------------------------------
 
+if util.file_exists(_path.code.."passthrough") then
+  local passthru = include 'passthrough/lib/passthrough'
+  passthru.init()
+end
+
+-- if util.file_exists(_path.code.."timber") then
+--   Timber = include 'timber/lib/timber_engine'
+--   engine.name = "Timber"
+--   Timber.add_params()
+--   local NUM_SAMPLES = 16
+--   for i = 1,16 do
+--     Timber.add_sample_params(i, true, false)
+--   end
+-- end
+
 local pattern_time = include 'lib/cc_pattern_time'
 MU = require "musicutil"
 fileselect = require 'fileselect'
@@ -1933,10 +1948,6 @@ end
 function random_midi_pat(target)
   local pattern = midi_pat[target]
   local auto_pat = params:get("random_patterning_"..target)
-  if pattern.playmode == 2 then
-    --clock.sync(1/4)
-    --huh????
-  end
   local count = auto_pat == 1 and math.random(4,24) or 16
   if pattern.count > 0 or pattern.rec == 1 then
     pattern:rec_stop()
@@ -2261,7 +2272,8 @@ osc_in = function(path, args, from)
       end
       softcut.loop_start(i+1,target.start_point)
       softcut.loop_end(i+1,target.end_point)
-
+    elseif path == "/filter_cut_bank_"..i then
+      encoder_actions.set_filter_cutoff(i,args[1])
     end
   end
 end
@@ -4949,6 +4961,7 @@ function persistent_state_save()
     io.write(i.."_pad_to_jf_note_enabled: "..params:get(i.."_pad_to_jf_note_enabled").."\n")
     io.write(i.."_pad_to_jf_note_velocity: "..params:get(i.."_pad_to_jf_note_velocity").."\n")
   end
+  io.write("visual_metro: "..params:get("visual_metro").."\n")
   io.close(file)
 end
 

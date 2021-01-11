@@ -70,7 +70,7 @@ function start_up.init()
   
   --params:add_separator()
   
-  params:add_group("loops + buffers", 27)
+  params:add_group("loops + buffers", 28)
 
   params:add_separator("clips")
   
@@ -209,6 +209,8 @@ function start_up.init()
 
   params:add_option("preview_clip_change", "preview clip changes?", {"yes","no"},1)
   params:set_action("preview_clip_change", function() if all_loaded then persistent_state_save() end end)
+  params:add_option("visual_metro", "visual metronome?", {"yes","no"},2)
+  params:set_action("visual_metro", function() if all_loaded then persistent_state_save() end end)
   
   --params:add_option("zilchmo_bind_rand","bind random zilchmo?", {"no","yes"}, 1)
   
@@ -316,14 +318,15 @@ params:add_separator("ALT key")
     params:add{type='binary',name="midi pat "..i.." rec",id='midi_pat_'..i..' rec',behavior='trigger',
       action=function()
         if all_loaded then
-          -- if x == 1 then
-            -- print(i)
             if midi_pat[i].rec == 0 then
               if midi_pat[i].count == 0 and not grid.alt then
                 midi_pattern_recording(i,"start")
+                print("recording midi pattern")
               elseif midi_pat[i].count ~= 0 and not grid.alt then
                 toggle_midi_pattern_overdub(i)
+                print("overdubbing midi pattern")
               elseif grid.alt then
+                print("erasing midi pattern")
                 if midi_pat[i].count > 0 then
                   midi_pat[i]:rec_stop()
                   if midi_pat[i].clock ~= nil then
@@ -348,12 +351,11 @@ params:add_separator("ALT key")
     params:add{type='binary',name="random pattern "..i,id='random_pat_'..i,behavior='trigger',
       action=function()
         if all_loaded then
-          -- if x == 1 then
-            if g.device ~= nil then
-              random_grid_pat(i,3)
-            else
-              random_midi_pat(i)
-            end
+          if g.device ~= nil then
+            random_grid_pat(i,3)
+          else
+            random_midi_pat(i)
+          end
           -- end
         end
       end
