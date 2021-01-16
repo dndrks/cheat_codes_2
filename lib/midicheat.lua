@@ -12,6 +12,7 @@ function mc.init()
       mc.mft_redraw(bank[1][bank[1].id],"all")
     end
   end
+  mc.initialize_UI()
 end
 
 function mc.move_start(target,val) -- expects (bank[x][y],0-127)
@@ -349,7 +350,7 @@ local function refresh_params_vports()
 end
 
 function mc.pad_to_note_params()
-  params:add_group("pad to note setup",37)
+  params:add_group("pad to note setup",40)
   refresh_params_vports()
   local banks = {"a","b","c"}
   mc_notes = {{},{},{}}
@@ -488,6 +489,7 @@ function mc.pad_to_note_params()
       mc.build_scale(i)
       if all_loaded then persistent_state_save() end
     end)
+    params:add_number(i.."_pad_to_midi_note_velocity", "velocity",0,127,127)
     params:add_option(i.."_pad_to_jf_note_enabled", "Just Friends channel",{"none","IDENTITY","2N","3N","4N","5N","6N","all","any"},9)
     params:set_action(i.."_pad_to_jf_note_enabled",function()
       if all_loaded then persistent_state_save() end
@@ -507,15 +509,25 @@ function mc.build_scale(target)
   for i = 1, num_to_add do
     table.insert(mc_notes[target], mc_notes[target][16 - num_to_add])
   end
+  mc.inherit_notes(target)
 end
 
 local midi_off = {nil,nil,nil}
+
+function mc.inherit_notes(target)
+  if all_loaded then
+    for i = 1,16 do
+      mc.midi_notes[target].entries[i] = mc_notes[target][i]
+    end
+  end
+end
 
 function mc.midi_note_from_pad(b,p)
   if params:string(b.."_pad_to_midi_note_enabled") == "yes" then
     mc.all_midi_notes_off(b)
     local note_num = mc_notes[b][p]
-    midi_dev[params:get(b.."_pad_to_midi_note_destination")]:note_on(note_num,96,params:get(b.."_pad_to_midi_note_channel"))
+    local vel = params:get(b.."_pad_to_midi_note_velocity")
+    midi_dev[params:get(b.."_pad_to_midi_note_destination")]:note_on(note_num,vel,params:get(b.."_pad_to_midi_note_channel"))
     table.insert(active_midi_notes[b], note_num)
     if midi_off[b] ~= nil then clock.cancel(midi_off[b]) end
     midi_off[b] = clock.run(mc.midi_note_from_pad_off,b,p)
@@ -662,6 +674,121 @@ function mc.execute_midi_zilch(b,p,row,str)
     rightangleslice.actions[row][str][1](bank[b][j])
     if str ~= '12' then
       rightangleslice.actions[row][str][2](bank[b][j],b)
+    end
+  end
+end
+
+local UI_number_table = {}
+local UI_note_table = {{},{},{}}
+local UI_velocity_table = {{},{},{}}
+local UI_cc_table = {{},{},{}}
+local UI_cc_value_table = {{},{},{}}
+mc.numbers = {}
+mc.midi_notes = {}
+mc.midi_velocities = {}
+mc.midi_ccs = {}
+mc.midi_cc_values = {}
+
+local function set_limits(target,bank)
+  mc[target][bank].num_above_selected = 0
+  mc[target][bank].num_visible = 4
+end
+
+function mc.initialize_UI()
+  for i = 1,16 do
+    table.insert(UI_number_table,i..": ")
+    for j = 1,3 do
+      table.insert(UI_note_table[j],mc_notes[j][i])
+      table.insert(UI_velocity_table[j],127)
+      table.insert(UI_cc_table[j],i)
+      table.insert(UI_cc_value_table[j],127)
+    end
+  end
+  for i = 1,3 do
+    mc.numbers[i] = UI.ScrollingList.new(5,20,1,UI_number_table)
+    set_limits("numbers",i)
+    mc.midi_notes[i] = UI.ScrollingList.new(27,20,1,UI_note_table[i])
+    set_limits("midi_notes",i)
+    mc.midi_velocities[i] = UI.ScrollingList.new(50,20,1,UI_velocity_table[i])
+    set_limits("midi_velocities",i)
+    mc.midi_ccs[i] = UI.ScrollingList.new(80,20,1,UI_cc_table[i])
+    set_limits("midi_ccs",i)
+    mc.midi_ccs[i].active = false
+    mc.midi_cc_values[i] = UI.ScrollingList.new(103,20,1,UI_cc_value_table[i])
+    set_limits("midi_cc_values",i)
+    mc.midi_cc_values[i].active = false
+  end
+end
+
+function mc.update_UI_list(target,bank,k,v)
+  mc[target][bank].entries[k] = v
+end
+
+function mc.flip_from_text(target)
+  if target == "none" then
+    return -1
+  else
+    return target
+  end
+end
+function mc.flip_to_text(target)
+  if target == -1 then
+    return "none"
+  else
+    return target
+  end
+end
+
+function mc.midi_config_redraw(i)
+  if all_loaded then
+    
+    mc.numbers[i].active = page.midi_focus ~= "header" and true or false
+    mc.midi_notes[i].active = page.midi_focus == "notes" and true or false
+    mc.midi_velocities[i].active = page.midi_focus == "notes" and true or false
+    mc.midi_ccs[i].active = page.midi_focus == "ccs" and true or false
+    mc.midi_cc_values[i].active = page.midi_focus == "ccs" and true or false
+    
+    -- mc.midi_config_tabs.active = page.midi_focus == "header" and true or false
+
+    local bank_names = {"(a)","(b)","(c)"}
+    local x_locations = {5,55,105}
+    screen.level(page.midi_focus == "header" and 15 or 3)
+    screen.rect(0, 0, 128, 7)
+    screen.fill()
+    screen.move(2,6)
+    screen.level(0)
+    screen.text("MIDI CONFIG: BANK "..bank_names[page.midi_bank])
+    screen.move(126,6)
+    screen.text_right(page.midi_bank.."/3")
+    if key1_hold then
+      if page.midi_focus == "header" then
+        screen.level(15)
+        screen.move(60,20)
+        screen.text_center("SCALE:")
+        screen.move(60,30)
+        screen.text_center(string.upper(params:string(page.midi_bank.."_pad_to_midi_note_scale")))
+      end
+    else
+      screen.move(mc.numbers[i].x-2,mc.numbers[i].y-5)
+      screen.level(page.midi_focus ~= "header" and 15 or 3)
+      screen.text("pad")
+      mc.numbers[i]:redraw()
+      screen.move(mc.midi_notes[i].x,mc.midi_notes[i].y-5)
+      screen.level(page.midi_focus == "notes" and 15 or 3)
+      screen.text("note")
+      mc.midi_notes[i]:redraw()
+      screen.move(mc.midi_velocities[i].x+5,mc.midi_velocities[i].y-5)
+      screen.level(page.midi_focus == "notes" and 15 or 3)
+      screen.text_center("vel")
+      mc.midi_velocities[i]:redraw()
+      screen.move(mc.midi_ccs[i].x-2,mc.midi_ccs[i].y-5)
+      screen.level(page.midi_focus == "ccs" and 15 or 3)
+      screen.text("cc#")
+      mc.midi_ccs[i]:redraw()
+      screen.move(mc.midi_cc_values[i].x+5,mc.midi_cc_values[i].y-5)
+      screen.level(page.midi_focus == "ccs" and 15 or 3)
+      screen.text_center("val")
+      mc.midi_cc_values[i]:redraw()
     end
   end
 end

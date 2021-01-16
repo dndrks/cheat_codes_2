@@ -7,48 +7,53 @@ function main_menu.init()
     screen.move(0,10)
     screen.text("cheat codes")
     screen.move(10,30)
-    for i = 1,10 do
-      screen.level(page.main_sel == i and 15 or 3)
-      if i < 4 then
-        screen.move(5,20+(10*i))
-      elseif i < 7 then
-        screen.move(50,10*(i-1))
-      elseif i < 10 then
-        screen.move(95,30+(10*(i-7)))
-      elseif i == 10 then
-        screen.move(115,64)
+    if not key1_hold then
+      for i = 1,10 do
+        screen.level(page.main_sel == i and 15 or 3)
+        if i < 4 then
+          screen.move(5,20+(10*i))
+        elseif i < 7 then
+          screen.move(50,10*(i-1))
+        elseif i < 10 then
+          screen.move(95,30+(10*(i-7)))
+        elseif i == 10 then
+          screen.move(115,64)
+        end
+        local options =
+        { " loops"
+        , " levels"
+        , " pans"
+        , " filters"
+        , " delays"
+        , " timing"
+        , " euclid"
+        , " arp"
+        , " rnd"
+        , " "
+        }
+        screen.text(page.main_sel == i and (">"..options[i]) or options[i])
       end
-      local options =
-      { " loops"
-      , " levels"
-      , " pans"
-      , " filters"
-      , " delays"
-      , " timing"
-      , " euclid"
-      , " arp"
-      , " rnd"
-      , " "
-      }
-      screen.text(page.main_sel == i and (">"..options[i]) or options[i])
-    end
-    screen.move(128,selected_coll ~= 0 and 20 or 10)
-    screen.level(3)
-    local target = midi_dev[params:get("midi_control_device")]
-    if target.device ~= nil and target.device.port == params:get("midi_control_device") and params:get("midi_control_enabled") == 2 then
-      screen.text_right("("..util.trim_string_to_width(target.device.name,70)..")")
-    elseif target.device == nil and params:get("midi_control_enabled") == 2 then
-      screen.text_right("(no midi device!)")
-    end
-    if mft_connected ~= nil and mft_connected then
-      screen.move(128,60)
+      screen.move(128,selected_coll ~= 0 and 20 or 10)
       screen.level(3)
-      screen.text_right("(MFT)")
-    end
-    if selected_coll ~= 0 then
-      screen.move(128,10)
-      screen.level(3)
-      screen.text_right("["..util.trim_string_to_width(selected_coll,68).."]")
+      local target = midi_dev[params:get("midi_control_device")]
+      if target.device ~= nil and target.device.port == params:get("midi_control_device") and params:get("midi_control_enabled") == 2 then
+        screen.text_right("("..util.trim_string_to_width(target.device.name,70)..")")
+      elseif target.device == nil and params:get("midi_control_enabled") == 2 then
+        screen.text_right("(no midi device!)")
+      end
+      if mft_connected ~= nil and mft_connected then
+        screen.move(128,60)
+        screen.level(3)
+        screen.text_right("(MFT)")
+      end
+      if selected_coll ~= 0 then
+        screen.move(128,10)
+        screen.level(3)
+        screen.text_right("["..util.trim_string_to_width(selected_coll,68).."]")
+      end
+    else
+      screen.move(60,30)
+      screen.text_center("+K3: OUTGOING MIDI CONFIG")
     end
   elseif menu == 2 then
     screen.move(0,10)
@@ -788,7 +793,9 @@ function main_menu.init()
     elseif focused_menu == 2 then
       screen.level((page.delay_section == 2 and selected == 1) and 15 or 3)
       screen.move(30,30)
-      screen.text(params:string("delay "..delay_name..": filter cut"))
+      local current_freq = params:get("delay "..delay_name..": filter cut")
+      local modified_freq = easingFunctions[params:string("delay "..delay_name..": curve")](current_freq/12000,10,11990,1)
+      screen.text(string.format("%.6g",modified_freq).." hz")
       screen.level((page.delay_section == 2 and selected == 2) and 15 or 3)
       screen.move(85,30)
       screen.text("q: "..params:string("delay "..delay_name..": filter q"))
@@ -1288,6 +1295,8 @@ function main_menu.init()
     screen.text_center(menu == "canceled overwrite screen" and "overwrite" or "delete")
     screen.move(62,50)
     screen.text_center("canceled")
+  elseif menu == "MIDI_config" then
+    mc.midi_config_redraw(page.midi_bank)
   end
 end
 

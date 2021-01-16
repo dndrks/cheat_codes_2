@@ -526,7 +526,7 @@ params:add_separator("ALT key")
     }
   end
   
-  params:add_group("delays",51)
+  params:add_group("delays",53)
 
   params:add_separator("manage delay audio")
   params:add{type = "trigger", id = "save_left_delay", name = "** save L delay", action = function() del.save_delay(1) end}
@@ -696,10 +696,17 @@ params:add_separator("ALT key")
   for i = 4,5 do
     local sides = {"L","R"}
     params:add_separator("delay filters "..sides[i-3])
+    params:add_option("delay "..sides[i-3]..": curve", "delay "..sides[i-3]..": curve", easingFunctions.easingNames,1)
     params:add_control("delay "..sides[i-3]..": filter cut", "delay "..sides[i-3]..": filter cut", controlspec.new(10,12000,'exp',1,12000,"Hz"))
     params:set_action("delay "..sides[i-3]..": filter cut",
     function(x)
-      softcut.post_filter_fc(i+1,x)
+      local modified_freq = nil
+      if i == 4 then
+        modified_freq = easingFunctions[params:string("delay "..sides[i-3]..": curve")](x/12000,10,11990,1)
+      elseif i == 5 then
+        modified_freq = easingFunctions[params:string("delay "..sides[i-3]..": curve")](x/12000,10,11990,1)
+      end
+      softcut.post_filter_fc(i+1,modified_freq)
       encoder_actions.check_delay_links(sides[i-3], sides[i-3] == "L" and "R" or "L","filter cut")
     end)
     params:add_control("delay "..sides[i-3]..": filter q", "delay "..sides[i-3]..": filter q", controlspec.new(0.001, 8.0, 'exp', 0, 1.0, ""))

@@ -24,6 +24,7 @@ end
 
 local pattern_time = include 'lib/cc_pattern_time'
 MU = require "musicutil"
+UI = require "ui"
 fileselect = require 'fileselect'
 textentry = require 'textentry'
 main_menu = include 'lib/main_menu'
@@ -1049,6 +1050,9 @@ function init()
     page.rnd_page_sel[i] = 1
     page.rnd_page_edit[i] = 1
   end
+  page.midi_setup = 1
+  page.midi_focus = "header"
+  page.midi_bank = 1
   
   del.init()
   
@@ -2355,8 +2359,19 @@ phase = function(n, x)
   end
 end
 
-local tap = 0
-local deltatap = 1
+tap = 0
+deltatap = 1
+
+function tap_tempo()
+  local last = params:get("clock_tempo")
+  local tap1 = util.time()
+  deltatap = tap1 - tap
+  tap = tap1
+  local t_t = 60/deltatap
+  if t_t >= 1 and deltatap <=3 then
+    params:set("clock_tempo", math.floor(t_t+0.5))
+  end
+end
 
 function update_tempo()
   local pre_bpm = bpm
@@ -3127,7 +3142,12 @@ function key(n,z)
   else
     if n == 3 and z == 1 then
       if menu == 1 then
-        menu = page.main_sel + 1
+        if key1_hold then
+          menu = "MIDI_config"
+          key1_hold = false
+        else
+          menu = page.main_sel + 1
+        end
       elseif menu == 2 then
         local id = page.loops_sel
         if key2_hold then
@@ -3243,82 +3263,87 @@ function key(n,z)
       elseif menu == 7 then
         local time_nav = page.time_sel
         local id = time_nav
-        if time_nav >= 1 and time_nav < 4 then
-          if g.device == nil and grid_pat[time_nav].count == 0 then
-            if page.time_page_sel[time_nav] == 1 then
-              if midi_pat[time_nav].playmode < 3 then
-                if midi_pat[time_nav].rec == 0 then
-                  if midi_pat[time_nav].count == 0 and not key1_hold then
-                    midi_pattern_recording(time_nav,"start")
-                  elseif midi_pat[time_nav].count ~= 0 and not key1_hold then
-                    toggle_midi_pattern_overdub(time_nav)
+        if key2_hold then
+          key2_hold_and_modify = true
+          tap_tempo()
+        else
+          if time_nav >= 1 and time_nav < 4 then
+            if g.device == nil and grid_pat[time_nav].count == 0 then
+              if page.time_page_sel[time_nav] == 1 then
+                if midi_pat[time_nav].playmode < 3 then
+                  if midi_pat[time_nav].rec == 0 then
+                    if midi_pat[time_nav].count == 0 and not key1_hold then
+                      midi_pattern_recording(time_nav,"start")
+                    elseif midi_pat[time_nav].count ~= 0 and not key1_hold then
+                      toggle_midi_pattern_overdub(time_nav)
+                    end
+                  elseif midi_pat[time_nav].rec == 1 then
+                    midi_pattern_recording(time_nav,"stop")
                   end
-                elseif midi_pat[time_nav].rec == 1 then
-                  midi_pattern_recording(time_nav,"stop")
                 end
               end
             end
-          end
-          if page.time_page_sel[time_nav] == 2 then
-            if g.device ~= nil then
-              random_grid_pat(id,2)
-            else
-              shuffle_midi_pat(id)
-            end
-          elseif page.time_page_sel[time_nav] == 4 then
-            if not key1_hold then
+            if page.time_page_sel[time_nav] == 2 then
               if g.device ~= nil then
-                random_grid_pat(id,3)
+                random_grid_pat(id,2)
               else
-                random_midi_pat(id)
+                shuffle_midi_pat(id)
               end
-            end
-          end
-          if key1_hold then
-            if grid_pat[id].count > 0 then
-              grid_pat[id]:rec_stop()
-              grid_pat[id]:stop()
-              grid_pat[id].tightened_start = 0
-              grid_pat[id]:clear()
-              pattern_saver[id].load_slot = 0
-            end
-            if midi_pat[id].count > 0 then
-              midi_pat[id]:rec_stop()
-              if midi_pat[id].clock ~= nil then
-                print("clearing clock: "..midi_pat[id].clock)
-                clock.cancel(midi_pat[id].clock)
-              end
-              midi_pat[id]:clear()
-            end
-          end
-        elseif time_nav >= 4 then
-          if a.device ~= nil then
-            local pattern = arc_pat[time_nav-3][page.time_page_sel[time_nav]]
-            if page.time_page_sel[page.time_sel] <= 4 then
+            elseif page.time_page_sel[time_nav] == 4 then
               if not key1_hold then
-                if pattern.rec == 0 and pattern.play == 0 and pattern.count == 0 then
-                  pattern:rec_start()
-                elseif pattern.rec == 1 then
-                  pattern:rec_stop()
-                  pattern:start()
-                elseif pattern.play == 1 then
-                  pattern:stop()
-                elseif (pattern.rec == 0 and pattern.play == 0 and pattern.count > 0) then
-                  pattern:start()
+                if g.device ~= nil then
+                  random_grid_pat(id,3)
+                else
+                  random_midi_pat(id)
+                end
+              end
+            end
+            if key1_hold then
+              if grid_pat[id].count > 0 then
+                grid_pat[id]:rec_stop()
+                grid_pat[id]:stop()
+                grid_pat[id].tightened_start = 0
+                grid_pat[id]:clear()
+                pattern_saver[id].load_slot = 0
+              end
+              if midi_pat[id].count > 0 then
+                midi_pat[id]:rec_stop()
+                if midi_pat[id].clock ~= nil then
+                  print("clearing clock: "..midi_pat[id].clock)
+                  clock.cancel(midi_pat[id].clock)
+                end
+                midi_pat[id]:clear()
+              end
+            end
+          elseif time_nav >= 4 then
+            if a.device ~= nil then
+              local pattern = arc_pat[time_nav-3][page.time_page_sel[time_nav]]
+              if page.time_page_sel[page.time_sel] <= 4 then
+                if not key1_hold then
+                  if pattern.rec == 0 and pattern.play == 0 and pattern.count == 0 then
+                    pattern:rec_start()
+                  elseif pattern.rec == 1 then
+                    pattern:rec_stop()
+                    pattern:start()
+                  elseif pattern.play == 1 then
+                    pattern:stop()
+                  elseif (pattern.rec == 0 and pattern.play == 0 and pattern.count > 0) then
+                    pattern:start()
+                  end
+                else
+                  pattern:clear()
                 end
               else
-                pattern:clear()
-              end
-            else
-              for i = 1,4 do
-                if page.time_page_sel[page.time_sel] == 5 then
-                  if arc_pat[time_nav-3][i].count > 0 then
-                    arc_pat[time_nav-3][i]:start()
+                for i = 1,4 do
+                  if page.time_page_sel[page.time_sel] == 5 then
+                    if arc_pat[time_nav-3][i].count > 0 then
+                      arc_pat[time_nav-3][i]:start()
+                    end
+                  elseif page.time_page_sel[page.time_sel] == 6 then
+                    arc_pat[time_nav-3][i]:stop()
+                  elseif page.time_page_sel[page.time_sel] == 7 then
+                    arc_pat[time_nav-3][i]:clear()
                   end
-                elseif page.time_page_sel[page.time_sel] == 6 then
-                  arc_pat[time_nav-3][i]:stop()
-                elseif page.time_page_sel[page.time_sel] == 7 then
-                  arc_pat[time_nav-3][i]:clear()
                 end
               end
             end
@@ -3377,11 +3402,19 @@ function key(n,z)
         else
           page.rnd_page_section = page.rnd_page_section == 1 and 2 or 1
         end
+      elseif menu == "MIDI_config" then
+        if key1_hold then
+          -- maybe all inherit?
+        else
+          local d = {"header", "notes", "ccs"}
+          local old_focus = tab.key(d,page.midi_focus)
+          page.midi_focus = d[util.wrap(old_focus + 1,1,3)]
+        end
       end
 
 
     elseif n == 2 and z == 1 then
-      if menu == 2 and not key1_hold then
+      if (menu == 2 or menu == 7) and not key1_hold then
         -- key2_hold = true
         key2_hold_counter:start()
         key2_hold_and_modify = false
@@ -3411,7 +3444,7 @@ function key(n,z)
           end
         end
       end
-    elseif n == 2 and z == 0 and key2_hold == false and menu == 2 and not key1_hold then
+    elseif n == 2 and z == 0 and key2_hold == false and (menu == 2 or menu == 7) and not key1_hold then
       key2_hold_counter:stop()
       menu = 1
     elseif n == 2 and z == 0 and key2_hold_and_modify then
