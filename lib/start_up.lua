@@ -462,7 +462,8 @@ params:add_separator("ALT key")
   for i = 1,3 do
     local banks = {"(a)","(b)","(c)"}
     params:add_separator(banks[i].." values")
-    params:add_control("current pad "..i, "current pad "..banks[i], controlspec.new(1,16,'lin',1,1))
+    -- params:add_control("current pad "..i, "current pad "..banks[i], controlspec.new(1,16,'lin',1,1))
+    params:add_number("current pad "..i, "current pad "..banks[i], 1, 16, 1)
     params:set_action("current pad "..i, function(x)
       if bank[i].id ~= x then
         bank[i].id = x

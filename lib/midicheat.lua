@@ -524,13 +524,26 @@ end
 
 function mc.midi_note_from_pad(b,p)
   if params:string(b.."_pad_to_midi_note_enabled") == "yes" then
-    mc.all_midi_notes_off(b)
-    local note_num = mc_notes[b][p]
-    local vel = params:get(b.."_pad_to_midi_note_velocity")
-    midi_dev[params:get(b.."_pad_to_midi_note_destination")]:note_on(note_num,vel,params:get(b.."_pad_to_midi_note_channel"))
-    table.insert(active_midi_notes[b], note_num)
-    if midi_off[b] ~= nil then clock.cancel(midi_off[b]) end
-    midi_off[b] = clock.run(mc.midi_note_from_pad_off,b,p)
+    if mc.get_midi("midi_notes",b,p) ~= "-" and mc.get_midi("midi_velocities",b,p) ~= "-" and mc.get_midi("midi_notes_channels",b,p) ~= "-" then
+      mc.all_midi_notes_off(b)
+      -- local note_num = mc_notes[b][p]
+      local note_num = mc.get_midi("midi_notes",b,p)
+      -- local vel = params:get(b.."_pad_to_midi_note_velocity")
+      local vel = mc.get_midi("midi_velocities",b,p)
+      local ch = params:get(b.."_pad_to_midi_note_channel")
+      local dest = params:get(b.."_pad_to_midi_note_destination")
+      midi_dev[dest]:note_on(note_num,vel,ch)
+      table.insert(active_midi_notes[b], note_num)
+      if midi_off[b] ~= nil then clock.cancel(midi_off[b]) end
+      midi_off[b] = clock.run(mc.midi_note_from_pad_off,b,p)
+    end
+  end
+  if mc.get_midi("midi_ccs",b,p) ~= "-" and mc.get_midi("midi_ccs_values",b,p) ~= "-" and mc.get_midi("midi_ccs_channels",b,p) ~= "-" then
+    local cc_num = mc.get_midi("midi_ccs",b,p)
+    local val = mc.get_midi("midi_ccs_values",b,p)
+    local ch = mc.get_midi("midi_ccs_channels",b,p)
+    local dest = params:get(b.."_pad_to_midi_note_destination")
+    midi_dev[dest]:cc(cc_num,val,ch)
   end
   if params:string("global_pad_to_jf_note_enabled") == "yes" then
     local jf_destinations =
@@ -680,14 +693,18 @@ end
 
 local UI_number_table = {}
 local UI_note_table = {{},{},{}}
+local UI_note_ch_table = {{},{},{}}
 local UI_velocity_table = {{},{},{}}
 local UI_cc_table = {{},{},{}}
+local UI_cc_ch_table = {{},{},{}}
 local UI_cc_value_table = {{},{},{}}
 mc.numbers = {}
 mc.midi_notes = {}
+mc.midi_notes_channels = {}
 mc.midi_velocities = {}
 mc.midi_ccs = {}
-mc.midi_cc_values = {}
+mc.midi_ccs_channels = {}
+mc.midi_ccs_values = {}
 
 local function set_limits(target,bank)
   mc[target][bank].num_above_selected = 0
@@ -699,24 +716,32 @@ function mc.initialize_UI()
     table.insert(UI_number_table,i..": ")
     for j = 1,3 do
       table.insert(UI_note_table[j],mc_notes[j][i])
-      table.insert(UI_velocity_table[j],127)
-      table.insert(UI_cc_table[j],i)
+      table.insert(UI_note_ch_table[j],params:get(j.."_pad_to_midi_note_channel"))
+      table.insert(UI_velocity_table[j],params:get(j.."_pad_to_midi_note_velocity"))
+      table.insert(UI_cc_table[j],"-")
+      table.insert(UI_cc_ch_table[j],params:get(j.."_pad_to_midi_note_channel"))
       table.insert(UI_cc_value_table[j],127)
     end
   end
   for i = 1,3 do
-    mc.numbers[i] = UI.ScrollingList.new(5,20,1,UI_number_table)
+    mc.numbers[i] = UI.ScrollingList.new(0,20,1,UI_number_table)
     set_limits("numbers",i)
-    mc.midi_notes[i] = UI.ScrollingList.new(27,20,1,UI_note_table[i])
+    mc.midi_notes[i] = UI.ScrollingList.new(15,20,1,UI_note_table[i])
     set_limits("midi_notes",i)
-    mc.midi_velocities[i] = UI.ScrollingList.new(50,20,1,UI_velocity_table[i])
+    mc.midi_velocities[i] = UI.ScrollingList.new(30,20,1,UI_velocity_table[i])
     set_limits("midi_velocities",i)
-    mc.midi_ccs[i] = UI.ScrollingList.new(80,20,1,UI_cc_table[i])
+    mc.midi_notes_channels[i] = UI.ScrollingList.new(50,20,1,UI_note_ch_table[i])
+    set_limits("midi_notes_channels",i)
+    mc.midi_notes_channels[i].active = false
+    mc.midi_ccs[i] = UI.ScrollingList.new(70,20,1,UI_cc_table[i])
     set_limits("midi_ccs",i)
     mc.midi_ccs[i].active = false
-    mc.midi_cc_values[i] = UI.ScrollingList.new(103,20,1,UI_cc_value_table[i])
-    set_limits("midi_cc_values",i)
-    mc.midi_cc_values[i].active = false
+    mc.midi_ccs_values[i] = UI.ScrollingList.new(85,20,1,UI_cc_value_table[i])
+    set_limits("midi_ccs_values",i)
+    mc.midi_ccs_values[i].active = false
+    mc.midi_ccs_channels[i] = UI.ScrollingList.new(105,20,1,UI_cc_ch_table[i])
+    set_limits("midi_ccs_channels",i)
+    mc.midi_ccs_channels[i].active = false
   end
 end
 
@@ -725,7 +750,7 @@ function mc.update_UI_list(target,bank,k,v)
 end
 
 function mc.flip_from_text(target)
-  if target == "none" then
+  if target == "-" then
     return -1
   else
     return target
@@ -733,10 +758,14 @@ function mc.flip_from_text(target)
 end
 function mc.flip_to_text(target)
   if target == -1 then
-    return "none"
+    return "-"
   else
     return target
   end
+end
+
+function mc.get_midi(format,bank,pad)
+  return mc[format][bank].entries[pad]
 end
 
 function mc.midi_config_redraw(i)
@@ -744,9 +773,11 @@ function mc.midi_config_redraw(i)
     
     mc.numbers[i].active = page.midi_focus ~= "header" and true or false
     mc.midi_notes[i].active = page.midi_focus == "notes" and true or false
+    mc.midi_notes_channels[i].active = page.midi_focus == "alt" and true or false
     mc.midi_velocities[i].active = page.midi_focus == "notes" and true or false
     mc.midi_ccs[i].active = page.midi_focus == "ccs" and true or false
-    mc.midi_cc_values[i].active = page.midi_focus == "ccs" and true or false
+    mc.midi_ccs_channels[i].active = page.midi_focus == "alt" and true or false
+    mc.midi_ccs_values[i].active = page.midi_focus == "ccs" and true or false
     
     -- mc.midi_config_tabs.active = page.midi_focus == "header" and true or false
 
@@ -760,35 +791,41 @@ function mc.midi_config_redraw(i)
     screen.text("MIDI CONFIG: BANK "..bank_names[page.midi_bank])
     screen.move(126,6)
     screen.text_right(page.midi_bank.."/3")
-    if key1_hold then
-      if page.midi_focus == "header" then
-        screen.level(15)
-        screen.move(60,20)
-        screen.text_center("SCALE:")
-        screen.move(60,30)
-        screen.text_center(string.upper(params:string(page.midi_bank.."_pad_to_midi_note_scale")))
-      end
+    if key1_hold and page.midi_focus == "header" then
+      screen.level(15)
+      screen.move(60,20)
+      screen.text_center("SCALE:")
+      screen.move(60,30)
+      screen.text_center(string.upper(params:string(page.midi_bank.."_pad_to_midi_note_scale")))
     else
-      screen.move(mc.numbers[i].x-2,mc.numbers[i].y-5)
+      screen.move(mc.numbers[i].x,mc.numbers[i].y-5)
       screen.level(page.midi_focus ~= "header" and 15 or 3)
-      screen.text("pad")
+      screen.text("#")
       mc.numbers[i]:redraw()
       screen.move(mc.midi_notes[i].x,mc.midi_notes[i].y-5)
       screen.level(page.midi_focus == "notes" and 15 or 3)
-      screen.text("note")
+      screen.text("N")
       mc.midi_notes[i]:redraw()
       screen.move(mc.midi_velocities[i].x+5,mc.midi_velocities[i].y-5)
       screen.level(page.midi_focus == "notes" and 15 or 3)
-      screen.text_center("vel")
+      screen.text_center("V")
       mc.midi_velocities[i]:redraw()
-      screen.move(mc.midi_ccs[i].x-2,mc.midi_ccs[i].y-5)
+      screen.move(mc.midi_notes_channels[i].x+2,mc.midi_notes_channels[i].y-5)
+      screen.level(page.midi_focus == "alt" and 15 or 3)
+      screen.text_center("CH")
+      screen.move(mc.midi_ccs[i].x,mc.midi_ccs[i].y-5)
       screen.level(page.midi_focus == "ccs" and 15 or 3)
-      screen.text("cc#")
+      screen.text("CC")
       mc.midi_ccs[i]:redraw()
-      screen.move(mc.midi_cc_values[i].x+5,mc.midi_cc_values[i].y-5)
+      screen.move(mc.midi_ccs_values[i].x+5,mc.midi_ccs_values[i].y-5)
       screen.level(page.midi_focus == "ccs" and 15 or 3)
-      screen.text_center("val")
-      mc.midi_cc_values[i]:redraw()
+      screen.text_center("V")
+      screen.move(mc.midi_ccs_channels[i].x+2,mc.midi_ccs_channels[i].y-5)
+      screen.level(page.midi_focus == "alt" and 15 or 3)
+      screen.text_center("CH")
+      mc.midi_ccs_values[i]:redraw()
+      mc.midi_notes_channels[i]:redraw()
+      mc.midi_ccs_channels[i]:redraw()
     end
   end
 end

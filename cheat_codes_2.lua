@@ -40,10 +40,19 @@ del = include 'lib/delay'
 rytm = include 'lib/euclid'
 mc = include 'lib/midicheat'
 sharer = include 'lib/sharer'
+mac = include 'lib/macros'
 math.randomseed(os.time())
 variable_fade_time = 0.01
 
 --all the .quantize stuff is irrelevant now. it's been replaced by .mode = "quantized"
+
+macros = {}
+for i = 1,16 do
+  macros[i] = {}
+  for j = 1,8 do
+    macros[i][j] = mac:new()
+  end
+end
 
 function make_a_gif(filename,time)
   local steps = time*24
@@ -3125,6 +3134,8 @@ function toggle_midi_pattern_overdub(id)
   end
 end
 
+local pre_k1_midi_page = nil
+
 function key(n,z)
   if menu == "load screen" then
   elseif menu == "overwrite screen" then
@@ -3542,6 +3553,12 @@ function key(n,z)
       elseif menu == 9 then
         key1_hold = true
         page.arp_alt[page.arp_page_sel] = not page.arp_alt[page.arp_page_sel]
+      elseif menu == "MIDI_config" then
+        key1_hold = true
+        if page.midi_focus ~= "header" then
+          pre_k1_midi_page = page.midi_focus
+          page.midi_focus = "alt"
+        end
       else
         key1_hold = true
         if menu == 2 and page.loops.sel < 4 and page.loops.frame == 2 and not key2_hold then
@@ -3656,6 +3673,12 @@ function key(n,z)
           else
             key1_hold_and_modify = false
           end
+        end
+      elseif menu == "MIDI_config" then
+        key1_hold = false
+        if page.midi_focus ~= "header" then
+          if pre_k1_midi_page == nil then pre_k1_midi_page = page.midi_focus end
+          page.midi_focus = pre_k1_midi_page
         end
       end
     end
@@ -5182,6 +5205,12 @@ function named_savestate(text)
     io.write("clock_tempo: "..params:get("clock_tempo").."\n")
     io.close(file)
   end
+
+  -- want format to be:
+  -- {bank: 1,
+  --   pad: 16,note,vel,ch,cc,val,ch}
+
+
   --/ misc save
 
 end

@@ -119,9 +119,11 @@ function encoder_actions.init(n,d)
         local i = page.midi_bank
         mc.numbers[i]:set_index_delta(d)
         mc.midi_notes[i]:set_index_delta(d)
+        mc.midi_notes_channels[i]:set_index_delta(d)
         mc.midi_velocities[i]:set_index_delta(d)
         mc.midi_ccs[i]:set_index_delta(d)
-        mc.midi_cc_values[i]:set_index_delta(d)
+        mc.midi_ccs_channels[i]:set_index_delta(d)
+        mc.midi_ccs_values[i]:set_index_delta(d)
       end
     end
   end
@@ -340,6 +342,8 @@ function encoder_actions.init(n,d)
         ea.delta_MIDI_values(mc.midi_notes[i],d)
       elseif page.midi_focus == "ccs" then
         ea.delta_MIDI_values(mc.midi_ccs[i],d)
+      elseif page.midi_focus == "alt" then
+        ea.delta_MIDI_values(mc.midi_notes_channels[i],d)
       end
     end
   end
@@ -799,7 +803,9 @@ function encoder_actions.init(n,d)
       if page.midi_focus == "notes" then
         ea.delta_MIDI_values(mc.midi_velocities[i],d)
       elseif page.midi_focus == "ccs" then
-        ea.delta_MIDI_values(mc.midi_cc_values[i],d)
+        ea.delta_MIDI_values(mc.midi_ccs_values[i],d)
+      elseif page.midi_focus == "alt" then
+        ea.delta_MIDI_values(mc.midi_ccs_channels[i],d)
       elseif page.midi_focus == "header" then
         params:delta(i.."_pad_to_midi_note_scale",d)
       end
