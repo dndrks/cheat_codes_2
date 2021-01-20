@@ -121,6 +121,7 @@ function mc.params_redraw(target)
   params:set("bank level "..tonumber(string.format("%.0f",target.bank_id)),bank_level_to_cc,"true")
   params:set("pan "..tonumber(string.format("%.0f",target.bank_id)),target.pan,"true")
   local offset_to_cc = util.round(util.linlin(-1,1,0,127,(math.log(target.offset)/math.log(0.5))*-12))
+  params:set("filter tilt "..tonumber(string.format("%.0f",target.bank_id)),target.tilt,"true")
 end
 
 function mc.mft_redraw(target,parameter)

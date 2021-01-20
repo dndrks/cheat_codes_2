@@ -1297,6 +1297,8 @@ function main_menu.init()
     screen.text_center("canceled")
   elseif menu == "MIDI_config" then
     mc.midi_config_redraw(page.midi_bank)
+  elseif menu == "macro_config" then
+    macros.UI()
   end
 end
 

@@ -5,6 +5,10 @@ ea.sc = {}
 
 function encoder_actions.init(n,d)
 
+  if menu == "macro_config" then
+    macros.enc(n,d)
+  end
+
   local function returns_target(i)
     if bank[i].focus_hold then
       return bank[i].focus_pad
@@ -1210,6 +1214,7 @@ function ea.set_filter_cutoff(target,d)
     end
   end
   slew_filter(target,slew_counter[target].prev_tilt,bank[target][bank[target].id].tilt,bank[target][bank[target].id].q,bank[target][bank[target].id].q,15)
+  params:set("filter tilt "..tonumber(string.format("%.0f",target)),bank[target][bank[target].id].tilt,"true")
 end
 
 function ea.delta_MIDI_values(target,d) -- this is changing all, somehow TODO

@@ -282,7 +282,12 @@ function start_up.init()
     end
   )
   
-  params:add_group("mappable control",89)
+  params:add_group("mappable control",94)
+
+  params:add_control("macro", "macro", controlspec.new(0,127,'lin',1,0))
+  params:set_action("macro", function(x) if all_loaded then macro[1]:pass_value(x) end end)
+  params:add_control("macro2", "macro2", controlspec.new(0,127,'lin',1,0))
+  params:set_action("macro2", function(x) if all_loaded then macro[2]:pass_value(x) end end)
 
   params:add{type='binary',name="save mappings",id='save_mappings',behavior='momentary', allow_pmap=false,
   action=function(x)
@@ -465,8 +470,8 @@ params:add_separator("ALT key")
     -- params:add_control("current pad "..i, "current pad "..banks[i], controlspec.new(1,16,'lin',1,1))
     params:add_number("current pad "..i, "current pad "..banks[i], 1, 16, 1)
     params:set_action("current pad "..i, function(x)
-      if bank[i].id ~= x then
-        bank[i].id = x
+      if bank[i].id ~= util.clamp(1,16,util.round(x)) then
+        bank[i].id = util.clamp(1,16,util.round(x))
         selected[i].x = (math.ceil(bank[i].id/4)+(5*(i-1)))
         selected[i].y = 8-((bank[i].id-1)%4)
         cheat(i,bank[i].id)
@@ -477,6 +482,7 @@ params:add_separator("ALT key")
     local rates = {-4,-2,-1,-0.5,-0.25,-0.125,0.125,0.25,0.5,1,2,4}
     params:add_option("rate "..i, "rate "..banks[i], {"-4x","-2x","-1x","-0.5x","-0.25x","-0.125x","0.125x","0.25x","0.5x","1x","2x","4x"}, 10)
     params:set_action("rate "..i, function(x)
+      x = util.clamp(1,12,util.round(x))
       for p = (grid.alt and 1 or bank[i].id),(grid.alt and 16 or bank[i].id) do
         bank[i][p].rate = rates[x]
       end
@@ -525,6 +531,17 @@ params:add_separator("ALT key")
         end
       end
     }
+    params:add_control("filter tilt "..i, "filter tilt "..banks[i], controlspec.new(-1,1,'lin',0.01,0))
+    params:set_action("filter tilt "..i, function(x)
+      for j = 1,16 do
+        local target = bank[i][j]
+        if slew_counter[i] ~= nil then
+          slew_counter[i].prev_tilt = target.tilt
+        end
+        target.tilt = x
+      end
+    slew_filter(i,slew_counter[i].prev_tilt,bank[i][bank[i].id].tilt,bank[i][bank[i].id].q,bank[i][bank[i].id].q,bank[i][bank[i].id].tilt_ease_time)
+    end)
   end
   
   params:add_group("delays",53)

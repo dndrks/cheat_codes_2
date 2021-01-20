@@ -40,18 +40,31 @@ del = include 'lib/delay'
 rytm = include 'lib/euclid'
 mc = include 'lib/midicheat'
 sharer = include 'lib/sharer'
-mac = include 'lib/macros'
+macros = include 'lib/macros'
 math.randomseed(os.time())
 variable_fade_time = 0.01
 
 --all the .quantize stuff is irrelevant now. it's been replaced by .mode = "quantized"
 
-macros = {}
+macro = {}
 for i = 1,16 do
-  macros[i] = {}
-  for j = 1,8 do
-    macros[i][j] = mac:new()
-  end
+  macro[i] = macros.new_macro()
+  -- macros[i].params =
+  -- {
+  -- --{param name,affect?,min,max,bank}
+  --   {"current pad",true,1,4,1}
+  -- , {"current pad",true,10,0,2}
+  -- , {"rate",true,3,6,1}
+  -- , {"rate",true,10,12,2}
+  -- , {"pan",true,-1,1,1}
+  -- , {"pan",true,-0.4,1,2}
+  -- , {"level",false,0,1,1}
+  -- , {"bank level",false,0,1,1}
+  -- -- , {"start point",true,3,100,2}
+  -- -- , {"start point",true,15,30,1}
+  -- -- , {"end point",true,90,127,1}
+  -- , {"filter tilt",true,-1,1,2}
+  -- }
 end
 
 function make_a_gif(filename,time)
@@ -1062,6 +1075,16 @@ function init()
   page.midi_setup = 1
   page.midi_focus = "header"
   page.midi_bank = 1
+
+  page.macros = {}
+  page.macros.selected_macro = 1
+  page.macros.section = 1
+  page.macros.param_sel = {}
+  page.macros.edit_line = {}
+  for i = 1,8 do
+    page.macros.param_sel[i] = 1
+    page.macros.edit_line[i] = 1
+  end
   
   del.init()
   
@@ -3138,6 +3161,8 @@ local pre_k1_midi_page = nil
 
 function key(n,z)
   if menu == "load screen" then
+  elseif menu == "macro_config" then
+    macros.key(n,z)
   elseif menu == "overwrite screen" then
     if z == 1 then
       clock.cancel(collection_overwrite_clock)
