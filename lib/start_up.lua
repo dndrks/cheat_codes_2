@@ -282,12 +282,7 @@ function start_up.init()
     end
   )
   
-  params:add_group("mappable control",94)
-
-  params:add_control("macro", "macro", controlspec.new(0,127,'lin',1,0))
-  params:set_action("macro", function(x) if all_loaded then macro[1]:pass_value(x) end end)
-  params:add_control("macro2", "macro2", controlspec.new(0,127,'lin',1,0))
-  params:set_action("macro2", function(x) if all_loaded then macro[2]:pass_value(x) end end)
+  params:add_group("mappable control",92)
 
   params:add{type='binary',name="save mappings",id='save_mappings',behavior='momentary', allow_pmap=false,
   action=function(x)

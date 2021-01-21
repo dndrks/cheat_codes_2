@@ -52,7 +52,9 @@ function main_menu.init()
         screen.text_right("["..util.trim_string_to_width(selected_coll,68).."]")
       end
     else
-      screen.move(60,30)
+      screen.move(60,35)
+      screen.text_center("+K2: MACRO CONFIG")
+      screen.move(60,45)
       screen.text_center("+K3: OUTGOING MIDI CONFIG")
     end
   elseif menu == 2 then

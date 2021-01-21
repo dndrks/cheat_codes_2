@@ -1080,10 +1080,11 @@ function init()
   page.macros.selected_macro = 1
   page.macros.section = 1
   page.macros.param_sel = {}
-  page.macros.edit_line = {}
+  page.macros.edit_focus = {}
+  page.macros.mode = "setup"
   for i = 1,8 do
     page.macros.param_sel[i] = 1
-    page.macros.edit_line[i] = 1
+    page.macros.edit_focus[i] = 1
   end
   
   del.init()
@@ -1301,6 +1302,7 @@ function init()
   end
 
   mc.pad_to_note_params()
+  macros:add_params()
 
   crow_init()
   
@@ -3450,7 +3452,12 @@ function key(n,z)
 
 
     elseif n == 2 and z == 1 then
-      if (menu == 2 or menu == 7) and not key1_hold then
+      if menu == 1 then
+        if key1_hold then
+          menu = "macro_config"
+          key1_hold = false
+        end
+      elseif (menu == 2 or menu == 7) and not key1_hold then
         -- key2_hold = true
         key2_hold_counter:start()
         key2_hold_and_modify = false
