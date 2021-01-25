@@ -539,7 +539,7 @@ params:add_separator("ALT key")
     end)
   end
   
-  params:add_group("delays",53)
+  params:add_group("delays",55)
 
   params:add_separator("manage delay audio")
   params:add{type = "trigger", id = "save_left_delay", name = "** save L delay", action = function() del.save_delay(1) end}
@@ -618,6 +618,26 @@ params:add_separator("ALT key")
         encoder_actions.check_delay_links(sides[i-3], sides[i-3] == "L" and "R" or "L","free length")
       end
     end)
+
+    params:add{
+      type='control',
+      id='delay free time '..i-3,
+      name='delay free time '..i-3,
+      controlspec=controlspec.def{
+        min=0.00,
+        max=30.0,
+        warp='lin',
+        step=0.0001,
+        default=1,
+        quantum=0.0001,
+        wrap=false,
+      },
+    }
+    params:hide('delay free time '..i-3)
+    params:set_action('delay free time '..i-3, function(x)
+      params:set("delay "..sides[i-3]..": free length",x)
+    end)
+
     --params:add_control("delay "..sides[i-3]..": free length", "--> free length: ", controlspec.new(0.01,30,'lin',0.01,0.01,""))
     params:add{
       type='control',

@@ -7,6 +7,8 @@ function encoder_actions.init(n,d)
 
   if menu == "macro_config" then
     macros.enc(n,d)
+  elseif menu == "MIDI_config" then
+    mc.midi_config_enc(n,d)
   end
 
   local function returns_target(i)
@@ -116,19 +118,19 @@ function encoder_actions.init(n,d)
       page.arp_page_sel = util.clamp(page.arp_page_sel+d,1,3)
     elseif menu == 10 then
       page.rnd_page = util.clamp(page.rnd_page+d,1,3)
-    elseif menu == "MIDI_config" then
-      if page.midi_focus == "header" then
-        page.midi_bank = util.clamp(page.midi_bank + d,1,3)
-      else
-        local i = page.midi_bank
-        mc.numbers[i]:set_index_delta(d)
-        mc.midi_notes[i]:set_index_delta(d)
-        mc.midi_notes_channels[i]:set_index_delta(d)
-        mc.midi_velocities[i]:set_index_delta(d)
-        mc.midi_ccs[i]:set_index_delta(d)
-        mc.midi_ccs_channels[i]:set_index_delta(d)
-        mc.midi_ccs_values[i]:set_index_delta(d)
-      end
+    -- elseif menu == "MIDI_config" then
+    --   if page.midi_focus == "header" then
+    --     page.midi_bank = util.clamp(page.midi_bank + d,1,3)
+    --   else
+    --     local i = page.midi_bank
+    --     mc.numbers[i]:set_index_delta(d)
+    --     mc.midi_notes[i]:set_index_delta(d)
+    --     mc.midi_notes_channels[i]:set_index_delta(d)
+    --     mc.midi_notes_velocities[i]:set_index_delta(d)
+    --     mc.midi_ccs[i]:set_index_delta(d)
+    --     mc.midi_ccs_channels[i]:set_index_delta(d)
+    --     mc.midi_ccs_values[i]:set_index_delta(d)
+    --   end
     end
   end
   if n == 2 then
@@ -340,15 +342,15 @@ function encoder_actions.init(n,d)
         local reasonable_max = (current_param == "semitone offset" and 5) or ((current_param == "loop" or current_param == "delay send") and 4 or 6)
         page.rnd_page_edit[page.rnd_page] = util.clamp(page.rnd_page_edit[page.rnd_page]+d,1,reasonable_max)
       end
-    elseif menu == "MIDI_config" then
-      local i = page.midi_bank
-      if page.midi_focus == "notes" then
-        ea.delta_MIDI_values(mc.midi_notes[i],d)
-      elseif page.midi_focus == "ccs" then
-        ea.delta_MIDI_values(mc.midi_ccs[i],d)
-      elseif page.midi_focus == "alt" then
-        ea.delta_MIDI_values(mc.midi_notes_channels[i],d)
-      end
+    -- elseif menu == "MIDI_config" then
+    --   local i = page.midi_bank
+    --   if page.midi_focus == "notes" then
+    --     ea.delta_MIDI_values(mc.midi_notes[i],d)
+    --   elseif page.midi_focus == "ccs" then
+    --     ea.delta_MIDI_values(mc.midi_ccs[i],d)
+    --   elseif page.midi_focus == "alt" then
+    --     ea.delta_MIDI_values(mc.midi_notes_channels[i],d)
+    --   end
     end
   end
   if n == 3 then
@@ -802,17 +804,17 @@ function encoder_actions.init(n,d)
           end
         end
       end
-    elseif menu == "MIDI_config" then
-      local i = page.midi_bank
-      if page.midi_focus == "notes" then
-        ea.delta_MIDI_values(mc.midi_velocities[i],d)
-      elseif page.midi_focus == "ccs" then
-        ea.delta_MIDI_values(mc.midi_ccs_values[i],d)
-      elseif page.midi_focus == "alt" then
-        ea.delta_MIDI_values(mc.midi_ccs_channels[i],d)
-      elseif page.midi_focus == "header" then
-        params:delta(i.."_pad_to_midi_note_scale",d)
-      end
+    -- elseif menu == "MIDI_config" then
+    --   local i = page.midi_bank
+    --   if page.midi_focus == "notes" then
+    --     ea.delta_MIDI_values(mc.midi_notes_velocities[i],d)
+    --   elseif page.midi_focus == "ccs" then
+    --     ea.delta_MIDI_values(mc.midi_ccs_values[i],d)
+    --   elseif page.midi_focus == "alt" then
+    --     ea.delta_MIDI_values(mc.midi_ccs_channels[i],d)
+    --   elseif page.midi_focus == "header" then
+    --     params:delta(i.."_pad_to_midi_note_scale",d)
+    --   end
     end
   end
 
@@ -1218,7 +1220,7 @@ function ea.set_filter_cutoff(target,d)
 end
 
 function ea.delta_MIDI_values(target,d) -- this is changing all, somehow TODO
-  -- target = mc.midi_velocities[i]
+  -- target = mc.midi_notes_velocities[i]
   local c = target.index
   target.entries[c] = mc.flip_from_text(target.entries[c])
   target.entries[c] = util.clamp(target.entries[c]+d,-1,127)

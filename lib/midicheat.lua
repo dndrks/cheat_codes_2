@@ -525,12 +525,12 @@ end
 
 function mc.midi_note_from_pad(b,p)
   if params:string(b.."_pad_to_midi_note_enabled") == "yes" then
-    if mc.get_midi("midi_notes",b,p) ~= "-" and mc.get_midi("midi_velocities",b,p) ~= "-" and mc.get_midi("midi_notes_channels",b,p) ~= "-" then
+    if mc.get_midi("midi_notes",b,p) ~= "-" and mc.get_midi("midi_notes_velocities",b,p) ~= "-" and mc.get_midi("midi_notes_channels",b,p) ~= "-" then
       mc.all_midi_notes_off(b)
       -- local note_num = mc_notes[b][p]
       local note_num = mc.get_midi("midi_notes",b,p)
       -- local vel = params:get(b.."_pad_to_midi_note_velocity")
-      local vel = mc.get_midi("midi_velocities",b,p)
+      local vel = mc.get_midi("midi_notes_velocities",b,p)
       local ch = params:get(b.."_pad_to_midi_note_channel")
       local dest = params:get(b.."_pad_to_midi_note_destination")
       midi_dev[dest]:note_on(note_num,vel,ch)
@@ -702,7 +702,7 @@ local UI_cc_value_table = {{},{},{}}
 mc.numbers = {}
 mc.midi_notes = {}
 mc.midi_notes_channels = {}
-mc.midi_velocities = {}
+mc.midi_notes_velocities = {}
 mc.midi_ccs = {}
 mc.midi_ccs_channels = {}
 mc.midi_ccs_values = {}
@@ -729,8 +729,8 @@ function mc.initialize_UI()
     set_limits("numbers",i)
     mc.midi_notes[i] = UI.ScrollingList.new(15,20,1,UI_note_table[i])
     set_limits("midi_notes",i)
-    mc.midi_velocities[i] = UI.ScrollingList.new(30,20,1,UI_velocity_table[i])
-    set_limits("midi_velocities",i)
+    mc.midi_notes_velocities[i] = UI.ScrollingList.new(30,20,1,UI_velocity_table[i])
+    set_limits("midi_notes_velocities",i)
     mc.midi_notes_channels[i] = UI.ScrollingList.new(50,20,1,UI_note_ch_table[i])
     set_limits("midi_notes_channels",i)
     mc.midi_notes_channels[i].active = false
@@ -769,13 +769,50 @@ function mc.get_midi(format,bank,pad)
   return mc[format][bank].entries[pad]
 end
 
+function mc.midi_config_enc(n,d)
+  if n == 1 then
+    if page.midi_focus == "header" then
+      page.midi_bank = util.clamp(page.midi_bank + d,1,3)
+    else
+      local i = page.midi_bank
+      mc.numbers[i]:set_index_delta(d)
+      mc.midi_notes[i]:set_index_delta(d)
+      mc.midi_notes_channels[i]:set_index_delta(d)
+      mc.midi_notes_velocities[i]:set_index_delta(d)
+      mc.midi_ccs[i]:set_index_delta(d)
+      mc.midi_ccs_channels[i]:set_index_delta(d)
+      mc.midi_ccs_values[i]:set_index_delta(d)
+    end
+  elseif n == 2 then
+    local i = page.midi_bank
+    if page.midi_focus == "notes" then
+      encoder_actions.delta_MIDI_values(mc.midi_notes[i],d)
+    elseif page.midi_focus == "ccs" then
+      encoder_actions.delta_MIDI_values(mc.midi_ccs[i],d)
+    elseif page.midi_focus == "alt" then
+      encoder_actions.delta_MIDI_values(mc.midi_notes_channels[i],d)
+    end
+  elseif n == 3 then
+    local i = page.midi_bank
+    if page.midi_focus == "notes" then
+      encoder_actions.delta_MIDI_values(mc.midi_notes_velocities[i],d)
+    elseif page.midi_focus == "ccs" then
+      encoder_actions.delta_MIDI_values(mc.midi_ccs_values[i],d)
+    elseif page.midi_focus == "alt" then
+      encoder_actions.delta_MIDI_values(mc.midi_ccs_channels[i],d)
+    elseif page.midi_focus == "header" and key1_hold then
+      params:delta(i.."_pad_to_midi_note_scale",d)
+    end
+  end
+end
+
 function mc.midi_config_redraw(i)
   if all_loaded then
     
     mc.numbers[i].active = page.midi_focus ~= "header" and true or false
     mc.midi_notes[i].active = page.midi_focus == "notes" and true or false
     mc.midi_notes_channels[i].active = page.midi_focus == "alt" and true or false
-    mc.midi_velocities[i].active = page.midi_focus == "notes" and true or false
+    mc.midi_notes_velocities[i].active = page.midi_focus == "notes" and true or false
     mc.midi_ccs[i].active = page.midi_focus == "ccs" and true or false
     mc.midi_ccs_channels[i].active = page.midi_focus == "alt" and true or false
     mc.midi_ccs_values[i].active = page.midi_focus == "ccs" and true or false
@@ -807,10 +844,10 @@ function mc.midi_config_redraw(i)
       screen.level(page.midi_focus == "notes" and 15 or 3)
       screen.text("N")
       mc.midi_notes[i]:redraw()
-      screen.move(mc.midi_velocities[i].x+5,mc.midi_velocities[i].y-5)
+      screen.move(mc.midi_notes_velocities[i].x+5,mc.midi_notes_velocities[i].y-5)
       screen.level(page.midi_focus == "notes" and 15 or 3)
       screen.text_center("V")
-      mc.midi_velocities[i]:redraw()
+      mc.midi_notes_velocities[i]:redraw()
       screen.move(mc.midi_notes_channels[i].x+2,mc.midi_notes_channels[i].y-5)
       screen.level(page.midi_focus == "alt" and 15 or 3)
       screen.text_center("CH")
@@ -829,6 +866,32 @@ function mc.midi_config_redraw(i)
       mc.midi_ccs_channels[i]:redraw()
     end
   end
+end
+
+function mc.restore_collection()
+  -- -- midi_output_maps save
+  -- local mc_tables =
+  -- {
+  --   "midi_notes"
+  -- , "midi_notes_channels"
+  -- , "midi_notes_velocities"
+  -- , "midi_ccs"
+  -- , "midi_ccs_channels"
+  -- , "midi_ccs_values"
+  -- }
+  
+  -- for i = 1,3 do
+  --   for j = 1,#mc_tables do
+  --     local mc_filepath = _path.data .. "cheat_codes_2/collection-"..selected_coll.."/midi_output_maps/bank_"..i.."/"..mc_tables[j]..".data"
+  --     local file = io.open(mc_filepath, "w+")
+  --     if file then
+  --       io.output(file)
+  --       tab.save(mc[mc_tables[j]][i].entries,mc_filepath)
+  --       io.close(file)
+  --     end
+  --   end
+  -- end
+  -- --/ midi_output_maps save
 end
 
 return midicheat

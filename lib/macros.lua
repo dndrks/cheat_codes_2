@@ -11,7 +11,7 @@ function Macro:set_param(id,prm)
 end
 
 function Macro:delta_target(id,d)
-  local max = self.params[id].params_name == "macro" and 8 or 3
+  local max = self.params[id].params_name == "macro" and 8 or (self.params[id].params_name:find("delay") and 2 or 3)
   self.params[id].target = util.clamp(self.params[id].target + d,1,max)
 end
 
@@ -99,6 +99,16 @@ default_vals =
   , target = 1
   , curve = "linear"
   }
+, ["delay free time"] =
+  {
+    params_name = "delay free time"
+  , enabled = true
+  , destructive = true
+  , min = 1
+  , max = 30
+  , target = 1
+  , curve = "linear"
+  }
 , ["macro"] =
   {
     params_name = "macro"
@@ -159,7 +169,7 @@ function Macro:pass_value(val)
         local min = m[i].min
         local max = m[i].max
         local eased_val = easingFunctions[m[i].curve](val/self.in_max,self.in_min,self.in_max,1)
-        print(eased_val,bank[1].id)
+        -- local eased_val = easingFunctions[m[i].curve](val/127,0,127,1)
         local new_val = util.linlin(self.in_min,self.in_max,min,max,eased_val)
         --easingFunctions[self.curve](x/12000,10,11990,1)
         if m[i].destructive then
@@ -181,6 +191,7 @@ local parameter_names =
 , "filter tilt"
 , "start point"
 , "end point"
+, "delay free time"
 , "macro"
 }
 
@@ -290,6 +301,22 @@ end
 
 local bank_names = {"bank a", "bank b", "bank c"}
 
+function get_target_display_name(prm,trg)
+  if prm == "none" then
+    return "-"
+  elseif prm == "macro" then
+    return "macro "..trg
+  elseif prm == "delay free time" then
+    if trg == 1 then
+      return "L"
+    else
+      return "R"
+    end
+  else
+    return bank_names[trg]
+  end
+end
+
 function Container.UI()
   local p = page.macros
   screen.move(0,10)
@@ -335,7 +362,9 @@ function Container.UI()
 
     screen.move(30,31)
     screen.level(p.section == 2 and (edit_focus == 2 and 15 or 3) or 3)
-    screen.text("target: "..(current.params_name == "macro" and "macro "..current.target or (current.params_name == "none" and "-" or bank_names[current.target])))
+    -- screen.text("target: "..(current.params_name == "macro" and "macro "..current.target or (current.params_name == "none" and "-" or bank_names[current.target])))
+    -- screen.text("target: "..current.target)
+    screen.text("target: "..get_target_display_name(current.params_name,current.target))
 
     screen.move(30,41)
     screen.level(p.section == 2 and (edit_focus == 3 and 15 or 3) or 3)

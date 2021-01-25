@@ -751,6 +751,17 @@ local function crow_init()
   crow.input[2].change = buff_freeze
 end
 
+function set_crow_input(id,type)
+  if type == 1 then
+    crow.input[id].mode("stream",0.05)
+    crow.input[1].stream = process_stream_1
+  end
+end
+
+function process_stream_1(v)
+  params:set("macro 1",util.round(util.linlin(0,8,0,127,v)))
+end
+
 local lit = {}
 
 zilch_leds =
@@ -819,6 +830,25 @@ function init()
   function()
     grid_dirty = true
     params:set("LED_style",2)
+    if all_loaded then
+      persistent_state_save()
+    end
+  end)
+
+  params:add_group("CROW INPUTS",3)
+  params:add_separator("crow input 1")
+  params:add_option("crow input 1","crow input 1",{"none","cont to macros","trig to record"},1)
+  params:set_action("crow input 1",
+  function()
+    set_crow_input(1)
+    if all_loaded then
+      persistent_state_save()
+    end
+  end)
+  params:add_option("crow input 2","crow input 2",{"128","64"},1)
+  params:set_action("crow input 2",
+  function()
+    set_crow_input(2)
     if all_loaded then
       persistent_state_save()
     end
@@ -5155,7 +5185,7 @@ function named_savestate(text)
     os.execute("mkdir " .. dirname)
   end
 
-  local dirnames = {"banks/","params/","arc-rec/","patterns/","step-seq/","arps/","euclid/","rnd/","delays/","rec/","misc/"}
+  local dirnames = {"banks/","params/","arc-rec/","patterns/","step-seq/","arps/","euclid/","rnd/","delays/","rec/","misc/","midi_output_maps/"}
   for i = 1,#dirnames do
     local directory = _path.data.."cheat_codes_2/collection-"..collection.."/"..dirnames[i]
     if os.rename(directory, directory) == nil then
@@ -5238,12 +5268,37 @@ function named_savestate(text)
     io.close(file)
   end
 
-  -- want format to be:
-  -- {bank: 1,
-  --   pad: 16,note,vel,ch,cc,val,ch}
-
-
+  for i = 1,3 do
+    local directory = _path.data.."cheat_codes_2/collection-"..selected_coll.."/midi_output_maps/bank_"..i.."/"
+    if os.rename(directory, directory) == nil then
+      os.execute("mkdir " .. directory)
+    end
+  end
   --/ misc save
+
+  -- midi_output_maps save
+  local mc_tables =
+  {
+    "midi_notes"
+  , "midi_notes_channels"
+  , "midi_notes_velocities"
+  , "midi_ccs"
+  , "midi_ccs_channels"
+  , "midi_ccs_values"
+  }
+  
+  for i = 1,3 do
+    for j = 1,#mc_tables do
+      local mc_filepath = _path.data .. "cheat_codes_2/collection-"..selected_coll.."/midi_output_maps/bank_"..i.."/"..mc_tables[j]..".data"
+      local file = io.open(mc_filepath, "w+")
+      if file then
+        io.output(file)
+        tab.save(mc[mc_tables[j]][i].entries,mc_filepath)
+        io.close(file)
+      end
+    end
+  end
+  --/ midi_output_maps save
 
 end
 
@@ -5301,6 +5356,22 @@ function named_loadstate(path)
           if rnd[i][j].playing then
             rnd[i][j].clock = clock.run(rnd.advance, i, j)
           end
+        end
+      end
+
+      local mc_tables =
+      {
+        "midi_notes"
+      , "midi_notes_channels"
+      , "midi_notes_velocities"
+      , "midi_ccs"
+      , "midi_ccs_channels"
+      , "midi_ccs_values"
+      }
+
+      for j = 1,#mc_tables do
+        if tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/midi_output_maps/bank_"..i.."/"..mc_tables[j]..".data") ~= nil then
+          mc[mc_tables[j]][i].entries = tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/midi_output_maps/bank_"..i.."/"..mc_tables[j]..".data")
         end
       end
 
