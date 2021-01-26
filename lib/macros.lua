@@ -21,6 +21,12 @@ function Macro:delta_min(id,d,divisor)
   self.params[id].min = util.clamp(self.params[id].min + (d/divisor),min,max)
 end
 
+function Macro:delta_max(id,d,divisor)
+  local min = default_vals[self.params[id].params_name].min
+  local max = default_vals[self.params[id].params_name].max
+  self.params[id].max = util.clamp(self.params[id].max + (d/divisor),min,max)
+end
+
 function Macro:delta_curve(id,d)
   local lookup = tab.key(easingFunctions.easingNames,self.params[id].curve)
   local max = #easingFunctions.easingNames
@@ -42,7 +48,7 @@ default_vals =
 , ["current pad"] =
   {
     params_name = "current pad"
-  , enabled = true
+  , enabled = false
   , destructive = true
   , min = 1
   , max = 16
@@ -52,7 +58,7 @@ default_vals =
 , ["rate"] =
   {
     params_name = "rate"
-  , enabled = true
+  , enabled = false
   , destructive = true
   , min = 1
   , max = 12
@@ -62,7 +68,7 @@ default_vals =
 , ["pan"] =
   {
     params_name = "pan"
-  , enabled = true
+  , enabled = false
   , destructive = true
   , min = -1
   , max = 1
@@ -72,7 +78,7 @@ default_vals =
 , ["filter tilt"] =
   {
     params_name = "filter tilt"
-  , enabled = true
+  , enabled = false
   , destructive = true
   , min = -1
   , max = 1
@@ -82,7 +88,7 @@ default_vals =
 , ["start point"] =
   {
     params_name = "start point"
-  , enabled = true
+  , enabled = false
   , destructive = true
   , min = 1
   , max = 127
@@ -92,7 +98,7 @@ default_vals =
 , ["end point"] =
   {
     params_name = "end point"
-  , enabled = true
+  , enabled = false
   , destructive = true
   , min = 1
   , max = 127
@@ -102,9 +108,9 @@ default_vals =
 , ["delay free time"] =
   {
     params_name = "delay free time"
-  , enabled = true
+  , enabled = false
   , destructive = true
-  , min = 1
+  , min = 0
   , max = 30
   , target = 1
   , curve = "linear"
@@ -112,7 +118,7 @@ default_vals =
 , ["macro"] =
   {
     params_name = "macro"
-  , enabled = true
+  , enabled = false
   , destructive = true
   , min = 1
   , max = 127
@@ -144,6 +150,7 @@ function Macro:new()
   m.out_max = 127
   m.focus = "none" -- what is this???
   m.control_source = "PARAMS"
+  m.enabled = false
   m.params =
   { 
     self:generate_default_params()
@@ -211,6 +218,10 @@ function Macro:cycle_entry(d,id)
     local current = macro[p.selected_macro].params[p.param_sel[p.selected_macro]]
     local div = current.params_name == "pan" and 10 or (current.params_name == "filter tilt" and 10 or 1)
     macro[p.selected_macro]:delta_min(p.param_sel[p.selected_macro],d,div)
+  elseif id ==  4 then
+    local current = macro[p.selected_macro].params[p.param_sel[p.selected_macro]]
+    local div = current.params_name == "pan" and 10 or (current.params_name == "filter tilt" and 10 or 1)
+    macro[p.selected_macro]:delta_max(p.param_sel[p.selected_macro],d,div)
   elseif id == 5 then
     macro[p.selected_macro]:delta_curve(p.param_sel[p.selected_macro],d)
     -- easingFunctions.easingNames
@@ -230,11 +241,6 @@ function Container.enc(n,d)
       if macro[p.selected_macro].params[p.param_sel[p.selected_macro]].params_name ~= "none" then
         p.edit_focus[p.selected_macro] = util.clamp(p.edit_focus[p.selected_macro] + d,1,5)
       end
-    elseif p.section == 3 then
-      local sources = {["PARAMS"] = 1, ["crow in 1"] = 2, ["crow in 2"] = 3}
-      local current = sources[macro[p.selected_macro].control_source]
-      sources = tab.invert(sources)
-      macro[p.selected_macro].control_source = sources[util.clamp(current+d,1,3)]
     end
   elseif n == 3 then
     if page.macros.mode == "perform" then
@@ -244,21 +250,37 @@ function Container.enc(n,d)
         macro[p.selected_macro]:cycle_entry(d,current_line)
       end
     end
+    if p.section == 3 then
+      macro[p.selected_macro].params[p.param_sel[p.selected_macro]].enabled = d > 0 and true or false
+    end
   end
 end
+
+local last_section = 1
 
 function Container.key(n,z)
   local p = page.macros
   if n == 1 then
     key1_hold = z == 1 and true or false
     if z == 1 then
-      page.macros.mode = page.macros.mode == "setup" and "perform" or "setup"
+      if p.mode == "setup" then
+        last_section = p.section
+        p.section = 3
+      end
+    elseif z == 0 then
+      if p.mode == "setup" then
+        p.section = last_section
+      end
     end
   elseif n == 3 and z == 1 then
-    if page.macros.mode == "setup" then
-      p.section = util.wrap(p.section+1,1,3)
-    elseif page.macros.mode == "perform" then
-      params:set("macro "..p.selected_macro,math.random(macro[p.selected_macro].in_min,macro[p.selected_macro].in_max))
+    if key1_hold then
+      page.macros.mode = page.macros.mode == "setup" and "perform" or "setup"
+    else
+      if p.mode == "setup" then
+        p.section = util.wrap(p.section+1,1,2)
+      elseif p.mode == "perform" then
+        params:set("macro "..p.selected_macro,math.random(macro[p.selected_macro].in_min,macro[p.selected_macro].in_max))
+      end
     end
   elseif n == 2 and z == 1 then
     menu = 1
@@ -289,9 +311,10 @@ function Container:convert(prm,trg,indx,controlspec_type)
       return params.params[id].options[indx]
     elseif params.params[id].t == 3 then
       if controlspec_type == "minval" then
-        return tonumber(string.format("%.2g",util.round(prm.min,0.1)))
+        return tonumber(string.format("%.4g",util.round(prm.min,0.1)))
       elseif controlspec_type == "maxval" then
-        return prm.max
+        -- return prm.max
+        return tonumber(string.format("%.4g",util.round(prm.max,0.1)))
       end
     end
   else
@@ -352,7 +375,9 @@ function Container.UI()
     screen.fill()
     screen.level(0)
     screen.move(2,60)
-    screen.text("macro "..p.selected_macro.." source: "..macro[p.selected_macro].control_source)
+    local on = macro[p.selected_macro].params[p.param_sel[p.selected_macro]].enabled == true and "active" or "inactive"
+    screen.text("macro["..p.selected_macro.."]["..p.param_sel[p.selected_macro].."]: "..on)
+    -- screen.text("macro "..p.selected_macro.." source: "..macro[p.selected_macro].control_source)
 
     screen.level(3)
     screen.font_size(8)
