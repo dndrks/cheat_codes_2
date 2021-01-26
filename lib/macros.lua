@@ -1,6 +1,12 @@
 local Container = {}
 local Macro = {}
 
+-- user-replaceable tables!
+Container.delay_rates = {0.25,0.5,1,2,4,8,16}
+Container.pad_rates = {-4,-2,-1,-0.5,-0.25,-0.125,0.125,0.25,0.5,1,2,4}
+Container.default_pad_rate = 1
+--/ user-replaceable tables!
+
 function Container:new_macro(args)
   local ind = Macro:new()
   return ind
@@ -61,7 +67,7 @@ default_vals =
   , enabled = false
   , destructive = true
   , min = 1
-  , max = 12
+  , max = #Container.pad_rates
   , target = 1
   , curve = "linear"
   }
@@ -115,12 +121,42 @@ default_vals =
   , target = 1
   , curve = "linear"
   }
+, ["delay div/mult"] =
+  {
+    params_name = "delay div/mult"
+  , enabled = false
+  , destructive = true
+  , min = 1
+  , max = 98
+  , target = 1
+  , curve = "linear"
+  }
+, ["delay rate"] =
+  {
+    params_name = "delay rate"
+  , enabled = false
+  , destructive = true
+  , min = 1
+  , max = #Container.delay_rates
+  , target = 1
+  , curve = "linear"
+  }
+, ["delay pan"] =
+  {
+    params_name = "delay pan"
+  , enabled = false
+  , destructive = true
+  , min = -1
+  , max = 1
+  , target = 1
+  , curve = "linear"
+  }
 , ["macro"] =
   {
     params_name = "macro"
   , enabled = false
   , destructive = true
-  , min = 1
+  , min = 0
   , max = 127
   , target = 1
   , curve = "linear"
@@ -199,6 +235,9 @@ local parameter_names =
 , "start point"
 , "end point"
 , "delay free time"
+, "delay div/mult"
+, "delay rate"
+, "delay pan"
 , "macro"
 }
 
@@ -216,11 +255,13 @@ function Macro:cycle_entry(d,id)
     macro[p.selected_macro]:delta_target(p.param_sel[p.selected_macro],d)
   elseif id == 3 then
     local current = macro[p.selected_macro].params[p.param_sel[p.selected_macro]]
-    local div = current.params_name == "pan" and 10 or (current.params_name == "filter tilt" and 10 or 1)
+    local params_with_fine = {"pan","filter tilt","delay pan"}
+    local div = tab.contains(params_with_fine,current.params_name) and 10 or 1
     macro[p.selected_macro]:delta_min(p.param_sel[p.selected_macro],d,div)
   elseif id ==  4 then
     local current = macro[p.selected_macro].params[p.param_sel[p.selected_macro]]
-    local div = current.params_name == "pan" and 10 or (current.params_name == "filter tilt" and 10 or 1)
+    local params_with_fine = {"pan","filter tilt","delay pan"}
+    local div = tab.contains(params_with_fine,current.params_name) and 10 or 1
     macro[p.selected_macro]:delta_max(p.param_sel[p.selected_macro],d,div)
   elseif id == 5 then
     macro[p.selected_macro]:delta_curve(p.param_sel[p.selected_macro],d)
@@ -234,24 +275,30 @@ function Container.enc(n,d)
   if n == 1 then
     p.selected_macro = util.clamp(p.selected_macro+d,1,8)
   elseif n == 2 then
-    if p.section == 1 then
-      p.param_sel[p.selected_macro] = util.clamp(p.param_sel[p.selected_macro] + d,1,8)
-      p.edit_focus[p.selected_macro] = 1
-    elseif p.section == 2 then
-      if macro[p.selected_macro].params[p.param_sel[p.selected_macro]].params_name ~= "none" then
-        p.edit_focus[p.selected_macro] = util.clamp(p.edit_focus[p.selected_macro] + d,1,5)
+    if page.macros.mode == "setup" then
+      if p.section == 1 then
+        p.param_sel[p.selected_macro] = util.clamp(p.param_sel[p.selected_macro] + d,1,8)
+        p.edit_focus[p.selected_macro] = 1
+      elseif p.section == 2 then
+        if macro[p.selected_macro].params[p.param_sel[p.selected_macro]].params_name ~= "none" then
+          p.edit_focus[p.selected_macro] = util.clamp(p.edit_focus[p.selected_macro] + d,1,5)
+        end
+      elseif p.section == 3 then
+        macro[p.selected_macro].params[p.param_sel[p.selected_macro]].enabled = d > 0 and true or false
       end
     end
   elseif n == 3 then
     if page.macros.mode == "perform" then
       params:delta("macro "..p.selected_macro,d)
     elseif page.macros.mode == "setup" then
-      if p.section == 2 then
+      if p.section == 1 then
+        p.param_sel[p.selected_macro] = util.clamp(p.param_sel[p.selected_macro] + d,1,8)
+        p.edit_focus[p.selected_macro] = 1
+      elseif p.section == 2 then
         macro[p.selected_macro]:cycle_entry(d,current_line)
+      elseif p.section == 3 then
+        macro[p.selected_macro].params[p.param_sel[p.selected_macro]].enabled = d > 0 and true or false
       end
-    end
-    if p.section == 3 then
-      macro[p.selected_macro].params[p.param_sel[p.selected_macro]].enabled = d > 0 and true or false
     end
   end
 end
@@ -329,7 +376,7 @@ function get_target_display_name(prm,trg)
     return "-"
   elseif prm == "macro" then
     return "macro "..trg
-  elseif prm == "delay free time" then
+  elseif string.find(prm,"delay")~= nil then
     if trg == 1 then
       return "L"
     else
@@ -412,7 +459,7 @@ function Container.UI()
     screen.level(15)
     screen.move(60,60)
     screen.font_size(40)
-    screen.text_center(params:get("macro "..p.selected_macro))
+    screen.text_center(util.round(params:get("macro "..p.selected_macro)))
   end
 
 end

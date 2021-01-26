@@ -751,15 +751,28 @@ local function crow_init()
   crow.input[2].change = buff_freeze
 end
 
-function set_crow_input(id,type)
-  if type == 1 then
-    crow.input[id].mode("stream",0.05)
-    crow.input[1].stream = process_stream_1
-  end
+local function process_stream_1(v)
+  params:set("macro 1",util.round(util.linlin(0,params:get("crow input 1 max voltage"),0,127,v)))
 end
 
-function process_stream_1(v)
-  params:set("macro 1",util.round(util.linlin(0,8,0,127,v)))
+local function process_stream_2(v)
+  params:set("macro 2",util.round(util.linlin(0,params:get("crow input 2 max voltage"),0,127,v)))
+end
+
+function set_crow_input(id,type)
+  if type == 3 then
+    crow.input[id].mode("stream",0.05)
+    if id == 1 then
+      crow.input[1].stream = process_stream_1
+    elseif id == 2 then
+      crow.input[2].stream = process_stream_2
+    end
+  elseif type == 2 then
+    crow.input[id].mode("change",2,0.1,"rising")
+    crow.input[id].change = buff_freeze
+  elseif type == 1 then
+    crow.input[id].mode('none')
+  end
 end
 
 local lit = {}
@@ -835,24 +848,18 @@ function init()
     end
   end)
 
-  params:add_group("CROW INPUTS",3)
-  params:add_separator("crow input 1")
-  params:add_option("crow input 1","crow input 1",{"none","cont to macros","trig to record"},1)
-  params:set_action("crow input 1",
-  function()
-    set_crow_input(1)
-    if all_loaded then
-      persistent_state_save()
-    end
-  end)
-  params:add_option("crow input 2","crow input 2",{"128","64"},1)
-  params:set_action("crow input 2",
-  function()
-    set_crow_input(2)
-    if all_loaded then
-      persistent_state_save()
-    end
-  end)
+  params:add_group("CROW INPUTS",4)
+  for i = 1,2 do
+    params:add_option("crow input "..i,"crow input "..i,{"none","trig to record","cont to macro "..i},1)
+    params:set_action("crow input "..i,
+    function(x)
+      set_crow_input(i,x)
+      if all_loaded then
+        persistent_state_save()
+      end
+    end)
+    params:add_number("crow input "..i.." max voltage","crow input "..i.." max voltage",1,10,8)
+  end
   
   params:add_separator("cheat codes params")
   

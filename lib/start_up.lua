@@ -475,9 +475,9 @@ params:add_separator("ALT key")
       end
     end)
     local rates = {-4,-2,-1,-0.5,-0.25,-0.125,0.125,0.25,0.5,1,2,4}
-    params:add_option("rate "..i, "rate "..banks[i], {"-4x","-2x","-1x","-0.5x","-0.25x","-0.125x","0.125x","0.25x","0.5x","1x","2x","4x"}, 10)
+    params:add_option("rate "..i, "rate "..banks[i], macros.pad_rates, tab.key(macros.pad_rates,macros.default_pad_rate))
     params:set_action("rate "..i, function(x)
-      x = util.clamp(1,12,util.round(x))
+      x = util.clamp(1,#macros.pad_rates,util.round(x))
       for p = (grid.alt and 1 or bank[i].id),(grid.alt and 16 or bank[i].id) do
         bank[i][p].rate = rates[x]
       end
@@ -539,7 +539,7 @@ params:add_separator("ALT key")
     end)
   end
   
-  params:add_group("delays",55)
+  params:add_group("delays",65)
 
   params:add_separator("manage delay audio")
   params:add{type = "trigger", id = "save_left_delay", name = "** save L delay", action = function() del.save_delay(1) end}
@@ -596,47 +596,6 @@ params:add_separator("ALT key")
       encoder_actions.check_delay_links(sides[i-3], sides[i-3] == "L" and "R" or "L","div/mult")
       screen_dirty = true
     end)
-    params:add{
-      type='control',
-      id='delay '..sides[i-3]..': free length',
-      name='--> free length: ',
-      controlspec=controlspec.def{
-        min=0.00,
-        max=30.0,
-        warp='lin',
-        step=0.0001,
-        default=1,
-        quantum=0.0001,
-        wrap=false,
-      },
-    }
-    params:hide("delay "..sides[i-3]..": free length")
-    params:set_action("delay "..sides[i-3]..": free length", function(x)
-      if delay[i-3].mode == "free" then
-        delay[i-3].free_end_point = delay[i-3].start_point + x
-        softcut.loop_end(i+1,delay[i-3].free_end_point)
-        encoder_actions.check_delay_links(sides[i-3], sides[i-3] == "L" and "R" or "L","free length")
-      end
-    end)
-
-    params:add{
-      type='control',
-      id='delay free time '..i-3,
-      name='delay free time '..i-3,
-      controlspec=controlspec.def{
-        min=0.00,
-        max=30.0,
-        warp='lin',
-        step=0.0001,
-        default=1,
-        quantum=0.0001,
-        wrap=false,
-      },
-    }
-    params:hide('delay free time '..i-3)
-    params:set_action('delay free time '..i-3, function(x)
-      params:set("delay "..sides[i-3]..": free length",x)
-    end)
 
     --params:add_control("delay "..sides[i-3]..": free length", "--> free length: ", controlspec.new(0.01,30,'lin',0.01,0.01,""))
     params:add{
@@ -686,7 +645,98 @@ params:add_separator("ALT key")
       screen_dirty = true
       encoder_actions.check_delay_links(sides[i-3], sides[i-3] == "L" and "R" or "L","feedback")
     end)
+    params:add_control("delay "..sides[i-3]..": pan", "delay "..sides[i-3]..": pan", controlspec.new(-1,1,'lin',0.01,(i == 4 and -1 or 1)))
+    params:set_action("delay "..sides[i-3]..": pan", function(x)
+      softcut.pan(i+1,x)
+    end)
     params:add{type = "trigger", id = "save_delay_"..sides[i-3], name = "***** save delay "..sides[i-3].." ***** [K3]", action = function() del.save_delay(i-3) end}	
+
+    params:add{
+      type='control',
+      id='delay '..sides[i-3]..': free length',
+      name='--> free length: ',
+      controlspec=controlspec.def{
+        min=0.00,
+        max=30.0,
+        warp='lin',
+        step=0.0001,
+        default=1,
+        quantum=0.0001,
+        wrap=false,
+      },
+    }
+    params:hide("delay "..sides[i-3]..": free length")
+    params:set_action("delay "..sides[i-3]..": free length", function(x)
+      if delay[i-3].mode == "free" then
+        delay[i-3].free_end_point = delay[i-3].start_point + x
+        softcut.loop_end(i+1,delay[i-3].free_end_point)
+        encoder_actions.check_delay_links(sides[i-3], sides[i-3] == "L" and "R" or "L","free length")
+      end
+    end)
+
+    -- this is dumb, but it works:
+
+    params:add_control("delay pan "..i-3, "delay pan "..i-3, controlspec.new(-1,1,'lin',0.01,(i == 4 and -1 or 1)))
+    params:hide("delay pan "..i-3)
+    params:set_action("delay pan "..i-3, function(x)
+      if all_loaded then
+        params:set("delay "..sides[i-3]..": pan",x)
+      end
+    end)
+
+    params:add{
+      type='control',
+      id='delay free time '..i-3,
+      name='delay free time '..i-3,
+      controlspec=controlspec.def{
+        min=0.00,
+        max=30.0,
+        warp='lin',
+        step=0.0001,
+        default=1,
+        quantum=0.0001,
+        wrap=false,
+      },
+    }
+    params:hide('delay free time '..i-3)
+    params:set_action('delay free time '..i-3, function(x)
+      if all_loaded then
+        params:set("delay "..sides[i-3]..": free length",x)
+      end
+    end)
+    params:add_option("delay div/mult "..i-3, "delay div/mult "..i-3,
+    {"x16"   ,"x15.75"   ,"x15.66"   ,"x15.5"   ,"x15.33"   ,"x15.25"
+    , "x15"   ,"x14.75"   ,"x14.66"   ,"x14.5"   ,"x14.33"   ,"x14.25"
+    , "x14"   ,"x13.75"   ,"x13.66"   ,"x13.5"   ,"x13.33"   ,"x13.25"
+    , "x13"   ,"x12.75"   ,"x12.66"   ,"x12.5"   ,"x12.33"   ,"x12.25"
+    , "x12"   ,"x11.75"   ,"x11.66"   ,"x11.5"   ,"x11.33"   ,"x11.25"
+    , "x11"   ,"x10.75"   ,"x10.66"   ,"x10.5"   ,"x10.33"   ,"x10.25"
+    , "x10"   ,"x9.75"   ,"x9.66"   ,"x9.5"   ,"x9.33"   ,"x9.25"
+    , "x9"    ,"x8.75"   ,"x8.66"   ,"x8.5"   ,"x8.33"   ,"x8.25"
+    , "x8"    ,"x7.75"   ,"x7.66"   ,"x7.5"   ,"x7.33"   ,"x7.25"
+    , "x7"    ,"x6.75"   ,"x6.66"   ,"x6.5"   ,"x6.33"   ,"x6.25"
+    , "x6"    ,"x5.75"   ,"x5.66"   ,"x5.5"   ,"x5.33"   ,"x5.25"
+    , "x5"    ,"x4.75"   ,"x4.66"   ,"x4.5"   ,"x4.33"   ,"x4.25"
+    , "x4"    ,"x3.75"   ,"x3.66"   ,"x3.5"   ,"x3.33"   ,"x3.25"
+    , "x3"    ,"x2.75"   ,"x2.66"   ,"x2.5"   ,"x2.33"   ,"x2.25"
+    , "x2"    ,"x1.75"   ,"x1.66"   ,"x1.5"   ,"x1.33"   ,"x1.25"
+    , "x1"    ,"/1.25"   ,"/1.33"   ,"/1.5"   ,"/1.66"   ,"/1.75"   ,"/2"   ,"/4"
+    },91)
+    params:hide('delay div/mult '..i-3)
+    params:set_action('delay div/mult '..i-3, function(x)
+      if all_loaded then
+        params:set("delay "..sides[i-3]..": div/mult",x)
+      end
+    end)
+
+    params:add_option("delay rate "..i-3, "delay rate "..i-3, macros.delay_rates)
+    params:hide('delay rate '..i-3)
+    params:set_action("delay rate "..i-3, function(x)
+      if all_loaded then
+        params:set("delay "..sides[i-3]..": rate", macros.delay_rates[x])
+      end
+    end)
+    ---/
   end
 
   params:add_separator("delay input")
@@ -772,6 +822,16 @@ params:add_separator("ALT key")
       softcut.post_filter_dry(i+1,x)
       encoder_actions.check_delay_links(sides[i-3], sides[i-3] == "L" and "R" or "L","filter dry")
     end)
+    
+    --this is dumb:
+    params:add_control("delay filter cut "..i-3, "delay filter cut "..i-3, controlspec.new(10,12000,'exp',1,12000,"Hz"))
+    params:hide("delay filter cut "..i-3)
+    params:set_action("delay filter cut "..i-3,function(x)
+      if all_loaded then
+        params:set("delay "..sides[i-3]..": filter cut",x)
+      end
+    end)
+    --/
   end
   
   --params:add_separator()
