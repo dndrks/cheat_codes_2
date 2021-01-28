@@ -330,8 +330,19 @@ function Container.key(n,z)
       end
     end
   elseif n == 2 and z == 1 then
-    menu = 1
-    key1_hold = false
+    if key1_hold then
+      if p.mode == "setup" then
+        local current_state = macro[p.selected_macro].params[p.param_sel[p.selected_macro]].enabled
+        for i = 1,8 do
+          if macro[p.selected_macro].params[i].params_name ~= "none" then
+            macro[p.selected_macro].params[i].enabled = not current_state
+          end
+        end
+      end
+    else
+      menu = 1
+      key1_hold = false
+    end
   end
 end
 

@@ -12,6 +12,10 @@ if util.file_exists(_path.code.."passthrough") then
   passthru.init()
 end
 
+if util.file_exists(_path.code.."namesizer") then
+  Namesizer = include 'namesizer/lib/namesizer'
+end
+
 -- if util.file_exists(_path.code.."timber") then
 --   Timber = include 'timber/lib/timber_engine'
 --   engine.name = "Timber"
@@ -47,24 +51,16 @@ variable_fade_time = 0.01
 --all the .quantize stuff is irrelevant now. it's been replaced by .mode = "quantized"
 
 macro = {}
-for i = 1,16 do
+for i = 1,8 do
   macro[i] = macros.new_macro()
-  -- macros[i].params =
-  -- {
-  -- --{param name,affect?,min,max,bank}
-  --   {"current pad",true,1,4,1}
-  -- , {"current pad",true,10,0,2}
-  -- , {"rate",true,3,6,1}
-  -- , {"rate",true,10,12,2}
-  -- , {"pan",true,-1,1,1}
-  -- , {"pan",true,-0.4,1,2}
-  -- , {"level",false,0,1,1}
-  -- , {"bank level",false,0,1,1}
-  -- -- , {"start point",true,3,100,2}
-  -- -- , {"start point",true,15,30,1}
-  -- -- , {"end point",true,90,127,1}
-  -- , {"filter tilt",true,-1,1,2}
-  -- }
+end
+
+function rec_ended_callback()
+  for i = 1,3 do
+    if bank[i].id == 1 then
+      cheat(i,1)
+    end
+  end
 end
 
 function make_a_gif(filename,time)
@@ -863,7 +859,7 @@ function init()
   
   params:add_separator("cheat codes params")
   
-  params:add_group("collections",7)
+  params:add_group("collections",8)
   params:add_separator("load/save")
   params:add_trigger("load", "load collection")
   params:set_action("load",
@@ -881,7 +877,11 @@ function init()
   params:add_option("collect_live","collect Live buffers?",{"no","yes"})
   params:add_trigger("save", "save new collection")
   params:set_action("save", function(x)
-    textentry.enter(pre_save)
+    if Namesizer ~= nil then
+      textentry.enter(pre_save,Namesizer.phonic_nonsense().."_"..Namesizer.phonic_nonsense())
+    else
+      textentry.enter(pre_save)
+    end
   end)
   params:add_separator("danger zone!")
   params:add_trigger("overwrite_coll", "overwrite loaded collection")
@@ -893,8 +893,15 @@ function init()
   end)
   params:add_trigger("delete_coll", "delete collection")
   params:set_action("delete_coll", function(x) fileselect.enter(_path.data.."cheat_codes_2/names/", pre_delete) end)
+  params:add_trigger("save default collection", "save default collection")
+  params:set_action("save default collection", function()
+    clock.run(save_screen,"DEFAULT")
+    _norns.key(1,1)
+    _norns.key(1,0)
+    -- screen_dirty = true
+  end)
   
-  menu = 1
+  -- menu = 1
   
   for i = 1,4 do
     crow.output[i].action = "{to(5,0),to(0,0.05)}"
@@ -1239,11 +1246,12 @@ function init()
   rec_state_watcher.event = function()
     if rec[rec.focus].loop == 0 then
       if rec[rec.focus].state == 1 then
-        if rec[rec.focus].end_point < poll_position_new[1] +0.015 then
+        if rec[rec.focus].end_point < poll_position_new[1] +0.015 then -- could do 0.005?
           rec[rec.focus].state = 0
           rec_state_watcher:stop()
           rec.stopped = true
           grid_dirty = true
+          rec_ended_callback()
           if menu == 2 then
             if page.loops.sel ~= 5 then screen_dirty = true end
             -- print("stopped")
@@ -1726,16 +1734,24 @@ function init()
     , 1/30, -1)
   hardware_redraw:start()
 
-
-  -- local file = io.open("/home/we/dust/data/cheat_codes_2/names/DEFAULT.cc2", "r")
-  -- if file == nil then
-  --   named_savestate("DEFAULT")
-  -- else
-  --   named_loadstate("/home/we/dust/data/cheat_codes_2/names/DEFAULT.cc2")
-  -- end
-
   for i = 1,3 do
     update_waveform(1,live[i].min,live[i].max,128)
+  end
+
+  local default_file = io.open("/home/we/dust/data/cheat_codes_2/names/DEFAULT.cc2", "r")
+  if default_file == nil then
+    menu = 1
+    print("~~~~~> no user defaults defined: save a collection as DEFAULT to establish <~~~~~")
+  else
+    clock.run(function()
+      local preload_bpm = params:get("clock_tempo")
+      clock.sleep(0.25)
+      named_loadstate("/home/we/dust/data/cheat_codes_2/names/DEFAULT.cc2")
+      _norns.key(1,1)
+      _norns.key(1,0)
+      params:set("clock_tempo",preload_bpm)
+    end)
+    -- named_loadstate("/home/we/dust/data/cheat_codes_2/names/DEFAULT.cc2")
   end
 
 end
@@ -2418,7 +2434,7 @@ phase = function(n, x)
       end
     end
     if rec_on ~= 0 and rec[rec_on].state == 1 then
-      if page.loops.sel ~= 4 then
+      if page.loops.sel < 4 then
         local pad = bank[page.loops.sel][bank[page.loops.sel].id]
         update_waveform(1,key1_hold and pad.start_point or live[rec_on].min,key1_hold and pad.end_point or live[rec_on].max,128)
       elseif page.loops.sel == 4 then
@@ -3245,8 +3261,10 @@ function key(n,z)
           elseif page.loops.sel == 5 then
             if page.loops.meta_sel < 4 then
               for i = 1,16 do
-                rightangleslice.end_sixteenths(bank[page.loops.meta_sel][i])
+                rightangleslice.start_end_default(bank[page.loops.meta_sel][i])
               end
+            elseif page.loops.meta_sel == 4 then
+              print("nothing defined here")
             end
           end
           grid_dirty = true
@@ -3660,9 +3678,9 @@ function key(n,z)
             end
           elseif key2_hold then
             if page.loops.meta_sel < 4 then
-              print("should slice")
               for i = 1,16 do
-                rightangleslice.start_end_default(bank[page.loops.meta_sel][i])
+                rightangleslice.end_sixteenths(bank[page.loops.meta_sel][i])
+                -- rightangleslice.start_end_default(bank[page.loops.meta_sel][i])
               end
               key1_hold = false -- right??
             end
@@ -5160,12 +5178,22 @@ function pre_delete(text)
 end
 
 function pre_save(text)
-  if text ~= 'cancel' and text ~= nil then
+  local name_filepath = _path.data.."cheat_codes_2/names/"
+  existing_names = {}
+  for i in io.popen("ls "..name_filepath):lines() do
+    if string.find(i,"%.cc2$") then table.insert(existing_names,name_filepath..i) end
+  end
+  if text ~= 'cancel' and text ~= nil and not tab.contains(existing_names,"/home/we/dust/data/cheat_codes_2/names/"..text..".cc2") then
     collection_save_clock = clock.run(save_screen,text)
     _norns.key(1,1)
     _norns.key(1,0)
-  else
-    print("nothing saved")
+  elseif text == 'cancel' or text == nil then
+    print("canceled, nothing saved")
+  elseif tab.contains(existing_names,"/home/we/dust/data/cheat_codes_2/names/"..text..".cc2") then
+    print(text.." already used, will not overwrite")
+    clock.run(save_fail_screen,text)
+    _norns.key(1,1)
+    _norns.key(1,0)
   end
 end
 
@@ -5192,7 +5220,7 @@ function named_savestate(text)
     os.execute("mkdir " .. dirname)
   end
 
-  local dirnames = {"banks/","params/","arc-rec/","patterns/","step-seq/","arps/","euclid/","rnd/","delays/","rec/","misc/","midi_output_maps/"}
+  local dirnames = {"banks/","params/","arc-rec/","patterns/","step-seq/","arps/","euclid/","rnd/","delays/","rec/","misc/","midi_output_maps/","macros/"}
   for i = 1,#dirnames do
     local directory = _path.data.."cheat_codes_2/collection-"..collection.."/"..dirnames[i]
     if os.rename(directory, directory) == nil then
@@ -5305,6 +5333,17 @@ function named_savestate(text)
       end
     end
   end
+
+  for i = 1,8 do
+    local macro_filepath = _path.data .. "cheat_codes_2/collection-"..selected_coll.."/macros/"..i..".data"
+    local file = io.open(macro_filepath, "w+")
+    if file then
+      io.output(file)
+      tab.save(macro[i].params,macro_filepath)
+      io.close(file)
+    end
+  end
+
   --/ midi_output_maps save
 
 end
@@ -5328,9 +5367,13 @@ function named_loadstate(path)
     io.close(file)
     selected_coll = collection
     collection_loaded = true
+    if collection == "DEFAULT" then
+      clock.run(default_load_screen)
+    else
+      clock.run(load_screen)
+    end
     _norns.key(1,1)
     _norns.key(1,0)
-    clock.run(load_screen)
     screen_dirty = true
     -- all_loaded = false
     params:read(_path.data.."cheat_codes_2/collection-"..collection.."/params/all.pset")
@@ -5396,6 +5439,12 @@ function named_loadstate(path)
 
     arps.restore_collection()
     rytm.restore_collection()
+
+    for i = 1,8 do
+      if tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/macros/"..i..".data") ~= nil then
+        macro[i].params = tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/macros/"..i..".data")
+      end
+    end
 
     for i = 1,2 do
       if tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/delays/delay"..(i == 1 and "L" or "R")..".data") ~= nil then

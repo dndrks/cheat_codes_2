@@ -39,6 +39,17 @@ function encoder_actions.init(n,d)
         if bank[i].focus_hold == false or bank[i].focus_pad == bank[i].id then
           ea.sc[func](i)
         end
+      else
+        if func == "move_start" then
+          ea.move_rec_start(d)
+        elseif func == "move_end" then
+          ea.move_rec_end(d)
+        elseif func == "move_play_window" then
+          ea.move_rec_window(rec[rec.focus],d)
+          if rec.play_segment == rec.focus then
+            ea.sc.move_rec_window(rec[rec.focus])
+          end
+        end
       end
     end
 
@@ -54,7 +65,7 @@ function encoder_actions.init(n,d)
         if key1_hold then
           page.loops.top_option_set[page.loops.sel] = util.clamp(page.loops.top_option_set[page.loops.sel] + d,1,2)
         else
-          page.loops.sel = util.clamp(page.loops.sel+d,1,4)
+          page.loops.sel = util.clamp(page.loops.sel+d,1,5)
         end
       elseif page.loops.frame == 2 then
         local id = page.loops.sel
@@ -251,21 +262,7 @@ function encoder_actions.init(n,d)
         elseif page.loops.frame == 1 and page.loops.top_option_set[id] == 2 then
           params:delta("rec_loop_"..rec.focus,d)
         elseif page.loops.frame == 2 then
-          local lbr = {1,2,4}
-          local res;
-          if params:get("rec_loop_enc_resolution") == 1 then
-            res = key1_hold and d/100 or d/10
-          else
-            res = d/rec_loop_enc_resolution
-          end
-          if d >= 0 and util.round(rec[rec.focus].start_point + ((res)/lbr[params:get("live_buff_rate")]),0.01) < util.round(rec[rec.focus].end_point,0.01) then
-            rec[rec.focus].start_point = util.clamp(rec[rec.focus].start_point+((res)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.focus-1))),(8.9+(8*(rec.focus-1))))
-          elseif d < 0 then
-            rec[rec.focus].start_point = util.clamp(rec[rec.focus].start_point+((res)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.focus-1))),(8.9+(8*(rec.focus-1))))
-          end
-          if rec.play_segment == rec.focus then
-            softcut.loop_start(1, rec[rec.focus].start_point)
-          end
+          ea.move_rec_start(d)
           if key1_hold then
             update_waveform(1,rec[rec.focus].start_point,rec[rec.focus].end_point,128)
           end
@@ -437,21 +434,7 @@ function encoder_actions.init(n,d)
         elseif page.loops.frame == 1 and page.loops.top_option_set[id] == 2 then
           params:delta("live_buff_rate",d)
         elseif page.loops.frame == 2 then
-          local lbr = {1,2,4}
-          local res;
-          if params:get("rec_loop_enc_resolution") == 1 then
-            res = key1_hold and d/100 or d/10
-          else
-            res = d/rec_loop_enc_resolution
-          end
-          if d <= 0 and util.round(rec[rec.focus].start_point,0.01) < util.round(rec[rec.focus].end_point + ((res)/lbr[params:get("live_buff_rate")]),0.01) then
-            rec[rec.focus].end_point = util.clamp(rec[rec.focus].end_point+((res)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.focus-1))),(9+(8*(rec.focus-1))))
-          elseif d > 0 and rec[rec.focus].end_point+((res)/lbr[params:get("live_buff_rate")]) <= 9+(8*(rec.focus-1)) then
-            rec[rec.focus].end_point = util.clamp(rec[rec.focus].end_point+((res)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.focus-1))),(9+(8*(rec.focus-1))))
-          end
-          if rec.play_segment == rec.focus then
-            softcut.loop_end(1, rec[rec.focus].end_point-0.01)
-          end
+          ea.move_rec_end(d)
           if key1_hold then
             update_waveform(1,rec[rec.focus].start_point,rec[rec.focus].end_point,128)
           end
@@ -1145,6 +1128,24 @@ function ea.move_start(target,delta)
   end
 end
 
+function ea.move_rec_start(d)
+  local lbr = {1,2,4}
+  local res;
+  if params:get("rec_loop_enc_resolution") == 1 then
+    res = key1_hold and d/100 or d/10
+  else
+    res = d/rec_loop_enc_resolution
+  end
+  if d >= 0 and util.round(rec[rec.focus].start_point + ((res)/lbr[params:get("live_buff_rate")]),0.01) < util.round(rec[rec.focus].end_point,0.01) then
+    rec[rec.focus].start_point = util.clamp(rec[rec.focus].start_point+((res)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.focus-1))),(8.9+(8*(rec.focus-1))))
+  elseif d < 0 then
+    rec[rec.focus].start_point = util.clamp(rec[rec.focus].start_point+((res)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.focus-1))),(8.9+(8*(rec.focus-1))))
+  end
+  if rec.play_segment == rec.focus then
+    softcut.loop_start(1, rec[rec.focus].start_point)
+  end
+end
+
 function ea.move_end(target,delta)
   local duration = target.mode == 1 and live[target.clip].max or clip[target.clip].max
   local s_p = target.mode == 1 and live[target.clip].min or clip[target.clip].min
@@ -1160,6 +1161,24 @@ function ea.move_end(target,delta)
   end
   if menu == 2 and page.loops.sel < 4 and key1_hold then
     update_waveform(target.mode,target.start_point,target.end_point,128)
+  end
+end
+
+function ea.move_rec_end(d)
+  local lbr = {1,2,4}
+  local res;
+  if params:get("rec_loop_enc_resolution") == 1 then
+    res = key1_hold and d/100 or d/10
+  else
+    res = d/rec_loop_enc_resolution
+  end
+  if d <= 0 and util.round(rec[rec.focus].start_point,0.01) < util.round(rec[rec.focus].end_point + ((res)/lbr[params:get("live_buff_rate")]),0.01) then
+    rec[rec.focus].end_point = util.clamp(rec[rec.focus].end_point+((res)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.focus-1))),(9+(8*(rec.focus-1))))
+  elseif d > 0 and rec[rec.focus].end_point+((res)/lbr[params:get("live_buff_rate")]) <= 9+(8*(rec.focus-1)) then
+    rec[rec.focus].end_point = util.clamp(rec[rec.focus].end_point+((res)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.focus-1))),(9+(8*(rec.focus-1))))
+  end
+  if rec.play_segment == rec.focus then
+    softcut.loop_end(1, rec[rec.focus].end_point-0.01)
   end
 end
 
