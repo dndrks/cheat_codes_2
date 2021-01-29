@@ -20,7 +20,8 @@ function start_up.init()
     softcut.loop(i, 1)
     softcut.rec(1, 1)
     softcut.rec_level(1, 1)
-    softcut.pre_level(1, 0.25)
+    -- softcut.pre_level(1, 0.25)
+    softcut.pre_level(1, 1)
     softcut.position(i, 1)
     softcut.phase_quant(i, 0.01)
     -- softcut.phase_quant(i, 1/15)
@@ -86,22 +87,24 @@ function start_up.init()
   params:add_separator("live")
 
   for i = 1,3 do
-    params:add_option("rec_loop_"..i, "live "..i.." rec behavior", {"loop","1-shot"}, 1)
+    params:add_option("rec_loop_"..i, "live "..i.." rec behavior", {"loop","1-shot","SOS"}, 1)
     params:set_action("rec_loop_"..i,
       function(x)
-        rec[i].loop = 2-x
-        if rec[i].loop == 0 then rec.stopped = true end
-        if rec.focus == i then
-          softcut.loop(1,rec[rec.focus].loop)
-          softcut.position(1,rec[rec.focus].start_point)
-          softcut.rec_level(1,rec[rec.focus].state)
-          if rec[rec.focus].state == 1 then
-            if x == 2 then
-              --rec_state_watcher:start()
-              run_one_shot_rec_clock()
-              softcut.pre_level(1,params:get("live_rec_feedback_"..rec.focus))
-            elseif x == 1 then
-              softcut.pre_level(1,params:get("live_rec_feedback_"..rec.focus))
+        if x < 3 then
+          rec[i].loop = 2-x
+          if rec[i].loop == 0 then rec.stopped = true end
+          if rec.focus == i then
+            softcut.loop(1,rec[rec.focus].loop)
+            softcut.position(1,rec[rec.focus].start_point)
+            softcut.rec_level(1,rec[rec.focus].state)
+            if rec[rec.focus].state == 1 then
+              if x == 2 then
+                --rec_state_watcher:start()
+                run_one_shot_rec_clock()
+                softcut.pre_level(1,params:get("live_rec_feedback_"..rec.focus))
+              elseif x == 1 then
+                softcut.pre_level(1,params:get("live_rec_feedback_"..rec.focus))
+              end
             end
           end
         end
@@ -351,7 +354,8 @@ params:add_separator("ALT key")
     params:add{type='binary',name="random pattern "..i,id='random_pat_'..i,behavior='trigger',
       action=function()
         if all_loaded then
-          if g.device ~= nil then
+          -- if g.device ~= nil then
+          if get_grid_connected() then
             random_grid_pat(i,3)
           else
             random_midi_pat(i)
@@ -367,7 +371,8 @@ params:add_separator("ALT key")
       action=function(x)
         if all_loaded then
           if x == 1 then
-            if g.device ~= nil then
+            -- if g.device ~= nil then
+            if get_grid_connected() then
               random_grid_pat(id,2)
             else
               shuffle_midi_pat(id)

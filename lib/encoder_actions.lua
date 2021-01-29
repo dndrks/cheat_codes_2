@@ -576,7 +576,8 @@ function encoder_actions.init(n,d)
     elseif menu == 7 then
       local page_line = page.time_page_sel
       local pattern_page = page.time_sel
-      local pattern = g.device ~= nil and grid_pat[pattern_page] or midi_pat[pattern_page]
+      -- local pattern = g.device ~= nil and grid_pat[pattern_page] or midi_pat[pattern_page]
+      local pattern = get_grid_connected() and grid_pat[pattern_page] or midi_pat[pattern_page]
       
       if pattern_page < 4 then
         if page_line[pattern_page] == 7 then

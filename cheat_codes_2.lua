@@ -16,6 +16,12 @@ if util.file_exists(_path.code.."namesizer") then
   Namesizer = include 'namesizer/lib/namesizer'
 end
 
+-- if util.file_exists(_path.code.."midigrid") then
+--   midi_grid = include "midigrid/lib/midigrid"
+-- end
+
+local grid = util.file_exists(_path.code.."midigrid") and include "midigrid/lib/midigrid" or grid
+
 -- if util.file_exists(_path.code.."timber") then
 --   Timber = include 'timber/lib/timber_engine'
 --   engine.name = "Timber"
@@ -56,11 +62,45 @@ for i = 1,8 do
 end
 
 function rec_ended_callback()
-  for i = 1,3 do
-    if bank[i].id == 1 then
-      cheat(i,1)
-    end
+  -- for i = 1,3 do
+  --   if bank[i].id == 1 then
+  --     cheat(i,1)
+  --   end
+  -- end
+end
+
+SOS = {}
+
+function SOS.sync_to_recordhead(source,target)
+  -- expects source: x, target: bank[x][y]
+  if target.mode == 1 and target.clip == source then
+    softcut.loop_start(target.bank_id+1,rec[source].start_point)
+    softcut.loop_end(target.bank_id+1,rec[source].end_point)
+    -- softcut.voice_sync(target.bank_id,0,0.1)
+    softcut.position(target.bank_id+1,poll_position_new[1]+0.01)
+    softcut.loop(target.bank_id+1,1)
+    target.start_point = rec[source].start_point
+    target.end_point = rec[source].end_point
+    target.loop = true
   end
+end
+
+function SOS.voice_overwrite(target)
+  -- this should just 1:1 replace the corresponding Live clip
+  softcut.pre_level(target.bank_id+1,1)
+  softcut.rec_level(target.bank_id+1,1)
+  softcut.level_input_cut(1,target.bank_id+1,1)
+  softcut.level_input_cut(2,target.bank_id+1,1)
+  softcut.rec(target.bank_id+1,1)
+end
+
+function SOS.voice_sync(source,target)
+  -- expects source: bank[x][y], target: bank[z][a]
+  softcut.loop_start(target.bank_id+1,source.start_point)
+  softcut.loop_end(target.bank_id+1,source.end_point)
+  softcut.position(target.bank_id+1,poll_position_new[source.bank_id+1])
+  target.start_point = source.start_point
+  target.end_point = source.end_point
 end
 
 function make_a_gif(filename,time)
@@ -825,7 +865,7 @@ function init()
     rec[i].waveform_samples = {}
   end
 
-  params:add_group("GRID",2)
+  params:add_group("GRID",3)
   params:add_option("LED_style","LED style",{"varibright","4-step","grayscale"},1)
   params:set_action("LED_style",
   function()
@@ -843,6 +883,16 @@ function init()
       persistent_state_save()
     end
   end)
+  params:add_option("midigrid?","midigrid?",{"no","yes"},1)
+  params:set_action("midigrid?",
+  function()
+    grid_dirty = true
+    params:set("grid_size",2)
+    if all_loaded then
+      persistent_state_save()
+    end
+  end)
+
 
   params:add_group("CROW INPUTS",4)
   for i = 1,2 do
@@ -3077,7 +3127,6 @@ function toggle_buffer(i,untrue_alt)
   end
   grid_dirty = true
   update_waveform(1,key1_hold and rec[rec.focus].start_point or live[rec.focus].min,key1_hold and rec[rec.focus].end_point or live[rec.focus].max,128)
-
 end
 
 function update_delays()
@@ -3264,7 +3313,7 @@ function key(n,z)
                 rightangleslice.start_end_default(bank[page.loops.meta_sel][i])
               end
             elseif page.loops.meta_sel == 4 then
-              print("nothing defined here")
+              toggle_buffer(rec.focus)
             end
           end
           grid_dirty = true
@@ -3314,9 +3363,10 @@ function key(n,z)
                 bank[id][bank[id].id].start_point = src_pad.start_point
                 bank[id][bank[id].id].end_point = src_pad.end_point
                 rightangleslice.sc.start_end( bank[id][bank[id].id], id )
-                -- if bank[id][bank[id].id].loop then
-                --   softcut.position(id+1, bank[id][bank[id].id].start_point )
-                -- end
+                -- maybe a risk:
+                -- print(id+1,src_pad.bank_id+1)
+                -- softcut.position(id+1,poll_position_new[src_pad.bank_id+1])
+                -- /
               end
             end
           end
@@ -3377,14 +3427,16 @@ function key(n,z)
               end
             end
             if page.time_page_sel[time_nav] == 2 then
-              if g.device ~= nil then
+              -- if g.device ~= nil then
+              if get_grid_connected() then
                 random_grid_pat(id,2)
               else
                 shuffle_midi_pat(id)
               end
             elseif page.time_page_sel[time_nav] == 4 then
               if not key1_hold then
-                if g.device ~= nil then
+                -- if g.device ~= nil then
+                if get_grid_connected() then
                   random_grid_pat(id,3)
                 else
                   random_midi_pat(id)
@@ -3802,6 +3854,16 @@ end
 --GRID
 g = grid.connect()
 
+function get_grid_connected()
+  if g.device == nil and grid == nil then
+    return false
+  elseif g.device ~= nil or (grid ~= nil and params:string("midigrid?") == "yes") then
+    return true
+  else
+    return false
+  end
+end
+
 function grid.add(dev)
   grid_dirty = true
 end
@@ -4027,7 +4089,8 @@ function draw_zilch(x,y,z)
 end
 
 function grid_redraw()
-  if g.device ~= nil then
+  -- if g.device ~= nil then
+  if get_grid_connected() then
     if params:string("grid_size") == "128" then
       g:all(0)
       local edition = params:get("LED_style")
@@ -5105,6 +5168,7 @@ function persistent_state_save()
     io.write(i.."_pad_to_jf_note_velocity: "..params:get(i.."_pad_to_jf_note_velocity").."\n")
   end
   io.write("visual_metro: "..params:get("visual_metro").."\n")
+  io.write("midigrid?: "..params:get("midigrid?").."\n")
   io.close(file)
 end
 

@@ -82,7 +82,11 @@ function main_menu.init()
       elseif page.loops.frame == 2 and page.loops.sel == 5 and key2_hold then
         screen.move(128,10)
         screen.level(15)
-        screen.text_right("E1: <->, K3: chop")
+        if page.loops.meta_sel < 4 then
+          screen.text_right("E1: <->, K3: chop")
+        elseif page.loops.meta_sel == 4 then
+          screen.text_right("E1: <->, K3: rec "..(rec[rec.focus].state == 0 and "on" or "off"))
+        end
       else
         local header = {"a","b","c","L","#"}
         for i = 1,#header do
@@ -1016,7 +1020,8 @@ function main_menu.init()
 
     for i = 1,3 do
       screen.level(page_line == i and 15 or 3)
-      local pattern = g.device ~= nil and grid_pat[i] or midi_pat[i]
+      -- local pattern = g.device ~= nil and grid_pat[i] or midi_pat[i]
+      local pattern = get_grid_connected() and grid_pat[i] or midi_pat[i]
       screen.move(10+(20*(i-1)),25)
       screen.text("P"..i)
       screen.move(5+(20*(i-1)),25)
@@ -1029,7 +1034,8 @@ function main_menu.init()
     end
     
     if page.time_sel < 4 then
-      local pattern = g.device ~= nil and grid_pat[page_line] or midi_pat[page_line]
+      -- local pattern = g.device ~= nil and grid_pat[page_line] or midi_pat[page_line]
+      local pattern = get_grid_connected() and grid_pat[page_line] or midi_pat[page_line]
       if pattern.sync_hold ~= nil and pattern.sync_hold then
         screen.level(3)
         screen.move(45,55)
