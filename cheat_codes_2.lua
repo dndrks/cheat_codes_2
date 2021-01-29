@@ -876,18 +876,21 @@ function init()
   end)
   params:add_option("grid_size","grid size",{"128","64"},1)
   params:set_action("grid_size",
-  function()
+  function(x)
     grid_dirty = true
-    params:set("LED_style",2)
+    if x == 2 then
+      params:set("LED_style",2)
+    end
     if all_loaded then
       persistent_state_save()
     end
   end)
   params:add_option("midigrid?","midigrid?",{"no","yes"},1)
   params:set_action("midigrid?",
-  function()
-    grid_dirty = true
-    params:set("grid_size",2)
+  function(x)
+    if x == 2 then
+      params:set("grid_size",2)
+    end
     if all_loaded then
       persistent_state_save()
     end

@@ -5,9 +5,11 @@ a sample playground for norns
 ### requirements
 
 ### hard requirements:
-- norns (201202 or later)
+
+- norns (210114 or later)
 
 ### encouraged (any or all):
+
 - grid (64 or 128, all editions -- 256 works as well, just half)
 - arc
 - MIDI keyboard, newer Launchpad (X, Pro or Mini MK3), MIDI button box, or OP-Z (see below)
