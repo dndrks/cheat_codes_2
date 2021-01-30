@@ -87,7 +87,8 @@ function start_up.init()
   params:add_separator("live")
 
   for i = 1,3 do
-    params:add_option("rec_loop_"..i, "live "..i.." rec behavior", {"loop","1-shot","SOS"}, 1)
+    -- params:add_option("rec_loop_"..i, "live "..i.." rec behavior", {"loop","1-shot","SOS"}, 1)
+    params:add_option("rec_loop_"..i, "live "..i.." rec behavior", {"loop","1-shot"}, 1)
     params:set_action("rec_loop_"..i,
       function(x)
         if x < 3 then
@@ -285,7 +286,9 @@ function start_up.init()
     end
   )
   
-  params:add_group("mappable control",92)
+  params:add_group("mappable control",99)
+
+  params:add_separator("save MIDI mappings")
 
   params:add{type='binary',name="save mappings",id='save_mappings',behavior='momentary', allow_pmap=false,
   action=function(x)
@@ -463,6 +466,9 @@ params:add_separator("ALT key")
       end
     }
   end
+
+  local last_start_value = {}
+  local last_end_value = {}
   
   for i = 1,3 do
     local banks = {"(a)","(b)","(c)"}
@@ -484,7 +490,7 @@ params:add_separator("ALT key")
     params:set_action("rate "..i, function(x)
       x = util.clamp(1,#macros.pad_rates,util.round(x))
       for p = (grid.alt and 1 or bank[i].id),(grid.alt and 16 or bank[i].id) do
-        bank[i][p].rate = rates[x]
+        bank[i][p].rate = macros.pad_rates[x]
       end
       if bank[i][bank[i].id].pause == false then
         softcut.rate(i+1, bank[i][bank[i].id].rate*bank[i][bank[i].id].offset)
@@ -519,11 +525,58 @@ params:add_separator("ALT key")
       mc.move_start(bank[i][bank[i].id],x)
       if all_loaded then mc.redraw(bank[i][bank[i].id]) end
       end)
+    
+    last_start_value[i] = 0
+
+    params:add_number("start (delta) "..i, "start (delta) "..banks[i],0,127,64)
+    params:set_action("start (delta) "..i, function(x)
+      if all_loaded then
+        local returned = 0
+        if last_start_value[i] > math.floor(x) then
+          -- negative delta
+          returned = -1
+        elseif last_start_value[i] < math.floor(x) then
+          -- positive delta
+          returned = 1
+        end
+        if last_start_value[i] ~= math.floor(x) then
+          local resolution = loop_enc_resolution[i]
+          encoder_actions.move_start(bank[i][bank[i].id],returned/resolution)
+          encoder_actions.sc.move_start(i)
+        end
+        last_start_value[i] = math.floor(x)
+      end
+    end)
+    
     params:add_control("end point "..i, "end point "..banks[i], controlspec.new(0,127,'lin',1,8))
     params:set_action("end point "..i, function(x)
       mc.move_end(bank[i][bank[i].id],x)
       if all_loaded then mc.redraw(bank[i][bank[i].id]) end
       end)
+
+    last_end_value[i] = 0
+
+    params:add_number("end (delta) "..i, "end (delta) "..banks[i],0,127,64)
+    params:set_action("end (delta) "..i, function(x)
+      if all_loaded then
+        local returned = 0
+        if last_end_value[i] > x then
+          -- negative delta
+          returned = -1
+        elseif last_end_value[i] < x then
+          -- positive delta
+          returned = 1
+        end
+        if last_end_value[i] ~= x then
+          local resolution = loop_enc_resolution[i]
+          encoder_actions.move_end(bank[i][bank[i].id],returned/resolution)
+          encoder_actions.sc.move_end(i)
+        end
+        last_end_value[i] = x
+      end
+    end)
+
+    
     params:add{type='binary',name="toggle loop "..banks[i],id="loop_"..i,behavior='momentary',
       action=function(x)
         if x == 1 then

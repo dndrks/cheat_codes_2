@@ -1,6 +1,6 @@
 -- cheat codes 2
 --          a sample playground
--- patch: 201224
+-- rev: 210130
 -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
 -- need help?
 -- please visit:
@@ -15,10 +15,6 @@ end
 if util.file_exists(_path.code.."namesizer") then
   Namesizer = include 'namesizer/lib/namesizer'
 end
-
--- if util.file_exists(_path.code.."midigrid") then
---   midi_grid = include "midigrid/lib/midigrid"
--- end
 
 local grid = util.file_exists(_path.code.."midigrid") and include "midigrid/lib/midigrid" or grid
 
@@ -53,8 +49,6 @@ sharer = include 'lib/sharer'
 macros = include 'lib/macros'
 math.randomseed(os.time())
 variable_fade_time = 0.01
-
---all the .quantize stuff is irrelevant now. it's been replaced by .mode = "quantized"
 
 macro = {}
 for i = 1,8 do
@@ -3166,6 +3160,7 @@ function load_sample(file,sample)
     end
     softcut.buffer_clear_region_channel(2,1+(32*(sample-1)),32)
     softcut.buffer_read_mono(file, 0, 1+(32*(sample-1)),clip[sample].sample_length + 0.05, 1, 2)
+    -- softcut.buffer_read_mono(file, 0, 1+(32*(sample-1)),clip[sample].sample_length, 1, 2)
     clip_table()
     for p = 1,16 do
       for b = 1,3 do
@@ -3183,6 +3178,11 @@ function load_sample(file,sample)
   if params:get("clip "..sample.." sample") ~= file then
     params:set("clip "..sample.." sample", file, 1)
   end
+  -- for i = 1,3 do
+  --   if bank[i][bank[i].id].mode == 2 and bank[i][bank[i].id].clip == sample then
+  --     softcut.position(i+1,bank[i][bank[i].id].start_point)
+  --   end
+  -- end
 end
 
 function save_sample(i)
@@ -3946,7 +3946,6 @@ function scale_loop_points(pad,old_min,old_max,new_min,new_max)
   else
     pad.end_point = pad.start_point + duration
   end
-  print(pad,old_min,old_max,new_min,pad.end_point)
 end
 
 function change_mode(target,old_mode)

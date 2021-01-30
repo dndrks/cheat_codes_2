@@ -82,7 +82,18 @@ function zilchmos.pan_reverse( pad )
 end
 
 function zilchmos.play_toggle( pad )
-  pad.pause = not pad.pause
+  if not bank[which_bank].alt_lock and not grid.alt then
+    pad.pause = not pad.pause
+  else
+    if pad.pad_id == 1 then
+      bank[which_bank][bank[which_bank].id].pause = not bank[which_bank][bank[which_bank].id].pause
+      for i = 1,16 do
+        if i ~= bank[which_bank].id then
+          bank[which_bank][i].pause = bank[which_bank][bank[which_bank].id].pause
+        end
+      end
+    end
+  end
 end
 
 function zilchmos.pan( pad, position )

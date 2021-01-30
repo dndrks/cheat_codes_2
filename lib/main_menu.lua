@@ -1037,6 +1037,17 @@ function main_menu.init()
       -- local pattern = g.device ~= nil and grid_pat[page_line] or midi_pat[page_line]
       local pattern = get_grid_connected() and grid_pat[page_line] or midi_pat[page_line]
       if pattern.sync_hold ~= nil and pattern.sync_hold then
+        local show_me_beats = clock.get_beats() % 4
+        local show_me_frac = math.fmod(clock.get_beats(),1)
+        if show_me_frac <= 0.25 then
+          show_me_frac = 1
+        elseif show_me_frac <= 0.5 then
+          show_me_frac = 2
+        elseif show_me_frac <= 0.75 then
+          show_me_frac = 3
+        else
+          show_me_frac = 4
+        end
         screen.level(3)
         screen.move(45,55)
         screen.font_size(30)

@@ -39,6 +39,11 @@ function Macro:delta_curve(id,d)
   self.params[id].curve = easingFunctions.easingNames[util.clamp(lookup + d,1,max)]
 end
 
+-- ideally, a move_start parameter would have min/max that matches the min/max of the clip the pad's pointed to...
+-- in a generic case, we'd just want to have "delta min/max" and every time it passes a new value, it sends a delta of +/-1 to the param
+-- just a sweet spot of values that send the delta -- so min: 60, max: 64 will send +/- 1 delta to parameter only when macro is between
+---- those positions.
+
 default_vals =
 {
   ["none"] =
@@ -96,7 +101,7 @@ default_vals =
     params_name = "start point"
   , enabled = false
   , destructive = true
-  , min = 1
+  , min = 0
   , max = 127
   , target = 1
   , curve = "linear"
@@ -106,8 +111,40 @@ default_vals =
     params_name = "end point"
   , enabled = false
   , destructive = true
-  , min = 1
+  , min = 0
   , max = 127
+  , target = 1
+  , curve = "linear"
+  }
+, ["start (delta)"] =
+  {
+    params_name = "start (delta)"
+  , enabled = false
+  , destructive = true
+  , min = 0
+  , max = 127
+  , target = 1
+  , curve = "linear"
+  , last_val = 0
+  }
+, ["end (delta)"] =
+  {
+    params_name = "end (delta)"
+  , enabled = false
+  , destructive = true
+  , min = 0
+  , max = 127
+  , target = 1
+  , curve = "linear"
+  , last_val = 0
+  }
+, ["delay div/mult"] =
+  {
+    params_name = "delay div/mult"
+  , enabled = false
+  , destructive = true
+  , min = 1
+  , max = 98
   , target = 1
   , curve = "linear"
   }
@@ -118,16 +155,6 @@ default_vals =
   , destructive = true
   , min = 0
   , max = 30
-  , target = 1
-  , curve = "linear"
-  }
-, ["delay div/mult"] =
-  {
-    params_name = "delay div/mult"
-  , enabled = false
-  , destructive = true
-  , min = 1
-  , max = 98
   , target = 1
   , curve = "linear"
   }
@@ -184,6 +211,7 @@ function Macro:new()
   m.destructive = false
   m.out_min = 0
   m.out_max = 127
+  m.last_val = 0
   m.focus = "none" -- what is this???
   m.control_source = "PARAMS"
   m.enabled = false
@@ -205,20 +233,44 @@ function Macro:pass_value(val)
   local m = self.params
   for i = 1,#m do
     if m[i].params_name ~= "none" then
-      if m[i].enabled == true then
-        local target = m[i].target
-        local name = m[i].params_name..(m[i].destructive and (" ".. target) or (" non-destructive "..target))
-        local id = params.lookup[m[i].params_name.." "..target]
-        local min = m[i].min
-        local max = m[i].max
-        local eased_val = easingFunctions[m[i].curve](val/self.in_max,self.in_min,self.in_max,1)
-        -- local eased_val = easingFunctions[m[i].curve](val/127,0,127,1)
-        local new_val = util.linlin(self.in_min,self.in_max,min,max,eased_val)
-        --easingFunctions[self.curve](x/12000,10,11990,1)
-        if m[i].destructive then
-          params:set(name,new_val)
-        else
-          params:set(name.." non-destructive")
+      if string.find(m[i].params_name, "delta") == nil then
+        if m[i].enabled == true then
+          local target = m[i].target
+          local name = m[i].params_name..(m[i].destructive and (" ".. target) or (" non-destructive "..target))
+          local id = params.lookup[m[i].params_name.." "..target]
+          local min = m[i].min
+          local max = m[i].max
+          local eased_val = easingFunctions[m[i].curve](val/self.in_max,self.in_min,self.in_max,1)
+          local new_val = util.linlin(self.in_min,self.in_max,min,max,eased_val)
+          if m[i].destructive then
+            params:set(name,new_val)
+          else
+            params:set(name.." non-destructive")
+          end
+        end
+      elseif string.find(m[i].params_name, "delta") ~= nil then
+        if m[i].enabled == true then
+          if (val >= m[i].min and val <= m[i].max) or (val <= m[i].min and val >= m[i].max) then
+            local target = m[i].target
+            local name = m[i].params_name..(m[i].destructive and (" ".. target) or (" non-destructive "..target))
+            local id = params.lookup[m[i].params_name.." "..target]
+            local min = 0
+            local max = 127
+            local eased_val = easingFunctions[m[i].curve](val/self.in_max,self.in_min,self.in_max,1)
+            local new_val = util.linlin(self.in_min,self.in_max,min,max,eased_val)
+            if m[i].destructive then
+              -- params:set(name,math.floor(new_val))
+              if val == m[i].min then
+                params:set(name,64)
+              else
+                -- params:delta(name,val - m[i].last_val)
+                params:delta(name,(val >= m[i].min and val <= m[i].max) and (val - m[i].last_val) or (m[i].last_val - val))
+              end
+            else
+              params:set(name.." non-destructive")
+            end
+          end
+          m[i].last_val = val
         end
       end
     end
@@ -234,8 +286,10 @@ local parameter_names =
 , "filter tilt"
 , "start point"
 , "end point"
-, "delay free time"
+, "start (delta)"
+, "end (delta)"
 , "delay div/mult"
+, "delay free time"
 , "delay rate"
 , "delay pan"
 , "macro"
