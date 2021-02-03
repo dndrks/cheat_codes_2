@@ -303,7 +303,7 @@ params:add_separator("ALT key")
   params:add{type='binary',name="ALT key",id='alt_key',behavior='momentary',
   action=function(x)
     if all_loaded then
-      grid.alt = x == 1 and true or false
+      grid_alt = x == 1 and true or false
       grid_dirty = true
     end
   end
@@ -325,13 +325,13 @@ params:add_separator("ALT key")
       action=function()
         if all_loaded then
             if midi_pat[i].rec == 0 then
-              if midi_pat[i].count == 0 and not grid.alt then
+              if midi_pat[i].count == 0 and not grid_alt then
                 midi_pattern_recording(i,"start")
                 print("recording midi pattern")
-              elseif midi_pat[i].count ~= 0 and not grid.alt then
+              elseif midi_pat[i].count ~= 0 and not grid_alt then
                 toggle_midi_pattern_overdub(i)
                 print("overdubbing midi pattern")
-              elseif grid.alt then
+              elseif grid_alt then
                 print("erasing midi pattern")
                 if midi_pat[i].count > 0 then
                   midi_pat[i]:rec_stop()
@@ -343,7 +343,7 @@ params:add_separator("ALT key")
                 end
               end
             elseif midi_pat[i].rec == 1 then
-              if not grid.alt then
+              if not grid_alt then
                 midi_pattern_recording(i,"stop")
               end
             end
@@ -392,7 +392,7 @@ params:add_separator("ALT key")
     params:add{type='binary',name="rec live "..i,id='rec_live_'..i,behavior='trigger',
       action=function()
         if all_loaded then
-          if not grid.alt then
+          if not grid_alt then
             toggle_buffer(i)
           else
             buff_flush()
@@ -489,7 +489,7 @@ params:add_separator("ALT key")
     params:add_option("rate "..i, "rate "..banks[i], macros.pad_rates, tab.key(macros.pad_rates,macros.default_pad_rate))
     params:set_action("rate "..i, function(x)
       x = util.clamp(1,#macros.pad_rates,util.round(x))
-      for p = (grid.alt and 1 or bank[i].id),(grid.alt and 16 or bank[i].id) do
+      for p = (grid_alt and 1 or bank[i].id),(grid_alt and 16 or bank[i].id) do
         bank[i][p].rate = macros.pad_rates[x]
       end
       if bank[i][bank[i].id].pause == false then
@@ -501,7 +501,7 @@ params:add_separator("ALT key")
     params:add_control("pan "..i, "pan "..banks[i], controlspec.new(-1,1,'lin',0.01,0))
     params:set_action("pan "..i, function(x)
       softcut.pan(i+1,x)
-      for p = (grid.alt and 1 or bank[i].id),(grid.alt and 16 or bank[i].id) do
+      for p = (grid_alt and 1 or bank[i].id),(grid_alt and 16 or bank[i].id) do
         bank[i][p].pan = x
       end
       screen_dirty = true
@@ -510,7 +510,7 @@ params:add_separator("ALT key")
     params:set_action("pan slew "..i, function(x) softcut.pan_slew_time(i+1,x) end)
     params:add_control("level "..i, "pad level "..banks[i], controlspec.new(0,127,'lin',1,64))
     params:set_action("level "..i, function(x)
-      for p = (grid.alt and 1 or bank[i].id),(grid.alt and 16 or bank[i].id) do
+      for p = (grid_alt and 1 or bank[i].id),(grid_alt and 16 or bank[i].id) do
         mc.adjust_pad_level(bank[i][p],x)
       end
       if all_loaded then mc.redraw(bank[i][bank[i].id]) end

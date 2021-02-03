@@ -17,8 +17,6 @@ function arp_actions.init(target)
     arp[target].start_point = 1
     arp[target].end_point = 1
     arp[target].down = 0
-    -- arp[target].clock = clock.run(arp_actions.arpeggiate, target)
-    -- clock.run(arp_actions.arpeggiate, target)
     arp[target].retrigger = true
     arp_clock[target] = clock.run(arp_actions.arpeggiate,target)
 end
@@ -50,31 +48,82 @@ function arp_actions.add(target, value)
     end
 end
 
+function arp_actions.toggle(state,target)
+  local i = target
+  if state == "start" then
+    local arp_start =
+    {
+      ["fwd"] = arp[i].start_point - 1
+    , ["bkwd"] = arp[i].end_point + 1
+    , ["pend"] = arp[i].start_point
+    , ["rnd"] = arp[i].start_point - 1
+    }
+    arp[i].step = arp_start[arp[i].mode]
+    arp[i].pause = false
+    arp[i].playing = true
+    if arp[i].mode == "pend" then
+      arp_direction[i] = "negative"
+    end
+  elseif state == "stop" then
+    arp[i].pause = true
+    arp[i].playing = false
+  end
+end
+
+function arp_actions.iter(target)
+  -- if transport.is_running then
+  --   if #arp[target].notes > 0 then
+  --     if arp[target].pause == false then
+  --       if arp[target].mode == "fwd" then
+  --         arp_actions.forward(target)
+  --       elseif arp[target].mode == "bkwd" then
+  --         arp_actions.backward(target)
+  --       elseif arp[target].mode == "pend" then
+  --         arp_actions.pendulum(target)
+  --       elseif arp[target].mode == "rnd" then
+  --         arp_actions.random(target)
+  --       end
+  --       arp[target].playing = true
+  --       if target == 2 then print("arp: "..clock.get_beats()) end
+  --       arp_actions.cheat(target,arp[target].step)
+  --       grid_dirty = true
+  --     else
+  --       arp[target].playing = false
+  --     end
+  --   else
+  --     arp[target].playing = false
+  --   end
+  --   if menu ~= 1 then screen_dirty = true end
+  -- end
+end
+
 function arp_actions.arpeggiate(target)
   while true do
-    -- clock.sync(arp[target].time)
     clock.sync(bank[target][bank[target].id].arp_time)
-    if #arp[target].notes > 0 then
-      if arp[target].pause == false then
-        if arp[target].mode == "fwd" then
-          arp_actions.forward(target)
-        elseif arp[target].mode == "bkwd" then
-          arp_actions.backward(target)
-        elseif arp[target].mode == "pend" then
-          arp_actions.pendulum(target)
-        elseif arp[target].mode == "rnd" then
-          arp_actions.random(target)
+    if transport.is_running then
+      if #arp[target].notes > 0 then
+        if arp[target].pause == false then
+          if arp[target].step == 1 then print("arp "..target, clock.get_beats()) end
+          if menu ~= 1 then screen_dirty = true end
+          if arp[target].mode == "fwd" then
+            arp_actions.forward(target)
+          elseif arp[target].mode == "bkwd" then
+            arp_actions.backward(target)
+          elseif arp[target].mode == "pend" then
+            arp_actions.pendulum(target)
+          elseif arp[target].mode == "rnd" then
+            arp_actions.random(target)
+          end
+          arp[target].playing = true
+          arp_actions.cheat(target,arp[target].step)
+          grid_dirty = true
+        else
+          arp[target].playing = false
         end
-        arp[target].playing = true
-        arp_actions.cheat(target,arp[target].step)
-        grid_dirty = true
       else
         arp[target].playing = false
       end
-    else
-      arp[target].playing = false
     end
-    if menu ~= 1 then screen_dirty = true end
   end
 end
 
@@ -172,12 +221,6 @@ function arp_actions.loadstate()
   for i = 1,3 do
     if tab.load(_path.data .. "cheat_codes_2/arp/collection-"..collection.."/"..i..".data") ~= nil then
       arp[i] = tab.load(_path.data .. "cheat_codes_2/arp/collection-"..collection.."/"..i..".data")
-      -- arp[i].clock = nil
-      -- arp[i].pause = true
-      -- arp[i].playing = false
-      -- if arp[i].playing then
-      --   arp[i].clock = clock.run(arp_actions.arpeggiate, i)
-      -- end
     end
   end
 end

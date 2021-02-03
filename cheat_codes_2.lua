@@ -47,6 +47,8 @@ rytm = include 'lib/euclid'
 mc = include 'lib/midicheat'
 sharer = include 'lib/sharer'
 macros = include 'lib/macros'
+lattice = require("lattice")
+transport = include 'lib/transport'
 math.randomseed(os.time())
 variable_fade_time = 0.01
 
@@ -762,10 +764,10 @@ end
 key2_hold = false
 key2_hold_and_modify = false
 
-grid.alt = false
+grid_alt = false
 -- grid.alt_pp = 0
 -- grid.alt_delay = false
-grid.loop_mod = 0
+grid_loop_mod = 0
 
 local function crow_flush()
   crow.reset()
@@ -859,7 +861,7 @@ function init()
     rec[i].waveform_samples = {}
   end
 
-  params:add_group("GRID",3)
+  params:add_group("GRID",5)
   params:add_option("LED_style","LED style",{"varibright","4-step","grayscale"},1)
   params:set_action("LED_style",
   function()
@@ -889,6 +891,10 @@ function init()
       persistent_state_save()
     end
   end)
+
+  params:add_separator("hotkey config")
+
+  params:add_option("alt_corner","alt+corner action",{"none","tap-tempo","transport toggle"},1)
 
 
   params:add_group("CROW INPUTS",4)
@@ -1764,6 +1770,7 @@ function init()
   end
 
   rytm.init()
+  transport.init()
 
   if g then grid_dirty = true end
   
@@ -2986,7 +2993,7 @@ function easing_slew(i)
   slew_counter[i].slewedVal = slew_counter[i].ease(slew_counter[i].current,slew_counter[i].beginVal,slew_counter[i].change,slew_counter[i].duration)
   slew_counter[i].slewedQ = slew_counter[i].ease(slew_counter[i].current,slew_counter[i].beginQ,slew_counter[i].changeQ,slew_counter[i].duration)
   slew_counter[i].current = slew_counter[i].current + 0.01
-  if grid.alt then
+  if grid_alt then
     try_tilt_process(i,bank[i].id,slew_counter[i].slewedVal,slew_counter[i].slewedQ)
   else
     for j = 1,16 do
@@ -3091,15 +3098,15 @@ function toggle_buffer(i,untrue_alt)
 
   rec.focus = i
   
-  if rec[rec.focus].loop == 0 and not grid.alt then
+  if rec[rec.focus].loop == 0 and not grid_alt then
     if rec[rec.focus].state == 0 then
       run_one_shot_rec_clock() -- this runs only if not recording
     elseif rec[rec.focus].state == 1 and rec_state_watcher.is_running then -- can have both conditions, right?
       cancel_one_shot_rec_clock()
     end
-  elseif rec[rec.focus].loop == 0 and (grid.alt and untrue_alt ~= nil) then
+  elseif rec[rec.focus].loop == 0 and (grid_alt and untrue_alt ~= nil) then
     -- buff_flush()
-  elseif rec[rec.focus].loop == 1 and not grid.alt then
+  elseif rec[rec.focus].loop == 1 and not grid_alt then
     if one_shot_rec_clock ~= nil then
       cancel_one_shot_rec_clock()
     end
@@ -3270,6 +3277,8 @@ function key(n,z)
   if menu == "load screen" then
   elseif menu == "macro_config" then
     macros.key(n,z)
+  elseif menu == "MIDI_config" then
+    mc.key(n,z)
   elseif menu == "overwrite screen" then
     if z == 1 then
       clock.cancel(collection_overwrite_clock)
@@ -3550,14 +3559,6 @@ function key(n,z)
         else
           page.rnd_page_section = page.rnd_page_section == 1 and 2 or 1
         end
-      elseif menu == "MIDI_config" then
-        if key1_hold then
-          -- maybe all inherit?
-        else
-          local d = {"header", "notes", "ccs"}
-          local old_focus = tab.key(d,page.midi_focus)
-          page.midi_focus = d[util.wrap(old_focus + 1,1,3)]
-        end
       end
 
 
@@ -3615,9 +3616,6 @@ function key(n,z)
       elseif menu == 8 then
         if key1_hold then
           rytm.reset_all_patterns()
-          -- for i = 1,3 do
-          --   rytm.reset_pattern(i)
-          -- end
         else
           menu = 1
         end
@@ -3695,12 +3693,6 @@ function key(n,z)
       elseif menu == 9 then
         key1_hold = true
         page.arp_alt[page.arp_page_sel] = not page.arp_alt[page.arp_page_sel]
-      elseif menu == "MIDI_config" then
-        key1_hold = true
-        if page.midi_focus ~= "header" then
-          pre_k1_midi_page = page.midi_focus
-          page.midi_focus = "alt"
-        end
       else
         key1_hold = true
         if menu == 2 and page.loops.sel < 4 and page.loops.frame == 2 and not key2_hold then
@@ -3815,12 +3807,6 @@ function key(n,z)
           else
             key1_hold_and_modify = false
           end
-        end
-      elseif menu == "MIDI_config" then
-        key1_hold = false
-        if page.midi_focus ~= "header" then
-          if pre_k1_midi_page == nil then pre_k1_midi_page = page.midi_focus end
-          page.midi_focus = pre_k1_midi_page
         end
       end
     end
@@ -4226,7 +4212,7 @@ function grid_redraw()
           g:led(e.x, e.y,led_maps["zilchmo_on"][edition])
         end
         
-        g:led(16,8,(grid.alt and led_maps["alt_on"][edition] or led_maps["alt_off"][edition]))
+        g:led(16,8,(grid_alt and led_maps["alt_on"][edition] or led_maps["alt_off"][edition]))
         
         for i = 1,3 do
           
@@ -4272,7 +4258,7 @@ function grid_redraw()
 
             g:led(xval,yval-j,led_maps["step_no_data"][edition])
 
-            if grid.loop_mod == 1 then
+            if grid_loop_mod == 1 then
               g:led(xval,yval-step_seq[i].start_point,led_maps["step_loops"][edition])
               g:led(xval,yval-step_seq[i].end_point,led_maps["step_loops"][edition])
             end
@@ -4326,8 +4312,8 @@ function grid_redraw()
           end
         end
         
-        g:led(16,8,grid.alt and led_maps["alt_on"][edition] or led_maps["alt_off"][edition])
-        g:led(16,2,grid.loop_mod == 1 and led_maps["loop_mod_hi"][edition] or led_maps["loop_mod_lo"][edition])
+        g:led(16,8,grid_alt and led_maps["alt_on"][edition] or led_maps["alt_off"][edition])
+        g:led(16,2,grid_loop_mod == 1 and led_maps["loop_mod_hi"][edition] or led_maps["loop_mod_lo"][edition])
       
       elseif grid_page == 2 then
         -- delay page!
@@ -4529,7 +4515,7 @@ function grid_redraw()
 
 
 
-        g:led(16,8,(grid.alt and led_maps["alt_on"][edition] or led_maps["alt_off"][edition]))
+        g:led(16,8,(grid_alt and led_maps["alt_on"][edition] or led_maps["alt_off"][edition]))
 
         for j = 1,4 do
           g:led(15,math.abs(j-7),zilch_leds[4][delay_grid.bank][j] == 1 and led_maps["zilchmo_on"][edition] or led_maps["zilchmo_off"][edition])
@@ -4681,7 +4667,7 @@ function grid_redraw()
         -- end
         
         --alt
-        g:led(1,8,(grid.alt and led_maps["alt_on"][edition] or led_maps["alt_off"][edition]))
+        g:led(1,8,(grid_alt and led_maps["alt_on"][edition] or led_maps["alt_off"][edition]))
           
         local focused = bank[bank_64].focus_hold == false and bank[bank_64][bank[bank_64].id] or bank[bank_64][bank[bank_64].focus_pad]
         --clips + stuff
@@ -5100,7 +5086,7 @@ arc_redraw = function()
     end
     if arc_param[i] == 5 then
       local level_to_led;
-      if key1_hold or bank[i].alt_lock or grid.alt then
+      if key1_hold or bank[i].alt_lock or grid_alt then
         level_to_led = bank[i].global_level
       else
         level_to_led = bank[i][bank[i].id].level
@@ -5165,9 +5151,12 @@ function persistent_state_save()
     io.write(i.."_pad_to_midi_note_root_octave: "..params:get(i.."_pad_to_midi_note_root_octave").."\n")
   end
   io.write("global_pad_to_jf_note_enabled: "..params:get("global_pad_to_jf_note_enabled").."\n")
+  io.write("global_pad_to_wsyn_note_enabled: "..params:get("global_pad_to_wsyn_note_enabled").."\n")
   for i = 1,3 do
     io.write(i.."_pad_to_jf_note_enabled: "..params:get(i.."_pad_to_jf_note_enabled").."\n")
     io.write(i.."_pad_to_jf_note_velocity: "..params:get(i.."_pad_to_jf_note_velocity").."\n")
+    io.write(i.."_pad_to_wsyn_note_enabled: "..params:get(i.."_pad_to_wsyn_note_enabled").."\n")
+    io.write(i.."_pad_to_wsyn_note_velocity: "..params:get(i.."_pad_to_wsyn_note_velocity").."\n")
   end
   io.write("visual_metro: "..params:get("visual_metro").."\n")
   io.write("midigrid?: "..params:get("midigrid?").."\n")
@@ -5576,7 +5565,7 @@ function test_save(i)
   pattern_saver[i].active = true
   clock.sleep(1)
   -- if pattern_saver[i].active then
-    if not grid.alt then
+    if not grid_alt then
       if grid_pat[i].count > 0 and grid_pat[i].rec == 0 then
         copy_entire_pattern(i)
         save_pattern(i,pattern_saver[i].save_slot+8*(i-1),"pattern")

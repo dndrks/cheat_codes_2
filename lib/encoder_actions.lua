@@ -814,7 +814,7 @@ function encoder_actions.init(n,d)
       focused_pad = bank[n].id
     end
     if page.levels_sel == 0 then
-      if key1_hold or grid.alt or bank[n].alt_lock then
+      if key1_hold or grid_alt or bank[n].alt_lock then
         bank[n].global_level = util.clamp(bank[n].global_level+d/10,0,2)
       else
         bank[n][focused_pad].level = util.clamp(bank[n][focused_pad].level+d/10,0,2)
@@ -829,7 +829,7 @@ function encoder_actions.init(n,d)
       end
     elseif page.levels_sel == 1 then
 
-      if key1_hold or grid.alt or bank[n].alt_lock then
+      if key1_hold or grid_alt or bank[n].alt_lock then
         for j = 1,16 do
           local pre_enveloped = bank[n][j].enveloped
           local pre_mode = bank[n][j].envelope_mode
@@ -870,7 +870,7 @@ function encoder_actions.init(n,d)
       end
 
     elseif page.levels_sel == 2 then
-      if key1_hold or grid.alt or bank[n].alt_lock then
+      if key1_hold or grid_alt or bank[n].alt_lock then
         for j = 1,16 do
           if bank[n][j].enveloped then
             if d>0 then
@@ -897,7 +897,7 @@ function encoder_actions.init(n,d)
       end
 
     elseif page.levels_sel == 3 then
-      if key1_hold or grid.alt or bank[n].alt_lock then
+      if key1_hold or grid_alt or bank[n].alt_lock then
         for j = 1,16 do
           if bank[n][j].enveloped then
             bank[n][j].envelope_time = util.explin(0.1,60,0.1,60,bank[n][j].envelope_time)
@@ -917,7 +917,7 @@ function encoder_actions.init(n,d)
   end
   if menu == 4 then
     local focused_pad = nil
-    if key1_hold or grid.alt then
+    if key1_hold or grid_alt then
       for i = 1,16 do
         bank[n][i].pan = util.clamp(bank[n][i].pan+d/10,-1,1)
       end
@@ -934,7 +934,7 @@ function encoder_actions.init(n,d)
     local filt_page = page.filtering_sel + 1
     if filt_page == 1 then
       if bank[n][bank[n].id].filter_type == 4 then
-        if key1_hold or grid.alt then
+        if key1_hold or grid_alt then
           if slew_counter[n] ~= nil then
             slew_counter[n].prev_tilt = bank[n][bank[n].id].tilt
           end
@@ -954,7 +954,7 @@ function encoder_actions.init(n,d)
         end
       end
     elseif filt_page == 2 then
-      if key1_hold or grid.alt then
+      if key1_hold or grid_alt then
         bank[n][bank[n].id].tilt_ease_time = util.clamp(bank[n][bank[n].id].tilt_ease_time+(d/1), 5, 15000)
       else
         for j = 1,16 do
@@ -964,7 +964,7 @@ function encoder_actions.init(n,d)
     elseif filt_page == 3 then
       params:delta("filter "..n.." q",d*-1)
     elseif filt_page == 4 then
-      if key1_hold or grid.alt then
+      if key1_hold or grid_alt then
         bank[n][bank[n].id].tilt_ease_type = util.clamp(bank[n][bank[n].id].tilt_ease_type+d, 1, 2)
       else
         for j = 1,16 do

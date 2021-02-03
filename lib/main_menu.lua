@@ -193,7 +193,7 @@ function main_menu.init()
         --   which_pad = bank[page.loops.sel].focus_pad
         -- end
 
-        if not grid.alt then
+        if not grid_alt then
           local loops_to_screen_options = {"a", "b", "c"}
           screen.text(loops_to_screen_options[page.loops.sel]..""..which_pad)
           screen.move(0,50)
@@ -568,7 +568,7 @@ function main_menu.init()
         --   if key1_hold then
         --     local id = page.loops_sel+1
         --     local focused_pad = nil
-        --     if grid.alt == 1 then
+        --     if grid_alt == 1 then
         --       screen.move(0,20)
         --       screen.level(6)
         --       screen.text("(grid-ALT sets offset for all)")
@@ -581,7 +581,7 @@ function main_menu.init()
         --         focused_pad = bank[i].focus_pad
         --       end
         --       if page.loops_sel == i-1 then
-        --         if page.loops_sel < 3 and focused_pad == 16 and grid.alt == 0 then
+        --         if page.loops_sel < 3 and focused_pad == 16 and grid_alt == 0 then
         --           screen.move(0,20)
         --           screen.level(6)
         --           screen.text("(pad 16 overwrites bank!)")
@@ -595,7 +595,7 @@ function main_menu.init()
         --       end
         --       screen.move(0,20+(i*10))
         --       screen.level(page.loops_sel == i-1 and 15 or 3)
-        --       if grid.alt == 0 then
+        --       if grid_alt == 0 then
         --         local loops_to_screen_options = {"a", "b", "c"}
         --         screen.text(loops_to_screen_options[i]..""..focused_pad)
         --       else
@@ -733,13 +733,13 @@ function main_menu.init()
       screen.move(10+(i*20),64)
       screen.level(level_options[page.levels_sel+1] == "levels" and 15 or 3)
       local level_to_screen_options = {"a", "b", "c"}
-      if key1_hold or grid.alt or bank[i].alt_lock then
+      if key1_hold or grid_alt or bank[i].alt_lock then
         screen.text("("..level_to_screen_options[i]..")")
       else
         screen.text(level_to_screen_options[i]..""..focused_pad)
       end
       screen.move(35+(20*(i-1)),57)
-      local level_to_screen = ((key1_hold or grid.alt or bank[i].alt_lock) and util.linlin(0,2,0,40,bank[i].global_level) or util.linlin(0,2,0,40,bank[i][focused_pad].level))
+      local level_to_screen = ((key1_hold or grid_alt or bank[i].alt_lock) and util.linlin(0,2,0,40,bank[i].global_level) or util.linlin(0,2,0,40,bank[i][focused_pad].level))
       screen.line(35+(20*(i-1)),57-level_to_screen)
       screen.close()
       screen.stroke()
@@ -766,7 +766,7 @@ function main_menu.init()
       -- screen.text("time")
       screen.move(85,34+((i)*10))
       local envelope_to_screen_options = {"a", "b", "c"}
-      if key1_hold or grid.alt or bank[i].alt_lock then
+      if key1_hold or grid_alt or bank[i].alt_lock then
         screen.text("("..envelope_to_screen_options[i]..")")
       else
         screen.text(envelope_to_screen_options[i]..""..focused_pad)
@@ -799,7 +799,7 @@ function main_menu.init()
       screen.move(pan_to_screen,35+(10*(i-1)))
       local pan_to_screen_options = {"a", "b", "c"}
       screen.level(15)
-      if key1_hold or grid.alt then
+      if key1_hold or grid_alt then
         screen.text("("..pan_to_screen_options[i]..")")
       else
         screen.text(pan_to_screen_options[i]..""..focused_pad)
@@ -814,7 +814,7 @@ function main_menu.init()
       screen.move(17+((i-1)*45),20)
       screen.level(15)
       local filters_to_screen_options = {"a", "b", "c"}
-      if key1_hold or grid.alt then
+      if key1_hold or grid_alt then
         screen.text_center(filters_to_screen_options[i]..""..bank[i].id)
       else
         screen.text_center("("..filters_to_screen_options[i]..")")
