@@ -1400,6 +1400,9 @@ function init()
   end
 
   mc.pad_to_note_params()
+
+  params:add_separator("meta")
+
   macros:add_params()
 
   crow_init()
@@ -1441,6 +1444,11 @@ function init()
     midi_dev[j].event = function(data)
       screen_dirty = true
       local d = midi.to_msg(data)
+      if d.type == "start" then
+        if transport.vars.midi_transport_in[j] then
+          clock.transport.start()
+        end
+      end
       if params:get("midi_control_enabled") == 2 and j == params:get("midi_control_device") then
         local received_ch;
         -- local b_ch = {}
@@ -2256,7 +2264,7 @@ end
 function globally_clocked()
   while true do
     clock.sync(1/4)
-    if menu == 7 then
+    if menu == 7 or menu == "transport_config" then
       if menu ~= 1 then screen_dirty = true end
     end
     update_tempo()
@@ -3279,6 +3287,8 @@ function key(n,z)
     macros.key(n,z)
   elseif menu == "MIDI_config" then
     mc.key(n,z)
+  elseif menu == "transport_config" then
+    transport.key(n,z)
   elseif menu == "overwrite screen" then
     if z == 1 then
       clock.cancel(collection_overwrite_clock)
@@ -3567,6 +3577,8 @@ function key(n,z)
         if key1_hold then
           menu = "macro_config"
           key1_hold = false
+        else
+          menu = "transport_config"
         end
       elseif (menu == 2 or menu == 7) and not key1_hold then
         -- key2_hold = true
@@ -5160,6 +5172,13 @@ function persistent_state_save()
   end
   io.write("visual_metro: "..params:get("visual_metro").."\n")
   io.write("midigrid?: "..params:get("midigrid?").."\n")
+  io.write("start_transport_at_launch: "..params:get("start_transport_at_launch").."\n")
+  for i = 1,16 do
+    io.write("port_"..i.."_start_stop_out: "..params:get("port_"..i.."_start_stop_out").."\n")
+  end
+  for i = 1,3 do
+    io.write("start_arp_"..i.."_at_launch: "..params:get("start_arp_"..i.."_at_launch").."\n")
+  end
   io.close(file)
 end
 
@@ -5184,6 +5203,17 @@ function persistent_state_restore()
   end
   all_loaded = true
   mc.init()
+  clock.run(
+    function()
+      clock.sleep(1)
+      if (params:string("start_transport_at_launch") == "yes" and params:string("clock_source") == "internal") then
+        clock.transport.start()
+      end
+    end
+  )
+  -- if (params:string("start_transport_at_launch") == "yes" and params:string("clock_source") ~= "internal") then -- why not internal????
+  --   clock.transport.start()
+  -- end
 end
 
 function named_overwrite(path)

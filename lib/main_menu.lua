@@ -62,7 +62,7 @@ function main_menu.init()
     screen.level(3)
     screen.text("loops")
     if params:get("visual_metro") == 1 then
-      metronome(28,10)
+      metronome(28,10,15,3)
     end
 
     local screen_levels =
@@ -1002,7 +1002,7 @@ function main_menu.init()
     screen.text("timing")
     screen.move(66,10)
     screen.text_center("bpm: "..params:get("clock_tempo"))
-    metronome(110,10)
+    metronome(110,10,15,3)
     screen.level(10)
     screen.move(10,30)
     screen.line(123,30)
@@ -1477,6 +1477,8 @@ function main_menu.init()
     mc.midi_config_redraw(page.midi_bank)
   elseif menu == "macro_config" then
     macros.UI()
+  elseif menu == "transport_config" then
+    transport.UI()
   else
     screen.move(62,30)
     -- screen.text_center("hi!")
@@ -1588,7 +1590,7 @@ function canceled_delete()
   screen_dirty = true
 end
 
-function metronome(x,y)
+function metronome(x,y,hi,lo)
   local show_me_beats = clock.get_beats() % 4
   local show_me_frac = math.fmod(clock.get_beats(),1)
   if show_me_frac <= 0.25 then
@@ -1601,12 +1603,16 @@ function metronome(x,y)
     show_me_frac = 4
   end
   if show_me_frac == 1 then
-    screen.level(15)
+    screen.level(hi)
   else
-    screen.level(3)
+    screen.level(lo)
   end
   screen.move(x,y)
-  screen.text((math.modf(show_me_beats)+1).."."..show_me_frac)
+  if transport.is_running then
+    screen.text((math.modf(show_me_beats)+1).."."..show_me_frac)
+  else
+    screen.text("X.X")
+  end
 end
 
 return main_menu

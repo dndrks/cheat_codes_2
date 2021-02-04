@@ -9,6 +9,8 @@ function encoder_actions.init(n,d)
     macros.enc(n,d)
   elseif menu == "MIDI_config" then
     mc.midi_config_enc(n,d)
+  elseif menu == "transport_config" then
+    transport.enc(n,d)
   end
 
   local function returns_target(i)
