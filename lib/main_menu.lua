@@ -1410,14 +1410,51 @@ function main_menu.init()
       screen.font_size(8)
     end
   elseif menu == "default load screen" then
-    if dots == "zilchmo time!" then
-      screen.font_size(18)
-      screen.move(62,35)
-    else
-      screen.font_size(8)
-      screen.move(62,30)
+    -- if dots == "zilchmo time!" then
+    --   screen.font_size(18)
+    --   screen.move(62,35)
+    -- else
+    --   screen.font_size(8)
+    --   screen.move(62,30)
+    -- end
+    -- screen.text_center(dots)
+    if dots == "tossin' the dough" then
+      for i = 1,4 do
+        screen.rect(30+(10*i),42,5,5)
+        screen.fill()
+      end
+    elseif dots == "spreadin' the sauce" then
+      for i = 1,4 do
+        screen.rect(30+(10*i),42,5,5)
+      end
+      for i = 1,3 do
+        screen.rect(40+(10*i),32,5,5)
+      end
+      screen.fill()
+    elseif dots == "sprinklin' cheese" then
+      for i = 1,4 do
+        screen.rect(30+(10*i),42,5,5)
+      end
+      for i = 1,3 do
+        screen.rect(40+(10*i),32,5,5)
+      end
+      for i = 1,2 do
+        screen.rect(50+(10*i),22,5,5)
+      end
+      screen.fill()
+    elseif dots == "zilchmo time!" then
+      for i = 1,4 do
+        screen.rect(30+(10*i),42,5,5)
+      end
+      for i = 1,3 do
+        screen.rect(40+(10*i),32,5,5)
+      end
+      for i = 1,2 do
+        screen.rect(50+(10*i),22,5,5)
+      end
+      screen.rect(60+(10),12,5,5)
+      screen.fill()
     end
-    screen.text_center(dots)
     screen.font_size(8)
   elseif menu == "save screen" then
     screen.level(15)
@@ -1523,6 +1560,7 @@ function default_load_screen()
   screen_dirty = true
   clock.sleep(0.75)
   menu = 1
+  splash_done = true
   screen_dirty = true
 end
 

@@ -26,7 +26,6 @@ function euclid.trig(target)
     end
     grid_dirty = true
     if menu ~= 1 then screen_dirty = true end
-    if target == 1 then print("euclid: "..clock.get_beats()) end
   end
 end
 

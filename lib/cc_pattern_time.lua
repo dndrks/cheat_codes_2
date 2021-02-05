@@ -104,7 +104,7 @@ function pattern:rec_stop()
     else
       print("no events recorded")
     end
-  else print("not recording")
+  -- else print("not recording")
   end
   --NEW STUFF
   if self.rec_clock ~= nil then
@@ -335,7 +335,7 @@ function pattern:restore_defaults()
   self:clear()
   self.mode = "unquantized"
   if self.name == "midi_pat[1]" or self.name == "midi_pat[2]" or self.name == "midi_pat[3]" then
-    print("resetting midi_pat")
+    -- print("resetting midi_pat")
     self.tightened_start = 0
     self.auto_snap = 0
     self.quantize = 0

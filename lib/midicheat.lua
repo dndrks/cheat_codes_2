@@ -516,10 +516,7 @@ function mc.pad_to_note_params()
     params:set_action(i.."_pad_to_wsyn_note_enabled",function()
       if all_loaded then persistent_state_save() end
     end)
-    params:add_number(i.."_pad_to_wsyn_note_velocity", "w/syn velocity",1,10,5)
-    params:set_action(i.."_pad_to_wsyn_note_velocity",function()
-      if all_loaded then persistent_state_save() end
-    end)
+    params:add_number(i.."_pad_to_wsyn_note_velocity", "w/syn velocity",0,127,60)
     mc.build_scale(i)
     -- params:add_number(i.."_pad_to_midi_note_duration", "note length",1,16,1)
   end
@@ -715,7 +712,7 @@ function mc.midi_note_from_pad(b,p)
   if params:string("global_pad_to_wsyn_note_enabled") == "yes" then
     if params:string(b.."_pad_to_wsyn_note_enabled") ~= "none" then
       local note_num = mc_notes[b][p] - 60
-      local velocity = params:get(b.."_pad_to_wsyn_note_velocity")
+      local velocity = util.linlin(0,127,0,5,params:get(b.."_pad_to_wsyn_note_velocity"))
       if params:string(b.."_pad_to_wsyn_note_enabled") == "any" then
         -- crow.ii.jf.play_note(note_num/12,velocity)
         crow.send("ii.wsyn.play_note(" .. note_num/12 .. "," .. velocity .. ")")

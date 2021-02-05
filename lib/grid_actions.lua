@@ -290,9 +290,8 @@ function grid_actions.init(x,y,z)
       
       if x == 16 and y == 8 then
         grid_alt = z == 1 and true or false
-        arc.alt = z
+        arc_alt = z
         if menu ~= 1 then screen_dirty = true end
-        butts = z == 1 and true or false
       end
       
       if y == 4 or y == 3 or y == 2 then
@@ -604,7 +603,7 @@ function grid_actions.init(x,y,z)
           if x == 16 and y == i and z == 1 then
             if step_seq[8-i].held == 0 then
               if grid_alt then
-                clock.run(reset_step_seq,y)
+                clock.run(reset_step_seq,8-y)
                 -- step_seq[8-i].current_step = step_seq[8-i].start_point
                 -- step_seq[8-i].meta_step = 1
                 -- step_seq[8-i].meta_meta_step = 1
@@ -621,14 +620,14 @@ function grid_actions.init(x,y,z)
         end
 
         function reset_step_seq(i) -- TODO: funky on some...
-          step_seq[8-i].active = (step_seq[8-i].active + 1)%2
-          step_seq[8-i].meta_meta_step = 1
-          step_seq[8-i].meta_step = 1
-          step_seq[8-i].current_step = step_seq[8-i].start_point
+          step_seq[i].active = (step_seq[i].active + 1)%2
+          step_seq[i].meta_meta_step = 1
+          step_seq[i].meta_step = 1
+          step_seq[i].current_step = step_seq[i].start_point
           clock.sync(1)
-          step_seq[8-i].active = (step_seq[8-i].active + 1)%2
-          if step_seq[8-i].active == 1 and step_seq[8-i][step_seq[8-i].current_step].assigned_to ~= 0 then
-            test_load(step_seq[8-i][step_seq[8-i].current_step].assigned_to+(((8-i)-1)*8),8-i)
+          step_seq[i].active = (step_seq[i].active + 1)%2
+          if step_seq[i].active == 1 and step_seq[i][step_seq[i].current_step].assigned_to ~= 0 then
+            test_load(step_seq[i][step_seq[i].current_step].assigned_to+(((i)-1)*8),i)
           end
         end
         
@@ -895,8 +894,7 @@ function grid_actions.init(x,y,z)
         if not grid_alt then
           grid_page = 1
         else
-          -- grid_page = 2
-          -- grid_alt = true
+         
         end
       elseif grid_page == 1 then
         if not grid_alt then
@@ -1157,7 +1155,7 @@ function grid_actions.init(x,y,z)
       
       if x == 1 and y == 8 then
         grid_alt = z == 1 and true or false
-        arc.alt = z
+        arc_alt = z
         if menu ~= 1 then screen_dirty = true end
       end
       

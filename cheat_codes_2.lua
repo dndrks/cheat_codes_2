@@ -51,6 +51,7 @@ lattice = require("lattice")
 transport = include 'lib/transport'
 math.randomseed(os.time())
 variable_fade_time = 0.01
+splash_done = true
 
 macro = {}
 for i = 1,8 do
@@ -894,7 +895,8 @@ function init()
 
   params:add_separator("hotkey config")
 
-  params:add_option("alt_corner","alt+corner action",{"none","tap-tempo","transport toggle"},1)
+  params:add_option("alt_corner","alt+corner action",{"none","tap-tempo","transport"},1)
+  params:hide("alt_corner")
 
 
   params:add_group("CROW INPUTS",4)
@@ -1183,6 +1185,10 @@ function init()
     page.macros.param_sel[i] = 1
     page.macros.edit_focus[i] = 1
   end
+
+  page.transport = {}
+  page.transport.foci = {"TRANSPORT","TAP-TEMPO"}
+  page.transport.focus = "TRANSPORT"
   
   del.init()
   
@@ -1454,6 +1460,16 @@ function init()
         if transport.vars.midi_transport_in[j] then
           if params:string("clock_source") == "internal" then
             transport.stop_from_midi_message()
+          end
+        end
+      elseif d.type == "continue" then
+        if transport.vars.midi_transport_in[j] then
+          if params:string("clock_source") == "internal" then
+            if transport.is_running then
+              transport.stop_from_midi_message()
+            else
+              transport.start_from_midi_message()
+            end
           end
         end
       end
@@ -2271,6 +2287,37 @@ function compare_loop_resolution(target,x)
   if menu ~= 1 then screen_dirty = true end
 end
 
+function step_sequence_super_clock()
+  while true do
+    clock.sync(1/4)
+    for i = 1,3 do
+      step_sequence(i)
+    end
+  end
+end
+
+function toggle_meta(state,target)
+  if state == "start" then
+    if step_sequence_clock ~= nil then
+      clock.cancel(step_sequence_clock)
+    end
+    for target = 1,3 do
+      step_seq[target].meta_meta_step = 1
+      step_seq[target].meta_step = 1
+      step_seq[target].current_step = step_seq[target].start_point
+      if step_seq[target].active == 1 and step_seq[target][step_seq[target].current_step].assigned_to ~= 0 then
+        test_load(step_seq[target][step_seq[target].current_step].assigned_to+(((target)-1)*8),target)
+      end
+    end
+    step_sequence_clock = clock.run(step_sequence_super_clock)
+    screen.dirty = true
+  elseif state == "stop" then
+    if step_sequence_clock ~= nil then
+      clock.cancel(step_sequence_clock)
+    end
+  end
+end
+
 function globally_clocked()
   while true do
     clock.sync(1/4)
@@ -2280,7 +2327,7 @@ function globally_clocked()
     update_tempo()
     -- step_sequence()
     for i = 1,3 do
-      step_sequence(i)
+      -- step_sequence(i)
       if grid_pat[i].led == nil then
         grid_pat[i].led = 0
         grid_dirty = true
@@ -2518,20 +2565,6 @@ phase = function(n, x)
   end
 end
 
-tap = 0
-deltatap = 1
-
-function tap_tempo()
-  local last = params:get("clock_tempo")
-  local tap1 = util.time()
-  deltatap = tap1 - tap
-  tap = tap1
-  local t_t = 60/deltatap
-  if t_t >= 1 and deltatap <=3 then
-    params:set("clock_tempo", math.floor(t_t+0.5))
-  end
-end
-
 function update_tempo()
   local pre_bpm = bpm
   params:set("bpm", util.round(clock.get_tempo()))
@@ -2561,6 +2594,7 @@ function rec_count()
 end
 
 function step_sequence(i)
+  if transport.is_running then
   -- for i = 1,3 do
     if step_seq[i].active == 1 then
       step_seq[i].meta_step = step_seq[i].meta_step + 1
@@ -2581,6 +2615,7 @@ function step_sequence(i)
       end
     end
   -- end
+  end
   if grid_page == 1 then
     grid_dirty = true
   end
@@ -3446,7 +3481,6 @@ function key(n,z)
         local id = time_nav
         if key2_hold then
           key2_hold_and_modify = true
-          tap_tempo()
         else
           if time_nav >= 1 and time_nav < 4 then
             if g.device == nil and grid_pat[time_nav].count == 0 then
@@ -5449,6 +5483,7 @@ end
 function named_loadstate(path)
   local file = io.open(path, "r")
   if file then
+    splash_done = false
     print("loading...")
     for j = 1,3 do
       for k = 1,7 do
@@ -6228,7 +6263,7 @@ function load_arc_pattern(which)
     io.close(file)
     grid_dirty = true
   else
-    print("no arc patterns to load")
+    -- print("no arc patterns to load")
   end
 end
 
