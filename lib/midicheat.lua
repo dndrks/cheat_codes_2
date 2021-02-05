@@ -465,9 +465,12 @@ function mc.pad_to_note_params()
 
   params:add_option("global_pad_to_wsyn_note_enabled","w/syn output?",{"no","yes"},1)
   params:set_action("global_pad_to_wsyn_note_enabled",function()
+    wsyn_init()
+    print("initializing wsyn")
     if all_loaded then
       persistent_state_save()
       wsyn_init()
+      print("initializing wsyn")
     end
   end)
   
@@ -534,7 +537,7 @@ function mc.pad_to_note_params()
   }
   params:add {
     type = "control",
-    id = "wsyn_curve",
+    id = "w/curve",
     name = "Curve",
     controlspec = controlspec.new(-5, 5, "lin", 0, 0, "v"),
     action = function(val) 
@@ -543,7 +546,7 @@ function mc.pad_to_note_params()
   }
   params:add {
     type = "control",
-    id = "wsyn_ramp",
+    id = "w/ramp",
     name = "Ramp",
     controlspec = controlspec.new(-5, 5, "lin", 0, 0, "v"),
     action = function(val) 
@@ -552,7 +555,7 @@ function mc.pad_to_note_params()
   }
   params:add {
     type = "control",
-    id = "wsyn_fm_index",
+    id = "w/fm index",
     name = "FM index",
     controlspec = controlspec.new(0, 5, "lin", 0, 0, "v"),
     action = function(val) 
@@ -561,7 +564,7 @@ function mc.pad_to_note_params()
   }
   params:add {
     type = "control",
-    id = "wsyn_fm_env",
+    id = "w/fm env",
     name = "FM env",
     controlspec = controlspec.new(-5, 5, "lin", 0, 0, "v"),
     action = function(val) 
@@ -570,25 +573,25 @@ function mc.pad_to_note_params()
   }
   params:add {
     type = "control",
-    id = "wsyn_fm_ratio_num",
+    id = "w/fm num",
     name = "FM ratio numerator",
     controlspec = controlspec.new(1, 20, "lin", 1, 2),
     action = function(val) 
-      crow.send("ii.wsyn.fm_ratio(" .. val .. "," .. params:get("wsyn_fm_ratio_den") .. ")")
+      crow.send("ii.wsyn.fm_ratio(" .. val .. "," .. params:get("w/fm den") .. ")")
     end
   }
   params:add {
     type = "control",
-    id = "wsyn_fm_ratio_den",
+    id = "w/fm den",
     name = "FM ratio denominator",
     controlspec = controlspec.new(1, 20, "lin", 1, 1),
     action = function(val) 
-      crow.send("ii.wsyn.fm_ratio(" .. params:get("wsyn_fm_ratio_num") .. "," .. val .. ")")
+      crow.send("ii.wsyn.fm_ratio(" .. params:get("w/fm num") .. "," .. val .. ")")
     end
   }
   params:add {
     type = "control",
-    id = "wsyn_lpg_time",
+    id = "w/lpg time",
     name = "LPG time",
     controlspec = controlspec.new(-5, 5, "lin", 0, 0, "v"),
     action = function(val) 
@@ -597,7 +600,7 @@ function mc.pad_to_note_params()
   }
   params:add {
     type = "control",
-    id = "wsyn_lpg_symmetry",
+    id = "w/lpg symm",
     name = "LPG symmetry",
     controlspec = controlspec.new(-5, 5, "lin", 0, 0, "v"),
     action = function(val) 
@@ -610,26 +613,26 @@ function mc.pad_to_note_params()
     name = "Randomize",
     allow_pmap = false,
     action = function()
-      params:set("wsyn_curve", math.random(-50, 50)/10)
-      params:set("wsyn_ramp", math.random(-50, 50)/10)
-      params:set("wsyn_fm_index", math.random(0, 50)/10)
-      params:set("wsyn_fm_env", math.random(-50, 50)/10)
-      params:set("wsyn_fm_ratio_num", math.random(1, 20))
-      params:set("wsyn_fm_ratio_den", math.random(1, 20))
-      params:set("wsyn_lpg_time", math.random(-50, 50)/10)
-      params:set("wsyn_lpg_symmetry", math.random(-50, 50)/10)
+      params:set("w/curve", math.random(-50, 50)/10)
+      params:set("w/ramp", math.random(-50, 50)/10)
+      params:set("w/fm index", math.random(0, 50)/10)
+      params:set("w/fm env", math.random(-50, 50)/10)
+      params:set("w/fm num", math.random(1, 20))
+      params:set("w/fm den", math.random(1, 20))
+      params:set("w/lpg time", math.random(-50, 50)/10)
+      params:set("w/lpg symm", math.random(-50, 50)/10)
     end
   }
 
   function wsyn_init()
     crow.send("ii.wsyn.ar_mode(" .. (params:get("wsyn_ar_mode") - 1) .. ")") 
-    crow.send("ii.wsyn.curve(" .. params:get("wsyn_curve") .. ")") 
-    crow.send("ii.wsyn.ramp(" .. params:get("wsyn_ramp") .. ")") 
-    crow.send("ii.wsyn.fm_index(" .. params:get("wsyn_fm_index") .. ")") 
-    crow.send("ii.wsyn.fm_env(" .. params:get("wsyn_fm_env") .. ")")
-    crow.send("ii.wsyn.fm_ratio("..params:get("wsyn_fm_ratio_num")..","..params:get("wsyn_fm_ratio_den")..")")
-    crow.send("ii.wsyn.lpg_time(" .. params:get("wsyn_lpg_time") .. ")") 
-    crow.send("ii.wsyn.lpg_symmetry(" .. params:get("wsyn_lpg_symmetry") .. ")") 
+    crow.send("ii.wsyn.curve(" .. params:get("w/curve") .. ")") 
+    crow.send("ii.wsyn.ramp(" .. params:get("w/ramp") .. ")") 
+    crow.send("ii.wsyn.fm_index(" .. params:get("w/fm index") .. ")") 
+    crow.send("ii.wsyn.fm_env(" .. params:get("w/fm env") .. ")")
+    crow.send("ii.wsyn.fm_ratio("..params:get("w/fm num")..","..params:get("w/fm den")..")")
+    crow.send("ii.wsyn.lpg_time(" .. params:get("w/lpg time") .. ")") 
+    crow.send("ii.wsyn.lpg_symmetry(" .. params:get("w/lpg symm") .. ")") 
   end
 
 end

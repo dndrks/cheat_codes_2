@@ -188,6 +188,86 @@ default_vals =
   , target = 1
   , curve = "linear"
   }
+, ["w/curve"] =
+  {
+    params_name = "w/curve"
+  , enabled = false
+  , destructive = true
+  , min = -5
+  , max = 5
+  , target = 1
+  , curve = "linear"
+  }
+, ["w/ramp"] =
+  {
+    params_name = "w/ramp"
+  , enabled = false
+  , destructive = true
+  , min = -5
+  , max = 5
+  , target = 1
+  , curve = "linear"
+  }
+, ["w/fm index"] =
+  {
+    params_name = "w/fm index"
+  , enabled = false
+  , destructive = true
+  , min = 0
+  , max = 5
+  , target = 1
+  , curve = "linear"
+  }
+, ["w/fm env"] =
+  {
+    params_name = "w/fm env"
+  , enabled = false
+  , destructive = true
+  , min = 0
+  , max = 5
+  , target = 1
+  , curve = "linear"
+  }
+, ["w/fm num"] =
+  {
+    params_name = "w/fm num"
+  , enabled = false
+  , destructive = true
+  , min = 1
+  , max = 20
+  , target = 1
+  , curve = "linear"
+  }
+, ["w/fm den"] =
+  {
+    params_name = "w/fm den"
+  , enabled = false
+  , destructive = true
+  , min = 1
+  , max = 20
+  , target = 1
+  , curve = "linear"
+  }
+, ["w/lpg time"] =
+  {
+    params_name = "w/lpg time"
+  , enabled = false
+  , destructive = true
+  , min = -5
+  , max = 5
+  , target = 1
+  , curve = "linear"
+  }
+, ["w/lpg symm"] =
+  {
+    params_name = "w/lpg symm"
+  , enabled = false
+  , destructive = true
+  , min = -5
+  , max = 5
+  , target = 1
+  , curve = "linear"
+  }
 }
 
 function Macro:generate_default_params()
@@ -236,8 +316,13 @@ function Macro:pass_value(val)
       if string.find(m[i].params_name, "delta") == nil then
         if m[i].enabled == true then
           local target = m[i].target
-          local name = m[i].params_name..(m[i].destructive and (" ".. target) or (" non-destructive "..target))
-          local id = params.lookup[m[i].params_name.." "..target]
+          -- local name = m[i].params_name..(m[i].destructive and (" ".. target) or (" non-destructive "..target))
+          local name;
+          if string.find(m[i].params_name, "w/") == nil then
+            name = m[i].params_name..(m[i].destructive and (" ".. target) or (" non-destructive "..target))
+          else
+            name = m[i].params_name
+          end
           local min = m[i].min
           local max = m[i].max
           local eased_val = easingFunctions[m[i].curve](val/self.in_max,self.in_min,self.in_max,1)
@@ -253,7 +338,6 @@ function Macro:pass_value(val)
           if (val >= m[i].min and val <= m[i].max) or (val <= m[i].min and val >= m[i].max) then
             local target = m[i].target
             local name = m[i].params_name..(m[i].destructive and (" ".. target) or (" non-destructive "..target))
-            local id = params.lookup[m[i].params_name.." "..target]
             local min = 0
             local max = 127
             local eased_val = easingFunctions[m[i].curve](val/self.in_max,self.in_min,self.in_max,1)
@@ -293,6 +377,14 @@ local parameter_names =
 , "delay rate"
 , "delay pan"
 , "macro"
+, "w/curve"
+, "w/ramp"
+, "w/fm index"
+, "w/fm env"
+, "w/fm num"
+, "w/fm den"
+, "w/lpg time"
+, "w/lpg symm"
 }
 
 function Macro:cycle_entry(d,id)
@@ -412,7 +504,12 @@ function Container:convert(prm,trg,indx,controlspec_type)
   -- prm = macro[x].params[y]
   local lookup_name = prm.params_name
   if lookup_name ~= "none" then
-    local id = params.lookup[lookup_name.." "..trg]
+    local id;
+    if string.find(lookup_name,"w/") == nil then
+      id = params.lookup[lookup_name.." "..trg]
+    else
+      id = params.lookup[lookup_name]
+    end
     -- params types
     -- 1 = number
     -- 2 = options
@@ -429,7 +526,7 @@ function Container:convert(prm,trg,indx,controlspec_type)
         return tonumber(string.format("%.4g",util.round(prm.max,0.1)))
       end
     end
-  else
+  elseif lookup_name == "none" then
     return "-"
   end
 end
@@ -447,6 +544,8 @@ function get_target_display_name(prm,trg)
     else
       return "R"
     end
+  elseif string.find(prm,"w/")~= nil then
+    return "w/synth"
   else
     return bank_names[trg]
   end

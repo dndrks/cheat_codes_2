@@ -4,6 +4,7 @@ local tp = transport
 
 transport.vars = {["midi_transport_out"] = {}, ["midi_transport_in"] = {}}
 for i = 1,16 do
+  tp.vars.midi_transport_out[i] = false
   tp.vars.midi_transport_in[i] = false
 end
 transport.cycle = 0
@@ -17,27 +18,36 @@ function tp.init()
     end
   end
   refresh_params_vports()
-  params:add_group("transport settings",39)
+  params:add_group("transport settings",42)
   params:add_separator("auto-start")
   params:add_option("start_transport_at_launch", "start at launch?",{"no","yes"},1)
-  params:set_action("start_transport_at_launch", function()
-    if all_loaded then
-      persistent_state_save()
-    end
-  end)
+  -- params:set_action("start_transport_at_launch", function()
+  --   if all_loaded then
+  --     persistent_state_save()
+  --   end
+  -- end)
   local banks = {"a","b","c"}
   for i = 1,3 do
     params:add_option("start_arp_"..i.."_at_launch", "auto-start arp "..banks[i].."?",{"no","yes"},2)
+  end
+  for i = 1,3 do
+    params:add_option("start_pat_"..i.."_at_launch", "auto-start pat "..banks[i].."?",{"no","yes"},2)
   end
   params:add_separator("send MIDI transport?")
   for i = 1,16 do
     params:add_option("port_"..i.."_start_stop_out", vports[i],{"no","yes"},1)
     params:set_action("port_"..i.."_start_stop_out", function(x)
-      if x == 2 then
-        if all_loaded then
-          persistent_state_save()
-        end
-        table.insert(tp.vars.midi_transport_out,i)
+      -- if all_loaded then
+      --   persistent_state_save()
+      -- end
+      -- table.insert(tp.vars.midi_transport_out,i)
+      if x == 1 then
+        tp.vars.midi_transport_out[i] = false
+      else
+        tp.vars.midi_transport_out[i] = true
+      end
+      if x == 2 and params:get("port_"..i.."_start_stop_in") == 2 then
+        params:set("port_"..i.."_start_stop_in", 1)
       end
     end)
   end
@@ -45,11 +55,16 @@ function tp.init()
   for i = 1,16 do
     params:add_option("port_"..i.."_start_stop_in", vports[i],{"no","yes"},1)
     params:set_action("port_"..i.."_start_stop_in", function(x)
-      if x == 2 then
-        if all_loaded then
-          persistent_state_save()
-        end
+      -- if all_loaded then
+      --   persistent_state_save()
+      -- end
+      if x == 1 then
+        tp.vars.midi_transport_in[i] = false
+      else
         tp.vars.midi_transport_in[i] = true
+      end
+      if x == 2 and params:get("port_"..i.."_start_stop_out") == 2 then
+        params:set("port_"..i.."_start_stop_out", 1)
       end
     end)
   end
@@ -64,7 +79,26 @@ function tp.start()
   -- set stuff to 1 and start them
   clock.sync(4)
   print("starting at "..clock.get_beats())
-  -- tp.lattice:start()
+  tp.is_running = true
+  transport.status_icon.status = 4
+  for i = 1,3 do
+    if #arp[i].notes > 0 and params:string("start_arp_"..i.."_at_launch") == "yes" then
+      arps.toggle("start",i)
+    end
+    if #grid_pat[i].event > 0 and params:string("start_pat_"..i.."_at_launch") == "yes" then
+      grid_pat[i]:start()
+    end
+    print(clock.get_beats())
+  end
+  rytm.toggle("start")
+  tp.start_midi()
+  grid_dirty = true
+  tp.start_clock = nil
+  tp.pending = false
+end
+
+function tp.start_from_midi_message()
+  print("starting at "..clock.get_beats())
   tp.is_running = true
   transport.status_icon.status = 4
   for i = 1,3 do
@@ -74,11 +108,9 @@ function tp.start()
     if #grid_pat[i].event > 0 then
       grid_pat[i]:start()
     end
-    -- rytm.toggle("start",i)
     print(clock.get_beats())
   end
   rytm.toggle("start")
-  tp.start_midi()-- midi_dev[4]:start()
   grid_dirty = true
   tp.start_clock = nil
   tp.pending = false
@@ -87,7 +119,9 @@ end
 function tp.start_midi()
   if params:string("clock_source") ~= "midi" then
     for k,v in pairs(tp.vars.midi_transport_out) do
-      midi_dev[v]:start()
+      if v == true then
+        midi_dev[k]:start()
+      end
     end
   end
 end
@@ -95,7 +129,9 @@ end
 function tp.stop_midi()
   if params:string("clock_source") ~= "midi" then
     for k,v in pairs(tp.vars.midi_transport_out) do
-      midi_dev[v]:stop()
+      if v == true then
+        midi_dev[k]:stop()
+      end
     end
   end
 end
@@ -119,11 +155,30 @@ function tp.stop()
   grid_dirty = true
 end
 
+function tp.stop_from_midi_message()
+  print("stopping at "..clock.get_beats())
+  for i = 1,3 do
+    if #arp[i].notes > 0 then
+      arps.toggle("stop",i)
+    end
+    if #grid_pat[i].event > 0 then
+      grid_pat[i]:stop()
+    end
+    -- rytm.toggle("stop",i)
+  end
+  rytm.toggle("stop")
+  tp.is_running = false
+  transport.status_icon.status = 1
+  grid_dirty = true
+end
+
 --one option is to just start `clock.internal.start(-4)`
 -- if the clock source is midi, it'll automatically try to do clock.transport.start() and ...stop()
 
 function clock.transport.start()
-  if params:string("start_transport_at_launch") == "yes" or tp.cycle > 0 then
+  print("starting clock...", tp.cycle)
+  if all_loaded and tp.cycle > 0 then
+    print("for real..")
     if tp.start_clock == nil then
       tp.start_clock = clock.run(tp.start)
       tp.pending = true

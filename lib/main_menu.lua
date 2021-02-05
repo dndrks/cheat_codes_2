@@ -1486,9 +1486,12 @@ function main_menu.init()
 end
 
 function save_screen(text)
-  menu = "save screen"
   named_savestate(text)
-  clock.sleep(0.75)
+  menu = "save screen"
+  -- screen_dirty = true
+  clock.sleep(0.05)
+  screen_dirty = true
+  clock.sleep(1)
   menu = 1
   screen_dirty = true
 end
@@ -1504,14 +1507,20 @@ function save_fail_screen(text)
 end
 
 function default_load_screen()
+  _norns.key(1,1)
+  _norns.key(1,0)
   dots = "tossin' the dough"
   menu = "default load screen"
   clock.sleep(0.5)
+  screen_dirty = true
   dots = "spreadin' the sauce"
+  screen_dirty = true
   clock.sleep(0.5)
   dots = "sprinklin' cheese"
+  screen_dirty = true
   clock.sleep(0.5)
   dots = "zilchmo time!"
+  screen_dirty = true
   clock.sleep(0.75)
   menu = 1
   screen_dirty = true
@@ -1521,10 +1530,13 @@ function load_screen()
   dots = "..."
   menu = "load screen"
   clock.sleep(0.33)
+  screen_dirty = true
   dots = ".."
   clock.sleep(0.33)
+  screen_dirty = true
   dots = "."
   clock.sleep(0.33)
+  screen_dirty = true
   dots = "loaded!"
   clock.sleep(0.75)
   menu = 1
@@ -1549,11 +1561,15 @@ end
 function overwrite_screen(text)
   dots = "3"
   menu = "overwrite screen"
+  screen_dirty = true
   clock.sleep(0.75)
+  screen_dirty = true
   dots = "2"
   clock.sleep(0.75)
+  screen_dirty = true
   dots = "1"
   clock.sleep(0.75)
+  screen_dirty = true
   dots = "saved!"
   clock.sleep(0.33)
   named_savestate(text)
@@ -1571,12 +1587,16 @@ end
 function delete_screen(text)
   dots = "3"
   menu = "delete screen"
+  screen_dirty = true
   clock.sleep(0.75)
   dots = "2"
+  screen_dirty = true
   clock.sleep(0.75)
   dots = "1"
+  screen_dirty = true
   clock.sleep(0.75)
   dots = "(x_x)"
+  screen_dirty = true
   clock.sleep(0.33)
   named_delete(text)
   menu = 1
@@ -1585,6 +1605,7 @@ end
 
 function canceled_delete()
   menu = "canceled delete screen"
+  screen_dirty = true
   clock.sleep(0.75)
   menu = 1
   screen_dirty = true

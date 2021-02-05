@@ -1446,7 +1446,15 @@ function init()
       local d = midi.to_msg(data)
       if d.type == "start" then
         if transport.vars.midi_transport_in[j] then
-          clock.transport.start()
+          if params:string("clock_source") == "internal" then
+            transport.start_from_midi_message()
+          end
+        end
+      elseif d.type == "stop" then
+        if transport.vars.midi_transport_in[j] then
+          if params:string("clock_source") == "internal" then
+            transport.stop_from_midi_message()
+          end
         end
       end
       if params:get("midi_control_enabled") == 2 and j == params:get("midi_control_device") then
@@ -1809,8 +1817,8 @@ function init()
       local preload_bpm = params:get("clock_tempo")
       clock.sleep(0.25)
       named_loadstate("/home/we/dust/data/cheat_codes_2/names/DEFAULT.cc2")
-      _norns.key(1,1)
-      _norns.key(1,0)
+      -- _norns.key(1,1)
+      -- _norns.key(1,0)
       params:set("clock_tempo",preload_bpm)
     end)
     -- named_loadstate("/home/we/dust/data/cheat_codes_2/names/DEFAULT.cc2")
@@ -2181,7 +2189,9 @@ function run_one_shot_rec_clock()
 end
 
 function cancel_one_shot_rec_clock()
-  clock.cancel(one_shot_rec_clock)
+  if one_shot_rec_clock ~= nil then
+    clock.cancel(one_shot_rec_clock)
+  end
   rec[rec.focus].state = 0
   rec_state_watcher:stop()
   rec.stopped = true
@@ -3263,7 +3273,9 @@ function midi_pattern_recording(id,state)
       start_pattern(midi_pat[id])
     elseif midi_pat[id].playmode == 2 then
       midi_pat[id]:rec_stop()
-      clock.cancel(midi_pat[id].rec_clock)
+      if midi_pat[id].rec_clock ~= nil then
+        clock.cancel(midi_pat[id].rec_clock)
+      end
       if midi_pat[id].clock ~= nil then
         print("clearing clock: "..midi_pat[id].clock)
         clock.cancel(midi_pat[id].clock)
@@ -3291,13 +3303,17 @@ function key(n,z)
     transport.key(n,z)
   elseif menu == "overwrite screen" then
     if z == 1 then
-      clock.cancel(collection_overwrite_clock)
+      if collection_overwrite_clock ~= nil then
+        clock.cancel(collection_overwrite_clock)
+      end
       print("cancel overwrite")
       clock.run(canceled_save)
     end
   elseif menu == "delete screen" then
     if z == 1 then
-      clock.cancel(collection_delete_clock)
+      if collection_delete_clock ~= nil then
+        clock.cancel(collection_delete_clock)
+      end
       print("cancel delete")
       clock.run(canceled_delete)
     end
@@ -5211,9 +5227,6 @@ function persistent_state_restore()
       end
     end
   )
-  -- if (params:string("start_transport_at_launch") == "yes" and params:string("clock_source") ~= "internal") then -- why not internal????
-  --   clock.transport.start()
-  -- end
 end
 
 function named_overwrite(path)
@@ -5518,7 +5531,7 @@ function named_loadstate(path)
         rytm.track[i] = tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/euclid/euclid"..i..".data")
         if rytm.track[i].runner == nil then rytm.track[i].runner = 0 end
       end
-      rytm.reset_all_patterns()
+      -- rytm.reset_all_patterns() -- i deactivated this so that a loaded pattern wouldn't auto-start euclid...
       
     end
 
@@ -5588,6 +5601,15 @@ function named_loadstate(path)
     
 
   grid_dirty = true
+
+  -- clock.run(
+  --   function()
+  --     clock.sleep(1)
+  --     if (params:string("start_transport_at_launch") == "yes" and params:string("clock_source") == "internal") then
+  --       clock.transport.start()
+  --     end
+  --   end
+  -- )
 
 end
 

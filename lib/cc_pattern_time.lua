@@ -306,7 +306,9 @@ function pattern:stop()
     if self.mode == "unquantized" then
       self.metro:stop()
     else
-      clock.cancel(self.quant_clock)
+      if self.quant_clock ~= nil then
+        clock.cancel(self.quant_clock)
+      end
       self.quant_clock = nil
     end
     

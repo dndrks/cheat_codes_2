@@ -129,7 +129,9 @@ function euclid.reset_all_patterns()
     clock.run(function()
       euclid.all_restarting = true
       clock.sync(4)
-      clock.cancel(euclid.clock)
+      if euclid.clock ~= nil then
+        clock.cancel(euclid.clock)
+      end
       for target = 1,3 do
         euclid.trig(target)
         euclid.reset[target] = true
@@ -147,10 +149,9 @@ end
 function euclid.toggle(state)
   if state == "start" then
     euclid.all_restarting = true
-    -- if euclid.clock ~= nil then
-    --   print("euclid clock not nil")
-    --   clock.cancel(euclid.clock)
-    -- end
+    if euclid.clock ~= nil then
+      clock.cancel(euclid.clock)
+    end
     for target = 1,3 do
       euclid.trig(target)
       euclid.reset[target] = true
@@ -162,7 +163,9 @@ function euclid.toggle(state)
     screen.dirty = true
     euclid.all_restarting = false
   elseif state == "stop" then
-    clock.cancel(euclid.clock)
+    if euclid.clock ~= nil then
+      clock.cancel(euclid.clock)
+    end
     -- euclid.trig(target)
   end
   screen.dirty = true
@@ -247,7 +250,7 @@ function euclid.restore_collection()
   for i = 1,3 do
     euclid.track[i].auto_rotation = euclid.track[i].auto_rotation == nil and 0 or euclid.track[i].auto_rotation
     euclid.track[i].auto_pad_offset = euclid.track[i].auto_pad_offset == nil and 0 or euclid.track[i].auto_pad_offset
-    euclid.reset_pattern(i)
+    -- euclid.reset_pattern(i)
   end
 end
 
