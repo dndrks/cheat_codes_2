@@ -891,6 +891,20 @@ function init()
       persistent_state_save()
     end
   end)
+  params:add_option("vert rotation", "vert rotation",{"usb on top","usb on bottom"},1)
+  params:set_action("vert rotation",
+  function(x)
+    if x == 1 then
+      g:rotation(0)
+    else
+      g:rotation(2)
+    end
+    grid_dirty = true
+    if all_loaded then
+      persistent_state_save()
+    end
+  end
+  )
   params:add_option("midigrid?","midigrid?",{"no","yes"},1)
   params:set_action("midigrid?",
   function(x)
@@ -902,7 +916,7 @@ function init()
     end
   end)
 
-  params:add_separator("hotkey config")
+  -- params:add_separator("hotkey config")
 
   params:add_option("alt_corner","alt+corner action",{"none","tap-tempo","transport"},1)
   params:hide("alt_corner")
@@ -5209,6 +5223,7 @@ function persistent_state_save()
   io.write("preview_clip_change: "..params:get("preview_clip_change").."\n")
   io.write("zilchmo_patterning: "..params:get("zilchmo_patterning").."\n")
   io.write("LED_style: "..params:get("LED_style").."\n")
+  io.write("vert rotation: "..params:get("vert rotation").."\n")
   io.write("arc_patterning: "..params:get("arc_patterning").."\n")
   for i = 1,3 do
     io.write("bank_"..i.."_midi_zilchmo_enabled: "..params:get("bank_"..i.."_midi_zilchmo_enabled").."\n")
