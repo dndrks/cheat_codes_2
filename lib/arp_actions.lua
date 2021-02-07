@@ -103,7 +103,7 @@ function arp_actions.arpeggiate(target)
     if transport.is_running then
       if #arp[target].notes > 0 then
         if arp[target].pause == false then
-          if arp[target].step == 1 then print("arp "..target, clock.get_beats()) end
+          -- if arp[target].step == 1 then print("arp "..target, clock.get_beats()) end
           if menu ~= 1 then screen_dirty = true end
           if arp[target].mode == "fwd" then
             arp_actions.forward(target)

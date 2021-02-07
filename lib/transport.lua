@@ -2,10 +2,11 @@ local transport = {}
 
 local tp = transport
 
-transport.vars = {["midi_transport_out"] = {}, ["midi_transport_in"] = {}}
+transport.vars = { ["midi_transport_out"] = {}, ["midi_transport_in"] = {}, ["midi_clock_out"] = {} }
 for i = 1,16 do
   tp.vars.midi_transport_out[i] = false
   tp.vars.midi_transport_in[i] = false
+  tp.vars.midi_clock_out[i] = false
 end
 transport.cycle = 0
 transport.pending = false
@@ -20,9 +21,9 @@ function tp.init()
     end
   end
   refresh_params_vports()
-  params:add_group("transport settings",42)
+  params:add_group("transport settings",59)
   params:add_separator("auto-start")
-  params:add_option("start_transport_at_launch", "start at launch?",{"no","yes"},2)
+  params:add_option("start_transport_at_launch", "start at load (internal)?",{"no","yes"},2)
   -- params:set_action("start_transport_at_launch", function()
   --   if all_loaded then
   --     persistent_state_save()
@@ -39,10 +40,6 @@ function tp.init()
   for i = 1,16 do
     params:add_option("port_"..i.."_start_stop_out", vports[i],{"no","yes"},1)
     params:set_action("port_"..i.."_start_stop_out", function(x)
-      -- if all_loaded then
-      --   persistent_state_save()
-      -- end
-      -- table.insert(tp.vars.midi_transport_out,i)
       if x == 1 then
         tp.vars.midi_transport_out[i] = false
       else
@@ -57,9 +54,6 @@ function tp.init()
   for i = 1,16 do
     params:add_option("port_"..i.."_start_stop_in", vports[i],{"no","yes"},1)
     params:set_action("port_"..i.."_start_stop_in", function(x)
-      -- if all_loaded then
-      --   persistent_state_save()
-      -- end
       if x == 1 then
         tp.vars.midi_transport_in[i] = false
       else
@@ -67,6 +61,20 @@ function tp.init()
       end
       if x == 2 and params:get("port_"..i.."_start_stop_out") == 2 then
         params:set("port_"..i.."_start_stop_out", 1)
+      end
+    end)
+  end
+  params:add_separator("send MIDI clock?")
+  for i = 1,16 do
+    params:add_option("port_"..i.."_clock_out", vports[i],{"no","yes"},1)
+    params:set_action("port_"..i.."_clock_out", function(x)
+      if x == 1 then
+        tp.vars.midi_clock_out[i] = false
+      else
+        tp.vars.midi_clock_out[i] = true
+        if params:get("clock_midi_out") - 1 == i then
+          params:set("clock_midi_out",1)
+        end
       end
     end)
   end
@@ -95,6 +103,12 @@ function tp.start()
   end
   rytm.toggle("start")
   tp.start_midi()
+  tp.send_midi_clock()
+  if params:string("crow output 4") == "transport gate" then
+    crow.output[4].volts = 5.0
+  elseif params:string("crow output 4") == "transport pulse" then
+    crow.output[4]("{to(5,0),to(0,0.05)}")
+  end
   grid_dirty = true
   tp.start_clock = nil
   tp.pending = false
@@ -115,6 +129,11 @@ function tp.start_from_midi_message()
     -- print(clock.get_beats())
   end
   rytm.toggle("start")
+  if params:string("crow output 4") == "transport gate" then
+    crow.output[4].volts = 5.0
+  elseif params:string("crow output 4") == "transport pulse" then
+    crow.output[4]("{to(5,0),to(0,0.05)}")
+  end
   grid_dirty = true
   tp.start_clock = nil
   tp.pending = false
@@ -128,6 +147,19 @@ function tp.start_midi()
       end
     end
   end
+end
+
+function tp.send_midi_clock()
+  tp.midi_out_clocks = clock.run(function()
+    while true do
+      clock.sync(1/24)
+      for k,v in pairs(tp.vars.midi_clock_out) do
+        if v == true then
+          midi_dev[k]:clock()
+        end
+      end
+    end
+  end)
 end
 
 function tp.stop_midi()
@@ -154,6 +186,15 @@ function tp.stop()
   end
   rytm.toggle("stop")
   tp.stop_midi()
+  if tp.midi_out_clocks ~= nil then
+    clock.cancel(tp.midi_out_clocks)
+    tp.midi_out_clocks = nil
+  end
+  if params:string("crow output 4") == "transport gate" then
+    crow.output[4].volts = 0.0
+  elseif params:string("crow output 4") == "transport pulse" then
+    crow.output[4]("{to(5,0),to(0,0.05)}")
+  end
   tp.is_running = false
   transport.status_icon.status = 1
   grid_dirty = true
@@ -171,9 +212,53 @@ function tp.stop_from_midi_message()
     -- rytm.toggle("stop",i)
   end
   rytm.toggle("stop")
+  if params:string("crow output 4") == "transport gate" then
+    crow.output[4].volts = 0.0
+  elseif params:string("crow output 4") == "transport pulse" then
+    crow.output[4]("{to(5,0),to(0,0.05)}")
+  end
   tp.is_running = false
   transport.status_icon.status = 1
   grid_dirty = true
+end
+
+function tp.crow_toggle(v)
+  if tp.is_running then
+    clock.transport.stop()
+  else
+    if params:string("clock_source") == "internal" then
+      clock.internal.start(-0.1)
+    else
+      tp.cycle = 1
+      clock.transport.start()
+    end
+    tp.pending = true
+  end
+end
+
+function tp.crow_toggle_now()
+  if tp.is_running then
+    clock.transport.stop()
+  else
+    tp.is_running = true
+    transport.status_icon.status = 4
+    for i = 1,3 do
+      if #arp[i].notes > 0 and params:string("start_arp_"..i.."_at_launch") == "yes" then
+        arps.toggle("start",i)
+      end
+      if #grid_pat[i].event > 0 and params:string("start_pat_"..i.."_at_launch") == "yes" then
+        grid_pat[i]:start()
+      end
+      toggle_meta("start",i)
+      -- print(clock.get_beats())
+    end
+    rytm.toggle("start")
+    tp.start_midi()
+    tp.send_midi_clock()
+    grid_dirty = true
+    tp.start_clock = nil
+    tp.pending = false
+  end
 end
 
 --one option is to just start `clock.internal.start(-4)`
@@ -181,7 +266,8 @@ end
 
 function clock.transport.start()
   -- print("starting clock...", tp.cycle)
-  if all_loaded and tp.cycle > 0 then
+  if all_loaded and params:string("clock_source") ~= "midi" then
+  -- if (all_loaded and tp.cycle > 0) or (all_loaded and (params:string("clock_source") == "internal" or params:string("clock_source") == "link")) then
     -- print("for real..")
     if tp.start_clock == nil then
       tp.start_clock = clock.run(tp.start)
@@ -192,6 +278,7 @@ function clock.transport.start()
 end
 
 function clock.transport.stop()
+  -- print("stopping clock")
   tp.stop()
 end
 
@@ -260,6 +347,10 @@ function tp.UI()
 
   screen.font_size(8)
   metronome(115,6,15,3)
+  -- screen.move(1,31)
+  -- screen.level(3)
+  -- screen.font_size(18)
+  -- screen.text(params:get("clock_tempo").." bpm")
   screen.move(0,30)
   screen.level(15)
   screen.font_size(18)

@@ -803,6 +803,15 @@ function set_crow_input(id,type)
   elseif type == 2 then
     crow.input[id].mode("change",2,0.1,"rising")
     crow.input[id].change = buff_freeze
+  elseif type == 4 then
+    crow.input[id].mode("change",2,0.1,"rising")
+    crow.input[id].change = transport.crow_toggle
+  elseif type == 5 then
+    crow.input[id].mode("change",2,0.1,"both")
+    crow.input[id].change = transport.crow_toggle
+  elseif type == 6 then
+    crow.input[id].mode("change",2,0.1,"rising")
+    crow.input[id].change = transport.crow_toggle_now
   elseif type == 1 then
     crow.input[id].mode('none')
   end
@@ -899,9 +908,9 @@ function init()
   params:hide("alt_corner")
 
 
-  params:add_group("CROW INPUTS",4)
+  params:add_group("CROW IN/OUT",5)
   for i = 1,2 do
-    params:add_option("crow input "..i,"crow input "..i,{"none","trig to record","cont to macro "..i},1)
+    params:add_option("crow input "..i,"crow in "..i,{"none","trig to record","cont to macro "..i,"trig: transport","gate: transport"},1)
     params:set_action("crow input "..i,
     function(x)
       set_crow_input(i,x)
@@ -909,8 +918,15 @@ function init()
         persistent_state_save()
       end
     end)
-    params:add_number("crow input "..i.." max voltage","crow input "..i.." max voltage",1,10,8)
+    params:add_number("crow input "..i.." max voltage","crow in "..i.." max voltage",1,10,8)
   end
+  params:add_option("crow output 4", "crow out 4",{"none","transport pulse","transport gate"},1)
+  params:set_action("crow output 4",
+    function(x)
+      if all_loaded then
+        persistent_state_save()
+      end
+    end)
   
   params:add_separator("cheat codes params")
   
@@ -1452,19 +1468,19 @@ function init()
       local d = midi.to_msg(data)
       if d.type == "start" then
         if transport.vars.midi_transport_in[j] then
-          if params:string("clock_source") == "internal" then
+          if params:string("clock_source") == "internal" or params:string("clock_source") == "midi" then
             transport.start_from_midi_message()
           end
         end
       elseif d.type == "stop" then
         if transport.vars.midi_transport_in[j] then
-          if params:string("clock_source") == "internal" then
+          if params:string("clock_source") == "internal" or params:string("clock_source") == "midi" then
             transport.stop_from_midi_message()
           end
         end
       elseif d.type == "continue" then
         if transport.vars.midi_transport_in[j] then
-          if params:string("clock_source") == "internal" then
+          if params:string("clock_source") == "internal" or params:string("clock_source") == "midi" then
             if transport.is_running then
               transport.stop_from_midi_message()
             else
@@ -5261,6 +5277,9 @@ function persistent_state_restore()
       end
     end
   )
+  if params:get("cut_input_adc") == -inf then
+    params:set("cut_input_adc",0)
+  end
 end
 
 function named_overwrite(path)
