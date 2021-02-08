@@ -12,6 +12,7 @@ function mc.init()
       mc.mft_redraw(bank[1][bank[1].id],"all")
     end
   end
+  mc.initialize_UI()
 end
 
 function mc.move_start(target,val) -- expects (bank[x][y],0-127)
@@ -120,6 +121,7 @@ function mc.params_redraw(target)
   params:set("bank level "..tonumber(string.format("%.0f",target.bank_id)),bank_level_to_cc,"true")
   params:set("pan "..tonumber(string.format("%.0f",target.bank_id)),target.pan,"true")
   local offset_to_cc = util.round(util.linlin(-1,1,0,127,(math.log(target.offset)/math.log(0.5))*-12))
+  params:set("filter tilt "..tonumber(string.format("%.0f",target.bank_id)),target.tilt,"true")
 end
 
 function mc.mft_redraw(target,parameter)
@@ -349,7 +351,7 @@ local function refresh_params_vports()
 end
 
 function mc.pad_to_note_params()
-  params:add_group("pad to note setup",37)
+  params:add_group("pad to note setup",47)
   refresh_params_vports()
   local banks = {"a","b","c"}
   mc_notes = {{},{},{}}
@@ -460,6 +462,17 @@ function mc.pad_to_note_params()
       end
     end
   )
+
+  params:add_option("global_pad_to_wsyn_note_enabled","w/syn output?",{"no","yes"},1)
+  params:set_action("global_pad_to_wsyn_note_enabled",function()
+    wsyn_init()
+    print("initializing wsyn")
+    if all_loaded then
+      persistent_state_save()
+      wsyn_init()
+      print("initializing wsyn")
+    end
+  end)
   
   for i = 1,3 do
     params:add_separator("bank "..banks[i])
@@ -468,8 +481,9 @@ function mc.pad_to_note_params()
     params:add_option(i.."_pad_to_midi_note_destination", "MIDI dest",vports,2)
     params:set_action(i.."_pad_to_midi_note_destination", function() if all_loaded then persistent_state_save() mc.all_midi_notes_off(i) end end)
     params:add_number(i.."_pad_to_midi_note_channel", "MIDI channel",1,16,1)
-    params:set_action(i.."_pad_to_midi_note_channel", function() if all_loaded then
+    params:set_action(i.."_pad_to_midi_note_channel", function(x) if all_loaded then
         mc.all_midi_notes_off(i)
+        mc.set_parameter_all("midi_notes_channels",i,1,16,x)
         persistent_state_save()
       end 
     end)
@@ -488,6 +502,8 @@ function mc.pad_to_note_params()
       mc.build_scale(i)
       if all_loaded then persistent_state_save() end
     end)
+    params:add_number(i.."_pad_to_midi_note_velocity", "velocity",0,127,127)
+
     params:add_option(i.."_pad_to_jf_note_enabled", "Just Friends channel",{"none","IDENTITY","2N","3N","4N","5N","6N","all","any"},9)
     params:set_action(i.."_pad_to_jf_note_enabled",function()
       if all_loaded then persistent_state_save() end
@@ -496,9 +512,126 @@ function mc.pad_to_note_params()
     params:set_action(i.."_pad_to_jf_note_velocity",function()
       if all_loaded then persistent_state_save() end
     end)
+    params:add_option(i.."_pad_to_wsyn_note_enabled", "w/syn voice",{"none","1","2","3","4","any"},6)
+    params:set_action(i.."_pad_to_wsyn_note_enabled",function()
+      if all_loaded then persistent_state_save() end
+    end)
+    params:add_number(i.."_pad_to_wsyn_note_velocity", "w/syn velocity",0,127,60)
     mc.build_scale(i)
     -- params:add_number(i.."_pad_to_midi_note_duration", "note length",1,16,1)
   end
+
+  params:add_group("w/syn controls",10)
+  params:add {
+    type = "option",
+    id = "wsyn_ar_mode",
+    name = "AR mode",
+    options = {"off", "on"},
+    default = 2,
+    action = function(val) 
+      crow.send("ii.wsyn.ar_mode(" .. (val - 1) .. ")") 
+    end
+  }
+  params:add {
+    type = "control",
+    id = "w/curve",
+    name = "Curve",
+    controlspec = controlspec.new(-5, 5, "lin", 0, 0, "v"),
+    action = function(val) 
+      crow.send("ii.wsyn.curve(" .. val .. ")") 
+    end
+  }
+  params:add {
+    type = "control",
+    id = "w/ramp",
+    name = "Ramp",
+    controlspec = controlspec.new(-5, 5, "lin", 0, 0, "v"),
+    action = function(val) 
+      crow.send("ii.wsyn.ramp(" .. val .. ")")
+    end
+  }
+  params:add {
+    type = "control",
+    id = "w/fm index",
+    name = "FM index",
+    controlspec = controlspec.new(0, 5, "lin", 0, 0, "v"),
+    action = function(val) 
+      crow.send("ii.wsyn.fm_index(" .. val .. ")")
+    end
+  }
+  params:add {
+    type = "control",
+    id = "w/fm env",
+    name = "FM env",
+    controlspec = controlspec.new(-5, 5, "lin", 0, 0, "v"),
+    action = function(val) 
+      crow.send("ii.wsyn.fm_env(" .. val .. ")")
+    end
+  }
+  params:add {
+    type = "control",
+    id = "w/fm num",
+    name = "FM ratio numerator",
+    controlspec = controlspec.new(1, 20, "lin", 1, 2),
+    action = function(val) 
+      crow.send("ii.wsyn.fm_ratio(" .. val .. "," .. params:get("w/fm den") .. ")")
+    end
+  }
+  params:add {
+    type = "control",
+    id = "w/fm den",
+    name = "FM ratio denominator",
+    controlspec = controlspec.new(1, 20, "lin", 1, 1),
+    action = function(val) 
+      crow.send("ii.wsyn.fm_ratio(" .. params:get("w/fm num") .. "," .. val .. ")")
+    end
+  }
+  params:add {
+    type = "control",
+    id = "w/lpg time",
+    name = "LPG time",
+    controlspec = controlspec.new(-5, 5, "lin", 0, 0, "v"),
+    action = function(val) 
+      crow.send("ii.wsyn.lpg_time(" .. val .. ")")
+    end
+  }
+  params:add {
+    type = "control",
+    id = "w/lpg symm",
+    name = "LPG symmetry",
+    controlspec = controlspec.new(-5, 5, "lin", 0, 0, "v"),
+    action = function(val) 
+      crow.send("ii.wsyn.lpg_symmetry(" .. val .. ")")
+    end
+  }
+  params:add{
+    type = "trigger",
+    id = "wsyn_randomize",
+    name = "Randomize",
+    allow_pmap = false,
+    action = function()
+      params:set("w/curve", math.random(-50, 50)/10)
+      params:set("w/ramp", math.random(-50, 50)/10)
+      params:set("w/fm index", math.random(0, 50)/10)
+      params:set("w/fm env", math.random(-50, 50)/10)
+      params:set("w/fm num", math.random(1, 20))
+      params:set("w/fm den", math.random(1, 20))
+      params:set("w/lpg time", math.random(-50, 50)/10)
+      params:set("w/lpg symm", math.random(-50, 50)/10)
+    end
+  }
+
+  function wsyn_init()
+    crow.send("ii.wsyn.ar_mode(" .. (params:get("wsyn_ar_mode") - 1) .. ")") 
+    crow.send("ii.wsyn.curve(" .. params:get("w/curve") .. ")") 
+    crow.send("ii.wsyn.ramp(" .. params:get("w/ramp") .. ")") 
+    crow.send("ii.wsyn.fm_index(" .. params:get("w/fm index") .. ")") 
+    crow.send("ii.wsyn.fm_env(" .. params:get("w/fm env") .. ")")
+    crow.send("ii.wsyn.fm_ratio("..params:get("w/fm num")..","..params:get("w/fm den")..")")
+    crow.send("ii.wsyn.lpg_time(" .. params:get("w/lpg time") .. ")") 
+    crow.send("ii.wsyn.lpg_symmetry(" .. params:get("w/lpg symm") .. ")") 
+  end
+
 end
 
 function mc.build_scale(target)
@@ -507,18 +640,52 @@ function mc.build_scale(target)
   for i = 1, num_to_add do
     table.insert(mc_notes[target], mc_notes[target][16 - num_to_add])
   end
+  mc.inherit_notes(target)
 end
 
 local midi_off = {nil,nil,nil}
 
+function mc.inherit_notes(target)
+  if all_loaded then
+    for i = 1,16 do
+      mc.midi_notes[target].entries[i] = mc_notes[target][i]
+    end
+  end
+end
+
+-- function what()
+--   for i=1,10 do
+--     if i == 3 then
+--       goto different
+--     end
+--     print("do this for "..i)
+--   end
+--   ::different::
+--   print("this is 3")
+-- end
+
 function mc.midi_note_from_pad(b,p)
   if params:string(b.."_pad_to_midi_note_enabled") == "yes" then
-    mc.all_midi_notes_off(b)
-    local note_num = mc_notes[b][p]
-    midi_dev[params:get(b.."_pad_to_midi_note_destination")]:note_on(note_num,96,params:get(b.."_pad_to_midi_note_channel"))
-    table.insert(active_midi_notes[b], note_num)
-    if midi_off[b] ~= nil then clock.cancel(midi_off[b]) end
-    midi_off[b] = clock.run(mc.midi_note_from_pad_off,b,p)
+    if mc.get_midi("midi_notes",b,p) ~= "-" and mc.get_midi("midi_notes_velocities",b,p) ~= "-" and mc.get_midi("midi_notes_channels",b,p) ~= "-" then
+      mc.all_midi_notes_off(b)
+      -- local note_num = mc_notes[b][p]
+      local note_num = mc.get_midi("midi_notes",b,p)
+      -- local vel = params:get(b.."_pad_to_midi_note_velocity")
+      local vel = mc.get_midi("midi_notes_velocities",b,p)
+      local ch = params:get(b.."_pad_to_midi_note_channel")
+      local dest = params:get(b.."_pad_to_midi_note_destination")
+      midi_dev[dest]:note_on(note_num,vel,ch)
+      table.insert(active_midi_notes[b], note_num)
+      if midi_off[b] ~= nil then clock.cancel(midi_off[b]) end
+      midi_off[b] = clock.run(mc.midi_note_from_pad_off,b,p)
+    end
+  end
+  if mc.get_midi("midi_ccs",b,p) ~= "-" and mc.get_midi("midi_ccs_values",b,p) ~= "-" and mc.get_midi("midi_ccs_channels",b,p) ~= "-" then
+    local cc_num = mc.get_midi("midi_ccs",b,p)
+    local val = mc.get_midi("midi_ccs_values",b,p)
+    local ch = mc.get_midi("midi_ccs_channels",b,p)
+    local dest = params:get(b.."_pad_to_midi_note_destination")
+    midi_dev[dest]:cc(cc_num,val,ch)
   end
   if params:string("global_pad_to_jf_note_enabled") == "yes" then
     local jf_destinations =
@@ -539,6 +706,20 @@ function mc.midi_note_from_pad(b,p)
       else
         local jf_chan = jf_destinations[params:string(b.."_pad_to_jf_note_enabled")]
         crow.ii.jf.play_voice(jf_chan,note_num/12,velocity)
+      end
+    end
+  end
+  if params:string("global_pad_to_wsyn_note_enabled") == "yes" then
+    if params:string(b.."_pad_to_wsyn_note_enabled") ~= "none" then
+      local note_num = mc_notes[b][p] - 60
+      local velocity = util.linlin(0,127,0,5,params:get(b.."_pad_to_wsyn_note_velocity"))
+      if params:string(b.."_pad_to_wsyn_note_enabled") == "any" then
+        -- crow.ii.jf.play_note(note_num/12,velocity)
+        crow.send("ii.wsyn.play_note(" .. note_num/12 .. "," .. velocity .. ")")
+      else
+        local wsyn_chan = params:get(b.."_pad_to_wsyn_note_enabled") - 1
+        -- crow.ii.jf.play_voice(jf_chan,note_num/12,velocity)
+        crow.send("ii.wsyn.play_voice(" .. wsyn_chan .. "," .. note_num/12 .. "," .. velocity .. ")")
       end
     end
   end
@@ -629,6 +810,9 @@ function mc.route_midi_mod(b,p)
   , ["a: random pan"] = {3,'123'}
   , ["b: random pan"] = {3,'123'}
   , ["c: random pan"] = {3,'123'}
+  , ["a: pause"] = {2,'12'}
+  , ["b: pause"] = {2,'12'}
+  , ["c: pause"] = {2,'12'}
   , ["a: random start"] = {4,'12'}
   , ["b: random start"] = {4,'12'}
   , ["c: random start"] = {4,'12'}
@@ -655,10 +839,292 @@ function mc.route_midi_mod(b,p)
 end
 
 function mc.execute_midi_zilch(b,p,row,str)
-  for j = (not grid.alt and bank[b].id or 1), (not grid.alt and bank[b].id or 16) do
+  for j = (not grid_alt and bank[b].id or 1), (not grid_alt and bank[b].id or 16) do
     rightangleslice.actions[row][str][1](bank[b][j])
     if str ~= '12' then
       rightangleslice.actions[row][str][2](bank[b][j],b)
+    end
+  end
+end
+
+local UI_number_table = {}
+local UI_note_table = {{},{},{}}
+local UI_note_ch_table = {{},{},{}}
+local UI_velocity_table = {{},{},{}}
+local UI_cc_table = {{},{},{}}
+local UI_cc_ch_table = {{},{},{}}
+local UI_cc_value_table = {{},{},{}}
+mc.numbers = {}
+mc.midi_notes = {}
+mc.midi_notes_channels = {}
+mc.midi_notes_velocities = {}
+mc.midi_ccs = {}
+mc.midi_ccs_channels = {}
+mc.midi_ccs_values = {}
+
+local function set_limits(target,bank)
+  mc[target][bank].num_above_selected = 0
+  mc[target][bank].num_visible = 4
+end
+
+function mc.initialize_UI()
+  for i = 1,16 do
+    table.insert(UI_number_table,i..": ")
+    for j = 1,3 do
+      table.insert(UI_note_table[j],mc_notes[j][i])
+      table.insert(UI_note_ch_table[j],params:get(j.."_pad_to_midi_note_channel"))
+      table.insert(UI_velocity_table[j],params:get(j.."_pad_to_midi_note_velocity"))
+      table.insert(UI_cc_table[j],"-")
+      table.insert(UI_cc_ch_table[j],params:get(j.."_pad_to_midi_note_channel"))
+      table.insert(UI_cc_value_table[j],127)
+    end
+  end
+  for i = 1,3 do
+    mc.numbers[i] = UI.ScrollingList.new(0,20,1,UI_number_table)
+    set_limits("numbers",i)
+    mc.midi_notes[i] = UI.ScrollingList.new(15,20,1,UI_note_table[i])
+    set_limits("midi_notes",i)
+    mc.midi_notes_velocities[i] = UI.ScrollingList.new(30,20,1,UI_velocity_table[i])
+    set_limits("midi_notes_velocities",i)
+    mc.midi_notes_channels[i] = UI.ScrollingList.new(50,20,1,UI_note_ch_table[i])
+    set_limits("midi_notes_channels",i)
+    mc.midi_notes_channels[i].active = false
+    mc.midi_ccs[i] = UI.ScrollingList.new(70,20,1,UI_cc_table[i])
+    set_limits("midi_ccs",i)
+    mc.midi_ccs[i].active = false
+    mc.midi_ccs_values[i] = UI.ScrollingList.new(85,20,1,UI_cc_value_table[i])
+    set_limits("midi_ccs_values",i)
+    mc.midi_ccs_values[i].active = false
+    mc.midi_ccs_channels[i] = UI.ScrollingList.new(105,20,1,UI_cc_ch_table[i])
+    set_limits("midi_ccs_channels",i)
+    mc.midi_ccs_channels[i].active = false
+  end
+end
+
+function mc.update_UI_list(target,bank,k,v)
+  mc[target][bank].entries[k] = v
+end
+
+function mc.flip_from_text(target)
+  if target == "-" then
+    return -1
+  else
+    return target
+  end
+end
+function mc.flip_to_text(target)
+  if target == -1 then
+    return "-"
+  else
+    return target
+  end
+end
+
+function mc.get_midi(format,bank,pad)
+  return mc[format][bank].entries[pad]
+end
+
+function mc.set_parameter_all(parameter,target,min,max,value,exclude)
+  for i = min,max do
+    if exclude ~= nil and i ~= exclude then
+      mc[parameter][target].entries[i] = value
+    end
+  end
+end
+
+function mc.delta_parameter_all(parameter,target,min,max,d,exclude)
+  for i = min,max do
+    if exclude ~= nil and i ~= exclude then
+      encoder_actions.delta_MIDI_values(mc[parameter][i],d)
+    end
+  end
+end
+
+function mc.key(n,z)
+  if n == 3 and z == 1 then
+    if key2_hold and not key1_hold then
+      local i = page.midi_bank
+      local menu_actions =
+      {
+        ["notes"] = {"midi_notes", mc.midi_notes[i].entries[mc.midi_notes[i].index]}
+      , ["alt_notes"] = {"midi_notes_channels", mc.midi_notes_channels[i].entries[mc.midi_notes[i].index]}
+      , ["ccs"] = {"midi_ccs",mc.midi_ccs[i].entries[mc.midi_ccs[i].index]}
+      , ["alt_ccs"] = {"midi_ccs_channels",mc.midi_ccs_channels[i].entries[mc.midi_ccs_channels[i].index]}
+      }
+      local this_param = menu_actions[page.midi_focus][1]
+      local this_value = menu_actions[page.midi_focus][2]
+      local this_exclude = mc.midi_notes[i].index
+      mc.set_parameter_all(this_param,page.midi_bank,1,16,this_value,this_exclude)
+      key2_hold_and_modify = true
+    elseif key2_hold and key1_hold then
+      local i = page.midi_bank
+      local menu_actions =
+      {
+        ["alt_notes"] = {"midi_notes_channels", mc.midi_notes_channels[i].entries[mc.midi_notes[i].index]}
+      , ["alt_ccs"] = {"midi_ccs_channels",mc.midi_ccs_channels[i].entries[mc.midi_ccs_channels[i].index]}
+      }
+      local this_param = menu_actions[page.midi_focus][1]
+      local this_value = menu_actions[page.midi_focus][2]
+      local this_exclude = mc.midi_notes[i].index
+      mc.set_parameter_all(this_param,page.midi_bank,1,16,this_value,this_exclude)
+      key2_hold_and_modify = true
+    else
+      local d = {"header", "notes", "ccs"}
+      local old_focus = tab.key(d,page.midi_focus)
+      page.midi_focus = d[util.wrap(old_focus + 1,1,3)]
+    end
+  elseif n == 2 and z == 1 then
+    key2_hold_counter:start()
+    key2_hold_and_modify = false
+  elseif n == 2 and z == 0 then
+    key2_hold_counter:stop()
+    if key2_hold == false then
+      menu = 1
+    end
+    key2_hold = false
+    key1_hold = false
+    key2_hold_and_modify = false
+  elseif n == 1 and z == 1 then
+    if key2_hold then
+      local i = page.midi_bank
+      local menu_actions =
+      {
+        ["notes"] = {"midi_notes_velocities", mc.midi_notes_velocities[i].entries[mc.midi_notes[i].index]}
+      , ["ccs"] = {"midi_ccs_values",mc.midi_ccs_values[i].entries[mc.midi_ccs[i].index]}
+      }
+      local this_param = menu_actions[page.midi_focus][1]
+      local this_value = menu_actions[page.midi_focus][2]
+      local this_exclude = mc.midi_notes[i].index
+      mc.set_parameter_all(this_param,page.midi_bank,1,16,this_value,this_exclude)
+      key2_hold_and_modify = true
+      key1_hold = false
+    else
+      key1_hold = true
+      if page.midi_focus ~= "header" then
+        pre_k1_midi_page = page.midi_focus
+        page.midi_focus = pre_k1_midi_page == "notes" and "alt_notes" or "alt_ccs"
+      end
+    end
+  elseif n == 1 and z == 0 then
+    key1_hold = false
+    if page.midi_focus ~= "header" then
+      if pre_k1_midi_page == nil then pre_k1_midi_page = page.midi_focus end
+      page.midi_focus = pre_k1_midi_page
+    end
+  end
+end
+
+function mc.midi_config_enc(n,d)
+  if n == 1 then
+    if page.midi_focus == "header" then
+      page.midi_bank = util.clamp(page.midi_bank + d,1,3)
+    else
+      local i = page.midi_bank
+      mc.numbers[i]:set_index_delta(d)
+      mc.midi_notes[i]:set_index_delta(d)
+      mc.midi_notes_channels[i]:set_index_delta(d)
+      mc.midi_notes_velocities[i]:set_index_delta(d)
+      mc.midi_ccs[i]:set_index_delta(d)
+      mc.midi_ccs_channels[i]:set_index_delta(d)
+      mc.midi_ccs_values[i]:set_index_delta(d)
+    end
+  elseif n == 2 then
+    local i = page.midi_bank
+    if page.midi_focus == "notes" then
+      encoder_actions.delta_MIDI_values(mc.midi_notes[i],d)
+    elseif page.midi_focus == "ccs" then
+      encoder_actions.delta_MIDI_values(mc.midi_ccs[i],d)
+    elseif page.midi_focus == "alt_notes" then
+      encoder_actions.delta_MIDI_values(mc.midi_notes_channels[i],d)
+    elseif page.midi_focus == "alt_ccs" then
+      encoder_actions.delta_MIDI_values(mc.midi_ccs_channels[i],d)
+    end
+  elseif n == 3 then
+    local i = page.midi_bank
+    if page.midi_focus == "notes" then
+      encoder_actions.delta_MIDI_values(mc.midi_notes_velocities[i],d)
+    elseif page.midi_focus == "ccs" then
+      encoder_actions.delta_MIDI_values(mc.midi_ccs_values[i],d)
+    elseif page.midi_focus == "header" and key1_hold then
+      params:delta(i.."_pad_to_midi_note_scale",d)
+    end
+  end
+end
+
+function mc.midi_config_redraw(i)
+  if all_loaded then
+    
+    mc.numbers[i].active = page.midi_focus ~= "header" and true or false
+    mc.midi_notes[i].active = page.midi_focus == "notes" and true or false
+    mc.midi_notes_channels[i].active = page.midi_focus == "alt_notes" and true or false
+    mc.midi_notes_velocities[i].active = page.midi_focus == "notes" and true or false
+    mc.midi_ccs[i].active = page.midi_focus == "ccs" and true or false
+    mc.midi_ccs_channels[i].active = page.midi_focus == "alt_ccs" and true or false
+    mc.midi_ccs_values[i].active = page.midi_focus == "ccs" and true or false
+    
+    -- mc.midi_config_tabs.active = page.midi_focus == "header" and true or false
+
+    local bank_names = {"(a)","(b)","(c)"}
+    local x_locations = {5,55,105}
+    screen.level(page.midi_focus == "header" and 15 or 3)
+    screen.rect(0, 0, 128, 7)
+    screen.fill()
+    screen.move(2,6)
+    screen.level(0)
+    screen.text("MIDI CONFIG: BANK "..bank_names[page.midi_bank])
+    screen.move(126,6)
+    screen.text_right(page.midi_bank.."/3")
+    if key1_hold and page.midi_focus == "header" then
+      screen.level(15)
+      screen.move(60,20)
+      screen.text_center("SCALE:")
+      screen.move(60,30)
+      screen.text_center(string.upper(params:string(page.midi_bank.."_pad_to_midi_note_scale")))
+    elseif key2_hold and page.midi_focus ~= "header" and not key2_hold_and_modify then
+      local view_menus =
+      {
+        ["notes"] = {"notes",mc.midi_notes[i].entries[mc.midi_notes[i].index],"velocities",mc.midi_notes_velocities[i].entries[mc.midi_notes_velocities[i].index]}
+      , ["alt_notes"] = {"note chs",mc.midi_notes_channels[i].entries[mc.midi_notes_channels[i].index]}
+      , ["ccs"] = {"ccs",mc.midi_ccs[i].entries[mc.midi_ccs[i].index],"values",mc.midi_ccs_values[i].entries[mc.midi_ccs_values[i].index]}
+      , ["alt_ccs"] = {"cc chs",mc.midi_ccs_channels[i].entries[mc.midi_ccs_channels[i].index]}
+      }
+      screen.level(15)
+      screen.move(60,30)
+      local this_menu = view_menus[page.midi_focus]
+      screen.text_center("+K3: set all "..this_menu[1].." to "..this_menu[2])
+      if #this_menu == 4 then
+        screen.move(60,40)
+        screen.text_center("+K1: set all "..this_menu[3].." to "..this_menu[4])
+      end
+    else
+      screen.move(mc.numbers[i].x,mc.numbers[i].y-5)
+      screen.level(page.midi_focus ~= "header" and 15 or 3)
+      screen.text("#")
+      mc.numbers[i]:redraw()
+      screen.move(mc.midi_notes[i].x,mc.midi_notes[i].y-5)
+      screen.level(page.midi_focus == "notes" and 15 or 3)
+      screen.text("N")
+      mc.midi_notes[i]:redraw()
+      screen.move(mc.midi_notes_velocities[i].x+5,mc.midi_notes_velocities[i].y-5)
+      screen.level(page.midi_focus == "notes" and 15 or 3)
+      screen.text_center("V")
+      mc.midi_notes_velocities[i]:redraw()
+      screen.move(mc.midi_notes_channels[i].x+2,mc.midi_notes_channels[i].y-5)
+      screen.level(page.midi_focus == "alt_notes" and 15 or 3)
+      screen.text_center("CH")
+      screen.move(mc.midi_ccs[i].x,mc.midi_ccs[i].y-5)
+      screen.level(page.midi_focus == "ccs" and 15 or 3)
+      screen.text("CC")
+      mc.midi_ccs[i]:redraw()
+      screen.move(mc.midi_ccs_values[i].x+5,mc.midi_ccs_values[i].y-5)
+      screen.level(page.midi_focus == "ccs" and 15 or 3)
+      screen.text_center("V")
+      screen.move(mc.midi_ccs_channels[i].x+2,mc.midi_ccs_channels[i].y-5)
+      screen.level(page.midi_focus == "alt_ccs" and 15 or 3)
+      screen.text_center("CH")
+      mc.midi_ccs_values[i]:redraw()
+      mc.midi_notes_channels[i]:redraw()
+      mc.midi_ccs_channels[i]:redraw()
     end
   end
 end

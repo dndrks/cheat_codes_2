@@ -5,6 +5,14 @@ ea.sc = {}
 
 function encoder_actions.init(n,d)
 
+  if menu == "macro_config" then
+    macros.enc(n,d)
+  elseif menu == "MIDI_config" then
+    mc.midi_config_enc(n,d)
+  elseif menu == "transport_config" then
+    transport.enc(n,d)
+  end
+
   local function returns_target(i)
     if bank[i].focus_hold then
       return bank[i].focus_pad
@@ -33,6 +41,17 @@ function encoder_actions.init(n,d)
         if bank[i].focus_hold == false or bank[i].focus_pad == bank[i].id then
           ea.sc[func](i)
         end
+      else
+        if func == "move_start" then
+          ea.move_rec_start(d)
+        elseif func == "move_end" then
+          ea.move_rec_end(d)
+        elseif func == "move_play_window" then
+          ea.move_rec_window(rec[rec.focus],d)
+          if rec.play_segment == rec.focus then
+            ea.sc.move_rec_window(rec[rec.focus])
+          end
+        end
       end
     end
 
@@ -48,7 +67,7 @@ function encoder_actions.init(n,d)
         if key1_hold then
           page.loops.top_option_set[page.loops.sel] = util.clamp(page.loops.top_option_set[page.loops.sel] + d,1,2)
         else
-          page.loops.sel = util.clamp(page.loops.sel+d,1,4)
+          page.loops.sel = util.clamp(page.loops.sel+d,1,5)
         end
       elseif page.loops.frame == 2 then
         local id = page.loops.sel
@@ -112,6 +131,19 @@ function encoder_actions.init(n,d)
       page.arp_page_sel = util.clamp(page.arp_page_sel+d,1,3)
     elseif menu == 10 then
       page.rnd_page = util.clamp(page.rnd_page+d,1,3)
+    -- elseif menu == "MIDI_config" then
+    --   if page.midi_focus == "header" then
+    --     page.midi_bank = util.clamp(page.midi_bank + d,1,3)
+    --   else
+    --     local i = page.midi_bank
+    --     mc.numbers[i]:set_index_delta(d)
+    --     mc.midi_notes[i]:set_index_delta(d)
+    --     mc.midi_notes_channels[i]:set_index_delta(d)
+    --     mc.midi_notes_velocities[i]:set_index_delta(d)
+    --     mc.midi_ccs[i]:set_index_delta(d)
+    --     mc.midi_ccs_channels[i]:set_index_delta(d)
+    --     mc.midi_ccs_values[i]:set_index_delta(d)
+    --   end
     end
   end
   if n == 2 then
@@ -232,21 +264,7 @@ function encoder_actions.init(n,d)
         elseif page.loops.frame == 1 and page.loops.top_option_set[id] == 2 then
           params:delta("rec_loop_"..rec.focus,d)
         elseif page.loops.frame == 2 then
-          local lbr = {1,2,4}
-          local res;
-          if params:get("rec_loop_enc_resolution") == 1 then
-            res = key1_hold and d/100 or d/10
-          else
-            res = d/rec_loop_enc_resolution
-          end
-          if d >= 0 and util.round(rec[rec.focus].start_point + ((res)/lbr[params:get("live_buff_rate")]),0.01) < util.round(rec[rec.focus].end_point,0.01) then
-            rec[rec.focus].start_point = util.clamp(rec[rec.focus].start_point+((res)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.focus-1))),(8.9+(8*(rec.focus-1))))
-          elseif d < 0 then
-            rec[rec.focus].start_point = util.clamp(rec[rec.focus].start_point+((res)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.focus-1))),(8.9+(8*(rec.focus-1))))
-          end
-          if rec.play_segment == rec.focus then
-            softcut.loop_start(1, rec[rec.focus].start_point)
-          end
+          ea.move_rec_start(d)
           if key1_hold then
             update_waveform(1,rec[rec.focus].start_point,rec[rec.focus].end_point,128)
           end
@@ -323,6 +341,15 @@ function encoder_actions.init(n,d)
         local reasonable_max = (current_param == "semitone offset" and 5) or ((current_param == "loop" or current_param == "delay send") and 4 or 6)
         page.rnd_page_edit[page.rnd_page] = util.clamp(page.rnd_page_edit[page.rnd_page]+d,1,reasonable_max)
       end
+    -- elseif menu == "MIDI_config" then
+    --   local i = page.midi_bank
+    --   if page.midi_focus == "notes" then
+    --     ea.delta_MIDI_values(mc.midi_notes[i],d)
+    --   elseif page.midi_focus == "ccs" then
+    --     ea.delta_MIDI_values(mc.midi_ccs[i],d)
+    --   elseif page.midi_focus == "alt" then
+    --     ea.delta_MIDI_values(mc.midi_notes_channels[i],d)
+    --   end
     end
   end
   if n == 3 then
@@ -409,21 +436,7 @@ function encoder_actions.init(n,d)
         elseif page.loops.frame == 1 and page.loops.top_option_set[id] == 2 then
           params:delta("live_buff_rate",d)
         elseif page.loops.frame == 2 then
-          local lbr = {1,2,4}
-          local res;
-          if params:get("rec_loop_enc_resolution") == 1 then
-            res = key1_hold and d/100 or d/10
-          else
-            res = d/rec_loop_enc_resolution
-          end
-          if d <= 0 and util.round(rec[rec.focus].start_point,0.01) < util.round(rec[rec.focus].end_point + ((res)/lbr[params:get("live_buff_rate")]),0.01) then
-            rec[rec.focus].end_point = util.clamp(rec[rec.focus].end_point+((res)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.focus-1))),(9+(8*(rec.focus-1))))
-          elseif d > 0 and rec[rec.focus].end_point+((res)/lbr[params:get("live_buff_rate")]) <= 9+(8*(rec.focus-1)) then
-            rec[rec.focus].end_point = util.clamp(rec[rec.focus].end_point+((res)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.focus-1))),(9+(8*(rec.focus-1))))
-          end
-          if rec.play_segment == rec.focus then
-            softcut.loop_end(1, rec[rec.focus].end_point-0.01)
-          end
+          ea.move_rec_end(d)
           if key1_hold then
             update_waveform(1,rec[rec.focus].start_point,rec[rec.focus].end_point,128)
           end
@@ -565,7 +578,8 @@ function encoder_actions.init(n,d)
     elseif menu == 7 then
       local page_line = page.time_page_sel
       local pattern_page = page.time_sel
-      local pattern = g.device ~= nil and grid_pat[pattern_page] or midi_pat[pattern_page]
+      -- local pattern = g.device ~= nil and grid_pat[pattern_page] or midi_pat[pattern_page]
+      local pattern = get_grid_connected() and grid_pat[pattern_page] or midi_pat[pattern_page]
       
       if pattern_page < 4 then
         if page_line[pattern_page] == 7 then
@@ -776,6 +790,17 @@ function encoder_actions.init(n,d)
           end
         end
       end
+    -- elseif menu == "MIDI_config" then
+    --   local i = page.midi_bank
+    --   if page.midi_focus == "notes" then
+    --     ea.delta_MIDI_values(mc.midi_notes_velocities[i],d)
+    --   elseif page.midi_focus == "ccs" then
+    --     ea.delta_MIDI_values(mc.midi_ccs_values[i],d)
+    --   elseif page.midi_focus == "alt" then
+    --     ea.delta_MIDI_values(mc.midi_ccs_channels[i],d)
+    --   elseif page.midi_focus == "header" then
+    --     params:delta(i.."_pad_to_midi_note_scale",d)
+    --   end
     end
   end
 
@@ -791,7 +816,7 @@ function encoder_actions.init(n,d)
       focused_pad = bank[n].id
     end
     if page.levels_sel == 0 then
-      if key1_hold or grid.alt or bank[n].alt_lock then
+      if key1_hold or grid_alt or bank[n].alt_lock then
         bank[n].global_level = util.clamp(bank[n].global_level+d/10,0,2)
       else
         bank[n][focused_pad].level = util.clamp(bank[n][focused_pad].level+d/10,0,2)
@@ -806,7 +831,7 @@ function encoder_actions.init(n,d)
       end
     elseif page.levels_sel == 1 then
 
-      if key1_hold or grid.alt or bank[n].alt_lock then
+      if key1_hold or grid_alt or bank[n].alt_lock then
         for j = 1,16 do
           local pre_enveloped = bank[n][j].enveloped
           local pre_mode = bank[n][j].envelope_mode
@@ -847,7 +872,7 @@ function encoder_actions.init(n,d)
       end
 
     elseif page.levels_sel == 2 then
-      if key1_hold or grid.alt or bank[n].alt_lock then
+      if key1_hold or grid_alt or bank[n].alt_lock then
         for j = 1,16 do
           if bank[n][j].enveloped then
             if d>0 then
@@ -874,7 +899,7 @@ function encoder_actions.init(n,d)
       end
 
     elseif page.levels_sel == 3 then
-      if key1_hold or grid.alt or bank[n].alt_lock then
+      if key1_hold or grid_alt or bank[n].alt_lock then
         for j = 1,16 do
           if bank[n][j].enveloped then
             bank[n][j].envelope_time = util.explin(0.1,60,0.1,60,bank[n][j].envelope_time)
@@ -894,7 +919,7 @@ function encoder_actions.init(n,d)
   end
   if menu == 4 then
     local focused_pad = nil
-    if key1_hold or grid.alt then
+    if key1_hold or grid_alt then
       for i = 1,16 do
         bank[n][i].pan = util.clamp(bank[n][i].pan+d/10,-1,1)
       end
@@ -911,7 +936,7 @@ function encoder_actions.init(n,d)
     local filt_page = page.filtering_sel + 1
     if filt_page == 1 then
       if bank[n][bank[n].id].filter_type == 4 then
-        if key1_hold or grid.alt then
+        if key1_hold or grid_alt then
           if slew_counter[n] ~= nil then
             slew_counter[n].prev_tilt = bank[n][bank[n].id].tilt
           end
@@ -927,26 +952,11 @@ function encoder_actions.init(n,d)
           end
           slew_filter(n,slew_counter[n].prev_tilt,bank[n][bank[n].id].tilt,bank[n][bank[n].id].q,bank[n][bank[n].id].q,15)
         else
-          if slew_counter[n] ~= nil then
-            slew_counter[n].prev_tilt = bank[n][bank[n].id].tilt
-          end
-          for j = 1,16 do
-            bank[n][j].tilt = util.clamp(bank[n][j].tilt+(d/100),-1,1)
-            if d < 0 then
-              if util.round(bank[n][j].tilt*100) < 0 and util.round(bank[n][j].tilt*100) > -9 then
-                bank[n][j].tilt = -0.10
-              elseif util.round(bank[n][j].tilt*100) > 0 and util.round(bank[n][j].tilt*100) < 32 then
-                bank[n][j].tilt = 0.0
-              end
-            elseif d > 0 and util.round(bank[n][j].tilt*100) > 0 and util.round(bank[n][j].tilt*100) < 32 then
-              bank[n][j].tilt = 0.32
-            end
-          end
-          slew_filter(n,slew_counter[n].prev_tilt,bank[n][bank[n].id].tilt,bank[n][bank[n].id].q,bank[n][bank[n].id].q,15)
+          ea.set_filter_cutoff(n,d)
         end
       end
     elseif filt_page == 2 then
-      if key1_hold or grid.alt then
+      if key1_hold or grid_alt then
         bank[n][bank[n].id].tilt_ease_time = util.clamp(bank[n][bank[n].id].tilt_ease_time+(d/1), 5, 15000)
       else
         for j = 1,16 do
@@ -956,7 +966,7 @@ function encoder_actions.init(n,d)
     elseif filt_page == 3 then
       params:delta("filter "..n.." q",d*-1)
     elseif filt_page == 4 then
-      if key1_hold or grid.alt then
+      if key1_hold or grid_alt then
         bank[n][bank[n].id].tilt_ease_type = util.clamp(bank[n][bank[n].id].tilt_ease_type+d, 1, 2)
       else
         for j = 1,16 do
@@ -1121,6 +1131,24 @@ function ea.move_start(target,delta)
   end
 end
 
+function ea.move_rec_start(d)
+  local lbr = {1,2,4}
+  local res;
+  if params:get("rec_loop_enc_resolution") == 1 then
+    res = key1_hold and d/100 or d/10
+  else
+    res = d/rec_loop_enc_resolution
+  end
+  if d >= 0 and util.round(rec[rec.focus].start_point + ((res)/lbr[params:get("live_buff_rate")]),0.01) < util.round(rec[rec.focus].end_point,0.01) then
+    rec[rec.focus].start_point = util.clamp(rec[rec.focus].start_point+((res)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.focus-1))),(8.9+(8*(rec.focus-1))))
+  elseif d < 0 then
+    rec[rec.focus].start_point = util.clamp(rec[rec.focus].start_point+((res)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.focus-1))),(8.9+(8*(rec.focus-1))))
+  end
+  if rec.play_segment == rec.focus then
+    softcut.loop_start(1, rec[rec.focus].start_point)
+  end
+end
+
 function ea.move_end(target,delta)
   local duration = target.mode == 1 and live[target.clip].max or clip[target.clip].max
   local s_p = target.mode == 1 and live[target.clip].min or clip[target.clip].min
@@ -1136,6 +1164,24 @@ function ea.move_end(target,delta)
   end
   if menu == 2 and page.loops.sel < 4 and key1_hold then
     update_waveform(target.mode,target.start_point,target.end_point,128)
+  end
+end
+
+function ea.move_rec_end(d)
+  local lbr = {1,2,4}
+  local res;
+  if params:get("rec_loop_enc_resolution") == 1 then
+    res = key1_hold and d/100 or d/10
+  else
+    res = d/rec_loop_enc_resolution
+  end
+  if d <= 0 and util.round(rec[rec.focus].start_point,0.01) < util.round(rec[rec.focus].end_point + ((res)/lbr[params:get("live_buff_rate")]),0.01) then
+    rec[rec.focus].end_point = util.clamp(rec[rec.focus].end_point+((res)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.focus-1))),(9+(8*(rec.focus-1))))
+  elseif d > 0 and rec[rec.focus].end_point+((res)/lbr[params:get("live_buff_rate")]) <= 9+(8*(rec.focus-1)) then
+    rec[rec.focus].end_point = util.clamp(rec[rec.focus].end_point+((res)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.focus-1))),(9+(8*(rec.focus-1))))
+  end
+  if rec.play_segment == rec.focus then
+    softcut.loop_end(1, rec[rec.focus].end_point-0.01)
   end
 end
 
@@ -1173,6 +1219,34 @@ end
 
 function ea.set_delay_param(target,prm,val)
   params:set("delay "..target..": "..prm,val)
+end
+
+function ea.set_filter_cutoff(target,d)
+  if slew_counter[target] ~= nil then
+    slew_counter[target].prev_tilt = bank[target][bank[target].id].tilt
+  end
+  for j = 1,16 do
+    bank[target][j].tilt = util.clamp(bank[target][j].tilt+(d/100),-1,1)
+    if d < 0 then
+      if util.round(bank[target][j].tilt*100) < 0 and util.round(bank[target][j].tilt*100) > -9 then
+        bank[target][j].tilt = -0.10
+      elseif util.round(bank[target][j].tilt*100) > 0 and util.round(bank[target][j].tilt*100) < 32 then
+        bank[target][j].tilt = 0.0
+      end
+    elseif d > 0 and util.round(bank[target][j].tilt*100) > 0 and util.round(bank[target][j].tilt*100) < 32 then
+      bank[target][j].tilt = 0.32
+    end
+  end
+  slew_filter(target,slew_counter[target].prev_tilt,bank[target][bank[target].id].tilt,bank[target][bank[target].id].q,bank[target][bank[target].id].q,15)
+  params:set("filter tilt "..tonumber(string.format("%.0f",target)),bank[target][bank[target].id].tilt,"true")
+end
+
+function ea.delta_MIDI_values(target,d) -- this is changing all, somehow TODO
+  -- target = mc.midi_notes_velocities[i]
+  local c = target.index
+  target.entries[c] = mc.flip_from_text(target.entries[c])
+  target.entries[c] = util.clamp(target.entries[c]+d,-1,127)
+  target.entries[c] = mc.flip_to_text(target.entries[c])
 end
 
 return encoder_actions

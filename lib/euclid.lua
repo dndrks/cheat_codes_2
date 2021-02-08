@@ -25,6 +25,7 @@ function euclid.trig(target)
       cheat(target,euclid.rotate_pads(euclid.track[target].pos + euclid.track[target].pad_offset))
     end
     grid_dirty = true
+    if menu ~= 1 then screen_dirty = true end
   end
 end
 
@@ -51,16 +52,13 @@ function euclid.init()
       pad_offset = 0,
       auto_pad_offset = 0,
       mode = "single",
-      clock_div = 1/2
+      clock_div = 1/2,
+      runner = 0
     }
-    -- clock.run(euclid.step,i)
   end
 
-  euclid.clock =
-  { clock.run(euclid.step,1)
-  , clock.run(euclid.step,2)
-  , clock.run(euclid.step,3)
-  }
+  -- euclid.clock = clock.run(euclid.super_clock)
+  euclid.clock = nil
 
   euclid.reset = { false, false, false}
 
@@ -81,20 +79,116 @@ function euclid.init()
 
 end
 
-function euclid.reset_pattern(target)
-  euclid.reset[target] = true
-  clock.cancel(euclid.clock[target])
-  euclid.track[target].pos = 1
-  euclid.reset[target] = false
-  -- euclid.clock[target] = clock.run(euclid.step,target)
-  clock.run(euclid.synced_restart,target)
+function euclid.super_clock()
+  while true do
+    for i = 1,3 do
+      euclid.iter(i)
+    end
+    clock.sync(1/32)
+  end
 end
 
-function euclid.synced_restart(target)
-  clock.sync(4)
-  euclid.trig(target)
-  euclid.clock[target] = clock.run(euclid.step,target)
+function euclid.iter(target)
+  euclid.track[target].runner = euclid.track[target].runner + 1
+  if euclid.track[target].runner > 32 * euclid.track[target].clock_div then
+    euclid.track[target].runner = euclid.track[target].runner - (32 * euclid.track[target].clock_div)
+    euclid.track[target].pos = (euclid.track[target].pos % euclid.track[target].n) + 1
+    euclid.trig(target)
+    if euclid.track[target].pos == euclid.track[target].n and euclid.track[target].auto_rotation ~= 0 then
+      local new_rotation = (euclid.track[target].rotation + euclid.track[target].auto_rotation)%16
+      euclid.track[target].rotation = new_rotation
+      euclid.track[target].s = euclid.rotate_pattern(euclid.track[target].s, euclid.track[target].rotation)
+    end
+    if euclid.track[target].pos == euclid.track[target].n and euclid.track[target].auto_pad_offset ~= 0 then
+      local sign = (euclid.track[target].pad_offset + euclid.track[target].auto_pad_offset) < 0 and -16 or 16
+      euclid.track[target].pad_offset = (euclid.track[target].pad_offset + euclid.track[target].auto_pad_offset) % sign
+    end
+    if menu == 8 then screen_dirty = true end
+  end
 end
+
+function euclid.reset_pattern(target)
+  if euclid.restarting == false or euclid.restarting == nil then
+    clock.run(function()
+      euclid.restarting = true
+      clock.sync(4)
+      euclid.trig(target)
+      euclid.reset[target] = true
+      euclid.track[target].runner = 0
+      euclid.track[target].pos = 1
+      euclid.reset[target] = false
+      screen.dirty = true
+      euclid.restarting = false
+    end)
+  end
+end
+
+function euclid.reset_all_patterns()
+  if euclid.all_restarting == false or euclid.all_restarting == nil then
+    clock.run(function()
+      euclid.all_restarting = true
+      clock.sync(4)
+      if euclid.clock ~= nil then
+        clock.cancel(euclid.clock)
+      end
+      for target = 1,3 do
+        euclid.trig(target)
+        euclid.reset[target] = true
+        euclid.track[target].runner = 0
+        euclid.track[target].pos = 1
+        euclid.reset[target] = false
+      end
+      euclid.clock = clock.run(euclid.super_clock)
+      screen.dirty = true
+      euclid.all_restarting = false
+    end)
+  end
+end
+
+function euclid.toggle(state)
+  if state == "start" then
+    euclid.all_restarting = true
+    if euclid.clock ~= nil then
+      clock.cancel(euclid.clock)
+    end
+    for target = 1,3 do
+      euclid.trig(target)
+      euclid.reset[target] = true
+      euclid.track[target].runner = 0
+      euclid.track[target].pos = 1
+      euclid.reset[target] = false
+    end
+    euclid.clock = clock.run(euclid.super_clock)
+    screen.dirty = true
+    euclid.all_restarting = false
+  elseif state == "stop" then
+    if euclid.clock ~= nil then
+      clock.cancel(euclid.clock)
+    end
+    -- euclid.trig(target)
+  end
+  screen.dirty = true
+end
+
+-- function euclid.toggle(state,target)
+--   -- euclid.track[target].runner = 0
+--   -- euclid.track[target].pos = 1
+--   -- if state == "start" then
+--   --   transport.euclid_clock:start()
+--   -- elseif state == "stop" then
+--   --   transport.euclid_clock:stop()
+--   -- end
+--   if state == "start" then
+--     -- clock.cancel(euclid.clock)
+--     -- euclid.trig(target)
+--     -- euclid.clock = clock.run(euclid.super_clock)
+--     euclid.reset_all_patterns() -- this is the only thing that works...but maybe euclid clock shouldn't be running at top...
+--   elseif state == "stop" then
+--     clock.cancel(euclid.clock)
+--     -- euclid.trig(target)
+--   end
+--   screen.dirty = true
+-- end
 
 function euclid.step(target)
   while true do
@@ -155,7 +249,7 @@ function euclid.restore_collection()
   for i = 1,3 do
     euclid.track[i].auto_rotation = euclid.track[i].auto_rotation == nil and 0 or euclid.track[i].auto_rotation
     euclid.track[i].auto_pad_offset = euclid.track[i].auto_pad_offset == nil and 0 or euclid.track[i].auto_pad_offset
-    euclid.reset_pattern(i)
+    -- euclid.reset_pattern(i)
   end
 end
 

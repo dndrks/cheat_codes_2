@@ -42,6 +42,7 @@ function delays.init(target)
     delay[i].selected_bundle = 0
     delay[i].wobble_hold = false
     delay[i].reverse = false
+    delay[i].inverted_link = false
     -- delay[i].external_left = false
     -- delay[i].external_right = false
   end
@@ -69,13 +70,6 @@ function delays.init(target)
   delay_links["thru2"] = false
   delay_links["thru3"] = false
   delay_links["global level"] = false
-
-  -- delay_links = {{},{},{}}
-  -- for i = 1,3 do
-  --   for j = 1,4+i do
-  --     delay_links[i][j] = false
-  --   end
-  -- end
 
   delay_bundle = { {},{} }
   for i = 1,2 do

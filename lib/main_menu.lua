@@ -7,53 +7,63 @@ function main_menu.init()
     screen.move(0,10)
     screen.text("cheat codes")
     screen.move(10,30)
-    for i = 1,10 do
-      screen.level(page.main_sel == i and 15 or 3)
-      if i < 4 then
-        screen.move(5,20+(10*i))
-      elseif i < 7 then
-        screen.move(50,10*(i-1))
-      elseif i < 10 then
-        screen.move(95,30+(10*(i-7)))
-      elseif i == 10 then
-        screen.move(115,64)
+    if not key1_hold then
+      for i = 1,10 do
+        screen.level(page.main_sel == i and 15 or 3)
+        if i < 4 then
+          screen.move(5,20+(10*i))
+        elseif i < 7 then
+          screen.move(50,10*(i-1))
+        elseif i < 10 then
+          screen.move(95,30+(10*(i-7)))
+        elseif i == 10 then
+          screen.move(115,64)
+        end
+        local options =
+        { " loops"
+        , " levels"
+        , " pans"
+        , " filters"
+        , " delays"
+        , " timing"
+        , " euclid"
+        , " arp"
+        , " rnd"
+        , " "
+        }
+        screen.text(page.main_sel == i and (">"..options[i]) or options[i])
       end
-      local options =
-      { " loops"
-      , " levels"
-      , " pans"
-      , " filters"
-      , " delays"
-      , " timing"
-      , " euclid"
-      , " arp"
-      , " rnd"
-      , " "
-      }
-      screen.text(page.main_sel == i and (">"..options[i]) or options[i])
-    end
-    screen.move(128,selected_coll ~= 0 and 20 or 10)
-    screen.level(3)
-    local target = midi_dev[params:get("midi_control_device")]
-    if target.device ~= nil and target.device.port == params:get("midi_control_device") and params:get("midi_control_enabled") == 2 then
-      screen.text_right("("..util.trim_string_to_width(target.device.name,70)..")")
-    elseif target.device == nil and params:get("midi_control_enabled") == 2 then
-      screen.text_right("(no midi device!)")
-    end
-    if mft_connected ~= nil and mft_connected then
-      screen.move(128,60)
+      screen.move(128,selected_coll ~= 0 and 20 or 10)
       screen.level(3)
-      screen.text_right("(MFT)")
-    end
-    if selected_coll ~= 0 then
-      screen.move(128,10)
-      screen.level(3)
-      screen.text_right("["..util.trim_string_to_width(selected_coll,68).."]")
+      local target = midi_dev[params:get("midi_control_device")]
+      if target.device ~= nil and target.device.port == params:get("midi_control_device") and params:get("midi_control_enabled") == 2 then
+        screen.text_right("("..util.trim_string_to_width(target.device.name,70)..")")
+      elseif target.device == nil and params:get("midi_control_enabled") == 2 then
+        screen.text_right("(no midi device!)")
+      end
+      if mft_connected ~= nil and mft_connected then
+        screen.move(128,60)
+        screen.level(3)
+        screen.text_right("(MFT)")
+      end
+      if selected_coll ~= 0 then
+        screen.move(128,10)
+        screen.level(3)
+        screen.text_right("["..util.trim_string_to_width(selected_coll,68).."]")
+      end
+    else
+      screen.move(60,35)
+      screen.text_center("+K2: MACRO CONFIG")
+      screen.move(60,45)
+      screen.text_center("+K3: OUTGOING MIDI CONFIG")
     end
   elseif menu == 2 then
     screen.move(0,10)
     screen.level(3)
     screen.text("loops")
+    if params:get("visual_metro") == 1 then
+      metronome(28,10,15,3)
+    end
 
     local screen_levels =
     {
@@ -66,9 +76,17 @@ function main_menu.init()
     if page.loops.frame == 1 or (page.loops.frame == 2 and page.loops.sel == 5) then
     
       if page.loops.frame == 2 and page.loops.sel == 5 and key1_hold then
-        -- screen.move(50+(5*15),13)
-        -- screen.level(15)
-        -- screen.text_right("E1: cycle")
+        screen.move(128,10)
+        screen.level(15)
+        screen.text_right("E1: pad, E2+E3: fine")
+      elseif page.loops.frame == 2 and page.loops.sel == 5 and key2_hold then
+        screen.move(128,10)
+        screen.level(15)
+        if page.loops.meta_sel < 4 then
+          screen.text_right("E1: <->, K3: chop")
+        elseif page.loops.meta_sel == 4 then
+          screen.text_right("E1: <->, K3: rec "..(rec[rec.focus].state == 0 and "on" or "off"))
+        end
       else
         local header = {"a","b","c","L","#"}
         for i = 1,#header do
@@ -175,7 +193,7 @@ function main_menu.init()
         --   which_pad = bank[page.loops.sel].focus_pad
         -- end
 
-        if not grid.alt then
+        if not grid_alt then
           local loops_to_screen_options = {"a", "b", "c"}
           screen.text(loops_to_screen_options[page.loops.sel]..""..which_pad)
           screen.move(0,50)
@@ -503,6 +521,163 @@ function main_menu.init()
           local off = ((id-1)*8)+1
           local mults = {1,2,4}
           local mult = mults[params:get("live_buff_rate")]
+          
+          local min = live[rec.focus].min
+          local max = live[rec.focus].max
+          local s_p = util.round(rec[rec.focus].start_point,0.01)
+          local e_p = math.modf(rec[rec.focus].end_point*100)/100
+          local sp_to_screen = util.linlin(min,max,15,115,s_p)
+          local ep_to_screen = util.linlin(min,max,15,115,e_p)
+          screen.level(page.loops.frame == 2 and (page.loops.meta_sel == i and 15 or 3) or 3)
+          screen.move(sp_to_screen,64)
+          screen.text("|")
+          screen.move(ep_to_screen,64)
+          screen.text("|")
+          screen.stroke()
+
+          if poll_position_new[1] >= rec[rec.focus].start_point and poll_position_new[1] <= rec[rec.focus].end_point then
+            local current_to_screen = util.linlin(min,max,15,115,poll_position_new[1])
+            screen.level(page.loops.frame == 2 and (page.loops.meta_sel == i and 15 or 3) or 3)
+            screen.move(current_to_screen,64)
+            screen.text(rec[rec.focus].state == 1 and ">" or "||")
+            screen.stroke()
+          end
+
+          -- screen.level(page.loops_sel == 3 and 15 or 3)
+          -- local recording_playhead = util.linlin(1,9,15,120,(poll_position_new[1] - (8*(rec.clip-1))))
+          -- if rec.state == 1 then
+          --   screen.move(recording_playhead,64)
+          --   screen.text(".")
+          -- elseif rec.state == 0 then
+          --   screen.move(recording_playhead,67)
+          --   screen.text_center("||")
+          -- end
+          -- local recording_start = util.linlin(1,9,15,120,(rec.start_point - (8*(rec.clip-1))))
+          -- screen.move(recording_start,66)
+          -- screen.text("|")
+          -- local recording_end = util.linlin(1,9,15,120,rec.end_point - (8*(rec.clip-1)))
+          -- screen.move(recording_end,66)
+          -- screen.text("|")
+          -- screen.move(123,64)
+          -- screen.text(rec.clip)
+
+        -- elseif menu == 2 then
+        --   screen.move(0,10)
+        --   screen.level(3)
+        --   screen.text("loops")
+        --   if key1_hold then
+        --     local id = page.loops_sel+1
+        --     local focused_pad = nil
+        --     if grid_alt == 1 then
+        --       screen.move(0,20)
+        --       screen.level(6)
+        --       screen.text("(grid-ALT sets offset for all)")
+        --     end
+        --     for i = 1,3 do
+        --       --if grid_pat[i].play == 0 and grid_pat[i].tightened_start == 0 and grid_pat[i].external_start == 0 then
+        --       if grid_pat[i].play == 0 and grid_pat[i].tightened_start == 0 then
+        --         focused_pad = bank[i].id
+        --       else
+        --         focused_pad = bank[i].focus_pad
+        --       end
+        --       if page.loops_sel == i-1 then
+        --         if page.loops_sel < 3 and focused_pad == 16 and grid_alt == 0 then
+        --           screen.move(0,20)
+        --           screen.level(6)
+        --           screen.text("(pad 16 overwrites bank!)")
+        --         end
+        --         --if grid_pat[i].play == 1 or grid_pat[i].tightened_start == 1 or grid_pat[i].external_start == 1 then
+        --         if grid_pat[i].play == 1 or grid_pat[i].tightened_start == 1 then
+        --           screen.move(0,10)
+        --           screen.level(3)
+        --           screen.text("loops: bank "..i.." is pad-locked")
+        --         end
+        --       end
+        --       screen.move(0,20+(i*10))
+        --       screen.level(page.loops_sel == i-1 and 15 or 3)
+        --       if grid_alt == 0 then
+        --         local loops_to_screen_options = {"a", "b", "c"}
+        --         screen.text(loops_to_screen_options[i]..""..focused_pad)
+        --       else
+        --         local loops_to_screen_options = {"(a)","(b)","(c)"}
+        --         screen.text(loops_to_screen_options[i])
+        --       end
+        --       screen.move(20,20+(i*10))
+        --       screen.text((bank[i][focused_pad].mode == 1 and "Live" or "Clip")..":")
+        --       screen.move(40,20+(i*10))
+        --       screen.text(bank[i][focused_pad].clip)
+        --       screen.move(55,20+(i*10))
+        --       screen.text("offset: "..string.format("%.0f",((math.log(bank[i][focused_pad].offset)/math.log(0.5))*-12)).." st")
+        --     end
+        --     screen.level(page.loops_sel == 3 and 15 or 3)
+        --     screen.move(0,60)
+        --     screen.text("L"..rec.clip)
+        --     screen.move(20,60)
+        --     screen.text(rec.state == 1 and "recording" or "not recording")
+        --     screen.move(88,60)
+        --     local rate_options = {"8 s","16 s","32 s"}
+        --     screen.text(rate_options[params:get"live_buff_rate"])
+        --     screen.move(111,60)
+        --     screen.level(3)
+        --     screen.text(string.format("%0.f",util.linlin(rec.start_point-(8*(rec.clip-1)),rec.end_point-(8*(rec.clip-1)),0,100,(poll_position_new[1] - (8*(rec.clip-1))))).."%")
+        --   else
+        --     local which_pad = nil
+        --     screen.line_width(1)
+        --     for i = 1,3 do
+        --       if bank[i].focus_hold == false then
+        --         which_pad = bank[i].id
+        --       else
+        --         which_pad = bank[i].focus_pad
+        --       end
+        --       screen.move(0,10+(i*15))
+        --       screen.level(page.loops_sel == i-1 and 15 or 3)
+        --       local loops_to_screen_options = {"a", "b", "c"}
+        --       screen.text(loops_to_screen_options[i]..""..which_pad)
+        --       screen.move(15,10+(i*15))
+        --       screen.line(120,10+(i*15))
+        --       screen.close()
+        --       screen.stroke()
+        --     end
+        --     for i = 1,3 do
+        --       if bank[i].focus_hold == false then
+        --         which_pad = bank[i].id
+        --       else
+        --         which_pad = bank[i].focus_pad
+        --       end
+        --       screen.level(page.loops_sel == i-1 and 15 or 3)
+        --       local start_to_screen = util.linlin(1,9,15,120,(bank[i][which_pad].start_point - (8*(bank[i][which_pad].clip-1))))
+        --       screen.move(start_to_screen,24+(15*(i-1)))
+        --       screen.text("|")
+        --       local end_to_screen = util.linlin(1,9,15,120,bank[i][which_pad].end_point - (8*(bank[i][which_pad].clip-1)))
+        --       screen.move(end_to_screen,30+(15*(i-1)))
+        --       screen.text("|")
+        --       if bank[i].focus_hold == false or bank[i].id == bank[i].focus_pad then
+        --         local current_to_screen = util.linlin(1,9,15,120,(poll_position_new[i+1] - (8*(bank[i][bank[i].id].clip-1))))
+        --         screen.move(current_to_screen,27+(15*(i-1)))
+        --         screen.text("|")
+        --       end
+        --     end
+        --     screen.level(page.loops_sel == 3 and 15 or 3)
+        --     local recording_playhead = util.linlin(1,9,15,120,(poll_position_new[1] - (8*(rec.clip-1))))
+        --     if rec.state == 1 then
+        --       screen.move(recording_playhead,64)
+        --       screen.text(".")
+        --     elseif rec.state == 0 then
+        --       screen.move(recording_playhead,67)
+        --       screen.text_center("||")
+        --     end
+        --     local recording_start = util.linlin(1,9,15,120,(rec.start_point - (8*(rec.clip-1))))
+        --     screen.move(recording_start,66)
+        --     screen.text("|")
+        --     local recording_end = util.linlin(1,9,15,120,rec.end_point - (8*(rec.clip-1)))
+        --     screen.move(recording_end,66)
+        --     screen.text("|")
+        --     screen.move(123,64)
+        --     screen.text(rec.clip)
+        --   end
+        --   screen.level(3)
+        --   screen.move(0,64)
+        --   screen.text("...")
 
 
         end
@@ -558,13 +733,13 @@ function main_menu.init()
       screen.move(10+(i*20),64)
       screen.level(level_options[page.levels_sel+1] == "levels" and 15 or 3)
       local level_to_screen_options = {"a", "b", "c"}
-      if key1_hold or grid.alt or bank[i].alt_lock then
+      if key1_hold or grid_alt or bank[i].alt_lock then
         screen.text("("..level_to_screen_options[i]..")")
       else
         screen.text(level_to_screen_options[i]..""..focused_pad)
       end
       screen.move(35+(20*(i-1)),57)
-      local level_to_screen = ((key1_hold or grid.alt or bank[i].alt_lock) and util.linlin(0,2,0,40,bank[i].global_level) or util.linlin(0,2,0,40,bank[i][focused_pad].level))
+      local level_to_screen = ((key1_hold or grid_alt or bank[i].alt_lock) and util.linlin(0,2,0,40,bank[i].global_level) or util.linlin(0,2,0,40,bank[i][focused_pad].level))
       screen.line(35+(20*(i-1)),57-level_to_screen)
       screen.close()
       screen.stroke()
@@ -591,7 +766,7 @@ function main_menu.init()
       -- screen.text("time")
       screen.move(85,34+((i)*10))
       local envelope_to_screen_options = {"a", "b", "c"}
-      if key1_hold or grid.alt or bank[i].alt_lock then
+      if key1_hold or grid_alt or bank[i].alt_lock then
         screen.text("("..envelope_to_screen_options[i]..")")
       else
         screen.text(envelope_to_screen_options[i]..""..focused_pad)
@@ -624,7 +799,7 @@ function main_menu.init()
       screen.move(pan_to_screen,35+(10*(i-1)))
       local pan_to_screen_options = {"a", "b", "c"}
       screen.level(15)
-      if key1_hold or grid.alt then
+      if key1_hold or grid_alt then
         screen.text("("..pan_to_screen_options[i]..")")
       else
         screen.text(pan_to_screen_options[i]..""..focused_pad)
@@ -639,7 +814,7 @@ function main_menu.init()
       screen.move(17+((i-1)*45),20)
       screen.level(15)
       local filters_to_screen_options = {"a", "b", "c"}
-      if key1_hold or grid.alt then
+      if key1_hold or grid_alt then
         screen.text_center(filters_to_screen_options[i]..""..bank[i].id)
       else
         screen.text_center("("..filters_to_screen_options[i]..")")
@@ -785,7 +960,9 @@ function main_menu.init()
     elseif focused_menu == 2 then
       screen.level((page.delay_section == 2 and selected == 1) and 15 or 3)
       screen.move(30,30)
-      screen.text(params:string("delay "..delay_name..": filter cut"))
+      local current_freq = params:get("delay "..delay_name..": filter cut")
+      local modified_freq = easingFunctions[params:string("delay "..delay_name..": curve")](current_freq/12000,10,11990,1)
+      screen.text(string.format("%.6g",modified_freq).." hz")
       screen.level((page.delay_section == 2 and selected == 2) and 15 or 3)
       screen.move(85,30)
       screen.text("q: "..params:string("delay "..delay_name..": filter q"))
@@ -825,25 +1002,7 @@ function main_menu.init()
     screen.text("timing")
     screen.move(66,10)
     screen.text_center("bpm: "..params:get("clock_tempo"))
-    -- screen.level(3)
-    screen.move(110,10)
-    local show_me_beats = clock.get_beats() % 4
-    local show_me_frac = math.fmod(clock.get_beats(),1)
-    if show_me_frac <= 0.25 then
-      show_me_frac = 1
-    elseif show_me_frac <= 0.5 then
-      show_me_frac = 2
-    elseif show_me_frac <= 0.75 then
-      show_me_frac = 3
-    else
-      show_me_frac = 4
-    end
-    if show_me_frac == 1 then
-      screen.level(15)
-    else
-      screen.level(3)
-    end
-    screen.text((math.modf(show_me_beats)+1).."."..show_me_frac)
+    metronome(110,10,15,3)
     screen.level(10)
     screen.move(10,30)
     screen.line(123,30)
@@ -861,7 +1020,8 @@ function main_menu.init()
 
     for i = 1,3 do
       screen.level(page_line == i and 15 or 3)
-      local pattern = g.device ~= nil and grid_pat[i] or midi_pat[i]
+      -- local pattern = g.device ~= nil and grid_pat[i] or midi_pat[i]
+      local pattern = get_grid_connected() and grid_pat[i] or midi_pat[i]
       screen.move(10+(20*(i-1)),25)
       screen.text("P"..i)
       screen.move(5+(20*(i-1)),25)
@@ -874,8 +1034,20 @@ function main_menu.init()
     end
     
     if page.time_sel < 4 then
-      local pattern = g.device ~= nil and grid_pat[page_line] or midi_pat[page_line]
+      -- local pattern = g.device ~= nil and grid_pat[page_line] or midi_pat[page_line]
+      local pattern = get_grid_connected() and grid_pat[page_line] or midi_pat[page_line]
       if pattern.sync_hold ~= nil and pattern.sync_hold then
+        local show_me_beats = clock.get_beats() % 4
+        local show_me_frac = math.fmod(clock.get_beats(),1)
+        if show_me_frac <= 0.25 then
+          show_me_frac = 1
+        elseif show_me_frac <= 0.5 then
+          show_me_frac = 2
+        elseif show_me_frac <= 0.75 then
+          show_me_frac = 3
+        else
+          show_me_frac = 4
+        end
         screen.level(3)
         screen.move(45,55)
         screen.font_size(30)
@@ -1237,6 +1409,53 @@ function main_menu.init()
       screen.text_center(dots)
       screen.font_size(8)
     end
+  elseif menu == "default load screen" then
+    -- if dots == "zilchmo time!" then
+    --   screen.font_size(18)
+    --   screen.move(62,35)
+    -- else
+    --   screen.font_size(8)
+    --   screen.move(62,30)
+    -- end
+    -- screen.text_center(dots)
+    if dots == "tossin' the dough" then
+      for i = 1,4 do
+        screen.rect(30+(10*i),42,5,5)
+        screen.fill()
+      end
+    elseif dots == "spreadin' the sauce" then
+      for i = 1,4 do
+        screen.rect(30+(10*i),42,5,5)
+      end
+      for i = 1,3 do
+        screen.rect(40+(10*i),32,5,5)
+      end
+      screen.fill()
+    elseif dots == "sprinklin' cheese" then
+      for i = 1,4 do
+        screen.rect(30+(10*i),42,5,5)
+      end
+      for i = 1,3 do
+        screen.rect(40+(10*i),32,5,5)
+      end
+      for i = 1,2 do
+        screen.rect(50+(10*i),22,5,5)
+      end
+      screen.fill()
+    elseif dots == "zilchmo time!" then
+      for i = 1,4 do
+        screen.rect(30+(10*i),42,5,5)
+      end
+      for i = 1,3 do
+        screen.rect(40+(10*i),32,5,5)
+      end
+      for i = 1,2 do
+        screen.rect(50+(10*i),22,5,5)
+      end
+      screen.rect(60+(10),12,5,5)
+      screen.fill()
+    end
+    screen.font_size(8)
   elseif menu == "save screen" then
     screen.level(15)
     screen.move(62,43)
@@ -1284,14 +1503,64 @@ function main_menu.init()
     screen.text_center(menu == "canceled overwrite screen" and "overwrite" or "delete")
     screen.move(62,50)
     screen.text_center("canceled")
+  elseif menu == "save fail screen" then
+    screen.level(15)
+    screen.move(62,30)
+    screen.font_size(10)
+    screen.text_center("name is taken")
+    screen.move(62,50)
+    screen.text_center("will not save")
+  elseif menu == "MIDI_config" then
+    mc.midi_config_redraw(page.midi_bank)
+  elseif menu == "macro_config" then
+    macros.UI()
+  elseif menu == "transport_config" then
+    transport.UI()
+  else
+    screen.move(62,30)
+    -- screen.text_center("hi!")
   end
 end
 
 function save_screen(text)
-  menu = "save screen"
   named_savestate(text)
+  menu = "save screen"
+  -- screen_dirty = true
+  clock.sleep(0.05)
+  screen_dirty = true
+  clock.sleep(1)
+  menu = 1
+  screen_dirty = true
+end
+
+function save_fail_screen(text)
+  local return_to = menu
+  menu = "save fail screen"
+  clock.sleep(1)
+  menu = return_to
+  screen_dirty = true
+  _norns.key(1,1)
+  _norns.key(1,0)
+end
+
+function default_load_screen()
+  _norns.key(1,1)
+  _norns.key(1,0)
+  dots = "tossin' the dough"
+  menu = "default load screen"
+  clock.sleep(0.5)
+  screen_dirty = true
+  dots = "spreadin' the sauce"
+  screen_dirty = true
+  clock.sleep(0.5)
+  dots = "sprinklin' cheese"
+  screen_dirty = true
+  clock.sleep(0.5)
+  dots = "zilchmo time!"
+  screen_dirty = true
   clock.sleep(0.75)
   menu = 1
+  splash_done = true
   screen_dirty = true
 end
 
@@ -1299,10 +1568,13 @@ function load_screen()
   dots = "..."
   menu = "load screen"
   clock.sleep(0.33)
+  screen_dirty = true
   dots = ".."
   clock.sleep(0.33)
+  screen_dirty = true
   dots = "."
   clock.sleep(0.33)
+  screen_dirty = true
   dots = "loaded!"
   clock.sleep(0.75)
   menu = 1
@@ -1327,11 +1599,15 @@ end
 function overwrite_screen(text)
   dots = "3"
   menu = "overwrite screen"
+  screen_dirty = true
   clock.sleep(0.75)
+  screen_dirty = true
   dots = "2"
   clock.sleep(0.75)
+  screen_dirty = true
   dots = "1"
   clock.sleep(0.75)
+  screen_dirty = true
   dots = "saved!"
   clock.sleep(0.33)
   named_savestate(text)
@@ -1349,12 +1625,16 @@ end
 function delete_screen(text)
   dots = "3"
   menu = "delete screen"
+  screen_dirty = true
   clock.sleep(0.75)
   dots = "2"
+  screen_dirty = true
   clock.sleep(0.75)
   dots = "1"
+  screen_dirty = true
   clock.sleep(0.75)
   dots = "(x_x)"
+  screen_dirty = true
   clock.sleep(0.33)
   named_delete(text)
   menu = 1
@@ -1363,9 +1643,35 @@ end
 
 function canceled_delete()
   menu = "canceled delete screen"
+  screen_dirty = true
   clock.sleep(0.75)
   menu = 1
   screen_dirty = true
+end
+
+function metronome(x,y,hi,lo)
+  local show_me_beats = clock.get_beats() % 4
+  local show_me_frac = math.fmod(clock.get_beats(),1)
+  if show_me_frac <= 0.25 then
+    show_me_frac = 1
+  elseif show_me_frac <= 0.5 then
+    show_me_frac = 2
+  elseif show_me_frac <= 0.75 then
+    show_me_frac = 3
+  else
+    show_me_frac = 4
+  end
+  if show_me_frac == 1 then
+    screen.level(hi)
+  else
+    screen.level(lo)
+  end
+  screen.move(x,y)
+  if transport.is_running then
+    screen.text((math.modf(show_me_beats)+1).."."..show_me_frac)
+  else
+    screen.text("X.X")
+  end
 end
 
 return main_menu

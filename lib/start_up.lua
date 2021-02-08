@@ -20,7 +20,8 @@ function start_up.init()
     softcut.loop(i, 1)
     softcut.rec(1, 1)
     softcut.rec_level(1, 1)
-    softcut.pre_level(1, 0.25)
+    -- softcut.pre_level(1, 0.25)
+    softcut.pre_level(1, 1)
     softcut.position(i, 1)
     softcut.phase_quant(i, 0.01)
     -- softcut.phase_quant(i, 1/15)
@@ -70,7 +71,7 @@ function start_up.init()
   
   --params:add_separator()
   
-  params:add_group("loops + buffers", 27)
+  params:add_group("loops + buffers", 28)
 
   params:add_separator("clips")
   
@@ -86,22 +87,25 @@ function start_up.init()
   params:add_separator("live")
 
   for i = 1,3 do
+    -- params:add_option("rec_loop_"..i, "live "..i.." rec behavior", {"loop","1-shot","SOS"}, 1)
     params:add_option("rec_loop_"..i, "live "..i.." rec behavior", {"loop","1-shot"}, 1)
     params:set_action("rec_loop_"..i,
       function(x)
-        rec[i].loop = 2-x
-        if rec[i].loop == 0 then rec.stopped = true end
-        if rec.focus == i then
-          softcut.loop(1,rec[rec.focus].loop)
-          softcut.position(1,rec[rec.focus].start_point)
-          softcut.rec_level(1,rec[rec.focus].state)
-          if rec[rec.focus].state == 1 then
-            if x == 2 then
-              --rec_state_watcher:start()
-              run_one_shot_rec_clock()
-              softcut.pre_level(1,params:get("live_rec_feedback_"..rec.focus))
-            elseif x == 1 then
-              softcut.pre_level(1,params:get("live_rec_feedback_"..rec.focus))
+        if x < 3 then
+          rec[i].loop = 2-x
+          if rec[i].loop == 0 then rec.stopped = true end
+          if rec.focus == i then
+            softcut.loop(1,rec[rec.focus].loop)
+            softcut.position(1,rec[rec.focus].start_point)
+            softcut.rec_level(1,rec[rec.focus].state)
+            if rec[rec.focus].state == 1 then
+              if x == 2 then
+                --rec_state_watcher:start()
+                run_one_shot_rec_clock()
+                softcut.pre_level(1,params:get("live_rec_feedback_"..rec.focus))
+              elseif x == 1 then
+                softcut.pre_level(1,params:get("live_rec_feedback_"..rec.focus))
+              end
             end
           end
         end
@@ -209,6 +213,8 @@ function start_up.init()
 
   params:add_option("preview_clip_change", "preview clip changes?", {"yes","no"},1)
   params:set_action("preview_clip_change", function() if all_loaded then persistent_state_save() end end)
+  params:add_option("visual_metro", "visual metronome?", {"yes","no"},2)
+  params:set_action("visual_metro", function() if all_loaded then persistent_state_save() end end)
   
   --params:add_option("zilchmo_bind_rand","bind random zilchmo?", {"no","yes"}, 1)
   
@@ -280,7 +286,9 @@ function start_up.init()
     end
   )
   
-  params:add_group("mappable control",89)
+  params:add_group("mappable control",99)
+
+  params:add_separator("save MIDI mappings")
 
   params:add{type='binary',name="save mappings",id='save_mappings',behavior='momentary', allow_pmap=false,
   action=function(x)
@@ -295,7 +303,7 @@ params:add_separator("ALT key")
   params:add{type='binary',name="ALT key",id='alt_key',behavior='momentary',
   action=function(x)
     if all_loaded then
-      grid.alt = x == 1 and true or false
+      grid_alt = x == 1 and true or false
       grid_dirty = true
     end
   end
@@ -316,14 +324,15 @@ params:add_separator("ALT key")
     params:add{type='binary',name="midi pat "..i.." rec",id='midi_pat_'..i..' rec',behavior='trigger',
       action=function()
         if all_loaded then
-          -- if x == 1 then
-            -- print(i)
             if midi_pat[i].rec == 0 then
-              if midi_pat[i].count == 0 and not grid.alt then
+              if midi_pat[i].count == 0 and not grid_alt then
                 midi_pattern_recording(i,"start")
-              elseif midi_pat[i].count ~= 0 and not grid.alt then
+                print("recording midi pattern")
+              elseif midi_pat[i].count ~= 0 and not grid_alt then
                 toggle_midi_pattern_overdub(i)
-              elseif grid.alt then
+                print("overdubbing midi pattern")
+              elseif grid_alt then
+                print("erasing midi pattern")
                 if midi_pat[i].count > 0 then
                   midi_pat[i]:rec_stop()
                   if midi_pat[i].clock ~= nil then
@@ -334,7 +343,7 @@ params:add_separator("ALT key")
                 end
               end
             elseif midi_pat[i].rec == 1 then
-              if not grid.alt then
+              if not grid_alt then
                 midi_pattern_recording(i,"stop")
               end
             end
@@ -348,12 +357,12 @@ params:add_separator("ALT key")
     params:add{type='binary',name="random pattern "..i,id='random_pat_'..i,behavior='trigger',
       action=function()
         if all_loaded then
-          -- if x == 1 then
-            if g.device ~= nil then
-              random_grid_pat(i,3)
-            else
-              random_midi_pat(i)
-            end
+          -- if g.device ~= nil then
+          if get_grid_connected() then
+            random_grid_pat(i,3)
+          else
+            random_midi_pat(i)
+          end
           -- end
         end
       end
@@ -365,7 +374,8 @@ params:add_separator("ALT key")
       action=function(x)
         if all_loaded then
           if x == 1 then
-            if g.device ~= nil then
+            -- if g.device ~= nil then
+            if get_grid_connected() then
               random_grid_pat(id,2)
             else
               shuffle_midi_pat(id)
@@ -382,7 +392,7 @@ params:add_separator("ALT key")
     params:add{type='binary',name="rec live "..i,id='rec_live_'..i,behavior='trigger',
       action=function()
         if all_loaded then
-          if not grid.alt then
+          if not grid_alt then
             toggle_buffer(i)
           else
             buff_flush()
@@ -456,14 +466,18 @@ params:add_separator("ALT key")
       end
     }
   end
+
+  local last_start_value = {}
+  local last_end_value = {}
   
   for i = 1,3 do
     local banks = {"(a)","(b)","(c)"}
     params:add_separator(banks[i].." values")
-    params:add_control("current pad "..i, "current pad "..banks[i], controlspec.new(1,16,'lin',1,1))
+    -- params:add_control("current pad "..i, "current pad "..banks[i], controlspec.new(1,16,'lin',1,1))
+    params:add_number("current pad "..i, "current pad "..banks[i], 1, 16, 1)
     params:set_action("current pad "..i, function(x)
-      if bank[i].id ~= x then
-        bank[i].id = x
+      if bank[i].id ~= util.clamp(1,16,util.round(x)) then
+        bank[i].id = util.clamp(1,16,util.round(x))
         selected[i].x = (math.ceil(bank[i].id/4)+(5*(i-1)))
         selected[i].y = 8-((bank[i].id-1)%4)
         cheat(i,bank[i].id)
@@ -472,10 +486,11 @@ params:add_separator("ALT key")
       end
     end)
     local rates = {-4,-2,-1,-0.5,-0.25,-0.125,0.125,0.25,0.5,1,2,4}
-    params:add_option("rate "..i, "rate "..banks[i], {"-4x","-2x","-1x","-0.5x","-0.25x","-0.125x","0.125x","0.25x","0.5x","1x","2x","4x"}, 10)
+    params:add_option("rate "..i, "rate "..banks[i], macros.pad_rates, tab.key(macros.pad_rates,macros.default_pad_rate))
     params:set_action("rate "..i, function(x)
-      for p = (grid.alt and 1 or bank[i].id),(grid.alt and 16 or bank[i].id) do
-        bank[i][p].rate = rates[x]
+      x = util.clamp(1,#macros.pad_rates,util.round(x))
+      for p = (grid_alt and 1 or bank[i].id),(grid_alt and 16 or bank[i].id) do
+        bank[i][p].rate = macros.pad_rates[x]
       end
       if bank[i][bank[i].id].pause == false then
         softcut.rate(i+1, bank[i][bank[i].id].rate*bank[i][bank[i].id].offset)
@@ -486,7 +501,7 @@ params:add_separator("ALT key")
     params:add_control("pan "..i, "pan "..banks[i], controlspec.new(-1,1,'lin',0.01,0))
     params:set_action("pan "..i, function(x)
       softcut.pan(i+1,x)
-      for p = (grid.alt and 1 or bank[i].id),(grid.alt and 16 or bank[i].id) do
+      for p = (grid_alt and 1 or bank[i].id),(grid_alt and 16 or bank[i].id) do
         bank[i][p].pan = x
       end
       screen_dirty = true
@@ -495,7 +510,7 @@ params:add_separator("ALT key")
     params:set_action("pan slew "..i, function(x) softcut.pan_slew_time(i+1,x) end)
     params:add_control("level "..i, "pad level "..banks[i], controlspec.new(0,127,'lin',1,64))
     params:set_action("level "..i, function(x)
-      for p = (grid.alt and 1 or bank[i].id),(grid.alt and 16 or bank[i].id) do
+      for p = (grid_alt and 1 or bank[i].id),(grid_alt and 16 or bank[i].id) do
         mc.adjust_pad_level(bank[i][p],x)
       end
       if all_loaded then mc.redraw(bank[i][bank[i].id]) end
@@ -510,11 +525,58 @@ params:add_separator("ALT key")
       mc.move_start(bank[i][bank[i].id],x)
       if all_loaded then mc.redraw(bank[i][bank[i].id]) end
       end)
+    
+    last_start_value[i] = 0
+
+    params:add_number("start (delta) "..i, "start (delta) "..banks[i],0,127,64)
+    params:set_action("start (delta) "..i, function(x)
+      if all_loaded then
+        local returned = 0
+        if last_start_value[i] > math.floor(x) then
+          -- negative delta
+          returned = -1
+        elseif last_start_value[i] < math.floor(x) then
+          -- positive delta
+          returned = 1
+        end
+        if last_start_value[i] ~= math.floor(x) then
+          local resolution = loop_enc_resolution[i]
+          encoder_actions.move_start(bank[i][bank[i].id],returned/resolution)
+          encoder_actions.sc.move_start(i)
+        end
+        last_start_value[i] = math.floor(x)
+      end
+    end)
+    
     params:add_control("end point "..i, "end point "..banks[i], controlspec.new(0,127,'lin',1,8))
     params:set_action("end point "..i, function(x)
       mc.move_end(bank[i][bank[i].id],x)
       if all_loaded then mc.redraw(bank[i][bank[i].id]) end
       end)
+
+    last_end_value[i] = 0
+
+    params:add_number("end (delta) "..i, "end (delta) "..banks[i],0,127,64)
+    params:set_action("end (delta) "..i, function(x)
+      if all_loaded then
+        local returned = 0
+        if last_end_value[i] > x then
+          -- negative delta
+          returned = -1
+        elseif last_end_value[i] < x then
+          -- positive delta
+          returned = 1
+        end
+        if last_end_value[i] ~= x then
+          local resolution = loop_enc_resolution[i]
+          encoder_actions.move_end(bank[i][bank[i].id],returned/resolution)
+          encoder_actions.sc.move_end(i)
+        end
+        last_end_value[i] = x
+      end
+    end)
+
+    
     params:add{type='binary',name="toggle loop "..banks[i],id="loop_"..i,behavior='momentary',
       action=function(x)
         if x == 1 then
@@ -522,9 +584,20 @@ params:add_separator("ALT key")
         end
       end
     }
+    params:add_control("filter tilt "..i, "filter tilt "..banks[i], controlspec.new(-1,1,'lin',0.01,0))
+    params:set_action("filter tilt "..i, function(x)
+      for j = 1,16 do
+        local target = bank[i][j]
+        if slew_counter[i] ~= nil then
+          slew_counter[i].prev_tilt = target.tilt
+        end
+        target.tilt = x
+      end
+    slew_filter(i,slew_counter[i].prev_tilt,bank[i][bank[i].id].tilt,bank[i][bank[i].id].q,bank[i][bank[i].id].q,bank[i][bank[i].id].tilt_ease_time)
+    end)
   end
   
-  params:add_group("delays",51)
+  params:add_group("delays",65)
 
   params:add_separator("manage delay audio")
   params:add{type = "trigger", id = "save_left_delay", name = "** save L delay", action = function() del.save_delay(1) end}
@@ -581,28 +654,7 @@ params:add_separator("ALT key")
       encoder_actions.check_delay_links(sides[i-3], sides[i-3] == "L" and "R" or "L","div/mult")
       screen_dirty = true
     end)
-    params:add{
-      type='control',
-      id='delay '..sides[i-3]..': free length',
-      name='--> free length: ',
-      controlspec=controlspec.def{
-        min=0.00,
-        max=30.0,
-        warp='lin',
-        step=0.0001,
-        default=1,
-        quantum=0.0001,
-        wrap=false,
-      },
-    }
-    params:hide("delay "..sides[i-3]..": free length")
-    params:set_action("delay "..sides[i-3]..": free length", function(x)
-      if delay[i-3].mode == "free" then
-        delay[i-3].free_end_point = delay[i-3].start_point + x
-        softcut.loop_end(i+1,delay[i-3].free_end_point)
-        encoder_actions.check_delay_links(sides[i-3], sides[i-3] == "L" and "R" or "L","free length")
-      end
-    end)
+
     --params:add_control("delay "..sides[i-3]..": free length", "--> free length: ", controlspec.new(0.01,30,'lin',0.01,0.01,""))
     params:add{
       type='control',
@@ -651,7 +703,98 @@ params:add_separator("ALT key")
       screen_dirty = true
       encoder_actions.check_delay_links(sides[i-3], sides[i-3] == "L" and "R" or "L","feedback")
     end)
+    params:add_control("delay "..sides[i-3]..": pan", "delay "..sides[i-3]..": pan", controlspec.new(-1,1,'lin',0.01,(i == 4 and -1 or 1)))
+    params:set_action("delay "..sides[i-3]..": pan", function(x)
+      softcut.pan(i+1,x)
+    end)
     params:add{type = "trigger", id = "save_delay_"..sides[i-3], name = "***** save delay "..sides[i-3].." ***** [K3]", action = function() del.save_delay(i-3) end}	
+
+    params:add{
+      type='control',
+      id='delay '..sides[i-3]..': free length',
+      name='--> free length: ',
+      controlspec=controlspec.def{
+        min=0.00,
+        max=30.0,
+        warp='lin',
+        step=0.0001,
+        default=1,
+        quantum=0.0001,
+        wrap=false,
+      },
+    }
+    params:hide("delay "..sides[i-3]..": free length")
+    params:set_action("delay "..sides[i-3]..": free length", function(x)
+      if delay[i-3].mode == "free" then
+        delay[i-3].free_end_point = delay[i-3].start_point + x
+        softcut.loop_end(i+1,delay[i-3].free_end_point)
+        encoder_actions.check_delay_links(sides[i-3], sides[i-3] == "L" and "R" or "L","free length")
+      end
+    end)
+
+    -- this is dumb, but it works:
+
+    params:add_control("delay pan "..i-3, "delay pan "..i-3, controlspec.new(-1,1,'lin',0.01,(i == 4 and -1 or 1)))
+    params:hide("delay pan "..i-3)
+    params:set_action("delay pan "..i-3, function(x)
+      if all_loaded then
+        params:set("delay "..sides[i-3]..": pan",x)
+      end
+    end)
+
+    params:add{
+      type='control',
+      id='delay free time '..i-3,
+      name='delay free time '..i-3,
+      controlspec=controlspec.def{
+        min=0.00,
+        max=30.0,
+        warp='lin',
+        step=0.0001,
+        default=1,
+        quantum=0.0001,
+        wrap=false,
+      },
+    }
+    params:hide('delay free time '..i-3)
+    params:set_action('delay free time '..i-3, function(x)
+      if all_loaded then
+        params:set("delay "..sides[i-3]..": free length",x)
+      end
+    end)
+    params:add_option("delay div/mult "..i-3, "delay div/mult "..i-3,
+    {"x16"   ,"x15.75"   ,"x15.66"   ,"x15.5"   ,"x15.33"   ,"x15.25"
+    , "x15"   ,"x14.75"   ,"x14.66"   ,"x14.5"   ,"x14.33"   ,"x14.25"
+    , "x14"   ,"x13.75"   ,"x13.66"   ,"x13.5"   ,"x13.33"   ,"x13.25"
+    , "x13"   ,"x12.75"   ,"x12.66"   ,"x12.5"   ,"x12.33"   ,"x12.25"
+    , "x12"   ,"x11.75"   ,"x11.66"   ,"x11.5"   ,"x11.33"   ,"x11.25"
+    , "x11"   ,"x10.75"   ,"x10.66"   ,"x10.5"   ,"x10.33"   ,"x10.25"
+    , "x10"   ,"x9.75"   ,"x9.66"   ,"x9.5"   ,"x9.33"   ,"x9.25"
+    , "x9"    ,"x8.75"   ,"x8.66"   ,"x8.5"   ,"x8.33"   ,"x8.25"
+    , "x8"    ,"x7.75"   ,"x7.66"   ,"x7.5"   ,"x7.33"   ,"x7.25"
+    , "x7"    ,"x6.75"   ,"x6.66"   ,"x6.5"   ,"x6.33"   ,"x6.25"
+    , "x6"    ,"x5.75"   ,"x5.66"   ,"x5.5"   ,"x5.33"   ,"x5.25"
+    , "x5"    ,"x4.75"   ,"x4.66"   ,"x4.5"   ,"x4.33"   ,"x4.25"
+    , "x4"    ,"x3.75"   ,"x3.66"   ,"x3.5"   ,"x3.33"   ,"x3.25"
+    , "x3"    ,"x2.75"   ,"x2.66"   ,"x2.5"   ,"x2.33"   ,"x2.25"
+    , "x2"    ,"x1.75"   ,"x1.66"   ,"x1.5"   ,"x1.33"   ,"x1.25"
+    , "x1"    ,"/1.25"   ,"/1.33"   ,"/1.5"   ,"/1.66"   ,"/1.75"   ,"/2"   ,"/4"
+    },91)
+    params:hide('delay div/mult '..i-3)
+    params:set_action('delay div/mult '..i-3, function(x)
+      if all_loaded then
+        params:set("delay "..sides[i-3]..": div/mult",x)
+      end
+    end)
+
+    params:add_option("delay rate "..i-3, "delay rate "..i-3, macros.delay_rates)
+    params:hide('delay rate '..i-3)
+    params:set_action("delay rate "..i-3, function(x)
+      if all_loaded then
+        params:set("delay "..sides[i-3]..": rate", macros.delay_rates[x])
+      end
+    end)
+    ---/
   end
 
   params:add_separator("delay input")
@@ -694,10 +837,17 @@ params:add_separator("ALT key")
   for i = 4,5 do
     local sides = {"L","R"}
     params:add_separator("delay filters "..sides[i-3])
+    params:add_option("delay "..sides[i-3]..": curve", "delay "..sides[i-3]..": curve", easingFunctions.easingNames,1)
     params:add_control("delay "..sides[i-3]..": filter cut", "delay "..sides[i-3]..": filter cut", controlspec.new(10,12000,'exp',1,12000,"Hz"))
     params:set_action("delay "..sides[i-3]..": filter cut",
     function(x)
-      softcut.post_filter_fc(i+1,x)
+      local modified_freq = nil
+      if i == 4 then
+        modified_freq = easingFunctions[params:string("delay "..sides[i-3]..": curve")](x/12000,10,11990,1)
+      elseif i == 5 then
+        modified_freq = easingFunctions[params:string("delay "..sides[i-3]..": curve")](x/12000,10,11990,1)
+      end
+      softcut.post_filter_fc(i+1,modified_freq)
       encoder_actions.check_delay_links(sides[i-3], sides[i-3] == "L" and "R" or "L","filter cut")
     end)
     params:add_control("delay "..sides[i-3]..": filter q", "delay "..sides[i-3]..": filter q", controlspec.new(0.001, 8.0, 'exp', 0, 1.0, ""))
@@ -730,6 +880,16 @@ params:add_separator("ALT key")
       softcut.post_filter_dry(i+1,x)
       encoder_actions.check_delay_links(sides[i-3], sides[i-3] == "L" and "R" or "L","filter dry")
     end)
+    
+    --this is dumb:
+    params:add_control("delay filter cut "..i-3, "delay filter cut "..i-3, controlspec.new(10,12000,'exp',1,12000,"Hz"))
+    params:hide("delay filter cut "..i-3)
+    params:set_action("delay filter cut "..i-3,function(x)
+      if all_loaded then
+        params:set("delay "..sides[i-3]..": filter cut",x)
+      end
+    end)
+    --/
   end
   
   --params:add_separator()

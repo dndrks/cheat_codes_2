@@ -1,14 +1,36 @@
 -- cheat codes 2
 --          a sample playground
--- patch: 201224
+-- rev: 210208
 -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
 -- need help?
 -- please visit:
 -- l.llllllll.co/cheat-codes-2
 -- -------------------------------
 
+if util.file_exists(_path.code.."passthrough") then
+  local passthru = include 'passthrough/lib/passthrough'
+  passthru.init()
+end
+
+if util.file_exists(_path.code.."namesizer") then
+  Namesizer = include 'namesizer/lib/namesizer'
+end
+
+local grid = util.file_exists(_path.code.."midigrid") and include "midigrid/lib/midigrid" or grid
+
+-- if util.file_exists(_path.code.."timber") then
+--   Timber = include 'timber/lib/timber_engine'
+--   engine.name = "Timber"
+--   Timber.add_params()
+--   local NUM_SAMPLES = 16
+--   for i = 1,16 do
+--     Timber.add_sample_params(i, true, false)
+--   end
+-- end
+
 local pattern_time = include 'lib/cc_pattern_time'
 MU = require "musicutil"
+UI = require "ui"
 fileselect = require 'fileselect'
 textentry = require 'textentry'
 main_menu = include 'lib/main_menu'
@@ -23,10 +45,60 @@ rnd = include 'lib/rnd_actions'
 del = include 'lib/delay'
 rytm = include 'lib/euclid'
 mc = include 'lib/midicheat'
+sharer = include 'lib/sharer'
+macros = include 'lib/macros'
+lattice = require("lattice")
+transport = include 'lib/transport'
 math.randomseed(os.time())
 variable_fade_time = 0.01
+splash_done = true
 
---all the .quantize stuff is irrelevant now. it's been replaced by .mode = "quantized"
+macro = {}
+for i = 1,8 do
+  macro[i] = macros.new_macro()
+end
+
+function rec_ended_callback()
+  -- for i = 1,3 do
+  --   if bank[i].id == 1 then
+  --     cheat(i,1)
+  --   end
+  -- end
+end
+
+SOS = {}
+
+function SOS.sync_to_recordhead(source,target)
+  -- expects source: x, target: bank[x][y]
+  if target.mode == 1 and target.clip == source then
+    softcut.loop_start(target.bank_id+1,rec[source].start_point)
+    softcut.loop_end(target.bank_id+1,rec[source].end_point)
+    -- softcut.voice_sync(target.bank_id,0,0.1)
+    softcut.position(target.bank_id+1,poll_position_new[1]+0.01)
+    softcut.loop(target.bank_id+1,1)
+    target.start_point = rec[source].start_point
+    target.end_point = rec[source].end_point
+    target.loop = true
+  end
+end
+
+function SOS.voice_overwrite(target)
+  -- this should just 1:1 replace the corresponding Live clip
+  softcut.pre_level(target.bank_id+1,1)
+  softcut.rec_level(target.bank_id+1,1)
+  softcut.level_input_cut(1,target.bank_id+1,1)
+  softcut.level_input_cut(2,target.bank_id+1,1)
+  softcut.rec(target.bank_id+1,1)
+end
+
+function SOS.voice_sync(source,target)
+  -- expects source: bank[x][y], target: bank[z][a]
+  softcut.loop_start(target.bank_id+1,source.start_point)
+  softcut.loop_end(target.bank_id+1,source.end_point)
+  softcut.position(target.bank_id+1,poll_position_new[source.bank_id+1])
+  target.start_point = source.start_point
+  target.end_point = source.end_point
+end
 
 function make_a_gif(filename,time)
   local steps = time*24
@@ -693,10 +765,10 @@ end
 key2_hold = false
 key2_hold_and_modify = false
 
-grid.alt = false
+grid_alt = false
 -- grid.alt_pp = 0
 -- grid.alt_delay = false
-grid.loop_mod = 0
+grid_loop_mod = 0
 
 local function crow_flush()
   crow.reset()
@@ -712,6 +784,39 @@ local function crow_init()
   crow.input[2].change = buff_freeze
 end
 
+local function process_stream_1(v)
+  params:set("macro 1",util.round(util.linlin(0,params:get("crow input 1 max voltage"),0,127,v)))
+end
+
+local function process_stream_2(v)
+  params:set("macro 2",util.round(util.linlin(0,params:get("crow input 2 max voltage"),0,127,v)))
+end
+
+function set_crow_input(id,type)
+  if type == 3 then
+    crow.input[id].mode("stream",0.05)
+    if id == 1 then
+      crow.input[1].stream = process_stream_1
+    elseif id == 2 then
+      crow.input[2].stream = process_stream_2
+    end
+  elseif type == 2 then
+    crow.input[id].mode("change",2,0.1,"rising")
+    crow.input[id].change = buff_freeze
+  elseif type == 4 then
+    crow.input[id].mode("change",2,0.1,"rising")
+    crow.input[id].change = transport.crow_toggle
+  elseif type == 5 then
+    crow.input[id].mode("change",2,0.1,"both")
+    crow.input[id].change = transport.crow_toggle
+  elseif type == 6 then
+    crow.input[id].mode("change",2,0.1,"rising")
+    crow.input[id].change = transport.crow_toggle_now
+  elseif type == 1 then
+    crow.input[id].mode('none')
+  end
+end
+
 local lit = {}
 
 zilch_leds =
@@ -722,6 +827,8 @@ zilch_leds =
 }
 
 function init()
+
+  sharer.setup("cheat_codes_2")
 
   clock.run(check_page_for_k1)
 
@@ -764,7 +871,7 @@ function init()
     rec[i].waveform_samples = {}
   end
 
-  params:add_group("GRID",2)
+  params:add_group("GRID",5)
   params:add_option("LED_style","LED style",{"varibright","4-step","grayscale"},1)
   params:set_action("LED_style",
   function()
@@ -775,17 +882,69 @@ function init()
   end)
   params:add_option("grid_size","grid size",{"128","64"},1)
   params:set_action("grid_size",
-  function()
+  function(x)
     grid_dirty = true
-    params:set("LED_style",2)
+    if x == 2 then
+      params:set("LED_style",2)
+    end
     if all_loaded then
       persistent_state_save()
     end
   end)
+  params:add_option("vert rotation", "vert rotation",{"usb on top","usb on bottom"},1)
+  params:set_action("vert rotation",
+  function(x)
+    if x == 1 then
+      g:rotation(0)
+    else
+      g:rotation(2)
+    end
+    grid_dirty = true
+    if all_loaded then
+      persistent_state_save()
+    end
+  end
+  )
+  params:add_option("midigrid?","midigrid?",{"no","yes"},1)
+  params:set_action("midigrid?",
+  function(x)
+    if x == 2 then
+      params:set("grid_size",2)
+    end
+    if all_loaded then
+      persistent_state_save()
+    end
+  end)
+
+  -- params:add_separator("hotkey config")
+
+  params:add_option("alt_corner","alt+corner action",{"none","tap-tempo","transport"},1)
+  params:hide("alt_corner")
+
+
+  params:add_group("CROW IN/OUT",5)
+  for i = 1,2 do
+    params:add_option("crow input "..i,"crow in "..i,{"none","trig to record","cont to macro "..i,"trig: transport","gate: transport"},1)
+    params:set_action("crow input "..i,
+    function(x)
+      set_crow_input(i,x)
+      if all_loaded then
+        persistent_state_save()
+      end
+    end)
+    params:add_number("crow input "..i.." max voltage","crow in "..i.." max voltage",1,10,8)
+  end
+  params:add_option("crow output 4", "crow out 4",{"none","transport pulse","transport gate"},1)
+  params:set_action("crow output 4",
+    function(x)
+      if all_loaded then
+        persistent_state_save()
+      end
+    end)
   
   params:add_separator("cheat codes params")
   
-  params:add_group("collections",7)
+  params:add_group("collections",8)
   params:add_separator("load/save")
   params:add_trigger("load", "load collection")
   params:set_action("load",
@@ -803,7 +962,11 @@ function init()
   params:add_option("collect_live","collect Live buffers?",{"no","yes"})
   params:add_trigger("save", "save new collection")
   params:set_action("save", function(x)
-    textentry.enter(pre_save)
+    if Namesizer ~= nil then
+      textentry.enter(pre_save,Namesizer.phonic_nonsense().."_"..Namesizer.phonic_nonsense())
+    else
+      textentry.enter(pre_save)
+    end
   end)
   params:add_separator("danger zone!")
   params:add_trigger("overwrite_coll", "overwrite loaded collection")
@@ -815,8 +978,15 @@ function init()
   end)
   params:add_trigger("delete_coll", "delete collection")
   params:set_action("delete_coll", function(x) fileselect.enter(_path.data.."cheat_codes_2/names/", pre_delete) end)
+  params:add_trigger("save default collection", "save default collection")
+  params:set_action("save default collection", function()
+    clock.run(save_screen,"DEFAULT")
+    _norns.key(1,1)
+    _norns.key(1,0)
+    -- screen_dirty = true
+  end)
   
-  menu = 1
+  -- menu = 1
   
   for i = 1,4 do
     crow.output[i].action = "{to(5,0),to(0,0.05)}"
@@ -1031,6 +1201,24 @@ function init()
     page.rnd_page_sel[i] = 1
     page.rnd_page_edit[i] = 1
   end
+  page.midi_setup = 1
+  page.midi_focus = "header"
+  page.midi_bank = 1
+
+  page.macros = {}
+  page.macros.selected_macro = 1
+  page.macros.section = 1
+  page.macros.param_sel = {}
+  page.macros.edit_focus = {}
+  page.macros.mode = "setup"
+  for i = 1,8 do
+    page.macros.param_sel[i] = 1
+    page.macros.edit_focus[i] = 1
+  end
+
+  page.transport = {}
+  page.transport.foci = {"TRANSPORT","TAP-TEMPO"}
+  page.transport.focus = "TRANSPORT"
   
   del.init()
   
@@ -1147,11 +1335,12 @@ function init()
   rec_state_watcher.event = function()
     if rec[rec.focus].loop == 0 then
       if rec[rec.focus].state == 1 then
-        if rec[rec.focus].end_point < poll_position_new[1] +0.015 then
+        if rec[rec.focus].end_point < poll_position_new[1] +0.015 then -- could do 0.005?
           rec[rec.focus].state = 0
           rec_state_watcher:stop()
           rec.stopped = true
           grid_dirty = true
+          rec_ended_callback()
           if menu == 2 then
             if page.loops.sel ~= 5 then screen_dirty = true end
             -- print("stopped")
@@ -1248,6 +1437,10 @@ function init()
 
   mc.pad_to_note_params()
 
+  params:add_separator("meta")
+
+  macros:add_params()
+
   crow_init()
   
   task_id = clock.run(globally_clocked)
@@ -1287,6 +1480,29 @@ function init()
     midi_dev[j].event = function(data)
       screen_dirty = true
       local d = midi.to_msg(data)
+      if d.type == "start" then
+        if transport.vars.midi_transport_in[j] then
+          if params:string("clock_source") == "internal" or params:string("clock_source") == "midi" then
+            transport.start_from_midi_message()
+          end
+        end
+      elseif d.type == "stop" then
+        if transport.vars.midi_transport_in[j] then
+          if params:string("clock_source") == "internal" or params:string("clock_source") == "midi" then
+            transport.stop_from_midi_message()
+          end
+        end
+      elseif d.type == "continue" then
+        if transport.vars.midi_transport_in[j] then
+          if params:string("clock_source") == "internal" or params:string("clock_source") == "midi" then
+            if transport.is_running then
+              transport.stop_from_midi_message()
+            else
+              transport.start_from_midi_message()
+            end
+          end
+        end
+      end
       if params:get("midi_control_enabled") == 2 and j == params:get("midi_control_device") then
         local received_ch;
         -- local b_ch = {}
@@ -1616,6 +1832,7 @@ function init()
   end
 
   rytm.init()
+  transport.init()
 
   if g then grid_dirty = true end
   
@@ -1633,16 +1850,24 @@ function init()
     , 1/30, -1)
   hardware_redraw:start()
 
-
-  -- local file = io.open("/home/we/dust/data/cheat_codes_2/names/DEFAULT.cc2", "r")
-  -- if file == nil then
-  --   named_savestate("DEFAULT")
-  -- else
-  --   named_loadstate("/home/we/dust/data/cheat_codes_2/names/DEFAULT.cc2")
-  -- end
-
   for i = 1,3 do
     update_waveform(1,live[i].min,live[i].max,128)
+  end
+
+  local default_file = io.open("/home/we/dust/data/cheat_codes_2/names/DEFAULT.cc2", "r")
+  if default_file == nil then
+    menu = 1
+    print("~~~~~> no user defaults defined: save a collection as DEFAULT to establish <~~~~~")
+  else
+    clock.run(function()
+      local preload_bpm = params:get("clock_tempo")
+      clock.sleep(0.25)
+      named_loadstate("/home/we/dust/data/cheat_codes_2/names/DEFAULT.cc2")
+      -- _norns.key(1,1)
+      -- _norns.key(1,0)
+      params:set("clock_tempo",preload_bpm)
+    end)
+    -- named_loadstate("/home/we/dust/data/cheat_codes_2/names/DEFAULT.cc2")
   end
 
 end
@@ -1930,10 +2155,6 @@ end
 function random_midi_pat(target)
   local pattern = midi_pat[target]
   local auto_pat = params:get("random_patterning_"..target)
-  if pattern.playmode == 2 then
-    --clock.sync(1/4)
-    --huh????
-  end
   local count = auto_pat == 1 and math.random(4,24) or 16
   if pattern.count > 0 or pattern.rec == 1 then
     pattern:rec_stop()
@@ -2014,7 +2235,9 @@ function run_one_shot_rec_clock()
 end
 
 function cancel_one_shot_rec_clock()
-  clock.cancel(one_shot_rec_clock)
+  if one_shot_rec_clock ~= nil then
+    clock.cancel(one_shot_rec_clock)
+  end
   rec[rec.focus].state = 0
   rec_state_watcher:stop()
   rec.stopped = true
@@ -2094,16 +2317,47 @@ function compare_loop_resolution(target,x)
   if menu ~= 1 then screen_dirty = true end
 end
 
+function step_sequence_super_clock()
+  while true do
+    clock.sync(1/4)
+    for i = 1,3 do
+      step_sequence(i)
+    end
+  end
+end
+
+function toggle_meta(state,target)
+  if state == "start" then
+    if step_sequence_clock ~= nil then
+      clock.cancel(step_sequence_clock)
+    end
+    for target = 1,3 do
+      step_seq[target].meta_meta_step = 1
+      step_seq[target].meta_step = 1
+      step_seq[target].current_step = step_seq[target].start_point
+      if step_seq[target].active == 1 and step_seq[target][step_seq[target].current_step].assigned_to ~= 0 then
+        test_load(step_seq[target][step_seq[target].current_step].assigned_to+(((target)-1)*8),target)
+      end
+    end
+    step_sequence_clock = clock.run(step_sequence_super_clock)
+    screen.dirty = true
+  elseif state == "stop" then
+    if step_sequence_clock ~= nil then
+      clock.cancel(step_sequence_clock)
+    end
+  end
+end
+
 function globally_clocked()
   while true do
     clock.sync(1/4)
-    if menu == 7 then
+    if menu == 7 or menu == "transport_config" then
       if menu ~= 1 then screen_dirty = true end
     end
     update_tempo()
     -- step_sequence()
     for i = 1,3 do
-      step_sequence(i)
+      -- step_sequence(i)
       if grid_pat[i].led == nil then
         grid_pat[i].led = 0
         grid_dirty = true
@@ -2258,7 +2512,8 @@ osc_in = function(path, args, from)
       end
       softcut.loop_start(i+1,target.start_point)
       softcut.loop_end(i+1,target.end_point)
-
+    elseif path == "/filter_cut_bank_"..i then
+      encoder_actions.set_filter_cutoff(i,args[1])
     end
   end
 end
@@ -2328,7 +2583,7 @@ phase = function(n, x)
       end
     end
     if rec_on ~= 0 and rec[rec_on].state == 1 then
-      if page.loops.sel ~= 4 then
+      if page.loops.sel < 4 then
         local pad = bank[page.loops.sel][bank[page.loops.sel].id]
         update_waveform(1,key1_hold and pad.start_point or live[rec_on].min,key1_hold and pad.end_point or live[rec_on].max,128)
       elseif page.loops.sel == 4 then
@@ -2339,9 +2594,6 @@ phase = function(n, x)
     -- if page.loops.sel ~= 5 then screen_dirty = true end
   end
 end
-
-local tap = 0
-local deltatap = 1
 
 function update_tempo()
   local pre_bpm = bpm
@@ -2372,6 +2624,7 @@ function rec_count()
 end
 
 function step_sequence(i)
+  if transport.is_running then
   -- for i = 1,3 do
     if step_seq[i].active == 1 then
       step_seq[i].meta_step = step_seq[i].meta_step + 1
@@ -2392,6 +2645,7 @@ function step_sequence(i)
       end
     end
   -- end
+  end
   if grid_page == 1 then
     grid_dirty = true
   end
@@ -2822,7 +3076,7 @@ function easing_slew(i)
   slew_counter[i].slewedVal = slew_counter[i].ease(slew_counter[i].current,slew_counter[i].beginVal,slew_counter[i].change,slew_counter[i].duration)
   slew_counter[i].slewedQ = slew_counter[i].ease(slew_counter[i].current,slew_counter[i].beginQ,slew_counter[i].changeQ,slew_counter[i].duration)
   slew_counter[i].current = slew_counter[i].current + 0.01
-  if grid.alt then
+  if grid_alt then
     try_tilt_process(i,bank[i].id,slew_counter[i].slewedVal,slew_counter[i].slewedQ)
   else
     for j = 1,16 do
@@ -2927,15 +3181,15 @@ function toggle_buffer(i,untrue_alt)
 
   rec.focus = i
   
-  if rec[rec.focus].loop == 0 and not grid.alt then
+  if rec[rec.focus].loop == 0 and not grid_alt then
     if rec[rec.focus].state == 0 then
       run_one_shot_rec_clock() -- this runs only if not recording
     elseif rec[rec.focus].state == 1 and rec_state_watcher.is_running then -- can have both conditions, right?
       cancel_one_shot_rec_clock()
     end
-  elseif rec[rec.focus].loop == 0 and (grid.alt and untrue_alt ~= nil) then
+  elseif rec[rec.focus].loop == 0 and (grid_alt and untrue_alt ~= nil) then
     -- buff_flush()
-  elseif rec[rec.focus].loop == 1 and not grid.alt then
+  elseif rec[rec.focus].loop == 1 and not grid_alt then
     if one_shot_rec_clock ~= nil then
       cancel_one_shot_rec_clock()
     end
@@ -2960,7 +3214,6 @@ function toggle_buffer(i,untrue_alt)
   end
   grid_dirty = true
   update_waveform(1,key1_hold and rec[rec.focus].start_point or live[rec.focus].min,key1_hold and rec[rec.focus].end_point or live[rec.focus].max,128)
-
 end
 
 function update_delays()
@@ -2997,6 +3250,7 @@ function load_sample(file,sample)
     end
     softcut.buffer_clear_region_channel(2,1+(32*(sample-1)),32)
     softcut.buffer_read_mono(file, 0, 1+(32*(sample-1)),clip[sample].sample_length + 0.05, 1, 2)
+    -- softcut.buffer_read_mono(file, 0, 1+(32*(sample-1)),clip[sample].sample_length, 1, 2)
     clip_table()
     for p = 1,16 do
       for b = 1,3 do
@@ -3014,6 +3268,11 @@ function load_sample(file,sample)
   if params:get("clip "..sample.." sample") ~= file then
     params:set("clip "..sample.." sample", file, 1)
   end
+  -- for i = 1,3 do
+  --   if bank[i][bank[i].id].mode == 2 and bank[i][bank[i].id].clip == sample then
+  --     softcut.position(i+1,bank[i][bank[i].id].start_point)
+  --   end
+  -- end
 end
 
 function save_sample(i)
@@ -3079,7 +3338,9 @@ function midi_pattern_recording(id,state)
       start_pattern(midi_pat[id])
     elseif midi_pat[id].playmode == 2 then
       midi_pat[id]:rec_stop()
-      clock.cancel(midi_pat[id].rec_clock)
+      if midi_pat[id].rec_clock ~= nil then
+        clock.cancel(midi_pat[id].rec_clock)
+      end
       if midi_pat[id].clock ~= nil then
         print("clearing clock: "..midi_pat[id].clock)
         clock.cancel(midi_pat[id].clock)
@@ -3095,24 +3356,41 @@ function toggle_midi_pattern_overdub(id)
   end
 end
 
+local pre_k1_midi_page = nil
+
 function key(n,z)
   if menu == "load screen" then
+  elseif menu == "macro_config" then
+    macros.key(n,z)
+  elseif menu == "MIDI_config" then
+    mc.key(n,z)
+  elseif menu == "transport_config" then
+    transport.key(n,z)
   elseif menu == "overwrite screen" then
     if z == 1 then
-      clock.cancel(collection_overwrite_clock)
+      if collection_overwrite_clock ~= nil then
+        clock.cancel(collection_overwrite_clock)
+      end
       print("cancel overwrite")
       clock.run(canceled_save)
     end
   elseif menu == "delete screen" then
     if z == 1 then
-      clock.cancel(collection_delete_clock)
+      if collection_delete_clock ~= nil then
+        clock.cancel(collection_delete_clock)
+      end
       print("cancel delete")
       clock.run(canceled_delete)
     end
   else
     if n == 3 and z == 1 then
       if menu == 1 then
-        menu = page.main_sel + 1
+        if key1_hold then
+          menu = "MIDI_config"
+          key1_hold = false
+        else
+          menu = page.main_sel + 1
+        end
       elseif menu == 2 then
         local id = page.loops_sel
         if key2_hold then
@@ -3135,8 +3413,10 @@ function key(n,z)
           elseif page.loops.sel == 5 then
             if page.loops.meta_sel < 4 then
               for i = 1,16 do
-                rightangleslice.end_sixteenths(bank[page.loops.meta_sel][i])
+                rightangleslice.start_end_default(bank[page.loops.meta_sel][i])
               end
+            elseif page.loops.meta_sel == 4 then
+              toggle_buffer(rec.focus)
             end
           end
           grid_dirty = true
@@ -3186,9 +3466,10 @@ function key(n,z)
                 bank[id][bank[id].id].start_point = src_pad.start_point
                 bank[id][bank[id].id].end_point = src_pad.end_point
                 rightangleslice.sc.start_end( bank[id][bank[id].id], id )
-                -- if bank[id][bank[id].id].loop then
-                --   softcut.position(id+1, bank[id][bank[id].id].start_point )
-                -- end
+                -- maybe a risk:
+                -- print(id+1,src_pad.bank_id+1)
+                -- softcut.position(id+1,poll_position_new[src_pad.bank_id+1])
+                -- /
               end
             end
           end
@@ -3228,82 +3509,88 @@ function key(n,z)
       elseif menu == 7 then
         local time_nav = page.time_sel
         local id = time_nav
-        if time_nav >= 1 and time_nav < 4 then
-          if g.device == nil and grid_pat[time_nav].count == 0 then
-            if page.time_page_sel[time_nav] == 1 then
-              if midi_pat[time_nav].playmode < 3 then
-                if midi_pat[time_nav].rec == 0 then
-                  if midi_pat[time_nav].count == 0 and not key1_hold then
-                    midi_pattern_recording(time_nav,"start")
-                  elseif midi_pat[time_nav].count ~= 0 and not key1_hold then
-                    toggle_midi_pattern_overdub(time_nav)
+        if key2_hold then
+          key2_hold_and_modify = true
+        else
+          if time_nav >= 1 and time_nav < 4 then
+            if g.device == nil and grid_pat[time_nav].count == 0 then
+              if page.time_page_sel[time_nav] == 1 then
+                if midi_pat[time_nav].playmode < 3 then
+                  if midi_pat[time_nav].rec == 0 then
+                    if midi_pat[time_nav].count == 0 and not key1_hold then
+                      midi_pattern_recording(time_nav,"start")
+                    elseif midi_pat[time_nav].count ~= 0 and not key1_hold then
+                      toggle_midi_pattern_overdub(time_nav)
+                    end
+                  elseif midi_pat[time_nav].rec == 1 then
+                    midi_pattern_recording(time_nav,"stop")
                   end
-                elseif midi_pat[time_nav].rec == 1 then
-                  midi_pattern_recording(time_nav,"stop")
                 end
               end
             end
-          end
-          if page.time_page_sel[time_nav] == 2 then
-            if g.device ~= nil then
-              random_grid_pat(id,2)
-            else
-              shuffle_midi_pat(id)
-            end
-          elseif page.time_page_sel[time_nav] == 4 then
-            if not key1_hold then
-              if g.device ~= nil then
-                random_grid_pat(id,3)
+            if page.time_page_sel[time_nav] == 2 then
+              -- if g.device ~= nil then
+              if get_grid_connected() then
+                random_grid_pat(id,2)
               else
-                random_midi_pat(id)
+                shuffle_midi_pat(id)
               end
-            end
-          end
-          if key1_hold then
-            if grid_pat[id].count > 0 then
-              grid_pat[id]:rec_stop()
-              grid_pat[id]:stop()
-              grid_pat[id].tightened_start = 0
-              grid_pat[id]:clear()
-              pattern_saver[id].load_slot = 0
-            end
-            if midi_pat[id].count > 0 then
-              midi_pat[id]:rec_stop()
-              if midi_pat[id].clock ~= nil then
-                print("clearing clock: "..midi_pat[id].clock)
-                clock.cancel(midi_pat[id].clock)
-              end
-              midi_pat[id]:clear()
-            end
-          end
-        elseif time_nav >= 4 then
-          if a.device ~= nil then
-            local pattern = arc_pat[time_nav-3][page.time_page_sel[time_nav]]
-            if page.time_page_sel[page.time_sel] <= 4 then
+            elseif page.time_page_sel[time_nav] == 4 then
               if not key1_hold then
-                if pattern.rec == 0 and pattern.play == 0 and pattern.count == 0 then
-                  pattern:rec_start()
-                elseif pattern.rec == 1 then
-                  pattern:rec_stop()
-                  pattern:start()
-                elseif pattern.play == 1 then
-                  pattern:stop()
-                elseif (pattern.rec == 0 and pattern.play == 0 and pattern.count > 0) then
-                  pattern:start()
+                -- if g.device ~= nil then
+                if get_grid_connected() then
+                  random_grid_pat(id,3)
+                else
+                  random_midi_pat(id)
+                end
+              end
+            end
+            if key1_hold then
+              if grid_pat[id].count > 0 then
+                grid_pat[id]:rec_stop()
+                grid_pat[id]:stop()
+                grid_pat[id].tightened_start = 0
+                grid_pat[id]:clear()
+                pattern_saver[id].load_slot = 0
+              end
+              if midi_pat[id].count > 0 then
+                midi_pat[id]:rec_stop()
+                if midi_pat[id].clock ~= nil then
+                  print("clearing clock: "..midi_pat[id].clock)
+                  clock.cancel(midi_pat[id].clock)
+                end
+                midi_pat[id]:clear()
+              end
+            end
+          elseif time_nav >= 4 then
+            if a.device ~= nil then
+              local pattern = arc_pat[time_nav-3][page.time_page_sel[time_nav]]
+              if page.time_page_sel[page.time_sel] <= 4 then
+                if not key1_hold then
+                  if pattern.rec == 0 and pattern.play == 0 and pattern.count == 0 then
+                    pattern:rec_start()
+                  elseif pattern.rec == 1 then
+                    pattern:rec_stop()
+                    pattern:start()
+                  elseif pattern.play == 1 then
+                    pattern:stop()
+                  elseif (pattern.rec == 0 and pattern.play == 0 and pattern.count > 0) then
+                    pattern:start()
+                  end
+                else
+                  pattern:clear()
                 end
               else
-                pattern:clear()
-              end
-            else
-              for i = 1,4 do
-                if page.time_page_sel[page.time_sel] == 5 then
-                  if arc_pat[time_nav-3][i].count > 0 then
-                    arc_pat[time_nav-3][i]:start()
+                for i = 1,4 do
+                  if page.time_page_sel[page.time_sel] == 5 then
+                    if arc_pat[time_nav-3][i].count > 0 then
+                      arc_pat[time_nav-3][i]:start()
+                    end
+                  elseif page.time_page_sel[page.time_sel] == 6 then
+                    arc_pat[time_nav-3][i]:stop()
+                  elseif page.time_page_sel[page.time_sel] == 7 then
+                    arc_pat[time_nav-3][i]:clear()
                   end
-                elseif page.time_page_sel[page.time_sel] == 6 then
-                  arc_pat[time_nav-3][i]:stop()
-                elseif page.time_page_sel[page.time_sel] == 7 then
-                  arc_pat[time_nav-3][i]:clear()
                 end
               end
             end
@@ -3366,7 +3653,14 @@ function key(n,z)
 
 
     elseif n == 2 and z == 1 then
-      if menu == 2 and not key1_hold then
+      if menu == 1 then
+        if key1_hold then
+          menu = "macro_config"
+          key1_hold = false
+        else
+          menu = "transport_config"
+        end
+      elseif (menu == 2 or menu == 7) and not key1_hold then
         -- key2_hold = true
         key2_hold_counter:start()
         key2_hold_and_modify = false
@@ -3396,7 +3690,7 @@ function key(n,z)
           end
         end
       end
-    elseif n == 2 and z == 0 and key2_hold == false and menu == 2 and not key1_hold then
+    elseif n == 2 and z == 0 and key2_hold == false and (menu == 2 or menu == 7) and not key1_hold then
       key2_hold_counter:stop()
       menu = 1
     elseif n == 2 and z == 0 and key2_hold_and_modify then
@@ -3413,9 +3707,7 @@ function key(n,z)
         end
       elseif menu == 8 then
         if key1_hold then
-          for i = 1,3 do
-            rytm.reset_pattern(i)
-          end
+          rytm.reset_all_patterns()
         else
           menu = 1
         end
@@ -3525,9 +3817,9 @@ function key(n,z)
             end
           elseif key2_hold then
             if page.loops.meta_sel < 4 then
-              print("should slice")
               for i = 1,16 do
-                rightangleslice.start_end_default(bank[page.loops.meta_sel][i])
+                rightangleslice.end_sixteenths(bank[page.loops.meta_sel][i])
+                -- rightangleslice.start_end_default(bank[page.loops.meta_sel][i])
               end
               key1_hold = false -- right??
             end
@@ -3643,6 +3935,16 @@ end
 --GRID
 g = grid.connect()
 
+function get_grid_connected()
+  if g.device == nil and grid == nil then
+    return false
+  elseif g.device ~= nil or (grid ~= nil and params:string("midigrid?") == "yes") then
+    return true
+  else
+    return false
+  end
+end
+
 function grid.add(dev)
   grid_dirty = true
 end
@@ -3722,7 +4024,6 @@ function scale_loop_points(pad,old_min,old_max,new_min,new_max)
   else
     pad.end_point = pad.start_point + duration
   end
-  print(pad,old_min,old_max,new_min,pad.end_point)
 end
 
 function change_mode(target,old_mode)
@@ -3868,7 +4169,8 @@ function draw_zilch(x,y,z)
 end
 
 function grid_redraw()
-  if g.device ~= nil then
+  -- if g.device ~= nil then
+  if get_grid_connected() then
     if params:string("grid_size") == "128" then
       g:all(0)
       local edition = params:get("LED_style")
@@ -4002,7 +4304,7 @@ function grid_redraw()
           g:led(e.x, e.y,led_maps["zilchmo_on"][edition])
         end
         
-        g:led(16,8,(grid.alt and led_maps["alt_on"][edition] or led_maps["alt_off"][edition]))
+        g:led(16,8,(grid_alt and led_maps["alt_on"][edition] or led_maps["alt_off"][edition]))
         
         for i = 1,3 do
           
@@ -4048,7 +4350,7 @@ function grid_redraw()
 
             g:led(xval,yval-j,led_maps["step_no_data"][edition])
 
-            if grid.loop_mod == 1 then
+            if grid_loop_mod == 1 then
               g:led(xval,yval-step_seq[i].start_point,led_maps["step_loops"][edition])
               g:led(xval,yval-step_seq[i].end_point,led_maps["step_loops"][edition])
             end
@@ -4102,8 +4404,8 @@ function grid_redraw()
           end
         end
         
-        g:led(16,8,grid.alt and led_maps["alt_on"][edition] or led_maps["alt_off"][edition])
-        g:led(16,2,grid.loop_mod == 1 and led_maps["loop_mod_hi"][edition] or led_maps["loop_mod_lo"][edition])
+        g:led(16,8,grid_alt and led_maps["alt_on"][edition] or led_maps["alt_off"][edition])
+        g:led(16,2,grid_loop_mod == 1 and led_maps["loop_mod_hi"][edition] or led_maps["loop_mod_lo"][edition])
       
       elseif grid_page == 2 then
         -- delay page!
@@ -4305,7 +4607,7 @@ function grid_redraw()
 
 
 
-        g:led(16,8,(grid.alt and led_maps["alt_on"][edition] or led_maps["alt_off"][edition]))
+        g:led(16,8,(grid_alt and led_maps["alt_on"][edition] or led_maps["alt_off"][edition]))
 
         for j = 1,4 do
           g:led(15,math.abs(j-7),zilch_leds[4][delay_grid.bank][j] == 1 and led_maps["zilchmo_on"][edition] or led_maps["zilchmo_off"][edition])
@@ -4457,7 +4759,7 @@ function grid_redraw()
         -- end
         
         --alt
-        g:led(1,8,(grid.alt and led_maps["alt_on"][edition] or led_maps["alt_off"][edition]))
+        g:led(1,8,(grid_alt and led_maps["alt_on"][edition] or led_maps["alt_off"][edition]))
           
         local focused = bank[bank_64].focus_hold == false and bank[bank_64][bank[bank_64].id] or bank[bank_64][bank[bank_64].focus_pad]
         --clips + stuff
@@ -4876,7 +5178,7 @@ arc_redraw = function()
     end
     if arc_param[i] == 5 then
       local level_to_led;
-      if key1_hold or bank[i].alt_lock or grid.alt then
+      if key1_hold or bank[i].alt_lock or grid_alt then
         level_to_led = bank[i].global_level
       else
         level_to_led = bank[i][bank[i].id].level
@@ -4921,6 +5223,7 @@ function persistent_state_save()
   io.write("preview_clip_change: "..params:get("preview_clip_change").."\n")
   io.write("zilchmo_patterning: "..params:get("zilchmo_patterning").."\n")
   io.write("LED_style: "..params:get("LED_style").."\n")
+  io.write("vert rotation: "..params:get("vert rotation").."\n")
   io.write("arc_patterning: "..params:get("arc_patterning").."\n")
   for i = 1,3 do
     io.write("bank_"..i.."_midi_zilchmo_enabled: "..params:get("bank_"..i.."_midi_zilchmo_enabled").."\n")
@@ -4941,9 +5244,21 @@ function persistent_state_save()
     io.write(i.."_pad_to_midi_note_root_octave: "..params:get(i.."_pad_to_midi_note_root_octave").."\n")
   end
   io.write("global_pad_to_jf_note_enabled: "..params:get("global_pad_to_jf_note_enabled").."\n")
+  io.write("global_pad_to_wsyn_note_enabled: "..params:get("global_pad_to_wsyn_note_enabled").."\n")
   for i = 1,3 do
     io.write(i.."_pad_to_jf_note_enabled: "..params:get(i.."_pad_to_jf_note_enabled").."\n")
     io.write(i.."_pad_to_jf_note_velocity: "..params:get(i.."_pad_to_jf_note_velocity").."\n")
+    io.write(i.."_pad_to_wsyn_note_enabled: "..params:get(i.."_pad_to_wsyn_note_enabled").."\n")
+    io.write(i.."_pad_to_wsyn_note_velocity: "..params:get(i.."_pad_to_wsyn_note_velocity").."\n")
+  end
+  io.write("visual_metro: "..params:get("visual_metro").."\n")
+  io.write("midigrid?: "..params:get("midigrid?").."\n")
+  io.write("start_transport_at_launch: "..params:get("start_transport_at_launch").."\n")
+  for i = 1,16 do
+    io.write("port_"..i.."_start_stop_out: "..params:get("port_"..i.."_start_stop_out").."\n")
+  end
+  for i = 1,3 do
+    io.write("start_arp_"..i.."_at_launch: "..params:get("start_arp_"..i.."_at_launch").."\n")
   end
   io.close(file)
 end
@@ -4969,6 +5284,17 @@ function persistent_state_restore()
   end
   all_loaded = true
   mc.init()
+  clock.run(
+    function()
+      clock.sleep(1)
+      if (params:string("start_transport_at_launch") == "yes" and params:string("clock_source") == "internal") then
+        clock.transport.start()
+      end
+    end
+  )
+  if params:get("cut_input_adc") == -inf then
+    params:set("cut_input_adc",0)
+  end
 end
 
 function named_overwrite(path)
@@ -5018,12 +5344,22 @@ function pre_delete(text)
 end
 
 function pre_save(text)
-  if text ~= 'cancel' and text ~= nil then
+  local name_filepath = _path.data.."cheat_codes_2/names/"
+  existing_names = {}
+  for i in io.popen("ls "..name_filepath):lines() do
+    if string.find(i,"%.cc2$") then table.insert(existing_names,name_filepath..i) end
+  end
+  if text ~= 'cancel' and text ~= nil and not tab.contains(existing_names,"/home/we/dust/data/cheat_codes_2/names/"..text..".cc2") then
     collection_save_clock = clock.run(save_screen,text)
     _norns.key(1,1)
     _norns.key(1,0)
-  else
-    print("nothing saved")
+  elseif text == 'cancel' or text == nil then
+    print("canceled, nothing saved")
+  elseif tab.contains(existing_names,"/home/we/dust/data/cheat_codes_2/names/"..text..".cc2") then
+    print(text.." already used, will not overwrite")
+    clock.run(save_fail_screen,text)
+    _norns.key(1,1)
+    _norns.key(1,0)
   end
 end
 
@@ -5050,7 +5386,7 @@ function named_savestate(text)
     os.execute("mkdir " .. dirname)
   end
 
-  local dirnames = {"banks/","params/","arc-rec/","patterns/","step-seq/","arps/","euclid/","rnd/","delays/","rec/","misc/"}
+  local dirnames = {"banks/","params/","arc-rec/","patterns/","step-seq/","arps/","euclid/","rnd/","delays/","rec/","misc/","midi_output_maps/","macros/"}
   for i = 1,#dirnames do
     local directory = _path.data.."cheat_codes_2/collection-"..collection.."/"..dirnames[i]
     if os.rename(directory, directory) == nil then
@@ -5132,13 +5468,56 @@ function named_savestate(text)
     io.write("clock_tempo: "..params:get("clock_tempo").."\n")
     io.close(file)
   end
+
+  for i = 1,3 do
+    local directory = _path.data.."cheat_codes_2/collection-"..selected_coll.."/midi_output_maps/bank_"..i.."/"
+    if os.rename(directory, directory) == nil then
+      os.execute("mkdir " .. directory)
+    end
+  end
   --/ misc save
+
+  -- midi_output_maps save
+  local mc_tables =
+  {
+    "midi_notes"
+  , "midi_notes_channels"
+  , "midi_notes_velocities"
+  , "midi_ccs"
+  , "midi_ccs_channels"
+  , "midi_ccs_values"
+  }
+  
+  for i = 1,3 do
+    for j = 1,#mc_tables do
+      local mc_filepath = _path.data .. "cheat_codes_2/collection-"..selected_coll.."/midi_output_maps/bank_"..i.."/"..mc_tables[j]..".data"
+      local file = io.open(mc_filepath, "w+")
+      if file then
+        io.output(file)
+        tab.save(mc[mc_tables[j]][i].entries,mc_filepath)
+        io.close(file)
+      end
+    end
+  end
+
+  for i = 1,8 do
+    local macro_filepath = _path.data .. "cheat_codes_2/collection-"..selected_coll.."/macros/"..i..".data"
+    local file = io.open(macro_filepath, "w+")
+    if file then
+      io.output(file)
+      tab.save(macro[i].params,macro_filepath)
+      io.close(file)
+    end
+  end
+
+  --/ midi_output_maps save
 
 end
 
 function named_loadstate(path)
   local file = io.open(path, "r")
   if file then
+    splash_done = false
     print("loading...")
     for j = 1,3 do
       for k = 1,7 do
@@ -5155,9 +5534,13 @@ function named_loadstate(path)
     io.close(file)
     selected_coll = collection
     collection_loaded = true
+    if collection == "DEFAULT" then
+      clock.run(default_load_screen)
+    else
+      clock.run(load_screen)
+    end
     _norns.key(1,1)
     _norns.key(1,0)
-    clock.run(load_screen)
     screen_dirty = true
     -- all_loaded = false
     params:read(_path.data.."cheat_codes_2/collection-"..collection.."/params/all.pset")
@@ -5193,18 +5576,42 @@ function named_loadstate(path)
         end
       end
 
+      local mc_tables =
+      {
+        "midi_notes"
+      , "midi_notes_channels"
+      , "midi_notes_velocities"
+      , "midi_ccs"
+      , "midi_ccs_channels"
+      , "midi_ccs_values"
+      }
+
+      for j = 1,#mc_tables do
+        if tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/midi_output_maps/bank_"..i.."/"..mc_tables[j]..".data") ~= nil then
+          mc[mc_tables[j]][i].entries = tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/midi_output_maps/bank_"..i.."/"..mc_tables[j]..".data")
+        end
+      end
+
       if params:get("collect_live") == 2 then
         reload_collected_samples(_path.dust.."audio/cc2_live-audio/"..collection.."/".."cc2_"..collection.."-"..i..".wav",i)
       end
       
       if tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/euclid/euclid"..i..".data") ~= nil then
         rytm.track[i] = tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/euclid/euclid"..i..".data")
+        if rytm.track[i].runner == nil then rytm.track[i].runner = 0 end
       end
+      -- rytm.reset_all_patterns() -- i deactivated this so that a loaded pattern wouldn't auto-start euclid...
       
     end
 
     arps.restore_collection()
     rytm.restore_collection()
+
+    for i = 1,8 do
+      if tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/macros/"..i..".data") ~= nil then
+        macro[i].params = tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/macros/"..i..".data")
+      end
+    end
 
     for i = 1,2 do
       if tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/delays/delay"..(i == 1 and "L" or "R")..".data") ~= nil then
@@ -5264,13 +5671,22 @@ function named_loadstate(path)
 
   grid_dirty = true
 
+  -- clock.run(
+  --   function()
+  --     clock.sleep(1)
+  --     if (params:string("start_transport_at_launch") == "yes" and params:string("clock_source") == "internal") then
+  --       clock.transport.start()
+  --     end
+  --   end
+  -- )
+
 end
 
 function test_save(i)
   pattern_saver[i].active = true
   clock.sleep(1)
   -- if pattern_saver[i].active then
-    if not grid.alt then
+    if not grid_alt then
       if grid_pat[i].count > 0 and grid_pat[i].rec == 0 then
         copy_entire_pattern(i)
         save_pattern(i,pattern_saver[i].save_slot+8*(i-1),"pattern")
@@ -5881,7 +6297,7 @@ function load_arc_pattern(which)
     io.close(file)
     grid_dirty = true
   else
-    print("no arc patterns to load")
+    -- print("no arc patterns to load")
   end
 end
 
