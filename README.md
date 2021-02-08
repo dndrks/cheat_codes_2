@@ -2,8 +2,6 @@
 
 a sample playground for norns
 
-### requirements
-
 ### hard requirements:
 
 - norns (210114 or later)
@@ -11,11 +9,12 @@ a sample playground for norns
 ### encouraged (any or all):
 
 - grid (64 or 128, all editions -- 256 works as well, just half)
-- arc
-- MIDI keyboard, newer Launchpad (X, Pro or Mini MK3), MIDI button box, or OP-Z (see below)
+- arc 4 (works with 2, but only two banks of control)
+- Launchpad (X, Pro or Mini MK3) for [midigrid compatibility](https://github.com/jaggednz/midigrid)
+- MIDI keyboard, MIDI button box, OP-Z (see below)
 - Midi Fighter Twister ([template](https://llllllll.co/uploads/short-url/so1QoxfHVWn29a4YNkybdVEIQgi.mfs))
 - Max for Live ([device](https://llllllll.co/uploads/short-url/cckkpyWjH3ywfaHfYzOmV27GS3m.amxd))
-- crow for pad-to-trigger or Just Friends note output
+- crow for pad-to-trigger or Just Friends + w/ note output
 
 ### [documentation](https://github.com/dndrks/cheat-codes-docs/raw/main/assets/images/pdf/cheat_codes_2.pdf)
 
