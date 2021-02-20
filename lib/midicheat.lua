@@ -518,7 +518,13 @@ function mc.pad_to_note_params()
     end)
     params:add_number(i.."_pad_to_wsyn_note_velocity", "w/syn velocity",0,127,60)
     mc.build_scale(i)
-    -- params:add_number(i.."_pad_to_midi_note_duration", "note length",1,16,1)
+    -- if mxcc ~= nil then
+    --   mxcc_available = mxcc:list_instruments()
+    -- else
+    --   mxcc_available = {}
+    -- end
+    -- table.insert(mxcc_available,1,"none")
+    -- params:add_option(i.."_pad_to_mxcc_note_enabled", "Mx voice",mxcc_available,1)
   end
 
   params:add_group("w/syn controls",10)
@@ -664,6 +670,12 @@ end
 --   print("this is 3")
 -- end
 
+local mx_dests ={
+  "steinway model b"
+, "cello"
+, "alto sax choir"
+}
+
 function mc.midi_note_from_pad(b,p)
   if params:string(b.."_pad_to_midi_note_enabled") == "yes" then
     if mc.get_midi("midi_notes",b,p) ~= "-" and mc.get_midi("midi_notes_velocities",b,p) ~= "-" and mc.get_midi("midi_notes_channels",b,p) ~= "-" then
@@ -678,6 +690,7 @@ function mc.midi_note_from_pad(b,p)
       table.insert(active_midi_notes[b], note_num)
       if midi_off[b] ~= nil then clock.cancel(midi_off[b]) end
       midi_off[b] = clock.run(mc.midi_note_from_pad_off,b,p)
+      -- mxcc:on({name = mx_dests[b],midi=note_num,velocity=vel})
     end
   end
   if mc.get_midi("midi_ccs",b,p) ~= "-" and mc.get_midi("midi_ccs_values",b,p) ~= "-" and mc.get_midi("midi_ccs_channels",b,p) ~= "-" then
@@ -734,6 +747,7 @@ end
 function mc.all_midi_notes_off(b)
   for _, a in pairs(active_midi_notes[b]) do
     midi_dev[params:get(b.."_pad_to_midi_note_destination")]:note_off(a, nil, params:get(b.."_pad_to_midi_note_channel"))
+    -- mxcc:off({name = mx_dests[b],midi=a})
   end
   active_midi_notes[b] = {}
 end

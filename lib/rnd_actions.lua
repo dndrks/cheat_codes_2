@@ -4,6 +4,12 @@ rnd = {}
 
 MusicUtil = include "lib/cc_musicutil"
 
+rnd_lattice = lattice:new{
+  auto = true,
+  meter = 4,
+  ppqn = 96
+}
+
 function rnd.init(t)
   rnd[t] = {}
   rnd.targets = {"pan","rate","rate slew","delay send","loop","semitone offset","filter tilt"}
@@ -25,8 +31,19 @@ function rnd.init(t)
       rnd[t][i].filter_min = -1
       rnd[t][i].filter_max = 1
       rnd[t][i].mode = "non-destructive"
+      rnd[t][i].lattice = rnd_lattice:new_pattern{
+        action = function() rnd.lattice_advance(t,i) end,
+        division = rnd[t][i].time/4,
+        enabled = true
+      }
   end
+  rnd_lattice:start()
   math.randomseed(os.time())
+end
+
+function rnd.update_time(t,i)
+  rnd[t][i].time = rnd[t][i].num / rnd[t][i].denom
+  rnd[t][i].lattice:set_division(rnd[t][i].time/4)
 end
 
 local param_targets =
@@ -38,13 +55,34 @@ local param_targets =
 function rnd.transport(t,i,state)
   if state == "on" then
     if not rnd[t][i].playing then
-      rnd[t][i].clock = clock.run(rnd.advance, t, i)
+      -- rnd[t][i].clock = clock.run(rnd.advance, t, i)
       rnd[t][i].playing = true
     end
   elseif state == "off" then
     if rnd[t][i].playing then
-      clock.cancel(rnd[t][i].clock)
+      -- clock.cancel(rnd[t][i].clock)
       rnd[t][i].playing = false
+    end
+  end
+end
+
+function rnd.lattice_advance(t,i)
+  if rnd[t][i].playing then
+    -- print(t,i, clock.get_beats())
+    if rnd[t][i].param == "rate slew" then
+        rnd.rate_slew(t,i)
+    elseif rnd[t][i].param == "pan" then
+        rnd.pan(t,i)
+    elseif rnd[t][i].param == "delay send" then
+        rnd.delay_send(t,i)
+    elseif rnd[t][i].param == "rate" then
+        rnd.rate(t,i)
+    elseif rnd[t][i].param == "loop" then
+        rnd.loop(t)
+    elseif rnd[t][i].param == "semitone offset" then
+        rnd.offset(t,i)
+    elseif rnd[t][i].param == "filter tilt" then
+      rnd.filter_tilt(t,i)
     end
   end
 end
@@ -52,6 +90,7 @@ end
 function rnd.advance(t,i)
   while true do
     clock.sync(rnd[t][i].time)
+    print("tell dan if you see this: error 12908")
     if rnd[t][i].param == "rate slew" then
         rnd.rate_slew(t,i)
     elseif rnd[t][i].param == "pan" then
@@ -214,10 +253,17 @@ function rnd.loadstate()
     if tab.load(_path.data .. "cheat_codes_2/rnd/collection-"..collection.."/"..i..".data") ~= nil then
       rnd[i] = tab.load(_path.data .. "cheat_codes_2/rnd/collection-"..collection.."/"..i..".data")
       for j = 1,#rnd[i] do
-        rnd[i][j].clock = nil
-        if rnd[i][j].playing then
-          rnd[i][j].clock = clock.run(rnd.advance, i, j)
+        if rnd[i][j].lattice == nil then
+          rnd[i][j].lattice = rnd_lattice:new_pattern{
+            action = function() rnd.lattice_advance(i,j) end,
+            division = rnd[i][j].time/4,
+            enabled = true
+          }
         end
+        -- rnd[i][j].clock = nil
+        -- if rnd[i][j].playing then
+        --   rnd[i][j].clock = clock.run(rnd.advance, i, j)
+        -- end
       end
     end
   end
