@@ -2812,6 +2812,7 @@ function cheat(b,i)
       if pad.envelope_mode == 3 then env_counter[b].stage = "rising" end
     end
     if pad.level > 0.05 then
+    -- if (pad.envelope_time/(pad.level/0.05)) ~= inf then
       env_counter[b].time = (pad.envelope_time/(pad.level/0.05)) -- buggy, what am i trying to do here??
     end
     env_counter[b]:start()
@@ -3049,7 +3050,8 @@ function rising_envelope(i)
       env_counter[i].stage = "falling"
       softcut.level_slew_time(i+1,0.05)
       env_counter[i].butt = bank[i][bank[i].id].level
-      if bank[i][bank[i].id].level > 0 then
+      if bank[i][bank[i].id].level > 0.05 then
+      -- if bank[i][bank[i].id].envelope_time/(bank[i][bank[i].id].level/0.05) ~= inf then
         env_counter[i].time = (bank[i][bank[i].id].envelope_time/(bank[i][bank[i].id].level/0.05))
       end
       env_counter[i]:start()

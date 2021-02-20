@@ -824,6 +824,7 @@ function encoder_actions.init(n,d)
         bank[n][focused_pad].level = util.clamp(bank[n][focused_pad].level+d/10,0,2)
         if bank[n][focused_pad].enveloped and not bank[n][focused_pad].pause then
           if bank[n][focused_pad].level > 0.05 then
+          -- if bank[n][focused_pad].envelope_time/(bank[n][focused_pad].level/0.05) ~= inf then
             env_counter[n].time = (bank[n][focused_pad].envelope_time/(bank[n][focused_pad].level/0.05))
           end
         end
@@ -922,6 +923,7 @@ function encoder_actions.init(n,d)
         end
       end
       if bank[n][focused_pad].level > 0.05 then
+      -- if bank[n][focused_pad].envelope_time/(bank[n][focused_pad].level/0.05) ~= inf then
         env_counter[n].time = (bank[n][focused_pad].envelope_time/(bank[n][focused_pad].level/0.05))
       end
     end
