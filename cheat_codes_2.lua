@@ -18,19 +18,18 @@ end
 
 local grid = util.file_exists(_path.code.."midigrid") and include "midigrid/lib/midigrid" or grid
 
--- if util.file_exists(_path.code.."timber") then
---   Timber = include 'timber/lib/timber_engine'
---   engine.name = "Timber"
---   Timber.add_params()
---   local NUM_SAMPLES = 16
---   for i = 1,16 do
---     Timber.add_sample_params(i, true, false)
---   end
+-- if util.file_exists(_path.code.."mx.samples") then
+--   mxsamples = include 'mx.samples/lib/mx.samples'
+--   engine.name = "MxSamples"
+--   mxcc = mxsamples:new()
+--   print("available instruments: ")
+--   tab.print(mxcc:list_instruments())
 -- end
 
 local pattern_time = include 'lib/cc_pattern_time'
 MU = require "musicutil"
 UI = require "ui"
+lattice = require "lattice"
 fileselect = require 'fileselect'
 textentry = require 'textentry'
 main_menu = include 'lib/main_menu'
@@ -47,7 +46,6 @@ rytm = include 'lib/euclid'
 mc = include 'lib/midicheat'
 sharer = include 'lib/sharer'
 macros = include 'lib/macros'
-lattice = require("lattice")
 transport = include 'lib/transport'
 math.randomseed(os.time())
 variable_fade_time = 0.01
@@ -2813,7 +2811,10 @@ function cheat(b,i)
       env_counter[b].r_del_butt = 0
       if pad.envelope_mode == 3 then env_counter[b].stage = "rising" end
     end
-    env_counter[b].time = (pad.envelope_time/(pad.level/0.05))
+    if pad.level > 0.05 then
+    -- if (pad.envelope_time/(pad.level/0.05)) ~= inf then
+      env_counter[b].time = (pad.envelope_time/(pad.level/0.05)) -- buggy, what am i trying to do here??
+    end
     env_counter[b]:start()
   elseif not pad.enveloped and not pad.pause then
     softcut.level_slew_time(b+1,0.1)
@@ -2965,7 +2966,7 @@ function falling_envelope(i)
   else
     env_counter[i].butt = 0
   end
-  if env_counter[i].butt > 0 then
+  if env_counter[i].butt > 0 and bank[i][bank[i].id].level > 0 then
     softcut.level_slew_time(i+1,0.05)
     softcut.level(i+1,env_counter[i].butt*bank[i].global_level)
     -- softcut.level_cut_cut(i+1,5,(env_counter[i].butt*bank[i].global_level)*bank[i][bank[i].id].left_delay_level)
@@ -3049,7 +3050,10 @@ function rising_envelope(i)
       env_counter[i].stage = "falling"
       softcut.level_slew_time(i+1,0.05)
       env_counter[i].butt = bank[i][bank[i].id].level
-      env_counter[i].time = (bank[i][bank[i].id].envelope_time/(bank[i][bank[i].id].level/0.05))
+      if bank[i][bank[i].id].level > 0.05 then
+      -- if bank[i][bank[i].id].envelope_time/(bank[i][bank[i].id].level/0.05) ~= inf then
+        env_counter[i].time = (bank[i][bank[i].id].envelope_time/(bank[i][bank[i].id].level/0.05))
+      end
       env_counter[i]:start()
     end
     if bank[i][bank[i].id].envelope_loop == true then
@@ -3076,9 +3080,9 @@ function easing_slew(i)
   slew_counter[i].slewedVal = slew_counter[i].ease(slew_counter[i].current,slew_counter[i].beginVal,slew_counter[i].change,slew_counter[i].duration)
   slew_counter[i].slewedQ = slew_counter[i].ease(slew_counter[i].current,slew_counter[i].beginQ,slew_counter[i].changeQ,slew_counter[i].duration)
   slew_counter[i].current = slew_counter[i].current + 0.01
-  if grid_alt then
+  if grid_alt and all_loaded then
     try_tilt_process(i,bank[i].id,slew_counter[i].slewedVal,slew_counter[i].slewedQ)
-  else
+  elseif all_loaded then
     for j = 1,16 do
       try_tilt_process(i,j,slew_counter[i].slewedVal,slew_counter[i].slewedQ)
     end
@@ -3668,6 +3672,7 @@ function key(n,z)
         if page.loops.frame == 2 and key1_hold then
           if page.loops.sel == 4 then
             buff_flush()
+            print("press")
           elseif page.loops.sel < 4 then
             sync_clock_to_loop(bank[page.loops.sel][bank[page.loops.sel].id],"audio")
           elseif page.loops.sel == 5 then
@@ -3733,22 +3738,11 @@ function key(n,z)
       elseif menu == 2 then
         if page.loops.frame == 2 and key1_hold then
           if page.loops.sel == 4 then
-            buff_flush()
+            -- buff_flush()
+            -- print("release???")
           elseif page.loops.sel < 4 then
             sync_clock_to_loop(bank[page.loops.sel][bank[page.loops.sel].id],"audio")
           end
-        -- if key1_hold and page.loops_sel ~= 4 then
-        --   if page.loops_view[page.loops_sel] == 1 then
-        --     sync_clock_to_loop(bank[page.loops_sel][bank[page.loops_sel].id],"audio")
-        --   elseif page.loops_view[page.loops_sel] == 2 then
-        --     rightangleslice.init(4,id,'14')
-        --   end
-        -- elseif key1_hold and page.loops_sel == 4 then
-        --   buff_pause()
-        else
-          -- if page.loops.frame == 1 then
-          --   menu = 1
-          -- end
         end
       else
         menu = 1
@@ -5569,9 +5563,16 @@ function named_loadstate(path)
       if tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/rnd/"..i..".data") ~= nil then
         rnd[i] = tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/rnd/"..i..".data")
         for j = 1,#rnd[i] do
-          rnd[i][j].clock = nil
-          if rnd[i][j].playing then
-            rnd[i][j].clock = clock.run(rnd.advance, i, j)
+          -- rnd[i][j].clock = nil
+          -- if rnd[i][j].playing then
+          --   rnd[i][j].clock = clock.run(rnd.advance, i, j)
+          -- end
+          if rnd[i][j].lattice == nil then
+            rnd[i][j].lattice = rnd_lattice:new_pattern{
+              action = function() rnd.lattice_advance(i,j) end,
+              division = rnd[i][j].time/4,
+              enabled = true
+            }
           end
         end
       end

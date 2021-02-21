@@ -734,10 +734,12 @@ function encoder_actions.init(n,d)
           end
         elseif page.rnd_page_edit[page.rnd_page] == 3 then
           current.num = util.clamp(current.num+d,1,32)
-          current.time = current.num / current.denom
+          -- current.time = current.num / current.denom
+          rnd.update_time(page.rnd_page,page.rnd_page_sel[page.rnd_page])
         elseif page.rnd_page_edit[page.rnd_page] == 4 then
           current.denom = util.clamp(current.denom+d,1,32)
-          current.time = current.num / current.denom
+          -- current.time = current.num / current.denom
+          rnd.update_time(page.rnd_page,page.rnd_page_sel[page.rnd_page])
         elseif page.rnd_page_edit[page.rnd_page] == 5 then
           if current.param == "pan" then
             current.pan_min = util.clamp(current.pan_min+d,-100,current.pan_max-1)
@@ -820,6 +822,12 @@ function encoder_actions.init(n,d)
         bank[n].global_level = util.clamp(bank[n].global_level+d/10,0,2)
       else
         bank[n][focused_pad].level = util.clamp(bank[n][focused_pad].level+d/10,0,2)
+        if bank[n][focused_pad].enveloped and not bank[n][focused_pad].pause then
+          if bank[n][focused_pad].level > 0.05 then
+          -- if bank[n][focused_pad].envelope_time/(bank[n][focused_pad].level/0.05) ~= inf then
+            env_counter[n].time = (bank[n][focused_pad].envelope_time/(bank[n][focused_pad].level/0.05))
+          end
+        end
       end
       if bank[n][bank[n].id].envelope_mode == 2 or bank[n][bank[n].id].enveloped == false then
         if bank[n].focus_hold == false then
@@ -914,7 +922,10 @@ function encoder_actions.init(n,d)
           bank[n][focused_pad].envelope_time = util.linexp(0.05,60,0.05,60,bank[n][focused_pad].envelope_time)
         end
       end
-      env_counter[n].time = (bank[n][focused_pad].envelope_time/(bank[n][focused_pad].level/0.05))
+      if bank[n][focused_pad].level > 0.05 then
+      -- if bank[n][focused_pad].envelope_time/(bank[n][focused_pad].level/0.05) ~= inf then
+        env_counter[n].time = (bank[n][focused_pad].envelope_time/(bank[n][focused_pad].level/0.05))
+      end
     end
   end
   if menu == 4 then
