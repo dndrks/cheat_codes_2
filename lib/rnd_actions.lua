@@ -144,6 +144,9 @@ function rnd.pan(t,i)
     bank[t][bank[t].id].pan = rand_pan
   end
   softcut.pan(t+1,rand_pan)
+  if menu == 4 then
+    screen_dirty = true
+  end
 end
 
 function rnd.rate(t,i)
@@ -198,6 +201,9 @@ function rnd.delay_send(t,i)
     softcut.level_cut_cut(t+1,6,(bank[t][bank[t].id].right_delay_level*bank[t][bank[t].id].level)*bank[t].global_level)
   end
   grid_dirty = true
+  if menu == 6 then
+    screen_dirty = true
+  end
 end
 
 function rnd.offset(t,i)

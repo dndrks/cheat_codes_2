@@ -3080,9 +3080,9 @@ function easing_slew(i)
   slew_counter[i].slewedVal = slew_counter[i].ease(slew_counter[i].current,slew_counter[i].beginVal,slew_counter[i].change,slew_counter[i].duration)
   slew_counter[i].slewedQ = slew_counter[i].ease(slew_counter[i].current,slew_counter[i].beginQ,slew_counter[i].changeQ,slew_counter[i].duration)
   slew_counter[i].current = slew_counter[i].current + 0.01
-  if grid_alt then
+  if grid_alt and all_loaded then
     try_tilt_process(i,bank[i].id,slew_counter[i].slewedVal,slew_counter[i].slewedQ)
-  else
+  elseif all_loaded then
     for j = 1,16 do
       try_tilt_process(i,j,slew_counter[i].slewedVal,slew_counter[i].slewedQ)
     end
