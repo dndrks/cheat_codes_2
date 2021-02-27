@@ -1,6 +1,6 @@
 -- cheat codes 2
 --          a sample playground
--- rev: 210221
+-- rev: 210227
 -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
 -- need help?
 -- please visit:
@@ -17,6 +17,24 @@ if util.file_exists(_path.code.."namesizer") then
 end
 
 local grid = util.file_exists(_path.code.."midigrid") and include "midigrid/lib/midigrid" or grid
+
+function push_to_cc2(encoder, d)
+  -- translate the bank of 8 encoders to whatever params you want!
+  local param_map = 
+  {
+    [1] = "macro 1"
+  , [2] = nil
+  , [3] = nil
+  , [4] = nil
+  , [5] = nil
+  , [6] = nil
+  , [7] = nil
+  , [8] = nil
+  }
+  if param_map[encoder] ~= nil then
+    params:delta(param_map[encoder], d == 1 and 1 or -1)
+  end
+end
 
 -- if util.file_exists(_path.code.."mx.samples") then
 --   mxsamples = include 'mx.samples/lib/mx.samples'
@@ -149,7 +167,7 @@ function on_render(ch, start, i, s)
   -- cursor = util.clamp(cursor, 1, #s)
   waveform_samples = s
   interval = i
-  if menu ~= 1 then screen_dirty = true end
+  -- if menu ~= 1 then screen_dirty = true end
   if ch == 2 then
     if start < 33 then
       clip[1].waveform_samples = s
@@ -1339,10 +1357,10 @@ function init()
           rec.stopped = true
           grid_dirty = true
           rec_ended_callback()
-          if menu == 2 then
-            if page.loops.sel ~= 5 then screen_dirty = true end
-            -- print("stopped")
-          end
+          -- if menu == 2 then
+          --   if page.loops.sel ~= 5 then screen_dirty = true end
+          --   -- print("stopped")
+          -- end
         end
       end
     end
@@ -1476,6 +1494,11 @@ function init()
     local trigger_bank = {nil,nil,nil}
     local b_ch = {}
     midi_dev[j].event = function(data)
+      if midi_dev[j].name == "Ableton Push 2 1" and data[1] == 176 then
+        if data[2] >= 71 and data[2] <= 78 then
+          push_to_cc2(data[2]-70,data[3])
+        end
+      end
       screen_dirty = true
       local d = midi.to_msg(data)
       if d.type == "start" then
@@ -2352,6 +2375,9 @@ function globally_clocked()
     if menu == 7 or menu == "transport_config" then
       if menu ~= 1 then screen_dirty = true end
     end
+    if menu == 2 then
+      screen_dirty = true
+    end
     update_tempo()
     -- step_sequence()
     for i = 1,3 do
@@ -3160,7 +3186,13 @@ function buff_flush()
   rec[rec.focus].state = 0
   rec[rec.focus].clear = 1
   softcut.rec_level(1,0)
-  update_waveform(1,rec[rec.focus].start_point, rec[rec.focus].end_point,128)
+  -- update_waveform(1,rec[rec.focus].start_point, rec[rec.focus].end_point,128)
+  if key1_hold then
+    update_waveform(1,rec[rec.focus].start_point, rec[rec.focus].end_point,128)
+  else
+    local points = {{1,9},{9,17},{17,25}}
+    update_waveform(1,points[rec.focus][1],points[rec.focus][2],128)
+  end
   grid_dirty = true
 end
 
@@ -3672,7 +3704,7 @@ function key(n,z)
         if page.loops.frame == 2 and key1_hold then
           if page.loops.sel == 4 then
             buff_flush()
-            print("press")
+            -- print("press")
           elseif page.loops.sel < 4 then
             sync_clock_to_loop(bank[page.loops.sel][bank[page.loops.sel].id],"audio")
           elseif page.loops.sel == 5 then
