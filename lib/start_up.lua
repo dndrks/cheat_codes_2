@@ -18,7 +18,6 @@ function start_up.init()
     softcut.loop_end(i, 9)
     softcut.loop_end(1,8.99)
     softcut.loop(i, 1)
-    softcut.rec(1, 1)
     softcut.rec_level(1, 1)
     -- softcut.pre_level(1, 0.25)
     softcut.pre_level(1, 1)
@@ -29,6 +28,11 @@ function start_up.init()
     softcut.enable(i, 1)
     softcut.rate_slew_time(4,0.2)
   end
+
+  clock.run(function()
+    clock.sleep(0.25)
+    softcut.rec(1, 1)
+  end)
   
   softcut.event_phase(phase)
   softcut.poll_start_phase()
@@ -71,7 +75,7 @@ function start_up.init()
   
   --params:add_separator()
   
-  params:add_group("loops + buffers", 28)
+  params:add_group("loops + buffers", 29)
 
   params:add_separator("clips")
   
@@ -113,7 +117,19 @@ function start_up.init()
     )
   end
 
-  params:add_option("one_shot_clock_div","--> 1-shot sync",{"next beat","next bar","free"},1)
+  params:add_option("one_shot_clock_div","--> 1-shot sync",{"next beat","next bar","free","threshold"},1)
+  params:set_action("one_shot_clock_div",
+    function(x)
+      if x ~= 4 then
+        params:hide("one_shot_threshold")
+        _menu.rebuild_params()
+      else
+        params:show("one_shot_threshold")
+        _menu.rebuild_params()
+      end
+    end
+  )
+  params:add_control("one_shot_threshold","----> thresh",controlspec.new(1,1000,'exp',1,85,'amp/10k'))
   params:add_control("one_shot_latency_offset","--> latency offset",controlspec.new(0,1,'lin',0.01,0,'s'))
 
   params:add_option("rec_loop_enc_resolution", "rec loop enc resolution", {"0.1","0.01","1/16","1/8","1/4","1/2","1 bar"}, 1)

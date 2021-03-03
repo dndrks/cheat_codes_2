@@ -7,7 +7,7 @@ function mc.init()
   for i = 1,3 do
     mc.redraw(bank[i][bank[i].id])
   end
-  for i = 1,4 do
+  for i = 1,16 do
     if midi_dev[i].name == "Midi Fighter Twister" then
       mc.mft_redraw(bank[1][bank[1].id],"all")
     end
@@ -127,82 +127,84 @@ end
 function mc.mft_redraw(target,parameter)
   -- TODO: these need to redraw on the right target.bank_id CCs...
   -- TODO: when the bank is changed on MFT, redraw these
-  local duration = target.mode == 1 and 8 or clip[target.clip].sample_length
-  local min = target.mode == 1 and live[target.clip].min or clip[target.clip].min
-  local max = target.mode == 1 and live[target.clip].max or clip[target.clip].max
-  local start_to_cc = util.round(util.linlin(min,max,0,127,target.start_point))
-  local dest_cc =
-  {
-    [1] = {0,1,2,4,5,6,7,8,10,11}
-  , [2] = {16,17,18,20,21,22,23,24,26,27}
-  , [3] = {32,33,34,36,37,38,39,40,42,43}
-  }
-  local dests = dest_cc[target.bank_id]
-  if parameter == "pad_id" then
-    local pad_to_cc = util.round(util.linlin(1,16,0,127,target.pad_id))
-    midi_dev[params:get("midi_enc_control_device")]:cc(dests[1],pad_to_cc,1)
-    midi_dev[params:get("midi_enc_control_device")]:cc(dests[1],pad_to_cc,5)
-  elseif parameter == "start_point" then
-    midi_dev[params:get("midi_enc_control_device")]:cc(dests[2],start_to_cc,1)
-    midi_dev[params:get("midi_enc_control_device")]:cc(dests[2],start_to_cc,5)
-  elseif parameter == "end_point" then
-    local end_to_cc = util.round(util.linlin(min,max,0,127,target.end_point))
-    midi_dev[params:get("midi_enc_control_device")]:cc(dests[3],end_to_cc,1)
-    midi_dev[params:get("midi_enc_control_device")]:cc(dests[3],end_to_cc,5)
-  elseif parameter == "pad_level" then
-    local pad_level_to_cc = util.round(util.linlin(0,2,0,127,target.level))
-    midi_dev[params:get("midi_enc_control_device")]:cc(dests[4],pad_level_to_cc,1)
-    midi_dev[params:get("midi_enc_control_device")]:cc(dests[4],pad_level_to_cc,5)
-  elseif parameter == "bank_level" then
-    local bank_level_to_cc = util.round(util.linlin(0,2,0,127,bank[target.bank_id].global_level))
-    midi_dev[params:get("midi_enc_control_device")]:cc(dests[5],bank_level_to_cc,1)
-    midi_dev[params:get("midi_enc_control_device")]:cc(dests[5],bank_level_to_cc,5)
-  elseif parameter == "pad_offset" then
-    local offset_to_cc = util.round(util.linlin(-1,1,0,127,(math.log(target.offset)/math.log(0.5))*-12))
-    midi_dev[params:get("midi_enc_control_device")]:cc(dests[6],offset_to_cc,1)
-    midi_dev[params:get("midi_enc_control_device")]:cc(dests[6],offset_to_cc,5)
-  elseif parameter == "pad_rate" then
-    local rate_to_cc = util.round(util.linlin(-4,4,0,127,target.rate))
-    local rates_to_ccs =
+  if params:string("midi_enc_control_enabled") == "yes" and params:string("midi_enc_echo_enabled") == "yes" and midi_dev[params:get("midi_enc_control_device")].name == "Midi Fighter Twister" then
+    local duration = target.mode == 1 and 8 or clip[target.clip].sample_length
+    local min = target.mode == 1 and live[target.clip].min or clip[target.clip].min
+    local max = target.mode == 1 and live[target.clip].max or clip[target.clip].max
+    local start_to_cc = util.round(util.linlin(min,max,0,127,target.start_point))
+    local dest_cc =
     {
-      [4] = 127
-    , [2] = 127
-    , [1] = 110
-    , [0.5] = 95
-    , [0.25] = 85
-    , [0.125] = 71
-    , [0] = 64
-    , [-0.125] = 56
-    , [-0.25] = 45
-    , [-0.5] = 32
-    , [-1] = 16
-    , [-2] = 10
-    , [-4] = 0
+      [1] = {0,1,2,4,5,6,7,8,10,11}
+    , [2] = {16,17,18,20,21,22,23,24,26,27}
+    , [3] = {32,33,34,36,37,38,39,40,42,43}
     }
-    midi_dev[params:get("midi_enc_control_device")]:cc(dests[7],rates_to_ccs[target.rate],1)
-    midi_dev[params:get("midi_enc_control_device")]:cc(dests[7],rates_to_ccs[target.rate],5)
-  elseif parameter == "pan" then
-    local pan_to_cc = util.round(util.linlin(-1,1,0,127,target.pan))
-    midi_dev[params:get("midi_enc_control_device")]:cc(dests[8],pan_to_cc,1)
-    midi_dev[params:get("midi_enc_control_device")]:cc(dests[8],pan_to_cc,5)
-  elseif parameter == "filter_tilt" then
-    local tilt_to_cc = util.round(util.linlin(-1,1,0,127,target.tilt))
-    midi_dev[params:get("midi_enc_control_device")]:cc(dests[9],tilt_to_cc,1)
-    midi_dev[params:get("midi_enc_control_device")]:cc(dests[9],tilt_to_cc,5)
-  elseif parameter == "filter_q" then
-    local q_to_cc = util.round(util.linlin(-0.3,2,127,0,params:get("filter "..target.bank_id.." q")))
-    midi_dev[params:get("midi_enc_control_device")]:cc(dests[10],q_to_cc,1)
-  elseif parameter == "all" then
-    mc.mft_redraw(target,"pad_id")
-    mc.mft_redraw(target,"start_point")
-    mc.mft_redraw(target,"end_point")
-    mc.mft_redraw(target,"pad_level")
-    mc.mft_redraw(target,"bank_level")
-    mc.mft_redraw(target,"pad_rate")
-    mc.mft_redraw(target,"pad_offset")
-    mc.mft_redraw(target,"pan")
-    mc.mft_redraw(target,"filter_tilt")
-    mc.mft_redraw(target,"filter_q")
+    local dests = dest_cc[target.bank_id]
+    if parameter == "pad_id" then
+      local pad_to_cc = util.round(util.linlin(1,16,0,127,target.pad_id))
+      midi_dev[params:get("midi_enc_control_device")]:cc(dests[1],pad_to_cc,1)
+      midi_dev[params:get("midi_enc_control_device")]:cc(dests[1],pad_to_cc,5)
+    elseif parameter == "start_point" then
+      midi_dev[params:get("midi_enc_control_device")]:cc(dests[2],start_to_cc,1)
+      midi_dev[params:get("midi_enc_control_device")]:cc(dests[2],start_to_cc,5)
+    elseif parameter == "end_point" then
+      local end_to_cc = util.round(util.linlin(min,max,0,127,target.end_point))
+      midi_dev[params:get("midi_enc_control_device")]:cc(dests[3],end_to_cc,1)
+      midi_dev[params:get("midi_enc_control_device")]:cc(dests[3],end_to_cc,5)
+    elseif parameter == "pad_level" then
+      local pad_level_to_cc = util.round(util.linlin(0,2,0,127,target.level))
+      midi_dev[params:get("midi_enc_control_device")]:cc(dests[4],pad_level_to_cc,1)
+      midi_dev[params:get("midi_enc_control_device")]:cc(dests[4],pad_level_to_cc,5)
+    elseif parameter == "bank_level" then
+      local bank_level_to_cc = util.round(util.linlin(0,2,0,127,bank[target.bank_id].global_level))
+      midi_dev[params:get("midi_enc_control_device")]:cc(dests[5],bank_level_to_cc,1)
+      midi_dev[params:get("midi_enc_control_device")]:cc(dests[5],bank_level_to_cc,5)
+    elseif parameter == "pad_offset" then
+      local offset_to_cc = util.round(util.linlin(-1,1,0,127,(math.log(target.offset)/math.log(0.5))*-12))
+      midi_dev[params:get("midi_enc_control_device")]:cc(dests[6],offset_to_cc,1)
+      midi_dev[params:get("midi_enc_control_device")]:cc(dests[6],offset_to_cc,5)
+    elseif parameter == "pad_rate" then
+      local rate_to_cc = util.round(util.linlin(-4,4,0,127,target.rate))
+      local rates_to_ccs =
+      {
+        [4] = 127
+      , [2] = 127
+      , [1] = 110
+      , [0.5] = 95
+      , [0.25] = 85
+      , [0.125] = 71
+      , [0] = 64
+      , [-0.125] = 56
+      , [-0.25] = 45
+      , [-0.5] = 32
+      , [-1] = 16
+      , [-2] = 10
+      , [-4] = 0
+      }
+      midi_dev[params:get("midi_enc_control_device")]:cc(dests[7],rates_to_ccs[target.rate],1)
+      midi_dev[params:get("midi_enc_control_device")]:cc(dests[7],rates_to_ccs[target.rate],5)
+    elseif parameter == "pan" then
+      local pan_to_cc = util.round(util.linlin(-1,1,0,127,target.pan))
+      midi_dev[params:get("midi_enc_control_device")]:cc(dests[8],pan_to_cc,1)
+      midi_dev[params:get("midi_enc_control_device")]:cc(dests[8],pan_to_cc,5)
+    elseif parameter == "filter_tilt" then
+      local tilt_to_cc = util.round(util.linlin(-1,1,0,127,target.tilt))
+      midi_dev[params:get("midi_enc_control_device")]:cc(dests[9],tilt_to_cc,1)
+      midi_dev[params:get("midi_enc_control_device")]:cc(dests[9],tilt_to_cc,5)
+    elseif parameter == "filter_q" then
+      local q_to_cc = util.round(util.linlin(-0.3,2,127,0,params:get("filter "..target.bank_id.." q")))
+      midi_dev[params:get("midi_enc_control_device")]:cc(dests[10],q_to_cc,1)
+    elseif parameter == "all" then
+      mc.mft_redraw(target,"pad_id")
+      mc.mft_redraw(target,"start_point")
+      mc.mft_redraw(target,"end_point")
+      mc.mft_redraw(target,"pad_level")
+      mc.mft_redraw(target,"bank_level")
+      mc.mft_redraw(target,"pad_rate")
+      mc.mft_redraw(target,"pad_offset")
+      mc.mft_redraw(target,"pan")
+      mc.mft_redraw(target,"filter_tilt")
+      mc.mft_redraw(target,"filter_q")
+    end
   end
 end
 

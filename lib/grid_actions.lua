@@ -375,7 +375,11 @@ function grid_actions.init(x,y,z)
           if rec.focus ~= 8-y then
             rec.focus = 8-y
           else
-            toggle_buffer(8-y)
+            if rec[rec.focus].loop == 0 and params:string("one_shot_clock_div") == "threshold" and not grid_alt then
+              threshold_rec_handler()
+            elseif not grid_alt then
+              toggle_buffer(8-y)
+            end
             if grid_alt then
               buff_flush()
             end
@@ -922,6 +926,20 @@ function grid_actions.init(x,y,z)
       if x <=3 and y == 1 and z ==1  then
         bank_64 = x
         b = bank[x]
+        if menu == 2 then
+          page.loops.sel = x
+        elseif menu == 7 then
+          page.time_sel = x
+        elseif menu == 8 then
+          rytm.track_edit = x
+        elseif menu == 9 then
+          page.arp_page_sel = x
+        elseif menu == 10 then
+          page.rnd_page = x
+        elseif menu == "MIDI_config" then
+          page.midi_bank = x
+        end
+        screen_dirty = true
       end
       
       if grid_alt or b.alt_lock then
@@ -1228,7 +1246,11 @@ function grid_actions.init(x,y,z)
         if rec.focus ~= x then
           rec.focus = x
         else
-          toggle_buffer(x)
+          if rec[rec.focus].loop == 0 and params:string("one_shot_clock_div") == "threshold" and not grid_alt then
+            threshold_rec_handler()
+          elseif not grid_alt then
+            toggle_buffer(8-y)
+          end
           if grid_alt then
             buff_flush()
           end

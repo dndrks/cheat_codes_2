@@ -120,7 +120,9 @@ function main_menu.init()
         local off = ((rec.focus-1)*8)+1
         local mults = {1,2,4}
         local mult = mults[params:get("live_buff_rate")]
-        screen.text_right("s: "..string.format("%.4g",(util.round(rec[rec.focus].start_point,0.0001)-off)*mult).."s | e: "..string.format("%.4g",(rec[rec.focus].end_point-off)*mult).."s")
+        local display_live_start = string.format("%.4g",(util.round(rec[rec.focus].start_point,0.0001)-off)*mult)
+        local display_live_end = string.format("%.4g",(rec[rec.focus].end_point-off)*mult)
+        screen.text_right("s: "..display_live_start.."s | e: "..display_live_end.."s")
       end
     end
 
@@ -372,6 +374,8 @@ function main_menu.init()
         screen.level(screen_levels[1])
         screen.move(0,40)
         screen.text("L"..rec.focus)
+        screen.move(1,32)
+        screen.text(rec[rec.focus].queued and "..." or "")
 
         local waves = rec[rec.focus].waveform_samples
         
@@ -412,6 +416,7 @@ function main_menu.init()
           end
 
           local rate_options = {"8s","16s","32s"}
+          local mode_options = {"loop","shot","shot+threshold"}
           local sets =
           {
             [1] =
@@ -731,7 +736,7 @@ function main_menu.init()
       local level_markers = {"0 -", "1 -", "2 -"}
       screen.text(level_markers[i])
       screen.move(10+(i*20),64)
-      screen.level(level_options[page.levels_sel+1] == "levels" and 15 or 3)
+      screen.level(level_options[page.levels.sel+1] == "levels" and 15 or 3)
       local level_to_screen_options = {"a", "b", "c"}
       if key1_hold or grid_alt or bank[i].alt_lock then
         screen.text("("..level_to_screen_options[i]..")")
@@ -743,7 +748,7 @@ function main_menu.init()
       screen.line(35+(20*(i-1)),57-level_to_screen)
       screen.close()
       screen.stroke()
-      screen.level(level_options[page.levels_sel+1] == "envelope enable" and 15 or 3)
+      screen.level(level_options[page.levels.sel+1] == "envelope enable" and 15 or 3)
       screen.move(85,10)
       screen.text("env?")
       screen.move(90+((i-1)*15),20)
@@ -753,7 +758,7 @@ function main_menu.init()
       else
         screen.text_center("-")
       end
-      screen.level(level_options[page.levels_sel+1] == "loop" and 15 or 3)
+      screen.level(level_options[page.levels.sel+1] == "loop" and 15 or 3)
       screen.move(90+((i-1)*15),30)
       if bank[i][focused_pad].envelope_loop then
         screen.text_center("∞")
@@ -761,7 +766,7 @@ function main_menu.init()
         screen.text_center("-")
       end
       
-      screen.level(level_options[page.levels_sel+1] == "time" and 15 or 3)
+      screen.level(level_options[page.levels.sel+1] == "time" and 15 or 3)
       -- screen.move(85,30)
       -- screen.text("time")
       screen.move(85,34+((i)*10))
@@ -821,7 +826,7 @@ function main_menu.init()
       end
       screen.move(17+((i-1)*45),30)
       
-      screen.level(page.filtering_sel+1 == 1 and 15 or 3)
+      screen.level(page.filters.sel+1 == 1 and 15 or 3)
       if slew_counter[i].slewedVal ~= nil then
         if slew_counter[i].slewedVal >= -0.04 and slew_counter[i].slewedVal <=0.04 then
         screen.text_center(".....|.....")
@@ -852,15 +857,15 @@ function main_menu.init()
         end
       end
       screen.move(17+((i-1)*45),40)
-      screen.level(page.filtering_sel+1 == 2 and 15 or 3)
+      screen.level(page.filters.sel+1 == 2 and 15 or 3)
       local ease_time_to_screen = bank[i][bank[i].id].tilt_ease_time
       screen.text_center(string.format("%.2f",ease_time_to_screen/100).."s")
       screen.move(17+((i-1)*45),50)
-      screen.level(page.filtering_sel+1 == 3 and 15 or 3)
+      screen.level(page.filters.sel+1 == 3 and 15 or 3)
       local q_scaled = util.linlin(0.0005,4,100,0,params:get("filter "..i.." q"))
       screen.text_center(string.format("%.4g",q_scaled).."%")
       screen.move(17+((i-1)*45),60)
-      screen.level(page.filtering_sel+1 == 4 and 15 or 3)
+      screen.level(page.filters.sel+1 == 4 and 15 or 3)
       local ease_type_to_screen = bank[i][bank[i].id].tilt_ease_type
       local ease_types = {"cont","jumpy"}
       screen.text_center(ease_types[ease_type_to_screen])
@@ -870,18 +875,18 @@ function main_menu.init()
     screen.move(0,10)
     screen.level(3)
     screen.text("delays")
-    local focused_menu = page.delay[page.delay_focus].menu
+    local focused_menu = page.delay[page.delay.focus].menu
     if key1_hold then
       screen.move(128,10)
-      if page.delay_section == 2 and focused_menu == 1 then
-        local focused_prm = page.delay[page.delay_focus].menu_sel[focused_menu]
-        if (delay[page.delay_focus].mode == "free" and focused_prm == 2) or (delay[page.delay_focus].mode == "free" and focused_prm == 3) or focused_prm == 4 then
+      if page.delay.section == 2 and focused_menu == 1 then
+        local focused_prm = page.delay[page.delay.focus].menu_sel[focused_menu]
+        if (delay[page.delay.focus].mode == "free" and focused_prm == 2) or (delay[page.delay.focus].mode == "free" and focused_prm == 3) or focused_prm == 4 then
           screen.text_right("fine-tune enabled")
         elseif focused_prm == 5 then
           screen.text_right("quick-jump!!")
         end
-      elseif page.delay_section == 2 and focused_menu == 3 then
-        if page.delay[page.delay_focus].menu_sel[focused_menu] < 7 then
+      elseif page.delay.section == 2 and focused_menu == 3 then
+        if page.delay[page.delay.focus].menu_sel[focused_menu] < 7 then
           screen.text_right("map changes to bank")
         end
       end
@@ -889,19 +894,19 @@ function main_menu.init()
     screen.level(15)
     screen.font_size(40)
     screen.move(0,50)
-    screen.text(page.delay_focus == 1 and "L" or "R")
+    screen.text(page.delay.focus == 1 and "L" or "R")
     screen.move(0,60)
-    if page.delay_section == 2 then
-      local k = page.delay[page.delay_focus].menu
-      local v = page.delay[page.delay_focus].menu_sel[page.delay[page.delay_focus].menu]
+    if page.delay.section == 2 then
+      local k = page.delay[page.delay.focus].menu
+      local v = page.delay[page.delay.focus].menu_sel[page.delay[page.delay.focus].menu]
       if delay_links[del.lookup_prm(k,v)] then
         screen.font_size(8)
         screen.text("linked")
       end
-    elseif page.delay_section == 1 then
+    elseif page.delay.section == 1 then
       if key1_hold then
         screen.font_size(8)
-        if page.delay[page.delay_focus].menu ~= 3 then
+        if page.delay[page.delay.focus].menu ~= 3 then
           screen.move(0,60)
           screen.text("K3: toggle all links")
         else
@@ -913,43 +918,43 @@ function main_menu.init()
     screen.font_size(8)
     local options = {"ctl","flt","mix"}
     for i = 1,3 do
-      screen.level((page.delay_section == 1 and focused_menu == i) and 15 or 3)
+      screen.level((page.delay.section == 1 and focused_menu == i) and 15 or 3)
       screen.move(30+(40*(i-1)),20)
       screen.text(options[i])
     end
-    screen.level((page.delay_section == 1 and focused_menu == focused_menu) and 15 or 3)
+    screen.level((page.delay.section == 1 and focused_menu == focused_menu) and 15 or 3)
     screen.move(30+(40*(focused_menu-1)),23)
     screen.line((focused_menu == 3 and 41 or 40)+(40*(focused_menu-1)),23)
     screen.stroke()
-    local delay_name = page.delay_focus == 1 and "L" or "R"
-    screen.level((page.delay_section == 2 and focused_menu == focused_menu) and 15 or 3)
-    local selected = page.delay[page.delay_focus].menu_sel[focused_menu]
+    local delay_name = page.delay.focus == 1 and "L" or "R"
+    screen.level((page.delay.section == 2 and focused_menu == focused_menu) and 15 or 3)
+    local selected = page.delay[page.delay.focus].menu_sel[focused_menu]
     if focused_menu == 1 then
-      screen.level((page.delay_section == 2 and selected == 1) and 15 or 3)
+      screen.level((page.delay.section == 2 and selected == 1) and 15 or 3)
       screen.move(30,30)
       screen.text(params:string("delay "..delay_name..": mode"))
       screen.move(75,30)
-      screen.level((page.delay_section == 2 and selected == 2) and 15 or 3)
-      if delay[page.delay_focus].mode == "clocked" then
-        if delay[page.delay_focus].modifier ~= 1 then
-          screen.text(params:string("delay "..delay_name..": div/mult").."*"..string.format("%.4g",delay[page.delay_focus].modifier))
+      screen.level((page.delay.section == 2 and selected == 2) and 15 or 3)
+      if delay[page.delay.focus].mode == "clocked" then
+        if delay[page.delay.focus].modifier ~= 1 then
+          screen.text(params:string("delay "..delay_name..": div/mult").."*"..string.format("%.4g",delay[page.delay.focus].modifier))
         else
           screen.text(params:string("delay "..delay_name..": div/mult"))
         end
       else
         screen.text(string.format("%.4g",params:get("delay "..delay_name..": free length")).." sec")
       end
-      screen.level((page.delay_section == 2 and selected == 3) and 15 or 3)
+      screen.level((page.delay.section == 2 and selected == 3) and 15 or 3)
       screen.move(30,40)
       screen.text("fade: "..string.format("%.4g",params:get("delay "..delay_name..": fade time")))
-      screen.level((page.delay_section == 2 and selected == 4) and 15 or 3)
+      screen.level((page.delay.section == 2 and selected == 4) and 15 or 3)
       screen.move(80,40)
-      local rev = delay[page.delay_focus].reverse == true and 1 or 0
+      local rev = delay[page.delay.focus].reverse == true and 1 or 0
       screen.text("rate: "..(rev == 1 and "-" or "")..string.format("%.4g",params:string("delay "..delay_name..": rate")))
-      screen.level((page.delay_section == 2 and selected == 5) and 15 or 3)
+      screen.level((page.delay.section == 2 and selected == 5) and 15 or 3)
       screen.move(30,50)
-      if delay[page.delay_focus].feedback_mute then
-        if params:get(page.delay_focus == 1 and "delay L: feedback" or "delay R: feedback") == 0 then
+      if delay[page.delay.focus].feedback_mute then
+        if params:get(page.delay.focus == 1 and "delay L: feedback" or "delay R: feedback") == 0 then
           screen.text("feedback: 100%")
         else
           screen.text("feedback: 0%")
@@ -958,24 +963,24 @@ function main_menu.init()
         screen.text("feedback: "..string.format("%.4g",params:get("delay "..delay_name..": feedback")).."%")
       end
     elseif focused_menu == 2 then
-      screen.level((page.delay_section == 2 and selected == 1) and 15 or 3)
+      screen.level((page.delay.section == 2 and selected == 1) and 15 or 3)
       screen.move(30,30)
       local current_freq = params:get("delay "..delay_name..": filter cut")
       local modified_freq = easingFunctions[params:string("delay "..delay_name..": curve")](current_freq/12000,10,11990,1)
       screen.text(string.format("%.6g",modified_freq).." hz")
-      screen.level((page.delay_section == 2 and selected == 2) and 15 or 3)
+      screen.level((page.delay.section == 2 and selected == 2) and 15 or 3)
       screen.move(85,30)
       screen.text("q: "..params:string("delay "..delay_name..": filter q"))
-      screen.level((page.delay_section == 2 and selected == 3) and 15 or 3)
+      screen.level((page.delay.section == 2 and selected == 3) and 15 or 3)
       screen.move(30,40)
       screen.text("LP: "..params:string("delay "..delay_name..": filter lp"))
-      screen.level((page.delay_section == 2 and selected == 4) and 15 or 3)
+      screen.level((page.delay.section == 2 and selected == 4) and 15 or 3)
       screen.move(85,40)
       screen.text("HP: "..params:string("delay "..delay_name..": filter hp"))
-      screen.level((page.delay_section == 2 and selected == 5) and 15 or 3)
+      screen.level((page.delay.section == 2 and selected == 5) and 15 or 3)
       screen.move(30,50)
       screen.text("BP: "..params:string("delay "..delay_name..": filter bp"))
-      screen.level((page.delay_section == 2 and selected == 6) and 15 or 3)
+      screen.level((page.delay.section == 2 and selected == 6) and 15 or 3)
       screen.move(85,50)
       screen.text("dry: "..params:string("delay "..delay_name..": filter dry"))
     elseif focused_menu == 3 then
@@ -984,14 +989,14 @@ function main_menu.init()
         screen.level(3)
         screen.move(30,20+(i*10))
         screen.text(bank_names[i]..""..bank[i].id)
-        screen.level((page.delay_section == 2 and selected == (i == 1 and 1 or (i == 2 and 3 or 5))) and 15 or 3)
+        screen.level((page.delay.section == 2 and selected == (i == 1 and 1 or (i == 2 and 3 or 5))) and 15 or 3)
         screen.move(50,20+(i*10))
-        screen.text("in: "..string.format("%.1f",(page.delay_focus == 1 and bank[i][bank[i].id].left_delay_level or bank[i][bank[i].id].right_delay_level)))
-        screen.level((page.delay_section == 2 and selected == (i == 1 and 2 or (i == 2 and 4 or 6))) and 15 or 3)
+        screen.text("in: "..string.format("%.1f",(page.delay.focus == 1 and bank[i][bank[i].id].left_delay_level or bank[i][bank[i].id].right_delay_level)))
+        screen.level((page.delay.section == 2 and selected == (i == 1 and 2 or (i == 2 and 4 or 6))) and 15 or 3)
         screen.move(80,20+(i*10))
-        screen.text("thru: "..(page.delay_focus == 1 and tostring(bank[i][bank[i].id].left_delay_thru) or tostring(bank[i][bank[i].id].right_delay_thru)))
+        screen.text("thru: "..(page.delay.focus == 1 and tostring(bank[i][bank[i].id].left_delay_thru) or tostring(bank[i][bank[i].id].right_delay_thru)))
       end
-      screen.level((page.delay_section == 2 and selected == 7) and 15 or 3)
+      screen.level((page.delay.section == 2 and selected == 7) and 15 or 3)
       screen.move(30,60)
       screen.text("main output level: "..string.format("%.2f", params:get("delay "..delay_name..": global level")))
     end
@@ -1069,7 +1074,7 @@ function main_menu.init()
             screen.level(time_page[page_line] == j and 15 or 3)
             screen.move(10,40+(10*(j-1)))
             screen.text(p_options[j])
-            local mode_options = {"loose","distro "..string.format("%.4g", pattern.rec_clock_time/4),"quant","quant+trim"}
+            local mode_options = {"loose","bars: "..string.format("%.4g", pattern.rec_clock_time/4),"quant","quant+trim"}
             local show_state = pattern.play == 1 and pattern.step or mode_options[pattern.playmode]
             local fine_options = {show_state, pattern.count > 0 and pattern.rec == 0 and "[K3]" or "(no pat!)", params:string("sync_clock_to_pattern_"..page_line)}
             screen.move(80,40+(10*(j-1)))
@@ -1167,12 +1172,13 @@ function main_menu.init()
 
 
     screen.level(3)
-    if page.time_sel < 4 and page.time_scroll[page_line] < 3 then
+    if page.time_sel < 4 then
+      local show_top = page.time_scroll[page_line] ~= 1 and true or false
+      local show_bottom = page.time_scroll[page_line] < 3 and true or false
       screen.move(0,64)
-      screen.text("...")
-    elseif page.time_sel < 4 then
+      screen.text(show_bottom and "..." or "")
       screen.move(0,34)
-      screen.text("...")
+      screen.text(show_top and "..." or "")
     end
 
   elseif menu == 8 then
