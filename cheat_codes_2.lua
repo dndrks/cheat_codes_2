@@ -1,6 +1,6 @@
 -- cheat codes 2
 --          a sample playground
--- rev: 210227
+-- rev: 210303
 -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
 -- need help?
 -- please visit:
@@ -10,6 +10,12 @@
 if util.file_exists(_path.code.."passthrough") then
   local passthru = include 'passthrough/lib/passthrough'
   passthru.init()
+end
+
+function developer_mode()
+  params:set("rec_loop_1",2)
+  params:set("one_shot_clock_div",4)
+  params:set("one_shot_threshold",70)
 end
 
 if util.file_exists(_path.code.."namesizer") then
@@ -65,6 +71,7 @@ mc = include 'lib/midicheat'
 sharer = include 'lib/sharer'
 macros = include 'lib/macros'
 transport = include 'lib/transport'
+speed_dial = include 'lib/speed_dial'
 math.randomseed(os.time())
 variable_fade_time = 0.01
 splash_done = true
@@ -844,6 +851,21 @@ zilch_leds =
 
 function init()
 
+  amp_in = {}
+  local amp_src = {"amp_in_l","amp_in_r"}
+  for i = 1,2 do
+    amp_in[i] = poll.set(amp_src[i])
+    amp_in[i].time = 0.01
+    amp_in[i].callback = function(val)
+      if val > params:get("one_shot_threshold")/10000 then
+        if rec[rec.focus].state == 0 then
+          toggle_buffer(rec.focus)
+        end
+        amp_in[i]:stop()
+      end
+    end
+  end
+
   sharer.setup("cheat_codes_2")
 
   clock.run(check_page_for_k1)
@@ -885,6 +907,7 @@ function init()
     rec[i].clear = 1
     rec[i].rate_offset = 1.0
     rec[i].waveform_samples = {}
+    rec[i].queued = false
   end
 
   params:add_group("GRID",5)
@@ -1168,14 +1191,22 @@ function init()
   page.loops_sel = 1
   page.loops_page = 0
   page.loops_view = {4,1,1,1}
-  page.levels_sel = 0
+  page.levels = {}
+  page.levels.sel = 0
+  -- page.levels_sel = 0
+  page.pans = {}
+  page.pans.sel = 1
   page.panning_sel = 1
-  page.filtering_sel = 0
+  page.filters = {}
+  page.filters.sel = 0
+  -- page.filtering_sel = 0
   page.arc_sel = 0
   page.delay_sel = 0
-  page.delay_section = 1
-  page.delay_focus = 1
+  -- page.delay_section = 1
+  -- page.delay_focus = 1
   page.delay = {{},{}}
+  page.delay.section = 1
+  page.delay.focus = 1
   for i = 1,2 do
     page.delay[i].menu = 1
     page.delay[i].menu_sel = {1,1,1}
@@ -1891,6 +1922,8 @@ function init()
     -- named_loadstate("/home/we/dust/data/cheat_codes_2/names/DEFAULT.cc2")
   end
 
+  speed_dial:init()
+
 end
 
 ---
@@ -2272,6 +2305,7 @@ function cancel_one_shot_rec_clock()
 end
 
 function one_shot_clock()
+  rec[rec.focus].queued = true
   if rec[rec.focus].state == 1 and rec_state_watcher.is_running then
     rec_state_watcher:stop()
   end
@@ -2281,18 +2315,27 @@ function one_shot_clock()
     clock.sync(rate)
   end
   -- softcut.loop_start(1,rec[rec.focus].start_point-0.05)
-  softcut.pre_level(1,params:get("live_rec_feedback_"..rec.focus))
-  softcut.loop_start(1,rec[rec.focus].start_point-(params:get("one_shot_latency_offset")))
-  softcut.loop_end(1,rec[rec.focus].end_point-0.01)
-  softcut.position(1,rec[rec.focus].start_point-((params:get("one_shot_latency_offset")-0.01))) -- TODO CLARIFY IF THIS IS REAL ANYMORE
+  if params:string("one_shot_clock_div") ~= "threshold" then
+    softcut.loop_start(1,rec[rec.focus].start_point-(params:get("one_shot_latency_offset")))
+  else
+    softcut.loop_start(1,rec[rec.focus].start_point+params:get("one_shot_latency_offset"))
+  end
+  if params:string("one_shot_clock_div") ~= "threshold" then
+    softcut.position(1,rec[rec.focus].start_point-((params:get("one_shot_latency_offset")-0.01))) -- TODO CLARIFY IF THIS IS REAL ANYMORE
+  else
+    softcut.position(1,rec[rec.focus].start_point+params:get("one_shot_latency_offset")) -- TODO CLARIFY IF THIS IS REAL ANYMORE
+  end
+  softcut.loop_end(1,rec[rec.focus].end_point)
   -- softcut.position(1,rec[rec.focus].start_point+0.01)
-  rec.play_segment = rec.focus
+  softcut.pre_level(1,params:get("live_rec_feedback_"..rec.focus))
   softcut.rec_level(1,1)
+  rec.play_segment = rec.focus
   rec[rec.focus].state = 1
   rec.stopped = false
   rec_state_watcher:start()
   if rec[rec.focus].clear == 1 then rec[rec.focus].clear = 0 end
   grid_dirty = true
+  rec[rec.focus].queued = false
 end
 
 function compare_rec_resolution(x)
@@ -2871,7 +2914,7 @@ function cheat(b,i)
   end
   --/ OH ALL THIS SUCKS TODO FIXME
   softcut.fade_time(b+1,variable_fade_time)
-  softcut.loop_start(b+1,pad.start_point-variable_fade_time)
+  softcut.loop_start(b+1,pad.start_point+variable_fade_time)
   softcut.loop_end(b+1,pad.end_point-variable_fade_time)
   softcut.buffer(b+1,pad.mode)
   if pad.pause == false then
@@ -2886,7 +2929,7 @@ function cheat(b,i)
   end
   if pad.rate > 0 then
       -- softcut.position(b+1,pad.start_point+0.05)
-      softcut.position(b+1,pad.start_point-variable_fade_time)
+      softcut.position(b+1,pad.start_point+variable_fade_time)
   elseif pad.rate < 0 then
       -- softcut.position(b+1,pad.end_point-variable_fade_time-0.05)
       softcut.position(b+1,pad.end_point-variable_fade_time)
@@ -3169,8 +3212,8 @@ function try_tilt_process(b,i,t,rq)
 end
 
 function buff_freeze()
-  softcut.recpre_slew_time(1,0.5)
-  softcut.level_slew_time(1,0.5)
+  softcut.recpre_slew_time(1,0.05)
+  softcut.level_slew_time(1,0.05)
   softcut.fade_time(1,0.01)
   rec[rec.focus].state = (rec[rec.focus].state + 1)%2
   softcut.rec_level(1,rec[rec.focus].state)
@@ -3201,11 +3244,30 @@ function buff_pause()
   softcut.rate(1,rec[rec.focus].pause and 0 or 1) -- TODO make this dynamic to include rec rate offsets
 end
 
+function threshold_rec_handler()
+  if rec[rec.focus].queued then
+    amp_in[1]:stop()
+    amp_in[2]:stop()
+    rec[rec.focus].queued = false
+  elseif not rec[rec.focus].queued and rec[rec.focus].state == 0 then
+    amp_in[1]:start()
+    amp_in[2]:start()
+    rec[rec.focus].queued = true
+    for i = 1,3 do
+      if i~=rec.focus and rec[i].state == 1 then
+        softcut.rec_level(1,0)
+        softcut.pre_level(1,params:get("live_rec_feedback_"..i))
+      end
+    end
+  elseif not rec[rec.focus].queued and rec[rec.focus].state == 1 then
+    rec[rec.focus].end_point = poll_position_new[1]
+    update_waveform(1,key1_hold and rec[rec.focus].start_point or live[rec.focus].min,key1_hold and rec[rec.focus].end_point or live[rec.focus].max,128)
+  end
+end
+
 function toggle_buffer(i,untrue_alt)
 
   grid_dirty = true
-  softcut.level_slew_time(1,0.5)
-  softcut.fade_time(1,0.01)
   
   local old_clip = rec.focus
 
@@ -3216,23 +3278,31 @@ function toggle_buffer(i,untrue_alt)
   end
 
   rec.focus = i
-  
-  if rec[rec.focus].loop == 0 and not grid_alt then
-    if rec[rec.focus].state == 0 then
-      run_one_shot_rec_clock() -- this runs only if not recording
-    elseif rec[rec.focus].state == 1 and rec_state_watcher.is_running then -- can have both conditions, right?
-      cancel_one_shot_rec_clock()
-    end
-  elseif rec[rec.focus].loop == 0 and (grid_alt and untrue_alt ~= nil) then
-    -- buff_flush()
-  elseif rec[rec.focus].loop == 1 and not grid_alt then
-    if one_shot_rec_clock ~= nil then
-      cancel_one_shot_rec_clock()
+
+  if rec[rec.focus].loop == 0 and params:string("one_shot_clock_div") == "threshold" and rec[rec.focus].queued then
+    softcut.level_slew_time(1,0)
+    softcut.fade_time(1,0)
+    one_shot_clock()
+  else
+    softcut.level_slew_time(1,0.05)
+    softcut.fade_time(1,0.01)
+    if rec[rec.focus].loop == 0 and not grid_alt then
+      if rec[rec.focus].state == 0 then
+        run_one_shot_rec_clock() -- this runs only if not recording
+      elseif rec[rec.focus].state == 1 and rec_state_watcher.is_running then -- can have both conditions, right?
+        cancel_one_shot_rec_clock()
+      end
+    elseif rec[rec.focus].loop == 0 and (grid_alt and untrue_alt ~= nil) then
+      -- buff_flush()
+    elseif rec[rec.focus].loop == 1 and not grid_alt then
+      if one_shot_rec_clock ~= nil then
+        cancel_one_shot_rec_clock()
+      end
+      softcut.loop_start(1,rec[rec.focus].start_point)
+      softcut.loop_end(1,rec[rec.focus].end_point-0.01)
     end
   end
   
-  softcut.loop_start(1,rec[rec.focus].start_point)
-  softcut.loop_end(1,rec[rec.focus].end_point-0.01)
   rec.play_segment = rec.focus
   softcut.loop(1,rec[rec.focus].loop)
   if rec.stopped == true then
@@ -3248,8 +3318,10 @@ function toggle_buffer(i,untrue_alt)
       rec[rec.focus].clear = 0
     end
   end
+  -- end
   grid_dirty = true
   update_waveform(1,key1_hold and rec[rec.focus].start_point or live[rec.focus].min,key1_hold and rec[rec.focus].end_point or live[rec.focus].max,128)
+  -- update_waveform(1,live[rec.focus].min,live[rec.focus].max,128)
 end
 
 function update_delays()
@@ -3351,7 +3423,7 @@ function adjust_key1_timing()
   elseif menu ~= 6 then
     if metro[31].time ~= 0.1 then metro[31].time = 0.1 end
   elseif menu == 6 then
-    if page.delay[page.delay_focus].menu == 1 and page.delay[page.delay_focus].menu_sel[page.delay[page.delay_focus].menu] == 5 then
+    if page.delay[page.delay.focus].menu == 1 and page.delay[page.delay.focus].menu_sel[page.delay[page.delay.focus].menu] == 5 then
       metro[31].time = 0.01
     else
       if metro[31].time ~= 0.1 then metro[31].time = 0.1 end
@@ -3428,7 +3500,7 @@ function key(n,z)
           menu = page.main_sel + 1
         end
       elseif menu == 2 then
-        local id = page.loops_sel
+        -- local id = page.loops_sel
         if key2_hold then
           if page.loops.sel < 4 then
             local id = page.loops.sel
@@ -3445,14 +3517,30 @@ function key(n,z)
               end
             end
           elseif page.loops.sel == 4 then
-            toggle_buffer(rec.focus)
+            if rec[rec.focus].loop == 0 and params:string("one_shot_clock_div") == "threshold" and not grid_alt then
+              threshold_rec_handler()
+            else
+              toggle_buffer(rec.focus)
+            end
           elseif page.loops.sel == 5 then
             if page.loops.meta_sel < 4 then
               for i = 1,16 do
                 rightangleslice.start_end_default(bank[page.loops.meta_sel][i])
               end
             elseif page.loops.meta_sel == 4 then
-              toggle_buffer(rec.focus)
+              if rec[rec.focus].loop == 0 and params:string("one_shot_clock_div") == "threshold" and not grid_alt then
+                if rec[rec.focus].queued then
+                  amp_in[1]:stop()
+                  amp_in[2]:stop()
+                  rec[rec.focus].queued = false
+                else
+                  amp_in[1]:start()
+                  amp_in[2]:start()
+                  rec[rec.focus].queued = true
+                end
+              else
+                toggle_buffer(rec.focus)
+              end
             end
           end
           grid_dirty = true
@@ -3511,35 +3599,35 @@ function key(n,z)
           end
         end
       elseif menu == 3 then
-        local level_nav = (page.levels_sel + 1)%4
-        page.levels_sel = level_nav
+        local level_nav = (page.levels.sel + 1)%4
+        page.levels.sel = level_nav
       elseif menu == 5 then
-        local filter_nav = (page.filtering_sel + 1)%4
-        page.filtering_sel = filter_nav
+        local filter_nav = (page.filters.sel + 1)%4
+        page.filters.sel = filter_nav
       elseif menu == 6 then
-        if page.delay_section == 2 then
+        if page.delay.section == 2 then
           if key1_hold then
-            local k = page.delay[page.delay_focus].menu
-            local v = page.delay[page.delay_focus].menu_sel[page.delay[page.delay_focus].menu]
+            local k = page.delay[page.delay.focus].menu
+            local v = page.delay[page.delay.focus].menu_sel[page.delay[page.delay.focus].menu]
             del.links(del.lookup_prm(k,v))
             if k == 1 and v == 5 then
-              delay[page.delay_focus == 1 and 2 or 1].feedback_mute = not delay[page.delay_focus == 1 and 2 or 1].feedback_mute
+              delay[page.delay.focus == 1 and 2 or 1].feedback_mute = not delay[page.delay.focus == 1 and 2 or 1].feedback_mute
             elseif k == 1 and v == 4 then
-              delay[page.delay_focus == 1 and 2 or 1].reverse = delay[page.delay_focus].reverse
+              delay[page.delay.focus == 1 and 2 or 1].reverse = delay[page.delay.focus].reverse
             end
             if delay_links[del.lookup_prm(k,v)] then
               local sides = {"L","R"}
-              params:set("delay "..sides[page.delay_focus == 1 and 2 or 1]..": "..del.lookup_prm(k,v),params:get("delay "..sides[page.delay_focus]..": "..del.lookup_prm(k,v)))
+              params:set("delay "..sides[page.delay.focus == 1 and 2 or 1]..": "..del.lookup_prm(k,v),params:get("delay "..sides[page.delay.focus]..": "..del.lookup_prm(k,v)))
               grid_dirty = true
             end
           else
-            page.delay_section = page.delay_section == 1 and 2 or 1
+            page.delay.section = page.delay.section == 1 and 2 or 1
           end
-        elseif page.delay_section == 1 then
+        elseif page.delay.section == 1 then
           if key1_hold then
-            del.link_all(page.delay[page.delay_focus].menu)
+            del.link_all(page.delay[page.delay.focus].menu)
           else
-            page.delay_section = page.delay_section == 1 and 2 or 1
+            page.delay.section = page.delay.section == 1 and 2 or 1
           end
         end
       elseif menu == 7 then
@@ -3759,10 +3847,10 @@ function key(n,z)
         end
       elseif menu == 6 then
         if key1_hold then
-          if page.delay[page.delay_focus].menu_sel[page.delay[page.delay_focus].menu] == 4 then
-            local k = page.delay[page.delay_focus].menu
-            local v = page.delay[page.delay_focus].menu_sel[page.delay[page.delay_focus].menu]
-            del.quick_action(page.delay_focus, "reverse")
+          if page.delay[page.delay.focus].menu_sel[page.delay[page.delay.focus].menu] == 4 then
+            local k = page.delay[page.delay.focus].menu
+            local v = page.delay[page.delay.focus].menu_sel[page.delay[page.delay.focus].menu]
+            del.quick_action(page.delay.focus, "reverse")
           end
         else
           menu = 1
@@ -3779,7 +3867,7 @@ function key(n,z)
       else
         menu = 1
       end
-      if menu == 6 and page.delay[page.delay_focus].menu == 1 and page.delay[page.delay_focus].menu_sel[page.delay[page.delay_focus].menu] == 4 then
+      if menu == 6 and page.delay[page.delay.focus].menu == 1 and page.delay[page.delay.focus].menu_sel[page.delay[page.delay.focus].menu] == 4 then
         -- just need a logic break
       elseif menu ~= 2 and menu ~= 8 then
         if key1_hold == true then key1_hold = false end
@@ -3795,12 +3883,12 @@ function key(n,z)
         end
       elseif menu == 6 then
         key1_hold = true
-        if page.delay[page.delay_focus].menu == 1 and page.delay[page.delay_focus].menu_sel[page.delay[page.delay_focus].menu] == 5 then
+        if page.delay[page.delay.focus].menu == 1 and page.delay[page.delay.focus].menu_sel[page.delay[page.delay.focus].menu] == 5 then
           if delay_links["feedback"] then
             del.quick_action(1,"feedback_mute",z)
             del.quick_action(2,"feedback_mute",z)
           else
-            del.quick_action(page.delay_focus,"feedback_mute",z)
+            del.quick_action(page.delay.focus,"feedback_mute",z)
           end
           grid_dirty = true
         end
@@ -3872,12 +3960,12 @@ function key(n,z)
         key1_hold = false
       end
       if menu == 6 then
-        if page.delay[page.delay_focus].menu == 1 and page.delay[page.delay_focus].menu_sel[page.delay[page.delay_focus].menu] == 5 then
+        if page.delay[page.delay.focus].menu == 1 and page.delay[page.delay.focus].menu_sel[page.delay[page.delay.focus].menu] == 5 then
           if delay_links["feedback"] then
             del.quick_action(1,"feedback_mute",z)
             del.quick_action(2,"feedback_mute",z)
           else
-            del.quick_action(page.delay_focus,"feedback_mute",z)
+            del.quick_action(page.delay.focus,"feedback_mute",z)
           end
           grid_dirty = true
         end
@@ -4359,9 +4447,9 @@ function grid_redraw()
         end
         
         if rec[rec.focus].clear == 0 then
-          g:led(16,8-rec.focus,rec[rec.focus].state == 1 and led_maps["live_rec"][edition] or led_maps["live_pause"][edition])
+          g:led(16,8-rec.focus,rec[rec.focus].state == 1 and led_maps["live_rec"][edition] or (rec[rec.focus].queued and 15 or led_maps["live_pause"][edition]))
         elseif rec[rec.focus].clear == 1 then
-          g:led(16,8-rec.focus,led_maps["live_empty"][edition])
+          g:led(16,8-rec.focus,rec[rec.focus].queued and 9 or led_maps["live_empty"][edition])
         end
       
       elseif grid_page == 1 then
@@ -4811,9 +4899,9 @@ function grid_redraw()
         
         -- Live buffers
         if rec[rec.focus].clear == 0 then
-          g:led(rec.focus,2,rec[rec.focus].state == 1 and led_maps["live_rec"][edition] or led_maps["live_pause"][edition])
+          g:led(rec.focus,2,rec[rec.focus].state == 1 and led_maps["live_rec"][edition] or (rec[rec.focus].queued and 15 or led_maps["live_pause"][edition]))
         elseif rec[rec.focus].clear == 1 then
-          g:led(rec.focus,2,led_maps["live_empty"][edition])
+          g:led(rec.focus,2,rec[rec.focus].queued and 9 or led_maps["live_empty"][edition])
         end
       
       elseif grid_page_64 == 1 then

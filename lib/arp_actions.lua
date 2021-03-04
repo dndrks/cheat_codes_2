@@ -224,6 +224,9 @@ function arp_actions.clear(target)
     arp[target].notes = {}
     arp[target].start_point = 1
     arp[target].end_point = 1
+    clock.cancel(arp_clock[target])
+    arp_clock[target] = nil
+    arp_clock[target] = clock.run(arp_actions.arpeggiate,target)
 end
 
 function arp_actions.savestate()

@@ -122,7 +122,7 @@ function encoder_actions.init(n,d)
         end
       end
     elseif menu == 6 then
-      page.delay_focus = util.clamp(page.delay_focus+d,1,2)
+      page.delay.focus = util.clamp(page.delay.focus+d,1,2)
     elseif menu == 7 then
       page.time_sel = util.clamp(page.time_sel+d,1,6)
     elseif menu == 8 then
@@ -276,12 +276,12 @@ function encoder_actions.init(n,d)
 
     elseif menu == 6 then
 
-      if page.delay_section == 1 then
-        page.delay[page.delay_focus].menu = util.clamp(page.delay[page.delay_focus].menu+d,1,3)
-      elseif page.delay_section == 2 then
+      if page.delay.section == 1 then
+        page.delay[page.delay.focus].menu = util.clamp(page.delay[page.delay.focus].menu+d,1,3)
+      elseif page.delay.section == 2 then
         local max_items = {5,6,7}
-        local target = page.delay[page.delay_focus].menu_sel[page.delay[page.delay_focus].menu]
-        page.delay[page.delay_focus].menu_sel[page.delay[page.delay_focus].menu] = util.clamp(target+d,1,max_items[page.delay[page.delay_focus].menu])
+        local target = page.delay[page.delay.focus].menu_sel[page.delay[page.delay.focus].menu]
+        page.delay[page.delay.focus].menu_sel[page.delay[page.delay.focus].menu] = util.clamp(target+d,1,max_items[page.delay[page.delay.focus].menu])
       end
       
     elseif menu == 7 then
@@ -448,27 +448,27 @@ function encoder_actions.init(n,d)
 
     elseif menu == 6 then
 
-      local item = page.delay[page.delay_focus].menu_sel[page.delay[page.delay_focus].menu]
-      local delay_name = page.delay_focus == 1 and "L" or "R"
-      local focused_menu = page.delay[page.delay_focus].menu
-      if page.delay_section == 2 then
+      local item = page.delay[page.delay.focus].menu_sel[page.delay[page.delay.focus].menu]
+      local delay_name = page.delay.focus == 1 and "L" or "R"
+      local focused_menu = page.delay[page.delay.focus].menu
+      if page.delay.section == 2 then
         if focused_menu == 1 then
           if item == 1 then
             ea.delta_delay_param(delay_name,"mode",d)
             -- params:delta("delay "..delay_name..": mode",d)
           elseif item == 2 then
             local divisor;
-            if delay[page.delay_focus].mode == "free" and key1_hold then
+            if delay[page.delay.focus].mode == "free" and key1_hold then
               divisor = 3
-            elseif delay[page.delay_focus].mode == "free" and not key1_hold then
+            elseif delay[page.delay.focus].mode == "free" and not key1_hold then
               divisor = 1/(100/3)
             else
               divisor = 1
             end
-            ea.delta_delay_param(delay_name,delay[page.delay_focus].mode == "clocked" and "div/mult" or "free length",d/divisor)
-            -- params:delta(delay[page.delay_focus].mode == "clocked" and "delay "..delay_name..": div/mult" or "delay "..delay_name..": free length",d/divisor)
+            ea.delta_delay_param(delay_name,delay[page.delay.focus].mode == "clocked" and "div/mult" or "free length",d/divisor)
+            -- params:delta(delay[page.delay.focus].mode == "clocked" and "delay "..delay_name..": div/mult" or "delay "..delay_name..": free length",d/divisor)
           elseif item == 3 then
-            local divisor = (delay[page.delay_focus].mode == "free" and key1_hold) and 10 or 0.2
+            local divisor = (delay[page.delay.focus].mode == "free" and key1_hold) and 10 or 0.2
             ea.delta_delay_param(delay_name,"fade time",d/divisor)
             -- params:delta("delay "..delay_name..": fade time",d/divisor)
           elseif item == 4 then
@@ -530,28 +530,28 @@ function encoder_actions.init(n,d)
         elseif focused_menu == 3 then
           if item < 7 then
             if item == 1 or item == 3 or item == 5 then
-              local k = page.delay[page.delay_focus].menu
-              local v = page.delay[page.delay_focus].menu_sel[page.delay[page.delay_focus].menu]
+              local k = page.delay[page.delay.focus].menu
+              local v = page.delay[page.delay.focus].menu_sel[page.delay[page.delay.focus].menu]
               local target = bank[util.round(item/2)]
               local prm = {"left_delay_level","right_delay_level"}
               if key1_hold then
                 for i = 1,16 do
-                  target[i][prm[page.delay_focus]] = util.clamp(target[i][prm[page.delay_focus]] + d/10,0,1)
+                  target[i][prm[page.delay.focus]] = util.clamp(target[i][prm[page.delay.focus]] + d/10,0,1)
                   if delay_links[del.lookup_prm(k,v)] then
-                    target[i][prm[page.delay_focus == 1 and 2 or 1]] = target[i][prm[page.delay_focus]]
+                    target[i][prm[page.delay.focus == 1 and 2 or 1]] = target[i][prm[page.delay.focus]]
                   end
                 end
               else
-                target[target.id][prm[page.delay_focus]] = util.clamp(target[target.id][prm[page.delay_focus]] + d/10,0,1)
+                target[target.id][prm[page.delay.focus]] = util.clamp(target[target.id][prm[page.delay.focus]] + d/10,0,1)
                 if delay_links[del.lookup_prm(k,v)] then
-                  target[target.id][prm[page.delay_focus == 1 and 2 or 1]] = target[target.id][prm[page.delay_focus]]
+                  target[target.id][prm[page.delay.focus == 1 and 2 or 1]] = target[target.id][prm[page.delay.focus]]
                 end
               end
               grid_dirty = true
               if target[target.id].enveloped == false then
-                softcut.level_cut_cut(util.round(item/2)+1,page.delay_focus+4,(target[target.id][prm[page.delay_focus]]*target[target.id].level)*target.global_level)
+                softcut.level_cut_cut(util.round(item/2)+1,page.delay.focus+4,(target[target.id][prm[page.delay.focus]]*target[target.id].level)*target.global_level)
                 if delay_links[del.lookup_prm(k,v)] then
-                  local this_one = page.delay_focus == 1 and 2 or 1
+                  local this_one = page.delay.focus == 1 and 2 or 1
                   softcut.level_cut_cut(util.round(item/2)+1,(this_one)+4,(target[target.id][prm[this_one]]*target[target.id].level)*target.global_level)
                 end
               end
@@ -559,14 +559,14 @@ function encoder_actions.init(n,d)
             else
               local target = bank[item/2]
               local prm = {"left_delay_thru","right_delay_thru"}
-              local current_thru = target[target.id][prm[page.delay_focus]] == true and 1 or 0
+              local current_thru = target[target.id][prm[page.delay.focus]] == true and 1 or 0
               current_thru = util.clamp(current_thru + d,0,1)
               if key1_hold then
                 for i = 1,16 do
-                  target[i][prm[page.delay_focus]] = current_thru == 1 and true or false
+                  target[i][prm[page.delay.focus]] = current_thru == 1 and true or false
                 end
               else
-                target[target.id][prm[page.delay_focus]] = current_thru == 1 and true or false
+                target[target.id][prm[page.delay.focus]] = current_thru == 1 and true or false
               end
             end
           elseif item == 7 then
@@ -817,7 +817,7 @@ function encoder_actions.init(n,d)
     else
       focused_pad = bank[n].id
     end
-    if page.levels_sel == 0 then
+    if page.levels.sel == 0 then
       if key1_hold or grid_alt or bank[n].alt_lock then
         bank[n].global_level = util.clamp(bank[n].global_level+d/10,0,2)
       else
@@ -837,93 +837,74 @@ function encoder_actions.init(n,d)
           softcut.level_cut_cut(n+1,6,(bank[n][bank[n].id].right_delay_level*bank[n][bank[n].id].level)*bank[n].global_level)
         end
       end
-    elseif page.levels_sel == 1 then
+    elseif page.levels.sel == 1 then
+
+      local pre_enveloped = bank[n][focused_pad].enveloped
+      local pre_mode = bank[n][focused_pad].envelope_mode
+      bank[n][focused_pad].envelope_mode = util.clamp(bank[n][focused_pad].envelope_mode + d,0,3)
+      
+      if bank[n][focused_pad].envelope_mode == 0 then
+        bank[n][focused_pad].enveloped = false
+      else
+        bank[n][focused_pad].enveloped = true
+        if pre_enveloped ~= bank[n][focused_pad].enveloped then
+          if bank[n].focus_hold == false then
+            cheat(n, bank[n].id)
+          end
+        elseif pre_mode ~= bank[n][focused_pad].envelope_mode then
+          if bank[n].focus_hold == false then
+            cheat(n, bank[n].id)
+          end
+        end
+      end
 
       if key1_hold or grid_alt or bank[n].alt_lock then
         for j = 1,16 do
-          local pre_enveloped = bank[n][j].enveloped
-          local pre_mode = bank[n][j].envelope_mode
+          if j ~= focused_pad then
+            bank[n][j].envelope_mode = bank[n][focused_pad].envelope_mode
+            bank[n][j].enveloped = bank[n][focused_pad].enveloped
+          end
+        end
+      end
 
-          bank[n][j].envelope_mode = util.clamp(bank[n][j].envelope_mode + d,0,3)
-
-          if bank[n][j].envelope_mode == 0 then
-            bank[n][j].enveloped = false
-          else
-            bank[n][j].enveloped = true
-            if pre_enveloped ~= bank[n][j].enveloped then
+    elseif page.levels.sel == 2 then
+      if bank[n][focused_pad].enveloped then
+        local pre_loop = bank[n][focused_pad].envelope_loop
+        if d>0 then
+          bank[n][focused_pad].envelope_loop = true
+          if pre_loop ~= bank[n][focused_pad].envelope_loop then
+            if bank[n].focus_hold == false then
               cheat(n, bank[n].id)
             end
           end
-        end
-
-      else
-
-        local pre_enveloped = bank[n][focused_pad].enveloped
-        local pre_mode = bank[n][focused_pad].envelope_mode
-        bank[n][focused_pad].envelope_mode = util.clamp(bank[n][focused_pad].envelope_mode + d,0,3)
-        
-        if bank[n][focused_pad].envelope_mode == 0 then
-          bank[n][focused_pad].enveloped = false
         else
-          bank[n][focused_pad].enveloped = true
-          if pre_enveloped ~= bank[n][focused_pad].enveloped then
-            if bank[n].focus_hold == false then
-              cheat(n, bank[n].id)
-            end
-          elseif pre_mode ~= bank[n][focused_pad].envelope_mode then
-            if bank[n].focus_hold == false then
-              cheat(n, bank[n].id)
-            end
-          end
+          bank[n][focused_pad].envelope_loop = false
         end
-
       end
-
-    elseif page.levels_sel == 2 then
       if key1_hold or grid_alt or bank[n].alt_lock then
         for j = 1,16 do
-          if bank[n][j].enveloped then
-            if d>0 then
-              bank[n][j].envelope_loop = true
-            else
-              bank[n][j].envelope_loop = false
-            end
-          end
-        end
-      else
-        if bank[n][focused_pad].enveloped then
-          local pre_loop = bank[n][focused_pad].envelope_loop
-          if d>0 then
-            bank[n][focused_pad].envelope_loop = true
-            if pre_loop ~= bank[n][focused_pad].envelope_loop then
-              if bank[n].focus_hold == false then
-                cheat(n, bank[n].id)
-              end
-            end
-          else
-            bank[n][focused_pad].envelope_loop = false
+          if j ~= focused_pad then
+            bank[n][j].envelope_loop = bank[n][focused_pad].envelope_loop
           end
         end
       end
 
-    elseif page.levels_sel == 3 then
-      if key1_hold or grid_alt or bank[n].alt_lock then
-        for j = 1,16 do
-          if bank[n][j].enveloped then
-            bank[n][j].envelope_time = util.explin(0.1,60,0.1,60,bank[n][j].envelope_time)
-            bank[n][j].envelope_time = util.clamp(bank[n][j].envelope_time+d/10,0.1,60)
-            bank[n][j].envelope_time = util.linexp(0.1,60,0.1,60,bank[n][j].envelope_time)
-          end
-        end
-      else
+    elseif page.levels.sel == 3 then
         if bank[n][focused_pad].enveloped then
           bank[n][focused_pad].envelope_time = util.explin(0.05,60,0.05,60,bank[n][focused_pad].envelope_time)
           bank[n][focused_pad].envelope_time = util.clamp(bank[n][focused_pad].envelope_time+d/10,0.05,60)
           bank[n][focused_pad].envelope_time = util.linexp(0.05,60,0.05,60,bank[n][focused_pad].envelope_time)
         end
-      end
+        if key1_hold or grid_alt or bank[n].alt_lock then
+          for j = 1,16 do
+            if j ~= focused_pad then
+              if bank[n][j].enveloped then
+                bank[n][j].envelope_time = bank[n][focused_pad].envelope_time
+              end
+            end
+          end
+        end
       if bank[n][focused_pad].level > 0.05 then
-      -- if bank[n][focused_pad].envelope_time/(bank[n][focused_pad].level/0.05) ~= inf then
         env_counter[n].time = (bank[n][focused_pad].envelope_time/(bank[n][focused_pad].level/0.05))
       end
     end
@@ -944,7 +925,7 @@ function encoder_actions.init(n,d)
     end
     softcut.pan(n+1, bank[n][bank[n].id].pan)
   elseif menu == 5 then
-    local filt_page = page.filtering_sel + 1
+    local filt_page = page.filters.sel + 1
     if filt_page == 1 then
       if bank[n][bank[n].id].filter_type == 4 then
         if key1_hold or grid_alt then
@@ -1188,8 +1169,14 @@ function ea.move_rec_end(d)
   end
   if d <= 0 and util.round(rec[rec.focus].start_point,0.01) < util.round(rec[rec.focus].end_point + ((res)/lbr[params:get("live_buff_rate")]),0.01) then
     rec[rec.focus].end_point = util.clamp(rec[rec.focus].end_point+((res)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.focus-1))),(9+(8*(rec.focus-1))))
-  elseif d > 0 and rec[rec.focus].end_point+((res)/lbr[params:get("live_buff_rate")]) <= 9+(8*(rec.focus-1)) then
-    rec[rec.focus].end_point = util.clamp(rec[rec.focus].end_point+((res)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.focus-1))),(9+(8*(rec.focus-1))))
+  elseif d > 0 then
+    if rec[rec.focus].end_point+((res)/lbr[params:get("live_buff_rate")]) <= 9+(8*(rec.focus-1)) then -- FIXME: weak point?
+      rec[rec.focus].end_point = util.clamp(rec[rec.focus].end_point+((res)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.focus-1))),(9+(8*(rec.focus-1))))
+    else
+      if params:get("rec_loop_enc_resolution") < 3 then
+        rec[rec.focus].end_point = 9+(8*(rec.focus-1))
+      end
+    end
   end
   if rec.play_segment == rec.focus then
     softcut.loop_end(1, rec[rec.focus].end_point-0.01)
