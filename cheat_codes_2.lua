@@ -1372,6 +1372,26 @@ function init()
       screen_dirty = false
     end
   end
+
+  function draw_waveform()
+    if menu == 2 then
+      local rec_on = 0;
+      for i = 1,3 do
+        if rec[i].state == 1 then
+          rec_on = i
+        end
+      end
+      if rec_on ~= 0 and rec[rec_on].state == 1 then
+        if page.loops.sel < 4 then
+          local pad = bank[page.loops.sel][bank[page.loops.sel].id]
+          update_waveform(1,key1_hold and pad.start_point or live[rec_on].min,key1_hold and pad.end_point or live[rec_on].max,128)
+        elseif page.loops.sel == 4 then
+          update_waveform(1,key1_hold and rec[rec.focus].start_point or live[rec_on].min,key1_hold and rec[rec.focus].end_point or live[rec_on].max,128)
+        end
+      end
+      screen_dirty = true
+    end
+  end
   
   softcut.poll_start_phase()
   
@@ -1898,6 +1918,7 @@ function init()
       if all_loaded then draw_grid() end
       if all_loaded then arc_redraw() end
       if all_loaded then draw_screen() end
+      if all_loaded then draw_waveform() end
     end
     , 1/30, -1)
   hardware_redraw:start()
@@ -2642,24 +2663,24 @@ poll_position_new = {}
 
 phase = function(n, x)
   poll_position_new[n] = x
-  if menu == 2 then
-    local rec_on = 0;
-    for i = 1,3 do
-      if rec[i].state == 1 then
-        rec_on = i
-      end
-    end
-    if rec_on ~= 0 and rec[rec_on].state == 1 then
-      if page.loops.sel < 4 then
-        local pad = bank[page.loops.sel][bank[page.loops.sel].id]
-        update_waveform(1,key1_hold and pad.start_point or live[rec_on].min,key1_hold and pad.end_point or live[rec_on].max,128)
-      elseif page.loops.sel == 4 then
-        update_waveform(1,key1_hold and rec[rec.focus].start_point or live[rec_on].min,key1_hold and rec[rec.focus].end_point or live[rec_on].max,128)
-      end
-    end
-    screen_dirty = true
+  -- if menu == 2 then
+    -- local rec_on = 0;
+    -- for i = 1,3 do
+    --   if rec[i].state == 1 then
+    --     rec_on = i
+    --   end
+    -- end
+    -- if rec_on ~= 0 and rec[rec_on].state == 1 then
+    --   if page.loops.sel < 4 then
+    --     local pad = bank[page.loops.sel][bank[page.loops.sel].id]
+    --     update_waveform(1,key1_hold and pad.start_point or live[rec_on].min,key1_hold and pad.end_point or live[rec_on].max,128)
+    --   elseif page.loops.sel == 4 then
+    --     update_waveform(1,key1_hold and rec[rec.focus].start_point or live[rec_on].min,key1_hold and rec[rec.focus].end_point or live[rec_on].max,128)
+    --   end
+    -- end
+    -- screen_dirty = true
     -- if page.loops.sel ~= 5 then screen_dirty = true end
-  end
+  -- end
 end
 
 function update_tempo()

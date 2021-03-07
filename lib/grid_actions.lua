@@ -1249,7 +1249,7 @@ function grid_actions.init(x,y,z)
           if rec[rec.focus].loop == 0 and params:string("one_shot_clock_div") == "threshold" and not grid_alt then
             threshold_rec_handler()
           elseif not grid_alt then
-            toggle_buffer(8-y)
+            toggle_buffer(x)
           end
           if grid_alt then
             buff_flush()

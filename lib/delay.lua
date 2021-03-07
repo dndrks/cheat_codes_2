@@ -86,7 +86,7 @@ function delays.init(target)
     {
       [1] = {"mode",delay[1].mode == "clocked" and "div/mult" or "free length","fade time","rate","feedback"},
       [2] = {"filter cut","filter q","filter lp","filter hp","filter bp","filter dry"},
-      [3] = {"level1","level2","level3","thur1","thru2","thru3","global level"}
+      [3] = {"(a) send","(b) send","(c) send","thru1","thru2","thru3","global level"} -- TODO thrux doesn't exist...
     }
     return prms[k][v]
   end
@@ -108,7 +108,7 @@ function delays.link_all(k)
     {
       [1] = {"mode",delay[1].mode == "clocked" and "div/mult" or "free length","fade time","rate","feedback"},
       [2] = {"filter cut","filter q","filter lp","filter hp","filter bp","filter dry"},
-      [3] = {"level1","level2","level3","thur1","thru2","thru3","global level"}
+      [3] = {"(a) send","(b) send","(c) send","thru1","thru2","thru3","global level"}
     }
   for i = 1,#prms[k] do
     delay_links[delays.lookup_prm(k,i)] = not delay_links[delays.lookup_prm(k,i)]
