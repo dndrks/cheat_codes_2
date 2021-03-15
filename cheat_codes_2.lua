@@ -5701,20 +5701,17 @@ function named_loadstate(path)
       if tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/arps/"..i..".data") ~= nil then
         arp[i] = tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/arps/"..i..".data")
       end
+      for j = 1,#rnd[i] do
+        rnd[i][j].lattice:destroy()
+      end
       if tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/rnd/"..i..".data") ~= nil then
         rnd[i] = tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/rnd/"..i..".data")
         for j = 1,#rnd[i] do
-          -- rnd[i][j].clock = nil
-          -- if rnd[i][j].playing then
-          --   rnd[i][j].clock = clock.run(rnd.advance, i, j)
-          -- end
-          if rnd[i][j].lattice == nil then
-            rnd[i][j].lattice = rnd_lattice:new_pattern{
-              action = function() rnd.lattice_advance(i,j) end,
-              division = rnd[i][j].time/4,
-              enabled = true
-            }
-          end
+          rnd[i][j].lattice = rnd_lattice:new_pattern{
+            action = function() rnd.lattice_advance(i,j) end,
+            division = rnd[i][j].time/4,
+            enabled = true
+          }
         end
       end
 
