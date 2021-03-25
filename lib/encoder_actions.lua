@@ -910,20 +910,7 @@ function encoder_actions.init(n,d)
     end
   end
   if menu == 4 then
-    local focused_pad = nil
-    if key1_hold or grid_alt then
-      for i = 1,16 do
-        bank[n][i].pan = util.clamp(bank[n][i].pan+d/10,-1,1)
-      end
-    else
-      if bank[n].focus_hold == true then
-        focused_pad = bank[n].focus_pad
-      else
-        focused_pad = bank[n].id
-      end
-      bank[n][focused_pad].pan = util.clamp(bank[n][focused_pad].pan+d/10,-1,1)
-    end
-    softcut.pan(n+1, bank[n][bank[n].id].pan)
+    main_menu.process_change("pans",n,d)
   elseif menu == 5 then
     local filt_page = page.filters.sel + 1
     if filt_page == 1 then

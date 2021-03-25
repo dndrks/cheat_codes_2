@@ -1179,94 +1179,7 @@ function init()
   grid_page_64 = 0
   bank_64 = 1
   
-  page = {}
-  page.loops = {}
-  page.loops.frame = 1
-  page.loops.sel = 1
-  page.loops.meta_sel = 1
-  page.loops.meta_option_set = {1,1,1,1}
-  page.loops.top_option_set = {1,1,1,1}
-  page.loops.focus_hold = {false, false, false, false}
-  page.main_sel = 1
-  page.loops_sel = 1
-  page.loops_page = 0
-  page.loops_view = {4,1,1,1}
-  page.levels = {}
-  page.levels.sel = 0
-  -- page.levels_sel = 0
-  page.pans = {}
-  page.pans.sel = 1
-  page.panning_sel = 1
-  page.filters = {}
-  page.filters.sel = 0
-  -- page.filtering_sel = 0
-  page.arc_sel = 0
-  page.delay_sel = 0
-  -- page.delay_section = 1
-  -- page.delay_focus = 1
-  page.delay = {{},{}}
-  page.delay.section = 1
-  page.delay.focus = 1
-  for i = 1,2 do
-    page.delay[i].menu = 1
-    page.delay[i].menu_sel = {1,1,1}
-  end
-    
-  page.time_sel = 1
-  page.time_page = {}
-  page.time_page_sel = {}
-  page.time_scroll = {}
-  for i = 1,6 do
-    page.time_page[i] = 1
-    page.time_page_sel[i] = 1
-    page.time_scroll[i] = 1
-  end
-  page.time_arc_loop = {1,1,1}
-  page.track_sel = {}
-  page.track_page = 1
-  page.track_page_section = {}
-  for i = 1,4 do
-    page.track_sel[i] = 1
-    page.track_page_section[i] = 1
-  end
-  page.track_param_sel = {}
-  for i = 1,3 do
-    page.track_param_sel[i] = 1
-  end
-  page.arp_page_sel = 1
-  page.arp_param = {1,1,1}
-  page.arp_alt = {false,false,false}
-  page.arp_param_group = {}
-  for i = 1,3 do
-    page.arp_param_group[i] = 1
-  end
-  page.rnd_page = 1
-  page.rnd_page_section = 1
-  page.rnd_page_sel = {}
-  page.rnd_page_edit = {}
-  for i = 1,3 do
-    page.rnd_page_sel[i] = 1
-    page.rnd_page_edit[i] = 1
-  end
-  page.midi_setup = 1
-  page.midi_focus = "header"
-  page.midi_bank = 1
-
-  page.macros = {}
-  page.macros.selected_macro = 1
-  page.macros.section = 1
-  page.macros.param_sel = {}
-  page.macros.edit_focus = {}
-  page.macros.mode = "setup"
-  for i = 1,8 do
-    page.macros.param_sel[i] = 1
-    page.macros.edit_focus[i] = 1
-  end
-
-  page.transport = {}
-  page.transport.foci = {"TRANSPORT","TAP-TEMPO"}
-  page.transport.focus = "TRANSPORT"
-  
+  main_menu.init()
   del.init()
   
   index = 0
@@ -4063,7 +3976,7 @@ function redraw()
   screen.clear()
   screen.level(15)
   screen.font_size(8)
-  main_menu.init()
+  main_menu.draw()
   screen.update()
 end
 

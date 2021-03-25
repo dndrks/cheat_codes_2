@@ -1,8 +1,98 @@
 local main_menu = {}
 
+local _p = include 'lib/_menus/pans'
+
 local dots = "."
 
 function main_menu.init()
+  page = {}
+  page.loops = {}
+  page.loops.frame = 1
+  page.loops.sel = 1
+  page.loops.meta_sel = 1
+  page.loops.meta_option_set = {1,1,1,1}
+  page.loops.top_option_set = {1,1,1,1}
+  page.loops.focus_hold = {false, false, false, false}
+  page.main_sel = 1
+  page.loops_sel = 1
+  page.loops_page = 0
+  page.loops_view = {4,1,1,1}
+  page.levels = {}
+  page.levels.sel = 0
+  -- page.levels_sel = 0
+  _p.init()
+  page.filters = {}
+  page.filters.sel = 0
+  -- page.filtering_sel = 0
+  page.arc_sel = 0
+  page.delay_sel = 0
+  -- page.delay_section = 1
+  -- page.delay_focus = 1
+  page.delay = {{},{}}
+  page.delay.section = 1
+  page.delay.focus = 1
+  for i = 1,2 do
+    page.delay[i].menu = 1
+    page.delay[i].menu_sel = {1,1,1}
+  end
+    
+  page.time_sel = 1
+  page.time_page = {}
+  page.time_page_sel = {}
+  page.time_scroll = {}
+  for i = 1,6 do
+    page.time_page[i] = 1
+    page.time_page_sel[i] = 1
+    page.time_scroll[i] = 1
+  end
+  page.time_arc_loop = {1,1,1}
+  page.track_sel = {}
+  page.track_page = 1
+  page.track_page_section = {}
+  for i = 1,4 do
+    page.track_sel[i] = 1
+    page.track_page_section[i] = 1
+  end
+  page.track_param_sel = {}
+  for i = 1,3 do
+    page.track_param_sel[i] = 1
+  end
+  page.arp_page_sel = 1
+  page.arp_param = {1,1,1}
+  page.arp_alt = {false,false,false}
+  page.arp_param_group = {}
+  for i = 1,3 do
+    page.arp_param_group[i] = 1
+  end
+  page.rnd_page = 1
+  page.rnd_page_section = 1
+  page.rnd_page_sel = {}
+  page.rnd_page_edit = {}
+  for i = 1,3 do
+    page.rnd_page_sel[i] = 1
+    page.rnd_page_edit[i] = 1
+  end
+  page.midi_setup = 1
+  page.midi_focus = "header"
+  page.midi_bank = 1
+
+  page.macros = {}
+  page.macros.selected_macro = 1
+  page.macros.section = 1
+  page.macros.param_sel = {}
+  page.macros.edit_focus = {}
+  page.macros.mode = "setup"
+  for i = 1,8 do
+    page.macros.param_sel[i] = 1
+    page.macros.edit_focus[i] = 1
+  end
+
+  page.transport = {}
+  page.transport.foci = {"TRANSPORT","TAP-TEMPO"}
+  page.transport.focus = "TRANSPORT"
+end
+
+function main_menu.draw()
   if menu == 1 then
     screen.move(0,10)
     screen.text("cheat codes")
@@ -786,30 +876,7 @@ function main_menu.init()
     screen.level(3)
     screen.move(0,64)
   elseif menu == 4 then
-    screen.move(0,10)
-    screen.level(3)
-    screen.text("pans")
-    local focused_pad = nil
-    for i = 1,3 do
-      if bank[i].focus_hold == true then
-        focused_pad = bank[i].focus_pad
-      else
-        focused_pad = bank[i].id
-      end
-      screen.level(3)
-      screen.move(10+((i-1)*53),25)
-      local pan_options = {"L", "C", "R"}
-      screen.text(pan_options[i])
-      local pan_to_screen = util.linlin(-1,1,10,112,bank[i][focused_pad].pan)
-      screen.move(pan_to_screen,35+(10*(i-1)))
-      local pan_to_screen_options = {"a", "b", "c"}
-      screen.level(15)
-      if key1_hold or grid_alt then
-        screen.text("("..pan_to_screen_options[i]..")")
-      else
-        screen.text(pan_to_screen_options[i]..""..focused_pad)
-      end
-    end
+    _p.draw_menu()
   elseif menu == 5 then
     screen.move(0,10)
     screen.level(3)
@@ -1678,6 +1745,14 @@ function metronome(x,y,hi,lo)
   else
     screen.text("X.X")
   end
+end
+
+function main_menu.process_change(target,n,d)
+  local target_to_destination =
+  {
+    ["pans"] = _p.process_change
+  }
+  target_to_destination[target](n,d)
 end
 
 return main_menu
