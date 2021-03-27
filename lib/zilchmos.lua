@@ -79,6 +79,7 @@ end
 
 function zilchmos.pan_reverse( pad )
   pad.pan = -pad.pan
+  zilchmos.pan_lfo_adjust(pad)
 end
 
 function zilchmos.play_toggle( pad )
@@ -98,14 +99,28 @@ end
 
 function zilchmos.pan( pad, position )
   pad.pan = position
+  zilchmos.pan_lfo_adjust(pad)
 end
 
 function zilchmos.pan_nudge( pad, delta )
   pad.pan = util.clamp( pad.pan + delta, -1, 1 )
+  zilchmos.pan_lfo_adjust(pad)
 end
 
 function zilchmos.pan_random( pad )
   pad.pan = math.random(-100,100)/100
+  zilchmos.pan_lfo_adjust(pad)
+end
+
+function zilchmos.pan_lfo_adjust(pad)
+  if pad.pad_id == bank[pad.bank_id].id then
+    bank[pad.bank_id].pan_lfo.offset = pad.pan
+    if not bank[pad.bank_id].focus_hold then
+      if not bank[pad.bank_id].pan_lfo.active then
+        bank[pad.bank_id].pan_lfo.slope = pad.pan
+      end
+    end
+  end
 end
 
 function zilchmos.start_zero( pad )

@@ -56,6 +56,7 @@ UI = require "ui"
 lattice = require "lattice"
 fileselect = require 'fileselect'
 textentry = require 'textentry'
+_lfos = include 'lib/lfos'
 main_menu = include 'lib/main_menu'
 encoder_actions = include 'lib/encoder_actions'
 arc_actions = include 'lib/arc_actions'
@@ -1179,6 +1180,7 @@ function init()
   grid_page_64 = 0
   bank_64 = 1
   
+  _lfos.init()
   main_menu.init()
   del.init()
   
@@ -1696,6 +1698,7 @@ function init()
                 bank[id][check_focus_hold(id)].pan = util.clamp(bank[id][check_focus_hold(id)].pan+(d.val == 63 and -0.01 or 0.01),-1,1)
               end
               softcut.pan(id+1, bank[id][check_focus_hold(id)].pan)
+              bank[id].pan_lfo.offset = bank[id][check_focus_hold(id)].pan
               mc.mft_redraw(bank[id][check_focus_hold(id)],"pan")
             elseif d.cc == 10 or d.cc == 26 or d.cc == 42 then
               --bank / pad filter cutoff
@@ -2609,7 +2612,7 @@ function update_tempo()
     compare_rec_resolution(params:get("rec_loop_enc_resolution"))
     for i = 1,3 do
       compare_loop_resolution(i,params:get("loop_enc_resolution_"..i))
-      _p.adjust_lfo_rate(i)
+      -- _p.adjust_lfo_rate(i)
     end
     if math.abs(pre_bpm - bpm) >= 1 then
       --print("a change in time!")
@@ -2715,6 +2718,18 @@ function reset_all_banks( banks )
     b.quantize_press_div = 1
     b.alt_lock = false
     b.global_level = 1.0
+
+    b.pan_lfo =
+    {
+      freq = 1/((clock.get_beat_sec()*4) * lfo_rates.values[14]),
+      counter = 1,
+      waveform = lfo_types[1],
+      slope = 0,
+      depth = 100,
+      offset = 0,
+      active = false
+    }
+
     for k = 1,16 do
 -- TODO suggest nesting tables for delay,filter,tilt etc
       b[k] = {}
@@ -2893,7 +2908,8 @@ function cheat(b,i)
     end
   end
   -- softcut.pan(b+1,pad.pan)
-  _p.process_cheat(b,i)
+  -- _p.process_cheat(b,i)
+  _lfos.process_cheat(b,i)
   update_delays()
   if slew_counter[b] ~= nil then
     slew_counter[b].prev_tilt = pad.tilt
