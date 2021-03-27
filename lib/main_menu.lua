@@ -1,6 +1,6 @@
 local main_menu = {}
 
-local _p = include 'lib/_menus/pans'
+_p = include 'lib/_menus/pans'
 
 local dots = "."
 

@@ -2609,6 +2609,7 @@ function update_tempo()
     compare_rec_resolution(params:get("rec_loop_enc_resolution"))
     for i = 1,3 do
       compare_loop_resolution(i,params:get("loop_enc_resolution_"..i))
+      _p.adjust_lfo_rate(i)
     end
     if math.abs(pre_bpm - bpm) >= 1 then
       --print("a change in time!")
@@ -2737,6 +2738,12 @@ function reset_all_banks( banks )
       pad.loop              = false
       pad.fifth             = false
       pad.pan               = 0.0
+      pad.pan_lfo           = {}
+      pad.pan_lfo.waveform  = "sine"
+      pad.pan_lfo.freq      = 1/((clock.get_beat_sec()*4))
+      pad.pan_lfo.depth     = 100
+      pad.pan_lfo.active    = false
+      pad.pan_lfo.rate_index= 14
       -- FIXME these are both just 0.5. why compute them? could instead call that fn?
       pad.left_delay_pan    = util.linlin(-1,1,0,1,pad.pan) * pad.left_delay_level
       pad.right_delay_pan   = util.linlin(-1,1,1,0,pad.pan) * pad.right_delay_level
@@ -2885,7 +2892,8 @@ function cheat(b,i)
       slew_filter(util.round(b),slew_counter[b].prev_tilt,slew_counter[b].next_tilt,slew_counter[b].prev_q,slew_counter[b].next_q,pad.tilt_ease_time)
     end
   end
-  softcut.pan(b+1,pad.pan)
+  -- softcut.pan(b+1,pad.pan)
+  _p.process_cheat(b,i)
   update_delays()
   if slew_counter[b] ~= nil then
     slew_counter[b].prev_tilt = pad.tilt

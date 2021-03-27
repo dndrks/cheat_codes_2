@@ -522,6 +522,7 @@ params:add_separator("ALT key")
       end
       screen_dirty = true
     end)
+    -- params:add_option("pan lfo "..i, "pan lfo "..banks[i], {"off","on"},1)
     params:add_control("pan slew "..i,"pan slew "..banks[i], controlspec.new(0.,200.,'lin',0.1,5.0))
     params:set_action("pan slew "..i, function(x) softcut.pan_slew_time(i+1,x) end)
     params:add_control("level "..i, "pad level "..banks[i], controlspec.new(0,127,'lin',1,64))
