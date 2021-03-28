@@ -910,7 +910,7 @@ function encoder_actions.init(n,d)
     end
   end
   if menu == 4 then
-    main_menu.process_change("pans",n,d)
+    main_menu.process_encoder("pans",n,d)
   elseif menu == 5 then
     local filt_page = page.filters.sel + 1
     if filt_page == 1 then

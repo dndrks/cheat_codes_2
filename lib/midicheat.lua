@@ -2,8 +2,11 @@ local midicheat = {}
 
 local mc = midicheat
 
+mx_dests ={"none","none","none"}
+
 function mc.init()
   active_midi_notes = {{},{},{}}
+  active_mx_notes = {{},{},{}}
   for i = 1,3 do
     mc.redraw(bank[i][bank[i].id])
   end
@@ -353,7 +356,7 @@ local function refresh_params_vports()
 end
 
 function mc.pad_to_note_params()
-  params:add_group("pad to note setup",47)
+  params:add_group("pad to note setup",50)
   refresh_params_vports()
   local banks = {"a","b","c"}
   mc_notes = {{},{},{}}
@@ -505,6 +508,13 @@ function mc.pad_to_note_params()
       if all_loaded then persistent_state_save() end
     end)
     params:add_number(i.."_pad_to_midi_note_velocity", "velocity",0,127,127)
+    params:set_action(i.."_pad_to_midi_note_velocity",function(x)
+      if all_loaded then
+        for j = 1,#mc.midi_notes_velocities[i].entries do
+          mc.midi_notes_velocities[i].entries[j] = x
+        end
+      end
+    end)
 
     params:add_option(i.."_pad_to_jf_note_enabled", "Just Friends channel",{"none","IDENTITY","2N","3N","4N","5N","6N","all","any"},9)
     params:set_action(i.."_pad_to_jf_note_enabled",function()
@@ -520,13 +530,16 @@ function mc.pad_to_note_params()
     end)
     params:add_number(i.."_pad_to_wsyn_note_velocity", "w/syn velocity",0,127,60)
     mc.build_scale(i)
-    -- if mxcc ~= nil then
-    --   mxcc_available = mxcc:list_instruments()
-    -- else
-    --   mxcc_available = {}
-    -- end
-    -- table.insert(mxcc_available,1,"none")
-    -- params:add_option(i.."_pad_to_mxcc_note_enabled", "Mx voice",mxcc_available,1)
+    if mxcc ~= nil then
+      mxcc_available = mxcc:list_instruments()
+    else
+      mxcc_available = {}
+    end
+    table.insert(mxcc_available,1,"none")
+    params:add_option(i.."_pad_to_mxcc_note_enabled", "Mx voice",mxcc_available,1)
+    params:set_action(i.."_pad_to_mxcc_note_enabled",function(x)
+      mx_dests[i] = mxcc_available[x]
+    end)
   end
 
   params:add_group("w/syn controls",10)
@@ -652,6 +665,7 @@ function mc.build_scale(target)
 end
 
 local midi_off = {nil,nil,nil}
+local mx_off = {nil,nil,nil}
 
 function mc.inherit_notes(target)
   if all_loaded then
@@ -672,12 +686,6 @@ end
 --   print("this is 3")
 -- end
 
-local mx_dests ={
-  "steinway model b"
-, "cello"
-, "alto sax choir"
-}
-
 function mc.midi_note_from_pad(b,p)
   if params:string(b.."_pad_to_midi_note_enabled") == "yes" then
     if mc.get_midi("midi_notes",b,p) ~= "-" and mc.get_midi("midi_notes_velocities",b,p) ~= "-" and mc.get_midi("midi_notes_channels",b,p) ~= "-" then
@@ -692,8 +700,16 @@ function mc.midi_note_from_pad(b,p)
       table.insert(active_midi_notes[b], note_num)
       if midi_off[b] ~= nil then clock.cancel(midi_off[b]) end
       midi_off[b] = clock.run(mc.midi_note_from_pad_off,b,p)
-      -- mxcc:on({name = mx_dests[b],midi=note_num,velocity=vel})
     end
+  end
+  if mx_dests[b] ~= "none" then
+    local note_num = mc.get_midi("midi_notes",b,p)
+    local vel = mc.get_midi("midi_notes_velocities",b,p)
+    mxcc:on({name = mx_dests[b],midi=note_num,velocity=vel})
+    table.insert(active_mx_notes[b], note_num)
+    clock.run(mc.mx_note_from_pad_off,b,p)
+    -- if mx_off[b] ~= nil then clock.cancel(mx_off[b]) end
+    -- mx_off[b] = clock.run(mc.mx_note_from_pad_off,b,p)
   end
   if mc.get_midi("midi_ccs",b,p) ~= "-" and mc.get_midi("midi_ccs_values",b,p) ~= "-" and mc.get_midi("midi_ccs_channels",b,p) ~= "-" then
     local cc_num = mc.get_midi("midi_ccs",b,p)
@@ -746,12 +762,32 @@ function mc.midi_note_from_pad_off(b,p)
   midi_off[b] = nil
 end
 
+function mc.mx_note_from_pad_off(b,p)
+  clock.sleep(bank[b][p].arp_time-(bank[b][p].arp_time/50))
+  -- mc.all_mx_notes_off(b)
+  mc.this_mx_note_off(b,p)
+  -- mx_off[b] = nil
+end
+
 function mc.all_midi_notes_off(b)
   for _, a in pairs(active_midi_notes[b]) do
     midi_dev[params:get(b.."_pad_to_midi_note_destination")]:note_off(a, nil, params:get(b.."_pad_to_midi_note_channel"))
-    -- mxcc:off({name = mx_dests[b],midi=a})
   end
   active_midi_notes[b] = {}
+end
+
+function mc.this_mx_note_off(b,p)
+  local note_num = mc.get_midi("midi_notes",b,p)
+  mxcc:off({name = mx_dests[b],midi=note_num})
+  -- print("off: "..mx_dests[b],note_num)
+end
+
+function mc.all_mx_notes_off(b)
+  for _, a in pairs(active_mx_notes[b]) do
+    mxcc:off({name = mx_dests[b],midi=a})
+    -- print("off: "..mx_dests[b],a)
+  end
+  active_mx_notes[b] = {}
 end
 
 mc.midi_mod_table =

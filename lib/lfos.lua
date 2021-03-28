@@ -157,8 +157,8 @@ function lfos.process_encoder(n,d,target,parameter)
         b.pan_lfo.active = b[f].pan_lfo.active
         if not b.pan_lfo.active then
           softcut.pan(_p_.bank+1,b[f].pan)
-          b.pan_lfo[_p_.bank].counter = 1
-          b.pan_lfo[_p_.bank].slope = b[f].pan
+          b.pan_lfo.counter = 1 -- TODO ERROR WHEN PATTERN IS GOING??
+          b.pan_lfo.slope = b[f].pan
           params:set("pan slew ".._p_.bank,last_slew[_p_.bank])
           last_slew[_p_.bank] = nil
         end

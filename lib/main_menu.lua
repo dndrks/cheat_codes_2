@@ -1,6 +1,7 @@
 local main_menu = {}
 
 _p = include 'lib/_menus/pans'
+_l = include 'lib/_menus/levels'
 
 local dots = "."
 
@@ -17,9 +18,9 @@ function main_menu.init()
   page.loops_sel = 1
   page.loops_page = 0
   page.loops_view = {4,1,1,1}
-  page.levels = {}
-  page.levels.sel = 0
-  -- page.levels_sel = 0
+  -- page.levels = {}
+  -- page.levels.sel = 0
+  _l.init()
   _p.init()
   page.filters = {}
   page.filters.sel = 0
@@ -809,72 +810,7 @@ function main_menu.draw()
     end
     
   elseif menu == 3 then
-    screen.move(0,10)
-    screen.level(3)
-    screen.text("levels")
-    screen.line_width(1)
-    local level_options = {"levels","envelope enable","loop","time"}
-    local focused_pad = nil
-    for i = 1,3 do
-      if bank[i].focus_hold == true then
-        focused_pad = bank[i].focus_pad
-      else
-        focused_pad = bank[i].id
-      end
-      screen.level(3)
-      screen.move(10,79-(i*20))
-      local level_markers = {"0 -", "1 -", "2 -"}
-      screen.text(level_markers[i])
-      screen.move(10+(i*20),64)
-      screen.level(level_options[page.levels.sel+1] == "levels" and 15 or 3)
-      local level_to_screen_options = {"a", "b", "c"}
-      if key1_hold or grid_alt or bank[i].alt_lock then
-        screen.text("("..level_to_screen_options[i]..")")
-      else
-        screen.text(level_to_screen_options[i]..""..focused_pad)
-      end
-      screen.move(35+(20*(i-1)),57)
-      local level_to_screen = ((key1_hold or grid_alt or bank[i].alt_lock) and util.linlin(0,2,0,40,bank[i].global_level) or util.linlin(0,2,0,40,bank[i][focused_pad].level))
-      screen.line(35+(20*(i-1)),57-level_to_screen)
-      screen.close()
-      screen.stroke()
-      screen.level(level_options[page.levels.sel+1] == "envelope enable" and 15 or 3)
-      screen.move(85,10)
-      screen.text("env?")
-      screen.move(90+((i-1)*15),20)
-      local shapes = {"\\","/","/\\"}
-      if bank[i][focused_pad].enveloped then
-        screen.text_center(shapes[bank[i][focused_pad].envelope_mode])
-      else
-        screen.text_center("-")
-      end
-      screen.level(level_options[page.levels.sel+1] == "loop" and 15 or 3)
-      screen.move(90+((i-1)*15),30)
-      if bank[i][focused_pad].envelope_loop then
-        screen.text_center("∞")
-      else
-        screen.text_center("-")
-      end
-      
-      screen.level(level_options[page.levels.sel+1] == "time" and 15 or 3)
-      -- screen.move(85,30)
-      -- screen.text("time")
-      screen.move(85,34+((i)*10))
-      local envelope_to_screen_options = {"a", "b", "c"}
-      if key1_hold or grid_alt or bank[i].alt_lock then
-        screen.text("("..envelope_to_screen_options[i]..")")
-      else
-        screen.text(envelope_to_screen_options[i]..""..focused_pad)
-      end
-      screen.move(103,34+((i)*10))
-      if bank[i][focused_pad].enveloped then
-        screen.text(string.format("%.2g", bank[i][focused_pad].envelope_time).."s")
-      else
-        screen.text("---")
-      end
-    end
-    screen.level(3)
-    screen.move(0,64)
+    _l.draw_menu()
   elseif menu == 4 then
     _p.draw_menu()
   elseif menu == 5 then
@@ -1747,12 +1683,36 @@ function metronome(x,y,hi,lo)
   end
 end
 
-function main_menu.process_change(target,n,d)
+function main_menu.process_encoder(target,n,d)
   local target_to_destination =
   {
-    ["pans"] = _p.process_change
+    ["pans"] = _p.process_encoder
   }
   target_to_destination[target](n,d)
+end
+
+function main_menu.process_key(target,n,z)
+  local target_to_destination =
+  {
+    ["pans"] = _p.process_key
+  }
+  target_to_destination[target](n,z)
+end
+
+function main_menu.process_key(target,n,z)
+  local target_to_destination =
+  {
+    ["pans"] = _p.process_key
+  }
+  target_to_destination[target](n,z)
+end
+
+function main_menu.reset_view(target)
+  local target_to_destination =
+  {
+    ["pans"] = _p.reset_view
+  }
+  target_to_destination[target]()
 end
 
 return main_menu

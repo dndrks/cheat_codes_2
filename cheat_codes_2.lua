@@ -42,13 +42,13 @@ function push_to_cc2(encoder, d)
   end
 end
 
--- if util.file_exists(_path.code.."mx.samples") then
---   mxsamples = include 'mx.samples/lib/mx.samples'
---   engine.name = "MxSamples"
---   mxcc = mxsamples:new()
---   print("available instruments: ")
---   tab.print(mxcc:list_instruments())
--- end
+if util.file_exists(_path.code.."mx.samples") then
+  mxsamples = include 'mx.samples/lib/mx.samples'
+  engine.name = "MxSamples"
+  mxcc = mxsamples:new()
+  print("available instruments: ")
+  tab.print(mxcc:list_instruments())
+end
 
 local pattern_time = include 'lib/cc_pattern_time'
 MU = require "musicutil"
@@ -3448,6 +3448,8 @@ function key(n,z)
       print("cancel delete")
       clock.run(canceled_delete)
     end
+  elseif menu == 4 then
+    main_menu.process_key("pans",n,z)
   else
     if n == 3 and z == 1 then
       if menu == 1 then
@@ -3456,6 +3458,9 @@ function key(n,z)
           key1_hold = false
         else
           menu = page.main_sel + 1
+          if menu == 4 then
+            main_menu.reset_view("pans")
+          end
         end
       elseif menu == 2 then
         -- local id = page.loops_sel

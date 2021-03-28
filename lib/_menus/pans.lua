@@ -12,8 +12,16 @@ function _p.init()
   page.pans.selected_region = "panning"
   page.pans.sel = 1
   page.pans.bank = 1
+  page.pans.alt_view = false
+  page.pans.alt_view_sel = 1
+  page.pans.meta_pad = {1,1,1}
   _p_ = page.pans
   -- _p.lfo_init()
+end
+
+function _p.reset_view()
+  page.pans.alt_view = false
+  page.pans.alt_view_sel = 1
 end
 
 function _p.nav_banks(d)
@@ -28,24 +36,13 @@ function _p.draw_menu()
       focused_pad[i] = bank[i].id
     end
   end
-    -- screen.level(3)
-    -- screen.move(10+((i-1)*53),25)
-    -- local pan_options = {"L", "C", "R"}
-    -- screen.text(pan_options[i])
-    -- local pan_to_screen = util.linlin(-1,1,10,112,bank[i][focused_pad].pan)
-    -- screen.move(pan_to_screen,35+(10*(i-1)))
-    -- local pan_to_screen_options = {"a", "b", "c"}
-    -- screen.level(15)
-    -- if key1_hold or grid_alt then
-    --   screen.text("("..pan_to_screen_options[i]..")")
-    -- else
-    --   screen.text(pan_to_screen_options[i]..""..focused_pad)
-    -- end
   _p.draw_side()
   _p.draw_header()
-  if not key1_hold then
+  if not _p_.alt_view then
     _p.draw_panning()
     _p.draw_lfo()
+  else
+    _p.draw_alt_view()
   end
 end
 
@@ -59,6 +56,36 @@ function _p.draw_header()
   screen.move(3,6)
   screen.level(15)
   screen.text("pans")
+  if _p_.alt_view then
+    screen.move(128,6)
+    screen.text_right("LFO UTILITIES")
+  end
+end
+
+function _p.draw_alt_view()
+  screen.level(_p_.alt_view_sel == 1 and 15 or 3)
+  screen.move(26,20)
+  screen.text("SOURCE:")
+  screen.move(122,20)
+  screen.text_right("pad ".._p_.meta_pad[_p_.bank])
+  screen.level(_p_.alt_view_sel == 2 and 15 or (_p_.alt_view_sel == 3 and 15 or 3))
+  screen.move(26,30)
+  screen.text("COPY TO:")
+  screen.level(_p_.alt_view_sel == 2 and 15 or 3)
+  screen.move(122,30)
+  screen.text_right("unassigned")
+  screen.level(_p_.alt_view_sel == 3 and 15 or 3)
+  screen.move(122,40)
+  screen.text_right("entire bank")
+  screen.level(_p_.alt_view_sel == 4 and 15 or (_p_.alt_view_sel == 5 and 15 or 3))
+  screen.move(26,50)
+  screen.text("RANDOMIZE: ")
+  screen.level(_p_.alt_view_sel == 4 and 15 or 3)
+  screen.move(122,50)
+  screen.text_right("this pad")
+  screen.level(_p_.alt_view_sel == 5 and 15 or 3)
+  screen.move(122,60)
+  screen.text_right("entire bank")
 end
 
 function _p.draw_side()
@@ -129,9 +156,11 @@ function _p.draw_boundaries()
   screen.move(1,10)
   screen.line(1,64)
   screen.stroke()
-  screen.move(20,40)
-  screen.line(128,40)
-  screen.stroke()
+  if not page.pans.alt_view then
+    screen.move(20,40)
+    screen.line(128,40)
+    screen.stroke()
+  end
   screen.move(128,10)
   screen.line(128,64)
   screen.stroke()
@@ -140,27 +169,115 @@ function _p.draw_boundaries()
   screen.stroke()
 end
 
-function _p.process_change(n,d)
+function _p.process_encoder(n,d)
   local b = bank[_p_.bank]
   local f = focused_pad[_p_.bank]
   if n == 1 then
     _p_.bank = util.clamp(_p_.bank + d,1,3)
   elseif n == 2 then
-    local current_area = tab.key(_p_.regions,_p_.selected_region)
-    current_area = util.clamp(current_area+d,1,#_p_.regions)
-    _p_.selected_region = _p_.regions[current_area]
+    if _p_.alt_view then
+      _p_.alt_view_sel = util.clamp(_p_.alt_view_sel+d,1,5)
+    else
+      local current_area = tab.key(_p_.regions,_p_.selected_region)
+      current_area = util.clamp(current_area+d,1,#_p_.regions)
+      _p_.selected_region = _p_.regions[current_area]
+    end
   elseif n == 3 then
-    if _p_.selected_region == "panning" then
-      b[f].pan = util.round(util.clamp(b[f].pan+d/10,-1,1),0.01)
-      softcut.pan(_p_.bank+1, b[b.id].pan)
-      bank[_p_.bank].pan_lfo.offset = b[b.id].pan
-      if b.id == f then
-        if not bank[_p_.bank].pan_lfo.active then
-          bank[_p_.bank].pan_lfo.slope = b[b.id].pan
-        end
+    if _p_.alt_view then
+      if _p_.alt_view_sel == 1 then
+        _p_.meta_pad[_p_.bank] = util.clamp(_p_.meta_pad[_p_.bank]+d,1,16)
       end
     else
-      _lfos.process_encoder(n,d,"pan_lfo",_p_.selected_region)
+      if _p_.selected_region == "panning" then
+        b[f].pan = util.round(util.clamp(b[f].pan+d/10,-1,1),0.01)
+        softcut.pan(_p_.bank+1, b[b.id].pan)
+        bank[_p_.bank].pan_lfo.offset = b[b.id].pan
+        if b.id == f then
+          if not bank[_p_.bank].pan_lfo.active then
+            bank[_p_.bank].pan_lfo.slope = b[b.id].pan
+          end
+        end
+      else
+        _lfos.process_encoder(n,d,"pan_lfo",_p_.selected_region)
+      end
+    end
+  end
+end
+
+function _p.process_key(n,z)
+  if n == 1 and z == 1 then
+    _p_.alt_view = not _p_.alt_view
+    if _p_.alt_view then
+      _p_.meta_pad[_p_.bank] = focused_pad[_p_.bank]
+    end
+  elseif n == 3 and z == 1 and _p_.alt_view then
+    if _p_.alt_view_sel == 2 then
+      _p.meta_actions("copy_to_unassigned")
+    elseif _p_.alt_view_sel == 3 then
+      _p.meta_actions("copy_to_entire_bank")
+    elseif _p_.alt_view_sel == 4 then
+      _p.meta_actions("randomize_this_pad")
+    elseif _p_.alt_view_sel == 5 then
+      _p.meta_actions("randomize_this_bank")
+    end
+  elseif n == 2 and z == 1 then
+    menu = 1
+  end
+end
+
+function _p.meta_actions(id)
+  if id == "copy_to_unassigned" or id == "copy_to_entire_bank" then
+    for i = 1,16 do
+      if id == "copy_to_unassigned" and (i ~= _p_.meta_pad[_p_.bank] and bank[_p_.bank][i].pan_lfo.active == false) or (id == "copy_to_entire_bank" and i ~= _p_.meta_pad[_p_.bank]) then
+        for k,v in pairs(bank[_p_.bank][_p_.meta_pad[_p_.bank]].pan_lfo) do
+          bank[_p_.bank][i].pan_lfo[k] = v
+        end
+      end
+    end
+  elseif id == "randomize_this_pad" or id == "randomize_this_bank" then
+    local reasonable_max = 16
+    for i = 1,reasonable_max do
+      if id == "randomize_this_pad" then
+        reasonable_max = 1
+        i = _p_.meta_pad[_p_.bank]
+      end
+      local random_on = math.random(0,1)
+      bank[_p_.bank][i].pan_lfo.active = random_on == 0 and false or true
+      bank[_p_.bank][i].pan_lfo.waveform = lfo_types[math.random(1,#lfo_types)]
+      bank[_p_.bank][i].pan_lfo.depth = math.random(1,200)
+      bank[_p_.bank][i].pan_lfo.rate_index = math.random(1,#lfo_rates.values)
+      bank[_p_.bank][i].pan_lfo.freq = 1/((clock.get_beat_sec()*4) * lfo_rates.values[bank[_p_.bank][i].pan_lfo.rate_index])
+    end
+  end
+  _p.seed_change("LFO")
+  _p.seed_change("SHP")
+  _p.seed_change("DPTH")
+  _p.seed_change("RATE")
+end
+
+function _p.seed_change(parameter)
+  local b = bank[_p_.bank]
+  local f = focused_pad[_p_.bank]
+  if parameter == "LFO" then
+    if b.id == f then
+      b.pan_lfo.active = b[f].pan_lfo.active
+      if not b.pan_lfo.active then
+        softcut.pan(_p_.bank+1,b[f].pan)
+        b.pan_lfo.counter = 1 -- TODO ERROR WHEN PATTERN IS GOING??
+        b.pan_lfo.slope = b[f].pan
+      end
+    end
+  elseif parameter == "SHP" then
+    if b.id == f then
+      b.pan_lfo.waveform = b[f].pan_lfo.waveform
+    end
+  elseif parameter == "DPTH" then
+    if b.id == f then
+      b.pan_lfo.depth = b[f].pan_lfo.depth
+    end
+  elseif parameter == "RATE" then
+    if b.id == f then
+      b.pan_lfo.freq = b[f].pan_lfo.freq
     end
   end
 end
