@@ -6,7 +6,7 @@ local _l_ = nil
 
 function _l.init()
   page.levels = {}
-  page.levels.regions = {"pad_level","bank_level","env enable","repeat","time"}
+  page.levels.regions = {"pad_level","bank_level","pad_env","pad_repeat","pad_time","bank_env","bank_repeat","bank_time"}
   page.levels.selected_region = "pad_level"
   page.levels.sel = 1
   page.levels.bank = 1
@@ -32,6 +32,9 @@ function _l.draw_menu()
   _l.draw_side()
   _l.draw_header()
   _l.draw_levels()
+  _l.draw_env()
+  _l.draw_repeat()
+  _l.draw_time()
 end
 
 function _l.draw_header()
@@ -86,9 +89,14 @@ function _l.draw_side()
 end
 
 function _l.draw_levels()
+
   screen.level(_l_.selected_region == "pad_level" and 15 or 3)
   screen.move(35,18)
-  screen.text_center("PAD")
+  if _l_.selected_region == "pad_env" or  _l_.selected_region == "pad_repeat" or  _l_.selected_region == "pad_time" then
+    screen.text_center("[PAD]")
+  else
+    screen.text_center("PAD")
+  end
   for i = 1,9 do
     screen.level(3)
     screen.move(25,22+(i*4))
@@ -96,22 +104,33 @@ function _l.draw_levels()
     screen.move(40,22+(i*4))
     screen.text("_")
   end
-  local pad_level_to_screen = util.linlin(0,1.5,0,33,bank[_l_.bank][focused_pad[_l_.bank]].level)
-  -- screen.rect(32,60,6,level_to_screen)
+  local pad_level_to_screen;
+  local pad_lfo_level_to_screen;
+  if bank[_l_.bank][focused_pad[_l_.bank]].level < 1.1 then
+    pad_level_to_screen = util.linlin(0,1,0,25,bank[_l_.bank][focused_pad[_l_.bank]].level)
+    -- pad_lfo_level_to_screen = util.linlin(0,bank[_l_.bank][focused_pad[_l_.bank]].level,58,33,bank[_l_.bank].level_lfo.slope)
+  else
+    pad_level_to_screen = util.linlin(1,2,25,33,bank[_l_.bank][focused_pad[_l_.bank]].level)
+    -- pad_lfo_level_to_screen = util.linlin(0,bank[_l_.bank][focused_pad[_l_.bank]].level,33,25,bank[_l_.bank].level_lfo.slope)
+  end
   for i = 1,3 do
     screen.move(33+i,58)
     screen.line(33+i,58-pad_level_to_screen)
     screen.close()
     screen.stroke()
   end
+  -- if focused_pad[_l_.bank] == bank[_l_.bank].id then
+  --   screen.move(40,pad_lfo_level_to_screen)
+  --   screen.text_center("_")
+  -- end
 
---   local level_to_screen = ((key1_hold or grid_alt or bank[i].alt_lock) and util.linlin(0,2,0,40,bank[i].global_level) or util.linlin(0,2,0,40,bank[i][focused_pad].level))
---   screen.line(35+(20*(i-1)),57-level_to_screen)
-
-  -- screen.fill()
   screen.level(_l_.selected_region == "bank_level" and 15 or 3)
   screen.move(65,18)
-  screen.text_center("BANK")
+  if _l_.selected_region == "bank_env" or  _l_.selected_region == "bank_repeat" or  _l_.selected_region == "bank_time" then
+    screen.text_center("[BANK]")
+  else
+    screen.text_center("BANK")
+  end
   for i = 1,9 do
     screen.level(3)
     screen.move(56,22+(i*4))
@@ -119,7 +138,12 @@ function _l.draw_levels()
     screen.move(71,22+(i*4))
     screen.text("_")
   end
-  local bank_level_to_screen = util.linlin(0,1.5,0,33,bank[_l_.bank].global_level)
+  local bank_level_to_screen;
+  if bank[_l_.bank].global_level < 1.1 then
+    bank_level_to_screen = util.linlin(0,1,0,25,bank[_l_.bank].global_level)
+  else
+    bank_level_to_screen = util.linlin(1,2,25,33,bank[_l_.bank].global_level)
+  end
   -- screen.rect(32,60,6,level_to_screen)
   for i = 1,3 do
     screen.move(64+i,58)
@@ -127,25 +151,51 @@ function _l.draw_levels()
     screen.close()
     screen.stroke()
   end
-  -- local level_markers = {"- 0", "- 1", "- 2"}
-  -- --   screen.move(10,79-(i*20))
-  -- local y_positions = {60,40,20}
-  -- for i = 1,3 do
-  --   screen.move(45,y_positions[i])
-  --   screen.text(level_markers[i])
-  -- end
-  -- local level_to_screen = util.linlin(-1,1,26,122,bank[_l_.bank][focused_pad[_l_.bank]].level)
-  -- screen.move(level_to_screen,32)
-  -- screen.text_center("|")
-  -- for i = 0,20 do
-  --   screen.move(util.linlin(0,20,26,122,i),30)
-  --   screen.text_center(".")
-  -- end
-  -- if focused_pad[_l_.bank] == bank[_l_.bank].id then
-  --   local lfo_to_screen = util.linlin(-1,1,26,122,bank[_l_.bank].level_lfo.slope)
-  --   screen.move(lfo_to_screen,28)
-  --   screen.text_center("*")
-  -- end
+end
+
+function _l.draw_env()
+  screen.level(_l_.selected_region == "pad_env" and 15 or 3)
+  screen.move(84,18)
+  local shapes = {"\\","/","/\\"}
+  if bank[_l_.bank][focused_pad[_l_.bank]].enveloped then
+    screen.text("ENV: "..shapes[bank[_l_.bank][focused_pad[_l_.bank]].envelope_mode])
+  else
+    screen.text("ENV: off")
+  end
+  screen.level(_l_.selected_region == "bank_env" and 15 or 3)
+  screen.move(84,44)
+  local shapes = {"\\","/","/\\"}
+  if bank[_l_.bank][focused_pad[_l_.bank]].enveloped then
+    screen.text("ENV: "..shapes[bank[_l_.bank][focused_pad[_l_.bank]].envelope_mode])
+  else
+    screen.text("ENV: off")
+  end
+end
+
+function _l.draw_repeat()
+  screen.level(_l_.selected_region == "pad_repeat" and 15 or 3)
+  screen.move(84,26)
+  if bank[_l_.bank][focused_pad[_l_.bank]].envelope_loop then
+    screen.text("LOOP: on")
+  else
+    screen.text("LOOP: off")
+  end
+  screen.level(_l_.selected_region == "bank_repeat" and 15 or 3)
+  screen.move(84,52)
+  if bank[_l_.bank][focused_pad[_l_.bank]].envelope_loop then
+    screen.text("LOOP: on")
+  else
+    screen.text("LOOP: off")
+  end
+end
+
+function _l.draw_time()
+  screen.level(_l_.selected_region == "pad_time" and 15 or 3)
+  screen.move(84,34)
+  screen.text("DUR: "..lfo_rates.names[bank[_l_.bank][focused_pad[_l_.bank]].envelope_rate_index])
+  screen.level(_l_.selected_region == "bank_time" and 15 or 3)
+  screen.move(84,60)
+  screen.text("TIME: 1/8")
 end
 
 -- function _l.draw_lfo()
@@ -189,53 +239,119 @@ function _l.draw_boundaries()
   screen.move(80,10)
   screen.line(80,64)
   screen.stroke()
-  -- if not page.levels.alt_view then
-  --   screen.move(20,40)
-  --   screen.line(128,40)
-  --   screen.stroke()
-  -- end
   screen.move(128,10)
   screen.line(128,64)
   screen.stroke()
   screen.move(0,64)
   screen.line(128,64)
   screen.stroke()
+  screen.move(80,37)
+  screen.line(128,37)
+  screen.stroke()
+  -- screen.move(80,28)
+  -- screen.line(128,28)
+  -- screen.stroke()
+  -- screen.move(80,46)
+  -- screen.line(128,46)
+  -- screen.stroke()
 end
 
--- function _l.process_encoder(n,d)
---   local b = bank[_l_.bank]
---   local f = focused_pad[_l_.bank]
---   if n == 1 then
---     _l_.bank = util.clamp(_l_.bank + d,1,3)
---   elseif n == 2 then
---     if _l_.alt_view then
---       _l_.alt_view_sel = util.clamp(_l_.alt_view_sel+d,1,5)
---     else
---       local current_area = tab.key(_l_.regions,_l_.selected_region)
---       current_area = util.clamp(current_area+d,1,#_l_.regions)
---       _l_.selected_region = _l_.regions[current_area]
---     end
---   elseif n == 3 then
---     if _l_.alt_view then
---       if _l_.alt_view_sel == 1 then
---         _l_.meta_pad[_l_.bank] = util.clamp(_l_.meta_pad[_l_.bank]+d,1,16)
---       end
---     else
---       if _l_.selected_region == "levels" then
---         b[f].level = util.round(util.clamp(b[f].level+d/10,-1,1),0.01)
---         softcut.level(_l_.bank+1, b[b.id].level)
---         bank[_l_.bank].level_lfo.offset = b[b.id].level
---         if b.id == f then
---           if not bank[_l_.bank].level_lfo.active then
---             bank[_l_.bank].level_lfo.slope = b[b.id].level
---           end
---         end
---       else
---         _lfos.process_encoder(n,d,"level_lfo",_l_.selected_region)
---       end
---     end
---   end
--- end
+function _l.process_encoder(n,d)
+  local b = bank[_l_.bank]
+  local f = focused_pad[_l_.bank]
+  if n == 1 then
+    _l_.bank = util.clamp(_l_.bank + d,1,3)
+  elseif n == 2 then
+    if _l_.alt_view then
+      _l_.alt_view_sel = util.clamp(_l_.alt_view_sel+d,1,5)
+    else
+      local current_area = tab.key(_l_.regions,_l_.selected_region)
+      current_area = util.clamp(current_area+d,1,#_l_.regions)
+      _l_.selected_region = _l_.regions[current_area]
+    end
+  elseif n == 3 then
+    if _l_.alt_view then
+      if _l_.alt_view_sel == 1 then
+        _l_.meta_pad[_l_.bank] = util.clamp(_l_.meta_pad[_l_.bank]+d,1,16)
+      end
+    else
+      if _l_.selected_region == "pad_level" or _l_.selected_region == "bank_level" then
+        if _l_.selected_region == "bank_level" then
+          if b.global_level < 0.4 then
+            b.global_level = util.clamp(b.global_level+d/50,0,2)
+          elseif b.global_level >= 1.3 then
+            b.global_level = util.clamp(b.global_level+d/25,0,2)
+          else
+            b.global_level = util.clamp(b.global_level+d/20,0,2)
+          end
+        elseif _l_.selected_region == "pad_level" then
+          if b[f].level < 0.4 then
+            b[f].level = util.clamp(b[f].level+d/50,0,2)
+          elseif b[f].level >= 1.3 then
+            b[f].level = util.clamp(b[f].level+d/25,0,2)
+          else
+            b[f].level = util.clamp(b[f].level+d/20,0,2)
+          end
+          if _l_.selected_region == "pad_level" then
+            if b[f].enveloped and not b[f].pause then
+              if b[f].level > 0.05 then
+                env_counter[n].time = (b[f].envelope_time/(b[f].level/0.05))
+              end
+            end
+          end
+        end
+        if b[b.id].envelope_mode == 2 or b[b.id].enveloped == false then
+          if b.focus_hold == false then
+            softcut.level_slew_time(_l_.bank+1,1.0)
+            softcut.level(_l_.bank+1,b[b.id].level*b.global_level)
+            softcut.level_cut_cut(_l_.bank+1,5,(b[b.id].left_delay_level*b[b.id].level)*b.global_level)
+            softcut.level_cut_cut(_l_.bank+1,6,(b[b.id].right_delay_level*b[b.id].level)*b.global_level)
+          end
+        end
+      elseif _l_.selected_region == "pad_env" then
+
+        local pre_enveloped = b[f].enveloped
+        local pre_mode = b[f].envelope_mode
+        b[f].envelope_mode = util.clamp(b[f].envelope_mode + d,0,3)
+        
+        if b[f].envelope_mode == 0 then
+          b[f].enveloped = false
+        else
+          b[f].enveloped = true
+          if pre_enveloped ~= b[f].enveloped then
+            if bank[_l_.bank].focus_hold == false then
+              cheat(_l_.bank, bank[_l_.bank].id)
+            end
+          elseif pre_mode ~= b[f].envelope_mode then
+            if bank[_l_.bank].focus_hold == false then
+              cheat(_l_.bank, bank[_l_.bank].id)
+            end
+          end
+        end
+      elseif _l_.selected_region == "pad_repeat" then
+        if b[f].enveloped then
+          local pre_loop = b[f].envelope_loop
+          if d>0 then
+            b[f].envelope_loop = true
+            if pre_loop ~= b[f].envelope_loop then
+              if bank[n].focus_hold == false then
+                cheat(n, bank[n].id)
+              end
+            end
+          else
+            b[f].envelope_loop = false
+          end
+        end
+      elseif _l_.selected_region == "pad_time" then
+        b[f].envelope_rate_index = util.clamp(b[f].envelope_rate_index + d,1,#lfo_rates.values)
+        b[f].envelope_time = (clock.get_beat_sec() * lfo_rates.values[b[f].envelope_rate_index]) * 4
+        if b.id == f and b[f].level > 0.05 then
+          env_counter[b[f].bank_id].time = (b[f].envelope_time/(b[f].level/0.05))
+        end
+      end
+    end
+  end
+end
 
 -- function _l.process_key(n,z)
 --   if n == 1 and z == 1 then

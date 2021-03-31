@@ -113,6 +113,7 @@ function zilchmos.pan_random( pad )
 end
 
 function zilchmos.pan_lfo_adjust(pad)
+  print(pad.pad_id, bank[pad.bank_id].id, pad.bank_id)
   if pad.pad_id == bank[pad.bank_id].id then
     bank[pad.bank_id].pan_lfo.offset = pad.pan
     if not bank[pad.bank_id].focus_hold then

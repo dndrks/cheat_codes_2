@@ -91,10 +91,13 @@ function grid_actions.init(x,y,z)
               if not pad_clipboard then
                 pad_clipboard = {}
                 bank[i].focus_pad = (math.abs(y-9)+((x-1)*4))-(20*(i-1))
-                pad_copy(pad_clipboard, bank[i][bank[i].focus_pad])
+                -- pad_copy(pad_clipboard, bank[i][bank[i].focus_pad])
+                pad_clipboard = deep_copy(bank[i][bank[i].focus_pad])
               else
                 bank[i].focus_pad = (math.abs(y-9)+((x-1)*4))-(20*(i-1))
-                pad_copy(bank[i][bank[i].focus_pad], pad_clipboard)
+                -- pad_copy(bank[i][bank[i].focus_pad], pad_clipboard)
+                bank[i][bank[i].focus_pad] = deep_copy(pad_clipboard)
+                bank[i][bank[i].focus_pad].bank_id = i
                 pad_clipboard = nil
               end
             end
@@ -1045,10 +1048,13 @@ function grid_actions.init(x,y,z)
             if not pad_clipboard then
               pad_clipboard = {}
               b.focus_pad = (4*(y-4))+x
-              pad_copy(pad_clipboard, b[b.focus_pad])
+              -- pad_copy(pad_clipboard, b[b.focus_pad])
+              pad_clipboard = deep_copy(b[b.focus_pad])
             else
               b.focus_pad = (4*(y-4))+x
-              pad_copy(b[b.focus_pad], pad_clipboard)
+              -- pad_copy(b[b.focus_pad], pad_clipboard)
+              b[b.focus_pad] = deep_copy(pad_clipboard)
+              b[b.focus_pad].bank_id = bank_64
               pad_clipboard = nil
             end
           end

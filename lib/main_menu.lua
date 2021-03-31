@@ -1686,7 +1686,8 @@ end
 function main_menu.process_encoder(target,n,d)
   local target_to_destination =
   {
-    ["pans"] = _p.process_encoder
+    ["pans"] = _p.process_encoder,
+    ["levels"] = _l.process_encoder
   }
   target_to_destination[target](n,d)
 end

@@ -705,9 +705,11 @@ function mc.midi_note_from_pad(b,p)
   if mx_dests[b] ~= "none" then
     local note_num = mc.get_midi("midi_notes",b,p)
     local vel = mc.get_midi("midi_notes_velocities",b,p)
-    mxcc:on({name = mx_dests[b],midi=note_num,velocity=vel})
-    table.insert(active_mx_notes[b], note_num)
-    clock.run(mc.mx_note_from_pad_off,b,p)
+    if mxcc ~= nil then
+      mxcc:on({name = mx_dests[b],midi=note_num,velocity=vel})
+      table.insert(active_mx_notes[b], note_num)
+      clock.run(mc.mx_note_from_pad_off,b,p)
+    end
     -- if mx_off[b] ~= nil then clock.cancel(mx_off[b]) end
     -- mx_off[b] = clock.run(mc.mx_note_from_pad_off,b,p)
   end

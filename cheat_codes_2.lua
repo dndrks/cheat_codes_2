@@ -2721,14 +2721,40 @@ function reset_all_banks( banks )
 
     b.pan_lfo =
     {
-      freq = 1/((clock.get_beat_sec()*4) * lfo_rates.values[14]),
+      freq = 1/((clock.get_beat_sec()*4) * lfo_rates.values[15]),
       counter = 1,
       waveform = lfo_types[1],
       slope = 0,
       depth = 100,
       offset = 0,
-      active = false
+      active = false,
+      loop = true
     }
+
+    b.level_lfo =
+    {
+      freq = 1/((clock.get_beat_sec()*4) * lfo_rates.values[15]),
+      counter = 1,
+      waveform = lfo_types[1],
+      slope = 0,
+      depth = 100,
+      offset = 0,
+      active = false,
+      loop = false
+    }
+
+    b.filter_lfo =
+    {
+      freq = 1/((clock.get_beat_sec()*4) * lfo_rates.values[15]),
+      counter = 1,
+      waveform = lfo_types[1],
+      slope = 0,
+      depth = 100,
+      offset = 0,
+      active = false,
+      loop = true
+    }
+
 
     for k = 1,16 do
 -- TODO suggest nesting tables for delay,filter,tilt etc
@@ -2759,6 +2785,7 @@ function reset_all_banks( banks )
       pad.pan_lfo.depth     = 100
       pad.pan_lfo.active    = false
       pad.pan_lfo.rate_index= 14
+      pad.pan_lfo.loop      = true
       -- FIXME these are both just 0.5. why compute them? could instead call that fn?
       pad.left_delay_pan    = util.linlin(-1,1,0,1,pad.pan) * pad.left_delay_level
       pad.right_delay_pan   = util.linlin(-1,1,1,0,pad.pan) * pad.right_delay_level
@@ -2778,10 +2805,29 @@ function reset_all_banks( banks )
       pad.cf_dry            = 1
       pad.cf_exp_dry        = 1
       pad.filter_type       = 4
+
       pad.enveloped         = false
       pad.envelope_mode     = 0
-      pad.envelope_time     = 3.0
+      pad.envelope_time     = (clock.get_beat_sec() * lfo_rates.values[15]) * 4
       pad.envelope_loop     = false
+      pad.envelope_rate_index = 15
+
+      pad.level_lfo           = {}
+      pad.level_lfo.waveform  = "sine"
+      pad.level_lfo.freq      = 1/((clock.get_beat_sec()*4) * lfo_rates.values[15])
+      pad.level_lfo.depth     = 100
+      pad.level_lfo.active    = false
+      pad.level_lfo.rate_index= 15
+      pad.level_lfo.loop      = false
+
+      pad.filter_lfo           = {}
+      pad.filter_lfo.waveform  = "sine"
+      pad.filter_lfo.freq      = 1/((clock.get_beat_sec()*4) * lfo_rates.values[15])
+      pad.filter_lfo.depth     = 100
+      pad.filter_lfo.active    = false
+      pad.filter_lfo.rate_index= 15
+      pad.filter_lfo.loop      = true
+
       pad.clock_resolution  = 4
       pad.offset            = 1.0
       pad.crow_pad_execute  = 1
@@ -2819,13 +2865,16 @@ function cheat(b,i)
   softcut.rate_slew_time(b+1,pad.rate_slew)
   if pad.enveloped and not pad.pause then
     if pad.envelope_mode == 1 then
-      env_counter[b].butt = pad.level
+      env_counter[b].butt = pad.level + 0.05
       env_counter[b].l_del_butt = pad.left_delay_level
       env_counter[b].r_del_butt = pad.right_delay_level
       softcut.level_slew_time(b+1,0.05)
       softcut.level(b+1,pad.level*bank[b].global_level)
       softcut.level_cut_cut(b+1,5,(pad.level*bank[b].global_level)*pad.left_delay_level)
       softcut.level_cut_cut(b+1,6,(pad.level*bank[b].global_level)*pad.right_delay_level)
+      if pad.level > 0.05 then
+        env_counter[b].time = (pad.envelope_time/(util.round(pad.level/0.05)+1))
+      end
     elseif pad.envelope_mode == 2 or pad.envelope_mode == 3 then
       softcut.level_slew_time(b+1,0.01)
       softcut.level(b+1,0*bank[b].global_level)
@@ -2835,15 +2884,16 @@ function cheat(b,i)
       env_counter[b].l_del_butt = 0
       env_counter[b].r_del_butt = 0
       if pad.envelope_mode == 3 then env_counter[b].stage = "rising" end
-    end
-    if pad.level > 0.05 then
-    -- if (pad.envelope_time/(pad.level/0.05)) ~= inf then
-      env_counter[b].time = (pad.envelope_time/(pad.level/0.05)) -- buggy, what am i trying to do here??
+      if pad.level > 0.05 then
+        env_counter[b].time = (pad.envelope_time/(util.round(pad.level/0.05)+(pad.level<1.1 and 1 or 0))) * (pad.envelope_mode == 3 and 0.5 or 1)
+      end
     end
     env_counter[b]:start()
+    -- print("start of env: "..clock.get_beats())
   elseif not pad.enveloped and not pad.pause then
-    softcut.level_slew_time(b+1,0.1)
+    softcut.level_slew_time(b+1,0.01)
     softcut.level(b+1,pad.level*bank[b].global_level)
+    -- _lfos.process_cheat(b,i,"level_lfo")
     if not delay[1].send_mute then
       if pad.left_delay_thru then
         softcut.level_cut_cut(b+1,5,pad.left_delay_level)
@@ -2909,7 +2959,8 @@ function cheat(b,i)
   end
   -- softcut.pan(b+1,pad.pan)
   -- _p.process_cheat(b,i)
-  _lfos.process_cheat(b,i)
+  _lfos.process_cheat(b,i,"pan_lfo")
+  -- _lfos.process_cheat(b,i,"level_lfo")
   update_delays()
   if slew_counter[b] ~= nil then
     slew_counter[b].prev_tilt = pad.tilt
@@ -2993,34 +3044,43 @@ function falling_envelope(i)
   else
     env_counter[i].butt = 0
   end
-  if env_counter[i].butt > 0 and bank[i][bank[i].id].level > 0 then
-    softcut.level_slew_time(i+1,0.05)
-    softcut.level(i+1,env_counter[i].butt*bank[i].global_level)
+  if util.round(env_counter[i].butt,0.05) > 0 and bank[i][bank[i].id].level > 0 then
+    -- print("butt: "..env_counter[i].butt, clock.get_beats())
+    local e_c = util.clamp(easingFunctions[n_s](env_counter[i].butt,0,1,1),0,bank[i][bank[i].id].level)
+    -- print(e_c,env_counter[i].butt)
+    if bank[i][bank[i].id].envelope_time >= 0.1 then
+      softcut.level_slew_time(i+1,0.05)
+    else
+      softcut.level_slew_time(i+1,0.01)
+    end
+     -- TODO: shouldn't have to declare this^^
+    softcut.level(i+1,e_c*bank[i].global_level)
     -- softcut.level_cut_cut(i+1,5,(env_counter[i].butt*bank[i].global_level)*bank[i][bank[i].id].left_delay_level)
     -- softcut.level_cut_cut(i+1,6,(env_counter[i].butt*bank[i].global_level)*bank[i][bank[i].id].right_delay_level)
     if delay[1].send_mute then
       if bank[i][bank[i].id].left_delay_level == 0 then
-        softcut.level_cut_cut(i+1,5,(env_counter[i].butt*bank[i].global_level)*1)
+        softcut.level_cut_cut(i+1,5,(e_c*bank[i].global_level)*1)
       else
-        softcut.level_cut_cut(i+1,5,(env_counter[i].butt*bank[i].global_level)*0)
+        softcut.level_cut_cut(i+1,5,(e_c*bank[i].global_level)*0)
       end
     else
-      softcut.level_cut_cut(i+1,5,(env_counter[i].butt*bank[i].global_level)*bank[i][bank[i].id].left_delay_level)
+      softcut.level_cut_cut(i+1,5,(e_c*bank[i].global_level)*bank[i][bank[i].id].left_delay_level)
     end
     if delay[2].send_mute then
       if bank[i][bank[i].id].right_delay_level == 0 then
-        softcut.level_cut_cut(i+1,6,(env_counter[i].butt*bank[i].global_level)*1)
+        softcut.level_cut_cut(i+1,6,(e_c*bank[i].global_level)*1)
       else
-        softcut.level_cut_cut(i+1,6,(env_counter[i].butt*bank[i].global_level)*0)
+        softcut.level_cut_cut(i+1,6,(e_c*bank[i].global_level)*0)
       end
     else
-      softcut.level_cut_cut(i+1,6,(env_counter[i].butt*bank[i].global_level)*bank[i][bank[i].id].right_delay_level)
+      softcut.level_cut_cut(i+1,6,(e_c*bank[i].global_level)*bank[i][bank[i].id].right_delay_level)
     end
   else
+    -- print("end of fall: "..clock.get_beats())
     env_counter[i]:stop()
     softcut.level_slew_time(i+1,1.0)
     softcut.level(i+1,0*bank[i].global_level)
-    env_counter[i].butt = bank[i][bank[i].id].level
+    env_counter[i].butt = bank[i][bank[i].id].level+0.05
     softcut.level_cut_cut(i+1,5,0)
     softcut.level_cut_cut(i+1,6,0)
     if bank[i][bank[i].id].envelope_mode == 3 then
@@ -3036,30 +3096,33 @@ end
 function rising_envelope(i)
   env_counter[i].butt = env_counter[i].butt + 0.05
   if env_counter[i].butt < bank[i][bank[i].id].level then
-    softcut.level_slew_time(i+1,0.1)
-    softcut.level(i+1,env_counter[i].butt*bank[i].global_level)
+    local e_c = util.clamp(easingFunctions[n_s](env_counter[i].butt,0,1,1),0,bank[i][bank[i].id].level)
+    -- print(e_c,env_counter[i].butt)
+    softcut.level_slew_time(i+1,0.01)
+    softcut.level(i+1,e_c*bank[i].global_level)
     -- softcut.level_cut_cut(i+1,5,env_counter[i].butt*(bank[i][bank[i].id].left_delay_level*bank[i].global_level))
     -- softcut.level_cut_cut(i+1,6,env_counter[i].butt*(bank[i][bank[i].id].right_delay_level*bank[i].global_level))
     if delay[1].send_mute then
       if bank[i][bank[i].id].left_delay_level == 0 then
-        softcut.level_cut_cut(i+1,5,(env_counter[i].butt*bank[i].global_level)*1)
+        softcut.level_cut_cut(i+1,5,(e_c*bank[i].global_level)*1)
       else
-        softcut.level_cut_cut(i+1,5,(env_counter[i].butt*bank[i].global_level)*0)
+        softcut.level_cut_cut(i+1,5,(e_c*bank[i].global_level)*0)
       end
     else
-      softcut.level_cut_cut(i+1,5,(env_counter[i].butt*bank[i].global_level)*bank[i][bank[i].id].left_delay_level)
+      softcut.level_cut_cut(i+1,5,(e_c*bank[i].global_level)*bank[i][bank[i].id].left_delay_level)
     end
     if delay[2].send_mute then
       if bank[i][bank[i].id].right_delay_level == 0 then
-        softcut.level_cut_cut(i+1,6,(env_counter[i].butt*bank[i].global_level)*1)
+        softcut.level_cut_cut(i+1,6,(e_c*bank[i].global_level)*1)
       else
-        softcut.level_cut_cut(i+1,6,(env_counter[i].butt*bank[i].global_level)*0)
+        softcut.level_cut_cut(i+1,6,(e_c*bank[i].global_level)*0)
       end
     else
-      softcut.level_cut_cut(i+1,6,(env_counter[i].butt*bank[i].global_level)*bank[i][bank[i].id].right_delay_level)
+      softcut.level_cut_cut(i+1,6,(e_c*bank[i].global_level)*bank[i][bank[i].id].right_delay_level)
     end
   else
     env_counter[i]:stop()
+    -- print("end of rise: "..clock.get_beats())
     softcut.level(i+1,bank[i][bank[i].id].level*bank[i].global_level)
     env_counter[i].butt = 0
     if bank[i][bank[i].id].left_delay_thru then
@@ -3075,11 +3138,12 @@ function rising_envelope(i)
     softcut.level_slew_time(i+1,1.0)
     if bank[i][bank[i].id].envelope_mode == 3 then
       env_counter[i].stage = "falling"
-      softcut.level_slew_time(i+1,0.05)
-      env_counter[i].butt = bank[i][bank[i].id].level
+      softcut.level_slew_time(i+1,0.01)
+      env_counter[i].butt = bank[i][bank[i].id].level+0.05
       if bank[i][bank[i].id].level > 0.05 then
       -- if bank[i][bank[i].id].envelope_time/(bank[i][bank[i].id].level/0.05) ~= inf then
-        env_counter[i].time = (bank[i][bank[i].id].envelope_time/(bank[i][bank[i].id].level/0.05))
+        -- env_counter[i].time = (bank[i][bank[i].id].envelope_time/(bank[i][bank[i].id].level/0.05))
+        env_counter[i].time = (bank[i][bank[i].id].envelope_time/(util.round(bank[i][bank[i].id].level/0.05)+1)) * 0.5
       end
       env_counter[i]:start()
     end
@@ -5171,11 +5235,14 @@ function zilchmo(k,i)
 end
 
 function pad_copy(destination, source)
-  for k,v in pairs(source) do
-    if k ~= bank_id and k ~= pad_id then
-      destination[k] = v
-    end
-  end
+  destination = deep_copy(source)
+  -- for k,v in pairs(source) do
+  --   if k ~= bank_id and k ~= pad_id and type(v) ~= "table" then
+  --     destination[k] = v
+  --   elseif k ~= bank_id and k ~= pad_id and type(v) == "table" then
+  --     print("trying to copy a table")
+  --   end
+  -- end
 end
 
 a = arc.connect()
