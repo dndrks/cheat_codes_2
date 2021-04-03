@@ -74,35 +74,38 @@ function lfos.init()
       lfos.iterate(i,"level_lfo")
       lfos.iterate(i,"filter_lfo")
     end
+    for i = 1,8 do
+      lfos.iterate(i,"macro_lfo")
+    end
   end
   lfo_metro:start()
 end
 
-local function make_sine(n,parameter)
-  return 1 * math.sin(((tau / 100) * (bank[n][parameter].counter)) - (tau / (bank[n][parameter].freq)))
+local function make_sine(construct)
+  return 1 * math.sin(((tau / 100) * (construct.counter)) - (tau / (construct.freq)))
 end
 
 
-local function make_square(n,parameter)
-  return make_sine(n,parameter) >= 0 and 1 or -1
+local function make_square(construct)
+  return make_sine(construct) >= 0 and 1 or -1
 end
 
 
-local function make_sh(n,parameter)
-  local polarity = make_square(n,parameter)
-  if bank[n][parameter].prev_polarity ~= polarity then
-    bank[n][parameter].prev_polarity = polarity
+local function make_sh(construct)
+  local polarity = make_square(construct)
+  if construct.prev_polarity ~= polarity then
+    construct.prev_polarity = polarity
     return math.random() * (math.random(0, 1) == 0 and 1 or -1)
   else
-    return bank[n][parameter].prev
+    return construct.prev
   end
 end
 
 n_s = "inQuart"
 
-local function make_complex(n,parameter)
+local function make_complex(construct)
   -- print(easingFunctions["inQuart"](make_sine(n,parameter),0,1,1), easeinquart((make_sine(n,parameter))))
-  return {easingFunctions[n_s](util.linlin(-1,1,0,1,make_sine(n,parameter)),0,1,1),easeinbounce((make_sine(n,parameter)))} -- these match...
+  return {easingFunctions[n_s](util.linlin(-1,1,0,1,make_sine(construct)),0,1,1),easeinbounce((make_sine(construct)))} -- these match...
   -- return util.linlin(0,2,-1,1,easeoutinquad(util.linlin(-1,1,0,2,make_sine(n,parameter))))
   -- easingFunctions[m[i].curve](val/self.in_max,self.in_min,self.in_max,1)
 end
@@ -180,34 +183,51 @@ function lfos.iterate(id,parameter)
   -- want to basically pass the lfo metro ticker to the different lfos
   -- need to watch for oversaturattion -- does there need to be 10ms processing?
   -- at least stuff like pans shouldn't be sent to softcut every 10ms...
-  if bank ~= nil and bank[id][parameter].active then
-    local slope
-    if bank[id][parameter].waveform == "sine" then
-      slope = make_sine(id,parameter)
-    elseif bank[id][parameter].waveform == "sqr" then
-      slope = make_square(id,parameter)
-    elseif bank[id][parameter].waveform == "s+h" then
-      slope = make_sh(id,parameter)
-    elseif bank[id][parameter].waveform == "complex" then
-      slope = make_complex(id,parameter)[1]
-      print(slope,make_complex(id,parameter)[2])
+  if parameter ~= "macro_lfo" then
+    if bank ~= nil and bank[id][parameter].active then
+      lfos.parse("banks",id,parameter)
     end
-    if not bank[id][parameter].loop then
-      if util.round(1 * math.sin(((tau / 100) * (bank[id][parameter].counter)) - (tau / (bank[id][parameter].freq))),0.1) <=  0 then
-        bank[id][parameter].active = false
-        goto continue
-      end
+  else
+    if macro[id].lfo.active then
+      lfos.parse("macros",id,parameter)
     end
-    bank[id][parameter].prev = slope
-    bank[id][parameter].slope = math.max(-1.0, math.min(1.0, slope)) * (bank[id][parameter].depth * 0.01) + bank[id][parameter].offset
-    bank[id][parameter].counter = bank[id][parameter].counter + bank[id][parameter].freq
-    lfos.process(id,parameter)
-    ::continue::
-    if not bank[id][parameter].active then
-      print("it's here...")
-      lfos.zero_out(id,parameter)
-      screen_dirty = true
+  end
+end
+
+function lfos.parse(style,id,parameter)
+  local construct;
+  if style == "banks" then
+    construct = bank[id][parameter]
+  elseif style == "macros" then
+    construct = macro[id].lfo
+  end
+  local slope;
+  construct.prev_slope = construct.slope
+  if construct.waveform == "sine" then
+    slope = make_sine(construct)
+  elseif construct.waveform == "sqr" then
+    slope = make_square(construct)
+  elseif construct.waveform == "s+h" then
+    slope = make_sh(construct)
+  elseif construct.waveform == "complex" then
+    slope = make_complex(construct)[1]
+    print(slope,make_complex(construct)[2])
+  end
+  if not construct.loop then
+    if util.round(1 * math.sin(((tau / 100) * (construct.counter)) - (tau / (construct.freq))),0.1) <=  0 then
+      construct.active = false
+      goto continue
     end
+  end
+  construct.prev = slope
+  construct.slope = math.max(-1.0, math.min(1.0, slope)) * (construct.depth * 0.01) + construct.offset
+  construct.counter = construct.counter + construct.freq
+  lfos.process(id,parameter)
+  ::continue::
+  if not construct.active then
+    print("it's here...")
+    lfos.zero_out(id,parameter)
+    screen_dirty = true
   end
 end
 
@@ -223,18 +243,26 @@ end
 
 function lfos.process(id,parameter)
   if parameter == "pan_lfo" then
-    softcut.pan(id+1, bank[id][parameter].slope)
-    if menu == 4 and id == page.pans.bank then
-      screen_dirty = true
+    if util.round(bank[id][parameter].prev_slope,0.05) ~= util.round(bank[id][parameter].slope,0.05) then
+      softcut.pan(id+1, bank[id][parameter].slope)
+      if menu == 4 and id == page.pans.bank then
+        screen_dirty = true
+      end
     end
   elseif parameter == "level_lfo" then
-    local highest_to_lowest = util.linlin(0,1,0,bank[id][bank[id].id].level,bank[id][parameter].slope) -- this is so super important!
-    softcut.level(id+1,highest_to_lowest)
-    -- if menu == 3 and id == page.levels.bank then
-    --   screen_dirty = true
-    -- end
+    local highest_to_lowest = util.linlin(-1,1,0,bank[id].global_level,bank[id][parameter].slope) -- this is so super important!
+    if util.round(bank[id][parameter].prev_slope,0.05) ~= util.round(bank[id][parameter].slope,0.05) then
+      if not bank[id][bank[id].id].enveloped then
+        softcut.level(id+1,bank[id][bank[id].id].level * _l.get_global_level(id))
+      end
+      -- print(highest_to_lowest)
+      -- softcut.level(id+1,bank[id][bank[id].id].level * highest_to_lowest)
+      -- softcut.level(id+1,bank[id][bank[id].id].level * _l.get_global_level(id))
+    end
   elseif parameter == "filter_lfo" then
     softcut.post_filter_fc(id+1,util.linlin(-1,1,8000,12000,bank[id][parameter].slope))
+  elseif parameter == "macro_lfo" then
+    macros.lfo_process(id,macro[id].lfo.slope)
   end
 end
 
@@ -250,84 +278,91 @@ function lfos.process_cheat(b,p,parameter)
     bank[b][parameter].offset = bank[b][p].pan
     softcut.pan(b+1,bank[b][p].pan)
   elseif parameter == "level_lfo" then
-    lfos.turn_on_level(b)
+
   end
 end
 
 function lfos.process_encoder(n,d,target,parameter)
-  local _p_ = page.pans
-  if bank[_p_.bank].focus_hold == true then
-    focused_pad[_p_.bank] = bank[_p_.bank].focus_pad
-  else
-    focused_pad[_p_.bank] = bank[_p_.bank].id
-  end
   if target == "pan_lfo" then
+    local _p_ = page.pans
+    local focused;
+    if bank[_p_.bank].focus_hold == true then
+      focused_pad[_p_.bank] = bank[_p_.bank].focus_pad
+      focused = true
+    else
+      focused_pad[_p_.bank] = bank[_p_.bank].id
+      focused = false
+    end
     local b = bank[_p_.bank]
     local f = focused_pad[_p_.bank]
+    
     if parameter == "LFO" then
-      if last_slew[_p_.bank] == nil then
-        last_slew[_p_.bank] = params:get("pan slew ".._p_.bank)
-        params:set("pan slew ".._p_.bank,0.1)
-      end
+      -- if last_slew[_p_.bank] == nil then
+      --   last_slew[_p_.bank] = params:get("pan slew ".._p_.bank)
+      --   params:set("pan slew ".._p_.bank,0.1)
+      -- end
       b[f].pan_lfo.active = d > 0 and true or false
+      if not focused then
+        for i = 1,16 do
+          if i ~= f then
+            b[i].pan_lfo.active = b[f].pan_lfo.active
+          end
+        end
+      end
       if b.id == f then
         b.pan_lfo.active = b[f].pan_lfo.active
-        b.pan_lfo.counter = lfos.find_the_one(_p_.bank,target) -- TODO ERROR WHEN PATTERN IS GOING??
+        b.pan_lfo.counter = lfos.find_the_one(_p_.bank,target)
         b.pan_lfo.slope = b[f].pan
         if not b.pan_lfo.active then
           softcut.pan(_p_.bank+1,b[f].pan)
-          b.pan_lfo.counter = 1 -- TODO ERROR WHEN PATTERN IS GOING??
+          b.pan_lfo.counter = 1
           b.pan_lfo.slope = b[f].pan
-          params:set("pan slew ".._p_.bank,last_slew[_p_.bank])
-          last_slew[_p_.bank] = nil
         end
       end
     elseif parameter == "SHP" then
       local current_index = tab.key(lfo_types,b[f].pan_lfo.waveform)
       current_index = util.clamp(current_index + d,1,#lfo_types)
       b[f].pan_lfo.waveform = lfo_types[current_index]
+      if not focused then
+        for i = 1,16 do
+          if i ~= f then
+            b[i].pan_lfo.waveform = b[f].pan_lfo.waveform
+          end
+        end
+      end
       if b.id == f then
         b.pan_lfo.waveform = b[f].pan_lfo.waveform
       end
     elseif parameter == "DPTH" then
       b[f].pan_lfo.depth = util.clamp(b[f].pan_lfo.depth + d,1,200)
+      if not focused then
+        for i = 1,16 do
+          if i ~= f then
+            b[i].pan_lfo.depth = b[f].pan_lfo.depth
+          end
+        end
+      end
       if b.id == f then
         b.pan_lfo.depth = b[f].pan_lfo.depth
       end
     elseif parameter == "RATE" then
       b[f].pan_lfo.rate_index = util.clamp(b[f].pan_lfo.rate_index + d,1,#lfo_rates.values)
       b[f].pan_lfo.freq = 1/((clock.get_beat_sec()*4) * lfo_rates.values[b[f].pan_lfo.rate_index])
+      if not focused then
+        for i = 1,16 do
+          if i ~= f then
+            b[i].pan_lfo.rate_index = b[f].pan_lfo.rate_index
+            b[i].pan_lfo.freq = b[f].pan_lfo.freq
+          end
+        end
+      end
       if b.id == f then
         b.pan_lfo.freq = b[f].pan_lfo.freq
       end
     end
-  end
-end
 
-function lfos.turn_on_level(i)
-  -- if all_loaded and the_one[i] == 1 then
-  --   the_one[i] = _lfos.find_the_one(i,"level_lfo")
-  -- end
-  softcut.level_slew_time(i+1,0.01)
-  softcut.level(i+1,0)
-  local b = bank[i]
-  if b.focus_hold == true then
-    focused_pad[i] = b.focus_pad
-  else
-    focused_pad[i] = b.id
-  end
-  local f = focused_pad[i]
-  b.level_lfo.active = true
-  b.level_lfo.counter = lfos.find_the_one(i,"level_lfo") -- FIXME don't calculate this every fuckin time.
-  -- b.level_lfo.counter = the_one[i]
-  print(b.level_lfo.counter)
-  b.level_lfo.slope = b[f].level
-  if not b.level_lfo.active then
-    -- softcut.level(_p_.bank+1,b[f].pan)
-    b.level_lfo.counter = 1 -- TODO ERROR WHEN PATTERN IS GOING??
-    b.level_lfo.slope = b[f].level
-    -- params:set("pan slew ".._p_.bank,last_slew[_p_.bank])
-    last_slew[_p_.bank] = nil
+  elseif target == "macro_lfo" then
+
   end
 end
 

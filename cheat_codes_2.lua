@@ -1623,7 +1623,8 @@ function init()
               if bank[id][check_focus_hold(id)].envelope_mode == 2 or bank[id][check_focus_hold(id)].enveloped == false then
                 if bank[id].focus_hold == false then
                   softcut.level_slew_time(id+1,1.0)
-                  softcut.level(id+1,bank[id][check_focus_hold(id)].level*bank[id].global_level)
+                  -- softcut.level(id+1,bank[id][check_focus_hold(id)].level*bank[id].global_level)
+                  softcut.level(id+1,bank[id][check_focus_hold(id)].level*_l.get_global_level(id))
                   softcut.level_cut_cut(id+1,5,(bank[id][check_focus_hold(id)].left_delay_level*bank[id][check_focus_hold(id)].level)*bank[id].global_level)
                   softcut.level_cut_cut(id+1,6,(bank[id][check_focus_hold(id)].right_delay_level*bank[id][check_focus_hold(id)].level)*bank[id].global_level)
                 end
@@ -1636,7 +1637,8 @@ function init()
               if bank[id][check_focus_hold(id)].envelope_mode == 2 or bank[id][check_focus_hold(id)].enveloped == false then
                 if bank[id].focus_hold == false then
                   softcut.level_slew_time(id+1,1.0)
-                  softcut.level(id+1,bank[id][check_focus_hold(id)].level*bank[id].global_level)
+                  -- softcut.level(id+1,bank[id][check_focus_hold(id)].level*bank[id].global_level)
+                  softcut.level(id+1,bank[id][check_focus_hold(id)].level*_l.get_global_level(id))
                   softcut.level_cut_cut(id+1,5,(bank[id][check_focus_hold(id)].left_delay_level*bank[id][check_focus_hold(id)].level)*bank[id].global_level)
                   softcut.level_cut_cut(id+1,6,(bank[id][check_focus_hold(id)].right_delay_level*bank[id][check_focus_hold(id)].level)*bank[id].global_level)
                 end
@@ -2740,7 +2742,8 @@ function reset_all_banks( banks )
       depth = 100,
       offset = 0,
       active = false,
-      loop = false
+      loop = true,
+      rate_index = 15
     }
 
     b.filter_lfo =
@@ -2784,7 +2787,7 @@ function reset_all_banks( banks )
       pad.pan_lfo.freq      = 1/((clock.get_beat_sec()*4))
       pad.pan_lfo.depth     = 100
       pad.pan_lfo.active    = false
-      pad.pan_lfo.rate_index= 14
+      pad.pan_lfo.rate_index= 15
       pad.pan_lfo.loop      = true
       -- FIXME these are both just 0.5. why compute them? could instead call that fn?
       pad.left_delay_pan    = util.linlin(-1,1,0,1,pad.pan) * pad.left_delay_level
@@ -2818,7 +2821,7 @@ function reset_all_banks( banks )
       pad.level_lfo.depth     = 100
       pad.level_lfo.active    = false
       pad.level_lfo.rate_index= 15
-      pad.level_lfo.loop      = false
+      pad.level_lfo.loop      = true
 
       pad.filter_lfo           = {}
       pad.filter_lfo.waveform  = "sine"
@@ -2830,7 +2833,7 @@ function reset_all_banks( banks )
 
       pad.clock_resolution  = 4
       pad.offset            = 1.0
-      pad.crow_pad_execute  = 1
+      pad.send_pad_note     = true
       pad.left_delay_thru   = false
       pad.right_delay_thru  = false
       pad.rate_slew         = 0
@@ -2869,7 +2872,8 @@ function cheat(b,i)
       env_counter[b].l_del_butt = pad.left_delay_level
       env_counter[b].r_del_butt = pad.right_delay_level
       softcut.level_slew_time(b+1,0.05)
-      softcut.level(b+1,pad.level*bank[b].global_level)
+      -- softcut.level(b+1,pad.level*bank[b].global_level)
+      softcut.level(b+1,pad.level*_l.get_global_level(b))
       softcut.level_cut_cut(b+1,5,(pad.level*bank[b].global_level)*pad.left_delay_level)
       softcut.level_cut_cut(b+1,6,(pad.level*bank[b].global_level)*pad.right_delay_level)
       if pad.level > 0.05 then
@@ -2877,7 +2881,8 @@ function cheat(b,i)
       end
     elseif pad.envelope_mode == 2 or pad.envelope_mode == 3 then
       softcut.level_slew_time(b+1,0.01)
-      softcut.level(b+1,0*bank[b].global_level)
+      -- softcut.level(b+1,0*bank[b].global_level)
+      softcut.level(b+1,0*_l.get_global_level(b))
       softcut.level_cut_cut(b+1,5,0)
       softcut.level_cut_cut(b+1,6,0)
       env_counter[b].butt = 0
@@ -2892,7 +2897,8 @@ function cheat(b,i)
     -- print("start of env: "..clock.get_beats())
   elseif not pad.enveloped and not pad.pause then
     softcut.level_slew_time(b+1,0.01)
-    softcut.level(b+1,pad.level*bank[b].global_level)
+    -- softcut.level(b+1,pad.level*bank[b].global_level)
+    softcut.level(b+1,pad.level*_l.get_global_level(b))
     -- _lfos.process_cheat(b,i,"level_lfo")
     if not delay[1].send_mute then
       if pad.left_delay_thru then
@@ -2968,7 +2974,7 @@ function cheat(b,i)
   end
   previous_pad = bank[b].id
   if bank[b].crow_execute == 1 then
-    if pad.crow_pad_execute == 1 then
+    if pad.send_pad_note then
       crow.output[b]()
     end
   end
@@ -3038,6 +3044,17 @@ function envelope(i)
   end
 end
 
+function sidechain(source,target)
+  if source.envelope_mode == 1 then
+    rising_envelope(target.bank_id)
+    -- a falling source would mean a rising target
+  elseif source.envelope_mode == 2 then
+    -- a rising source would mean a falling target
+  elseif source.envelope_mode == 3 then
+    -- a rise/fall source would mean a fall/rise target
+  end
+end
+
 function falling_envelope(i)
   if env_counter[i].butt > 0.05 then
     env_counter[i].butt = env_counter[i].butt - 0.05
@@ -3054,32 +3071,26 @@ function falling_envelope(i)
       softcut.level_slew_time(i+1,0.01)
     end
      -- TODO: shouldn't have to declare this^^
-    softcut.level(i+1,e_c*bank[i].global_level)
-    -- softcut.level_cut_cut(i+1,5,(env_counter[i].butt*bank[i].global_level)*bank[i][bank[i].id].left_delay_level)
-    -- softcut.level_cut_cut(i+1,6,(env_counter[i].butt*bank[i].global_level)*bank[i][bank[i].id].right_delay_level)
-    if delay[1].send_mute then
-      if bank[i][bank[i].id].left_delay_level == 0 then
-        softcut.level_cut_cut(i+1,5,(e_c*bank[i].global_level)*1)
+    -- softcut.level(i+1,e_c*bank[i].global_level)
+    softcut.level(i+1,e_c*_l.get_global_level(i))
+    local del_levels = {"left_delay_level","right_delay_level"}
+    for j = 1,2 do
+      if delay[j].send_mute then
+        if bank[i][bank[i].id][del_levels[j]] == 0 then
+          softcut.level_cut_cut(i+1,4+j,(e_c*bank[i].global_level)*1)
+        else
+          softcut.level_cut_cut(i+1,4+j,(e_c*bank[i].global_level)*0)
+        end
       else
-        softcut.level_cut_cut(i+1,5,(e_c*bank[i].global_level)*0)
+        softcut.level_cut_cut(i+1,4+j,(e_c*bank[i].global_level)*bank[i][bank[i].id][del_levels[j]])
       end
-    else
-      softcut.level_cut_cut(i+1,5,(e_c*bank[i].global_level)*bank[i][bank[i].id].left_delay_level)
-    end
-    if delay[2].send_mute then
-      if bank[i][bank[i].id].right_delay_level == 0 then
-        softcut.level_cut_cut(i+1,6,(e_c*bank[i].global_level)*1)
-      else
-        softcut.level_cut_cut(i+1,6,(e_c*bank[i].global_level)*0)
-      end
-    else
-      softcut.level_cut_cut(i+1,6,(e_c*bank[i].global_level)*bank[i][bank[i].id].right_delay_level)
     end
   else
     -- print("end of fall: "..clock.get_beats())
     env_counter[i]:stop()
     softcut.level_slew_time(i+1,1.0)
-    softcut.level(i+1,0*bank[i].global_level)
+    -- softcut.level(i+1,0*bank[i].global_level)
+    softcut.level(i+1,0*_l.get_global_level(i))
     env_counter[i].butt = bank[i][bank[i].id].level+0.05
     softcut.level_cut_cut(i+1,5,0)
     softcut.level_cut_cut(i+1,6,0)
@@ -3097,52 +3108,41 @@ function rising_envelope(i)
   env_counter[i].butt = env_counter[i].butt + 0.05
   if env_counter[i].butt < bank[i][bank[i].id].level then
     local e_c = util.clamp(easingFunctions[n_s](env_counter[i].butt,0,1,1),0,bank[i][bank[i].id].level)
-    -- print(e_c,env_counter[i].butt)
     softcut.level_slew_time(i+1,0.01)
-    softcut.level(i+1,e_c*bank[i].global_level)
-    -- softcut.level_cut_cut(i+1,5,env_counter[i].butt*(bank[i][bank[i].id].left_delay_level*bank[i].global_level))
-    -- softcut.level_cut_cut(i+1,6,env_counter[i].butt*(bank[i][bank[i].id].right_delay_level*bank[i].global_level))
-    if delay[1].send_mute then
-      if bank[i][bank[i].id].left_delay_level == 0 then
-        softcut.level_cut_cut(i+1,5,(e_c*bank[i].global_level)*1)
+    -- softcut.level(i+1,e_c*bank[i].global_level)
+    softcut.level(i+1,e_c*_l.get_global_level(i))
+    for j = 1,2 do
+      if delay[j].send_mute then
+        if bank[i][bank[i].id].left_delay_level == 0 then
+          softcut.level_cut_cut(i+1,4+j,(e_c*bank[i].global_level)*1)
+        else
+          softcut.level_cut_cut(i+1,4+j,(e_c*bank[i].global_level)*0)
+        end
       else
-        softcut.level_cut_cut(i+1,5,(e_c*bank[i].global_level)*0)
+        softcut.level_cut_cut(i+1,4+j,(e_c*bank[i].global_level)*bank[i][bank[i].id].left_delay_level)
       end
-    else
-      softcut.level_cut_cut(i+1,5,(e_c*bank[i].global_level)*bank[i][bank[i].id].left_delay_level)
-    end
-    if delay[2].send_mute then
-      if bank[i][bank[i].id].right_delay_level == 0 then
-        softcut.level_cut_cut(i+1,6,(e_c*bank[i].global_level)*1)
-      else
-        softcut.level_cut_cut(i+1,6,(e_c*bank[i].global_level)*0)
-      end
-    else
-      softcut.level_cut_cut(i+1,6,(e_c*bank[i].global_level)*bank[i][bank[i].id].right_delay_level)
     end
   else
     env_counter[i]:stop()
-    -- print("end of rise: "..clock.get_beats())
-    softcut.level(i+1,bank[i][bank[i].id].level*bank[i].global_level)
+    -- softcut.level(i+1,bank[i][bank[i].id].level*bank[i].global_level)
+    softcut.level(i+1,bank[i][bank[i].id].level*_l.get_global_level(i))
     env_counter[i].butt = 0
-    if bank[i][bank[i].id].left_delay_thru then
-      softcut.level_cut_cut(i+1,5,bank[i][bank[i].id].left_delay_level)
-    else
-      softcut.level_cut_cut(i+1,5,(bank[i][bank[i].id].left_delay_level*bank[i][bank[i].id].level)*bank[i].global_level)
-    end
-    if bank[i][bank[i].id].right_delay_thru then
-      softcut.level_cut_cut(i+1,6,bank[i][bank[i].id].left_delay_level)
-    else
-      softcut.level_cut_cut(i+1,6,(bank[i][bank[i].id].left_delay_level*bank[i][bank[i].id].level)*bank[i].global_level)
+    local del_thrus = {"left_delay_thru","right_delay_thru"}
+    local del_sides = {"left_delay_level","right_delay_level"}
+    for j = 1,2 do
+      if bank[i][bank[i].id][del_thrus[j]] then
+        softcut.level_cut_cut(i+1,4+j,bank[i][bank[i].id][del_sides[j]])
+      else
+        softcut.level_cut_cut(i+1,4+j,(bank[i][bank[i].id][del_sides[j]]*bank[i][bank[i].id].level)*bank[i].global_level)
+      end
     end
     softcut.level_slew_time(i+1,1.0)
     if bank[i][bank[i].id].envelope_mode == 3 then
+      -- rise fall envelope, fall stage
       env_counter[i].stage = "falling"
       softcut.level_slew_time(i+1,0.01)
       env_counter[i].butt = bank[i][bank[i].id].level+0.05
       if bank[i][bank[i].id].level > 0.05 then
-      -- if bank[i][bank[i].id].envelope_time/(bank[i][bank[i].id].level/0.05) ~= inf then
-        -- env_counter[i].time = (bank[i][bank[i].id].envelope_time/(bank[i][bank[i].id].level/0.05))
         env_counter[i].time = (bank[i][bank[i].id].envelope_time/(util.round(bank[i][bank[i].id].level/0.05)+1)) * 0.5
       end
       env_counter[i]:start()
@@ -3183,9 +3183,18 @@ function easing_slew(i)
   end
 end
 
+--- Linear interpolation between a and b
+function lerp(a,b,t)
+  return a+(b-a)*t
+end
+
+--- Finds the t value that would return v in a lerp between a and b
+function invlerp(a,b,v)
+  return (v-a)/(b-a)
+end
+
 function try_tilt_process(b,i,t,rq)
   if util.round(t*100) < 0 then
-    local trill = math.abs(t)
     bank[b][i].cf_lp = math.abs(t)
     bank[b][i].cf_dry = 1+t
     if util.round(t*100) >= -24 then
@@ -4429,14 +4438,8 @@ function grid_redraw()
         
         for i = 1,3 do
           if bank[i].focus_hold then
-            g:led(4+(5*(i-1)),4,(10*bank[i][bank[i].focus_pad].crow_pad_execute)+5)
+            g:led(4+(5*(i-1)),4,(10*(bank[i][bank[i].focus_pad].send_pad_note and 1 or 0))+5)
           end
-          -- if bank[i].focus_hold == true then
-          --   g:led(5*i,5,(10*bank[i][bank[i].focus_pad].crow_pad_execute)+5)
-          -- else
-          --   local alt = bank[i].alt_lock and 1 or 0
-          --   g:led(5*i,5,15*alt)
-          -- end
           local alt = bank[i].alt_lock and 1 or 0
           g:led(5*i,5,15*alt)
         end
@@ -4890,7 +4893,7 @@ function grid_redraw()
         
         -- crow pad execute
         if bank[bank_64].focus_hold then
-          g:led(5,7,(10*bank[bank_64][bank[bank_64].focus_pad].crow_pad_execute)+5)
+          g:led(5,7,(10*(bank[bank_64][bank[bank_64].focus_pad].send_pad_note and 1 or 0))+5)
         end
         local alt = bank[bank_64].alt_lock and 1 or 0
         g:led(4,8,15*alt)
@@ -5198,7 +5201,8 @@ function new_arc_pattern_execute(entry)
       bank[id][which_pad].level = (entry.level + arc_offset)
       bank[id].global_level = (entry.global_level + arc_offset)
       if bank[id].id == which_pad then
-        softcut.level(id+1, (entry.level + arc_offset)*bank[id].global_level)
+        -- softcut.level(id+1, (entry.level + arc_offset)*bank[id].global_level)
+        softcut.level(id+1, (entry.level + arc_offset)*_l.get_global_level(id))
       end
     elseif entry.param == 6 then
       bank[id][which_pad].pan = (entry.pan + arc_offset)
@@ -5698,7 +5702,22 @@ function named_loadstate(path)
     end
     for i = 1,3 do
       if tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/banks/"..i..".data") ~= nil then
+        local pre_open = deep_copy(bank[i])
         bank[i] = tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/banks/"..i..".data")
+        for k,v in pairs(pre_open) do
+          if bank[i][k] == nil then
+            print(v)
+            bank[i][k] = deep_copy(v)
+          end
+        end
+        for j = 1,16 do
+          for k,v in pairs(pre_open[j]) do
+            if bank[i][j][k] == nil then
+              bank[i][j][k] = v
+              -- print(">>>>>>"..k)
+            end
+          end
+        end
         if bank[i][bank[i].id].loop then
           softcut.loop(i+1,1)
           cheat(i,bank[i].id)

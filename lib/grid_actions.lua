@@ -438,21 +438,6 @@ function grid_actions.init(x,y,z)
       end
       
       if y == 5 then
-        --CROW
-        -- if z == 1 then
-        --   for i = 1,3 do
-        --     if bank[i].focus_hold == true then
-        --       if x == i*5 then
-        --         bank[i][bank[i].focus_pad].crow_pad_execute = (bank[i][bank[i].focus_pad].crow_pad_execute + 1)%2
-        --         if grid_alt then
-        --           for j = 1,16 do
-        --             bank[i][j].crow_pad_execute = bank[i][bank[i].focus_pad].crow_pad_execute
-        --           end
-        --         end
-        --       end
-        --     end
-        --   end
-        -- end
         if x == 5 or x == 10 or x == 15 then
           if not grid_alt then
             bank[x/5].alt_lock = z == 1 and true or false
@@ -478,7 +463,8 @@ function grid_actions.init(x,y,z)
                 if key1_hold == true then key1_hold = false end
                 if y == 4 then
                   --CROW
-                  bank[i][bank[i].focus_pad].crow_pad_execute = (bank[i][bank[i].focus_pad].crow_pad_execute + 1)%2
+                  -- bank[i][bank[i].focus_pad].send_pad_note = (bank[i][bank[i].focus_pad].send_pad_note + 1)%2
+                  bank[i][bank[i].focus_pad].send_pad_note = not bank[i][bank[i].focus_pad].send_pad_note
                 end
                 if menu ~= 1 then screen_dirty = true end
               end
@@ -499,9 +485,10 @@ function grid_actions.init(x,y,z)
                 end
                 softcut.rate(current+1,1*bank[current][bank[current].id].offset)
               elseif y == 4 and bank[i].focus_hold then
-                bank[i][bank[i].focus_pad].crow_pad_execute = (bank[i][bank[i].focus_pad].crow_pad_execute + 1)%2
+                -- bank[i][bank[i].focus_pad].send_pad_note = (bank[i][bank[i].focus_pad].send_pad_note + 1)%2
+                bank[i][bank[i].focus_pad].send_pad_note = not bank[i][bank[i].focus_pad].send_pad_note
                 for j = 1,16 do
-                  bank[i][j].crow_pad_execute = bank[i][bank[i].focus_pad].crow_pad_execute
+                  bank[i][j].send_pad_note = bank[i][bank[i].focus_pad].send_pad_note
                 end
               end
             end
@@ -1293,14 +1280,14 @@ function grid_actions.init(x,y,z)
             end
             softcut.rate(i+1,1*bank[i][bank[i].id].offset)
           else
-            bank[i][bank[i].focus_pad].crow_pad_execute = (bank[i][bank[i].focus_pad].crow_pad_execute + 1)%2
+            bank[i][bank[i].focus_pad].send_pad_note = not bank[i][bank[i].focus_pad].send_pad_note
             for j = 1,16 do
-              bank[i][j].crow_pad_execute = bank[i][bank[i].focus_pad].crow_pad_execute
+              bank[i][j].send_pad_note = bank[i][bank[i].focus_pad].send_pad_note
             end
           end
         else
           if bank[i].focus_hold then
-            bank[i][bank[i].focus_pad].crow_pad_execute = (bank[i][bank[i].focus_pad].crow_pad_execute + 1)%2
+            bank[i][bank[i].focus_pad].send_pad_note = not bank[i][bank[i].focus_pad].send_pad_note
           end
         end
         screen_dirty = true

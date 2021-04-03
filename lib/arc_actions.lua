@@ -205,7 +205,8 @@ end
 
 function aa.sc.change_level(enc, target)
   if bank[enc][bank[enc].id].envelope_mode == 2 or not bank[enc][bank[enc].id].enveloped then
-    softcut.level(enc+1,target.level*bank[enc].global_level)
+    -- softcut.level(enc+1,target.level*bank[enc].global_level)
+    softcut.level(enc+1,target.level*_l.get_global_level(enc))
   end
 end
 

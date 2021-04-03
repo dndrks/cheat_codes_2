@@ -295,6 +295,18 @@ function Macro:new()
   m.focus = "none" -- what is this???
   m.control_source = "PARAMS"
   m.enabled = false
+  m.lfo = 
+  {
+    freq = 1/((clock.get_beat_sec()*4) * 2),
+    counter = 1,
+    waveform = "sine",
+    slope = 0,
+    depth = 100,
+    offset = 0,
+    active = false,
+    loop = true,
+    rate_index = 15
+  }
   m.params =
   { 
     self:generate_default_params()
@@ -401,12 +413,12 @@ function Macro:cycle_entry(d,id)
     macro[p.selected_macro]:delta_target(p.param_sel[p.selected_macro],d)
   elseif id == 3 then
     local current = macro[p.selected_macro].params[p.param_sel[p.selected_macro]]
-    local params_with_fine = {"pan","filter tilt","delay pan"}
+    local params_with_fine = {"pan","filter tilt","delay pan","delay free time"}
     local div = tab.contains(params_with_fine,current.params_name) and 10 or 1
     macro[p.selected_macro]:delta_min(p.param_sel[p.selected_macro],d,div)
   elseif id ==  4 then
     local current = macro[p.selected_macro].params[p.param_sel[p.selected_macro]]
-    local params_with_fine = {"pan","filter tilt","delay pan"}
+    local params_with_fine = {"pan","filter tilt","delay pan","delay free time"}
     local div = tab.contains(params_with_fine,current.params_name) and 10 or 1
     macro[p.selected_macro]:delta_max(p.param_sel[p.selected_macro],d,div)
   elseif id == 5 then
@@ -422,27 +434,33 @@ function Container.enc(n,d)
     p.selected_macro = util.clamp(p.selected_macro+d,1,8)
   elseif n == 2 then
     if page.macros.mode == "setup" then
-      if p.section == 1 then
-        p.param_sel[p.selected_macro] = util.clamp(p.param_sel[p.selected_macro] + d,1,8)
-        p.edit_focus[p.selected_macro] = 1
-      elseif p.section == 2 then
-        if macro[p.selected_macro].params[p.param_sel[p.selected_macro]].params_name ~= "none" then
-          p.edit_focus[p.selected_macro] = util.clamp(p.edit_focus[p.selected_macro] + d,1,5)
-        end
-      elseif p.section == 3 then
-        macro[p.selected_macro].params[p.param_sel[p.selected_macro]].enabled = d > 0 and true or false
-      end
+      local reasonable_max = macro[p.selected_macro].params[p.param_sel[p.selected_macro]].params_name ~= "none" and 7 or 2
+      p.edit_focus[p.selected_macro] = util.clamp(p.edit_focus[p.selected_macro] + d,1,reasonable_max)
+    elseif page.macros.mode == "perform" then
+      p.perform_focus[p.selected_macro] = util.clamp(p.perform_focus[p.selected_macro] + d,1,5)
     end
   elseif n == 3 then
     if page.macros.mode == "perform" then
-      params:delta("macro "..p.selected_macro,d)
+      if p.perform_focus[p.selected_macro] == 1 then
+        params:delta("macro "..p.selected_macro,d)
+      else
+        local f = p.perform_focus[p.selected_macro]-1
+        local params_to_adjust =
+        {
+          "macro "..p.selected_macro.." lfo active",
+          "macro "..p.selected_macro.." lfo waveform",
+          "macro "..p.selected_macro.." lfo depth",
+          "macro "..p.selected_macro.." lfo rate"
+        }
+        params:delta(params_to_adjust[f],d)
+      end
     elseif page.macros.mode == "setup" then
-      if p.section == 1 then
-        p.param_sel[p.selected_macro] = util.clamp(p.param_sel[p.selected_macro] + d,1,8)
+      if p.edit_focus[p.selected_macro] == 1 then
+        p.param_sel[p.selected_macro] = util.clamp(p.param_sel[p.selected_macro] + d,1,7)
         p.edit_focus[p.selected_macro] = 1
-      elseif p.section == 2 then
-        macro[p.selected_macro]:cycle_entry(d,current_line)
-      elseif p.section == 3 then
+      elseif p.edit_focus[p.selected_macro] > 1 and p.edit_focus[p.selected_macro] < 7  then
+        macro[p.selected_macro]:cycle_entry(d,p.edit_focus[p.selected_macro]-1)
+      elseif p.edit_focus[p.selected_macro] == 7  then
         macro[p.selected_macro].params[p.param_sel[p.selected_macro]].enabled = d > 0 and true or false
       end
     end
@@ -455,7 +473,9 @@ function Container.key(n,z)
   local p = page.macros
   if n == 1 then
     key1_hold = z == 1 and true or false
+    -- page.macros.alt_menu = z == 1 and true or false
     if z == 1 then
+      page.macros.mode = page.macros.mode == "setup" and "perform" or "setup"
       if p.mode == "setup" then
         last_section = p.section
         p.section = 3
@@ -467,12 +487,14 @@ function Container.key(n,z)
     end
   elseif n == 3 and z == 1 then
     if key1_hold then
-      page.macros.mode = page.macros.mode == "setup" and "perform" or "setup"
+      -- page.macros.mode = page.macros.mode == "setup" and "perform" or "setup"
     else
       if p.mode == "setup" then
-        p.section = util.wrap(p.section+1,1,2)
+        -- p.section = util.wrap(p.section+1,1,2)
       elseif p.mode == "perform" then
-        params:set("macro "..p.selected_macro,math.random(macro[p.selected_macro].in_min,macro[p.selected_macro].in_max))
+        if p.perform_focus[p.selected_macro] == 1 then
+          params:set("macro "..p.selected_macro,math.random(macro[p.selected_macro].in_min,macro[p.selected_macro].in_max))
+        end
       end
     end
   elseif n == 2 and z == 1 then
@@ -493,10 +515,27 @@ function Container.key(n,z)
 end
 
 function Container:add_params()
-  params:add_group("macros",8)
+  params:add_group("macros",8*6)
   for i = 1,8 do
-    params:add_number("macro "..i, "macro "..i, 0,127,0)
+    params:add_separator("MACRO "..i,1)
+    params:add_number("macro "..i, "macro "..i.." value", 0,127,0)
     params:set_action("macro "..i, function(x) if all_loaded then macro[i]:pass_value(x) end end)
+    params:add_option("macro "..i.." lfo active", "macro "..i.." lfo active",{"no","yes"},1)
+    params:set_action("macro "..i.." lfo active", function(x)
+      macro[i].lfo.active = x == 1 and false or true
+    end)
+    params:add_option("macro "..i.." lfo waveform", "macro "..i.." lfo waveform",lfo_types,1)
+    params:set_action("macro "..i.." lfo waveform", function(x)
+      macro[i].lfo.waveform = lfo_types[x]
+    end)
+    params:add_option("macro "..i.." lfo rate", "macro "..i.." lfo rate",lfo_rates.names,15)
+    params:set_action("macro "..i.." lfo rate", function(x)
+      macro[i].lfo.freq = 1/((clock.get_beat_sec()*4) * lfo_rates.values[x])
+    end)
+    params:add_number("macro "..i.." lfo depth", "macro "..i.." lfo depth",1,200,100)
+    params:set_action("macro "..i.." lfo depth", function(x)
+      macro[i].lfo.depth = x
+    end)
   end
 end
 
@@ -551,6 +590,21 @@ function get_target_display_name(prm,trg)
   end
 end
 
+function Container.UI_init()
+  page.macros = {}
+  page.macros.selected_macro = 1
+  page.macros.section = 1
+  page.macros.param_sel = {}
+  page.macros.edit_focus = {}
+  page.macros.perform_focus = {}
+  page.macros.mode = "setup"
+  for i = 1,8 do
+    page.macros.param_sel[i] = 1
+    page.macros.edit_focus[i] = 1
+    page.macros.perform_focus[i] = 1
+  end
+end
+
 function Container.UI()
   local p = page.macros
   screen.move(0,10)
@@ -574,14 +628,15 @@ function Container.UI()
     screen.move(0,20)
     screen.level(3)
 
-    screen.level(p.section == 1 and 15 or 3)
+    local current = macro[p.selected_macro].params[p.param_sel[p.selected_macro]]
+    local edit_focus = p.edit_focus[p.selected_macro] -- this is key!
+    screen.level(edit_focus == 1 and 15 or 3)
     screen.font_size(40)
     screen.move(0,42)
     screen.text(p.param_sel[p.selected_macro])
-    local current = macro[p.selected_macro].params[p.param_sel[p.selected_macro]]
-    local edit_focus = p.edit_focus[p.selected_macro] -- this is key!
+
     screen.font_size(8)
-    screen.level(p.section == 3 and 15 or 3)
+    screen.level(edit_focus == 7 and 15 or 3)
     screen.rect(0,54,128,7)
     screen.fill()
     screen.level(0)
@@ -593,40 +648,65 @@ function Container.UI()
     screen.level(3)
     screen.font_size(8)
     screen.move(30,21)
-    screen.level(p.section == 2 and (edit_focus == 1 and 15 or 3) or 3)
+    screen.level(edit_focus == 2 and 15 or 3)
     screen.text("param: "..current.params_name)
 
     screen.move(30,31)
-    screen.level(p.section == 2 and (edit_focus == 2 and 15 or 3) or 3)
+    screen.level(edit_focus == 3 and 15 or 3)
     -- screen.text("target: "..(current.params_name == "macro" and "macro "..current.target or (current.params_name == "none" and "-" or bank_names[current.target])))
     -- screen.text("target: "..current.target)
     screen.text("target: "..get_target_display_name(current.params_name,current.target))
 
     screen.move(30,41)
-    screen.level(p.section == 2 and (edit_focus == 3 and 15 or 3) or 3)
+    screen.level(edit_focus == 4 and 15 or 3)
     screen.text("min: "..Container:convert(current,current.target,current.min,"minval"))
     screen.move_rel(5,0)
-    screen.level(p.section == 2 and (edit_focus == 4 and 15 or 3) or 3)
+    screen.level(edit_focus == 5 and 15 or 3)
     screen.text("max: "..Container:convert(current,current.target,current.max,"maxval"))
 
     screen.move(30,51)
-    screen.level(p.section == 2 and (edit_focus == 5 and 15 or 3) or 3)
+    screen.level(edit_focus == 6 and 15 or 3)
     screen.text("curve: "..current.curve)
   
   elseif p.mode == "perform" then
-    screen.rect(0,18,128,13)
+    local current = macro[p.selected_macro].params[p.param_sel[p.selected_macro]]
+    local edit_focus = p.perform_focus[p.selected_macro]
+    screen.level(edit_focus == 1 and 15 or 3)
+    screen.rect(0,18,66,13)
     screen.fill()
-    screen.level(0)
-    screen.move(60,30)
+    screen.level(edit_focus == 1 and 0 or 10)
+    screen.move(33,30)
     screen.font_size(18)
-    screen.text_center("current val")
-    screen.level(15)
-    screen.move(60,60)
+    screen.text_center("value")
+    screen.level(edit_focus == 1 and 15 or 3)
+    screen.move(33,60)
     screen.font_size(40)
     screen.text_center(util.round(params:get("macro "..p.selected_macro)))
+    local lfo_section =
+    {
+      "LFO: "..(macro[p.selected_macro].lfo.active == true and "on" or "off"),
+      "SHP: "..macro[p.selected_macro].lfo.waveform,
+      "DPTH: "..macro[p.selected_macro].lfo.depth,
+      "RATE: "..params:string("macro "..p.selected_macro.." lfo rate")
+    }
+    screen.font_size(8)
+    for i = 1,4 do
+      screen.level(edit_focus == i + 1 and 15 or 3)
+      screen.move(75,15+(10*i))
+      screen.text(lfo_section[i])
+    end
   end
 
 end
 
+function Container.lfo_process(id,movement)
+  local val = util.round(util.linlin(-1,1,0,127,movement))
+  if params:get("macro "..id) ~= val then
+    params:set("macro "..id,val)
+    if menu == "macro_config" and page.macros.mode == "perform" and page.macros.selected_macro == id then
+      screen_dirty = true
+    end
+  end
+end
 
 return Container

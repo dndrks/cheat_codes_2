@@ -327,7 +327,8 @@ end
 function zilchmos.sc.level( pad, i )
   if not pad.enveloped then
     softcut.level_slew_time(i+1,1.0)
-    softcut.level(i+1,pad.level*bank[i].global_level)
+    -- softcut.level(i+1,pad.level*bank[i].global_level)
+    softcut.level(i+1,pad.level*_l.get_global_level(i))
     if pad.left_delay_thru then
       softcut.level_cut_cut(i+1,5,pad.left_delay_level)
     else
@@ -349,7 +350,8 @@ function zilchmos.sc.play_toggle( pad, i )
     if pad.enveloped then
       cheat( i, pad.pad_id )
     else
-      softcut.level(i+1, pad.level*bank[i].global_level)
+      -- softcut.level(i+1, pad.level*bank[i].global_level)
+      softcut.level(i+1,pad.level*_l.get_global_level(i))
     end
     softcut.rate(i+1, pad.rate * pad.offset)
   end

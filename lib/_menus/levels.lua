@@ -6,7 +6,7 @@ local _l_ = nil
 
 function _l.init()
   page.levels = {}
-  page.levels.regions = {"pad_level","bank_level","pad_env","pad_repeat","pad_time","bank_env","bank_repeat","bank_time"}
+  page.levels.regions = {"pad_level","bank_level","pad_env","pad_repeat","pad_time","bank_lfo_active","bank_lfo_shape","bank_lfo_freq"}
   page.levels.selected_region = "pad_level"
   page.levels.sel = 1
   page.levels.bank = 1
@@ -35,6 +35,9 @@ function _l.draw_menu()
   _l.draw_env()
   _l.draw_repeat()
   _l.draw_time()
+  _l.draw_lfo_active()
+  _l.draw_lfo_shape()
+  _l.draw_lfo_freq()
 end
 
 function _l.draw_header()
@@ -126,7 +129,7 @@ function _l.draw_levels()
 
   screen.level(_l_.selected_region == "bank_level" and 15 or 3)
   screen.move(65,18)
-  if _l_.selected_region == "bank_env" or  _l_.selected_region == "bank_repeat" or  _l_.selected_region == "bank_time" then
+  if _l_.selected_region == "bank_lfo_active" or  _l_.selected_region == "bank_lfo_shape" or  _l_.selected_region == "bank_lfo_freq" then
     screen.text_center("[BANK]")
   else
     screen.text_center("BANK")
@@ -162,26 +165,11 @@ function _l.draw_env()
   else
     screen.text("ENV: off")
   end
-  screen.level(_l_.selected_region == "bank_env" and 15 or 3)
-  screen.move(84,44)
-  local shapes = {"\\","/","/\\"}
-  if bank[_l_.bank][focused_pad[_l_.bank]].enveloped then
-    screen.text("ENV: "..shapes[bank[_l_.bank][focused_pad[_l_.bank]].envelope_mode])
-  else
-    screen.text("ENV: off")
-  end
 end
 
 function _l.draw_repeat()
   screen.level(_l_.selected_region == "pad_repeat" and 15 or 3)
   screen.move(84,26)
-  if bank[_l_.bank][focused_pad[_l_.bank]].envelope_loop then
-    screen.text("LOOP: on")
-  else
-    screen.text("LOOP: off")
-  end
-  screen.level(_l_.selected_region == "bank_repeat" and 15 or 3)
-  screen.move(84,52)
   if bank[_l_.bank][focused_pad[_l_.bank]].envelope_loop then
     screen.text("LOOP: on")
   else
@@ -193,9 +181,25 @@ function _l.draw_time()
   screen.level(_l_.selected_region == "pad_time" and 15 or 3)
   screen.move(84,34)
   screen.text("DUR: "..lfo_rates.names[bank[_l_.bank][focused_pad[_l_.bank]].envelope_rate_index])
-  screen.level(_l_.selected_region == "bank_time" and 15 or 3)
+end
+
+
+function _l.draw_lfo_active()
+  screen.level(_l_.selected_region == "bank_lfo_active" and 15 or 3)
+  screen.move(84,44)
+  screen.text("LFO: "..(bank[_l_.bank].level_lfo.active == true and "on" or "off"))
+end
+
+function _l.draw_lfo_shape()
+  screen.level(_l_.selected_region == "bank_lfo_shape" and 15 or 3)
+  screen.move(84,52)
+  screen.text("SHP: "..bank[_l_.bank].level_lfo.waveform)
+end
+
+function _l.draw_lfo_freq()
+  screen.level(_l_.selected_region == "bank_lfo_freq" and 15 or 3)
   screen.move(84,60)
-  screen.text("TIME: 1/8")
+  screen.text("RATE: "..lfo_rates.names[bank[_l_.bank].level_lfo.rate_index])
 end
 
 -- function _l.draw_lfo()
@@ -303,7 +307,8 @@ function _l.process_encoder(n,d)
         if b[b.id].envelope_mode == 2 or b[b.id].enveloped == false then
           if b.focus_hold == false then
             softcut.level_slew_time(_l_.bank+1,1.0)
-            softcut.level(_l_.bank+1,b[b.id].level*b.global_level)
+            -- softcut.level(_l_.bank+1,b[b.id].level*b.global_level)
+            softcut.level(_l_.bank+1,b[b.id].level*_l.get_global_level(b.id))
             softcut.level_cut_cut(_l_.bank+1,5,(b[b.id].left_delay_level*b[b.id].level)*b.global_level)
             softcut.level_cut_cut(_l_.bank+1,6,(b[b.id].right_delay_level*b[b.id].level)*b.global_level)
           end
@@ -348,8 +353,25 @@ function _l.process_encoder(n,d)
         if b.id == f and b[f].level > 0.05 then
           env_counter[b[f].bank_id].time = (b[f].envelope_time/(b[f].level/0.05))
         end
+      elseif _l_.selected_region == "bank_lfo_active" then
+        b.level_lfo.active = d > 0 and true or false
+      elseif _l_.selected_region == "bank_lfo_shape" then
+        local current_index = tab.key(lfo_types,b.level_lfo.waveform)
+        current_index = util.clamp(current_index + d,1,#lfo_types)
+        b.level_lfo.waveform = lfo_types[current_index]
+      elseif _l_.selected_region == "bank_lfo_freq" then
+        b.level_lfo.rate_index = util.clamp(b.level_lfo.rate_index + d,1,#lfo_rates.values)
+        b.level_lfo.freq = 1/((clock.get_beat_sec()*4) * lfo_rates.values[b.level_lfo.rate_index])
       end
     end
+  end
+end
+
+function _l.get_global_level(id)
+  if bank[id].level_lfo.active then
+    return util.linlin(-1,1,0,bank[id].global_level,bank[id].level_lfo.slope)
+  else
+    return bank[id].global_level
   end
 end
 
