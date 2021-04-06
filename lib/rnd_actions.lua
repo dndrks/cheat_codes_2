@@ -193,12 +193,14 @@ function rnd.delay_send(t,i)
   if bank[t][bank[t].id].left_delay_thru then
     softcut.level_cut_cut(t+1,5,bank[t][bank[t].id].left_delay_level)
   else
-    softcut.level_cut_cut(t+1,5,(bank[t][bank[t].id].left_delay_level*bank[t][bank[t].id].level)*bank[t].global_level)
+    -- softcut.level_cut_cut(t+1,5,(bank[t][bank[t].id].left_delay_level*bank[t][bank[t].id].level)*bank[t].global_level)
+    softcut.level_cut_cut(t+1,5,(bank[t][bank[t].id].left_delay_level*bank[t][bank[t].id].level)*_l.get_global_level(t))
   end
   if bank[t][bank[t].id].right_delay_thru then
     softcut.level_cut_cut(t+1,6,bank[t][bank[t].id].right_delay_level)
   else
-    softcut.level_cut_cut(t+1,6,(bank[t][bank[t].id].right_delay_level*bank[t][bank[t].id].level)*bank[t].global_level)
+    -- softcut.level_cut_cut(t+1,6,(bank[t][bank[t].id].right_delay_level*bank[t][bank[t].id].level)*bank[t].global_level)
+    softcut.level_cut_cut(t+1,6,(bank[t][bank[t].id].right_delay_level*bank[t][bank[t].id].level)*_l.get_global_level(t))
   end
   grid_dirty = true
   if menu == 6 then

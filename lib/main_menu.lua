@@ -977,6 +977,38 @@ function main_menu.draw()
       screen.level((page.delay.section == 2 and selected == 6) and 15 or 3)
       screen.move(85,50)
       screen.text("dry: "..params:string("delay "..delay_name..": filter dry"))
+      screen.level((page.delay.section == 2 and selected > 6) and 15 or 3)
+      screen.move(28,54)
+      screen.line(128,54)
+      screen.stroke()
+      screen.move(28,64)
+      screen.line(128,64)
+      screen.stroke()
+      screen.move(29,54)
+      screen.line(29,64)
+      screen.stroke()
+      screen.move(128,54)
+      screen.line(128,64)
+      screen.stroke()
+      local x_pos = {53,78,103}
+      local stuff_to_display =
+      {
+        (delay[page.delay.focus].filter_lfo.active == true and "on" or "off"),
+        delay[page.delay.focus].filter_lfo.waveform,
+        delay[page.delay.focus].filter_lfo.depth,
+        params:string("delay "..delay_name..": filter lfo rate")
+      }
+      for j = 1,#x_pos do
+        screen.move(x_pos[j],54)
+        screen.line(x_pos[j],64)
+        screen.stroke()
+      end
+      local x_pos = {40,65,90,115}
+      for j = 1,4 do
+        screen.level((page.delay.section == 2 and selected == 6+j) and 15 or 3)
+        screen.move(x_pos[j],61)
+        screen.text_center(stuff_to_display[j])
+      end
     elseif focused_menu == 3 then
       local bank_names = {"a","b","c"}
       for i = 1,3 do

@@ -43,6 +43,18 @@ function delays.init(target)
     delay[i].wobble_hold = false
     delay[i].reverse = false
     delay[i].inverted_link = false
+    delay[i].filter_lfo =
+    {
+      freq = 1/((clock.get_beat_sec()*4) * lfo_rates.values[15]),
+      counter = 1,
+      waveform = lfo_types[1],
+      slope = 0,
+      depth = 100,
+      offset = 0,
+      active = false,
+      loop = true,
+      rate_index = 15
+    }
     -- delay[i].external_left = false
     -- delay[i].external_right = false
   end
@@ -282,7 +294,8 @@ function delays.set_value(target,index,param)
       if not b.enveloped then
         softcut.level_slew_time(5,0.25)
         -- softcut.level_cut_cut(delay_grid.bank+1,5,util.linlin(-1,1,0,1,b.pan)*(b.left_delay_level*b.level))
-        softcut.level_cut_cut(delay_grid.bank+1,5,(b.left_delay_level*b.level)*bank[delay_grid.bank].global_level)
+        -- softcut.level_cut_cut(delay_grid.bank+1,5,(b.left_delay_level*b.level)*bank[delay_grid.bank].global_level)
+        softcut.level_cut_cut(delay_grid.bank+1,5,(b.left_delay_level*b.level)*_l.get_global_level(delay_grid.bank))
       end
     else
       if param == "send" then
@@ -295,7 +308,8 @@ function delays.set_value(target,index,param)
       if not b.enveloped then
         softcut.level_slew_time(6,0.25)
         -- softcut.level_cut_cut(delay_grid.bank+1,6,util.linlin(-1,1,1,0,b.pan)*(b.right_delay_level*b.level))
-        softcut.level_cut_cut(delay_grid.bank+1,6,(b.right_delay_level*b.level)*bank[delay_grid.bank].global_level)
+        -- softcut.level_cut_cut(delay_grid.bank+1,6,(b.right_delay_level*b.level)*bank[delay_grid.bank].global_level)
+        softcut.level_cut_cut(delay_grid.bank+1,6,(b.right_delay_level*b.level)*_l.get_global_level(delay_grid.bank))
       end
     end
   end
@@ -407,6 +421,21 @@ function delays.load_delay(file,destination)
     params:set(delay_name[destination].."feedback",100)
   end
 
+end
+
+function delays.lfo_process(id,prm,movement)
+  local val = util.linlin(-1,1,10,12000,movement)
+  local sides = {"L","R"}
+  local modified_freq = nil
+  modified_freq = easingFunctions[params:string("delay "..sides[id]..": curve")](val/12000,10,11990,1)
+  softcut.post_filter_fc(id+4,modified_freq)
+  -- if util.round(delay[id].filter_lfo.prev_slope,0.03) ~= util.round(delay[id].filter_lfo.slope,0.03) then
+  --   local val = util.linlin(-1,1,10,12000,movement)
+  --   local sides = {"L","R"}
+  --   local modified_freq = nil
+  --   modified_freq = easingFunctions[params:string("delay "..sides[id]..": curve")](val/12000,10,11990,1)
+  --   softcut.post_filter_fc(id+4,modified_freq)
+  -- end
 end
 
 return delays

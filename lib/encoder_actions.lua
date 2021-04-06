@@ -279,7 +279,7 @@ function encoder_actions.init(n,d)
       if page.delay.section == 1 then
         page.delay[page.delay.focus].menu = util.clamp(page.delay[page.delay.focus].menu+d,1,3)
       elseif page.delay.section == 2 then
-        local max_items = {5,6,7}
+        local max_items = {5,10,7}
         local target = page.delay[page.delay.focus].menu_sel[page.delay[page.delay.focus].menu]
         page.delay[page.delay.focus].menu_sel[page.delay[page.delay.focus].menu] = util.clamp(target+d,1,max_items[page.delay[page.delay.focus].menu])
       end
@@ -517,6 +517,14 @@ function encoder_actions.init(n,d)
           elseif item == 6 then
             ea.delta_delay_param(delay_name,"filter dry",d)
             -- params:delta("delay "..delay_name..": filter dry",d)
+          elseif item == 7 then
+            ea.delta_delay_param(delay_name,"filter lfo active",d)
+          elseif item == 8 then
+            ea.delta_delay_param(delay_name,"filter lfo shape",d)
+          elseif item == 9 then
+            ea.delta_delay_param(delay_name,"filter lfo depth",d)
+          elseif item == 10 then
+            ea.delta_delay_param(delay_name,"filter lfo rate",d)
           end
         elseif focused_menu == 3 then
           if item < 7 then
@@ -540,10 +548,12 @@ function encoder_actions.init(n,d)
               end
               grid_dirty = true
               if target[target.id].enveloped == false then
-                softcut.level_cut_cut(util.round(item/2)+1,page.delay.focus+4,(target[target.id][prm[page.delay.focus]]*target[target.id].level)*target.global_level)
+                -- softcut.level_cut_cut(util.round(item/2)+1,page.delay.focus+4,(target[target.id][prm[page.delay.focus]]*target[target.id].level)*target.global_level)
+                softcut.level_cut_cut(util.round(item/2)+1,page.delay.focus+4,(target[target.id][prm[page.delay.focus]]*target[target.id].level)*_l.get_global_level(util.round(item/2)))
                 if delay_links[del.lookup_prm(k,v)] then
                   local this_one = page.delay.focus == 1 and 2 or 1
-                  softcut.level_cut_cut(util.round(item/2)+1,(this_one)+4,(target[target.id][prm[this_one]]*target[target.id].level)*target.global_level)
+                  -- softcut.level_cut_cut(util.round(item/2)+1,(this_one)+4,(target[target.id][prm[this_one]]*target[target.id].level)*target.global_level)
+                  softcut.level_cut_cut(util.round(item/2)+1,(this_one)+4,(target[target.id][prm[this_one]]*target[target.id].level)*_l.get_global_level(util.round(item/2)))
                 end
               end
               
@@ -792,103 +802,6 @@ function encoder_actions.init(n,d)
 
   if menu == 3 then
     main_menu.process_encoder("levels",n,d)
-    -- local focused_pad = nil
-    -- if bank[n].focus_hold == true then
-    --   focused_pad = bank[n].focus_pad
-    -- else
-    --   focused_pad = bank[n].id
-    -- end
-    -- if page.levels.sel == 0 then
-    --   if key1_hold or grid_alt or bank[n].alt_lock then
-    --     bank[n].global_level = util.clamp(bank[n].global_level+d/10,0,2)
-    --   else
-    --     bank[n][focused_pad].level = util.clamp(bank[n][focused_pad].level+d/10,0,2)
-    --     if bank[n][focused_pad].enveloped and not bank[n][focused_pad].pause then
-    --       if bank[n][focused_pad].level > 0.05 then
-    --       -- if bank[n][focused_pad].envelope_time/(bank[n][focused_pad].level/0.05) ~= inf then
-    --         env_counter[n].time = (bank[n][focused_pad].envelope_time/(bank[n][focused_pad].level/0.05))
-    --       end
-    --     end
-    --   end
-    --   if bank[n][bank[n].id].envelope_mode == 2 or bank[n][bank[n].id].enveloped == false then
-    --     if bank[n].focus_hold == false then
-    --       softcut.level_slew_time(n+1,1.0)
-    --       softcut.level(n+1,bank[n][bank[n].id].level*bank[n].global_level)
-    --       softcut.level_cut_cut(n+1,5,(bank[n][bank[n].id].left_delay_level*bank[n][bank[n].id].level)*bank[n].global_level)
-    --       softcut.level_cut_cut(n+1,6,(bank[n][bank[n].id].right_delay_level*bank[n][bank[n].id].level)*bank[n].global_level)
-    --     end
-    --   end
-    -- elseif page.levels.sel == 1 then
-
-    --   local pre_enveloped = bank[n][focused_pad].enveloped
-    --   local pre_mode = bank[n][focused_pad].envelope_mode
-    --   bank[n][focused_pad].envelope_mode = util.clamp(bank[n][focused_pad].envelope_mode + d,0,3)
-      
-    --   if bank[n][focused_pad].envelope_mode == 0 then
-    --     bank[n][focused_pad].enveloped = false
-    --   else
-    --     bank[n][focused_pad].enveloped = true
-    --     if pre_enveloped ~= bank[n][focused_pad].enveloped then
-    --       if bank[n].focus_hold == false then
-    --         cheat(n, bank[n].id)
-    --       end
-    --     elseif pre_mode ~= bank[n][focused_pad].envelope_mode then
-    --       if bank[n].focus_hold == false then
-    --         cheat(n, bank[n].id)
-    --       end
-    --     end
-    --   end
-
-    --   if key1_hold or grid_alt or bank[n].alt_lock then
-    --     for j = 1,16 do
-    --       if j ~= focused_pad then
-    --         bank[n][j].envelope_mode = bank[n][focused_pad].envelope_mode
-    --         bank[n][j].enveloped = bank[n][focused_pad].enveloped
-    --       end
-    --     end
-    --   end
-
-    -- elseif page.levels.sel == 2 then
-    --   if bank[n][focused_pad].enveloped then
-    --     local pre_loop = bank[n][focused_pad].envelope_loop
-    --     if d>0 then
-    --       bank[n][focused_pad].envelope_loop = true
-    --       if pre_loop ~= bank[n][focused_pad].envelope_loop then
-    --         if bank[n].focus_hold == false then
-    --           cheat(n, bank[n].id)
-    --         end
-    --       end
-    --     else
-    --       bank[n][focused_pad].envelope_loop = false
-    --     end
-    --   end
-    --   if key1_hold or grid_alt or bank[n].alt_lock then
-    --     for j = 1,16 do
-    --       if j ~= focused_pad then
-    --         bank[n][j].envelope_loop = bank[n][focused_pad].envelope_loop
-    --       end
-    --     end
-    --   end
-
-    -- elseif page.levels.sel == 3 then
-    --     if bank[n][focused_pad].enveloped then
-    --       bank[n][focused_pad].envelope_time = util.explin(0.05,60,0.05,60,bank[n][focused_pad].envelope_time)
-    --       bank[n][focused_pad].envelope_time = util.clamp(bank[n][focused_pad].envelope_time+d/10,0.05,60)
-    --       bank[n][focused_pad].envelope_time = util.linexp(0.05,60,0.05,60,bank[n][focused_pad].envelope_time)
-    --     end
-    --     if key1_hold or grid_alt or bank[n].alt_lock then
-    --       for j = 1,16 do
-    --         if j ~= focused_pad then
-    --           if bank[n][j].enveloped then
-    --             bank[n][j].envelope_time = bank[n][focused_pad].envelope_time
-    --           end
-    --         end
-    --       end
-    --     end
-    --   if bank[n][focused_pad].level > 0.05 then
-    --     env_counter[n].time = (bank[n][focused_pad].envelope_time/(bank[n][focused_pad].level/0.05))
-    --   end
-    -- end
   end
   if menu == 4 then
     main_menu.process_encoder("pans",n,d)

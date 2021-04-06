@@ -96,7 +96,8 @@ function tp.start()
       arps.toggle("start",i)
     end
     if #grid_pat[i].event > 0 and params:string("start_pat_"..i.."_at_launch") == "yes" then
-      grid_pat[i]:start()
+      -- grid_pat[i]:start()
+      start_pattern(grid_pat[i],"jumpstart")
     end
     toggle_meta("start",i)
     -- print(clock.get_beats())
@@ -123,7 +124,8 @@ function tp.start_from_midi_message()
       arps.toggle("start",i)
     end
     if #grid_pat[i].event > 0 then
-      grid_pat[i]:start()
+      -- grid_pat[i]:start()
+      start_pattern(grid_pat[i],"jumpstart")
     end
     toggle_meta("stop",i)
     -- print(clock.get_beats())
@@ -181,6 +183,10 @@ function tp.stop()
     end
     if #grid_pat[i].event > 0 then
       grid_pat[i]:stop()
+      if grid_pat[i].clock ~= nil then
+        clock.cancel(grid_pat[i].clock)
+        grid_pat[i].clock = nil
+      end
     end
     -- rytm.toggle("stop",i)
   end
@@ -208,6 +214,10 @@ function tp.stop_from_midi_message()
     end
     if #grid_pat[i].event > 0 then
       grid_pat[i]:stop()
+      if grid_pat[i].clock ~= nil then
+        clock.cancel(grid_pat[i].clock)
+        grid_pat[i].clock = nil
+      end
     end
     -- rytm.toggle("stop",i)
   end
@@ -247,7 +257,8 @@ function tp.crow_toggle_now()
         arps.toggle("start",i)
       end
       if #grid_pat[i].event > 0 and params:string("start_pat_"..i.."_at_launch") == "yes" then
-        grid_pat[i]:start()
+        -- grid_pat[i]:start()
+        start_pattern(grid_pat[i],"jumpstart")
       end
       toggle_meta("start",i)
       -- print(clock.get_beats())

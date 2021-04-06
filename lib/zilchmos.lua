@@ -332,12 +332,14 @@ function zilchmos.sc.level( pad, i )
     if pad.left_delay_thru then
       softcut.level_cut_cut(i+1,5,pad.left_delay_level)
     else
-      softcut.level_cut_cut(i+1,5,(pad.left_delay_level*pad.level)*bank[i].global_level)
+      -- softcut.level_cut_cut(i+1,5,(pad.left_delay_level*pad.level)*bank[i].global_level)
+      softcut.level_cut_cut(i+1,5,(pad.left_delay_level*pad.level)*_l.get_global_level(i))
     end
     if pad.right_delay_thru then
       softcut.level_cut_cut(i+1,6,pad.right_delay_level)
     else
-      softcut.level_cut_cut(i+1,6,(pad.right_delay_level*pad.level)*bank[i].global_level)
+      -- softcut.level_cut_cut(i+1,6,(pad.right_delay_level*pad.level)*bank[i].global_level)
+      softcut.level_cut_cut(i+1,6,(pad.right_delay_level*pad.level)*_l.get_global_level(i))
     end
   end
 end

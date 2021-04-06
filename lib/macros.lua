@@ -522,7 +522,11 @@ function Container:add_params()
     params:set_action("macro "..i, function(x) if all_loaded then macro[i]:pass_value(x) end end)
     params:add_option("macro "..i.." lfo active", "macro "..i.." lfo active",{"no","yes"},1)
     params:set_action("macro "..i.." lfo active", function(x)
-      macro[i].lfo.active = x == 1 and false or true
+      if x == 1 then
+        macro[i].lfo.active = false
+      else
+        macro[i].lfo.active = true
+      end
     end)
     params:add_option("macro "..i.." lfo waveform", "macro "..i.." lfo waveform",lfo_types,1)
     params:set_action("macro "..i.." lfo waveform", function(x)

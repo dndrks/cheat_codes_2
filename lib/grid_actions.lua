@@ -30,6 +30,18 @@ for i = 1,3 do
   end
 end
 
+function reset_step_seq(i)
+  step_seq[i].active = (step_seq[i].active + 1)%2
+  step_seq[i].meta_meta_step = 1
+  step_seq[i].meta_step = 1
+  step_seq[i].current_step = step_seq[i].start_point
+  clock.sync(1)
+  step_seq[i].active = (step_seq[i].active + 1)%2
+  if step_seq[i].active == 1 and step_seq[i][step_seq[i].current_step].assigned_to ~= 0 then
+    test_load(step_seq[i][step_seq[i].current_step].assigned_to+(((i)-1)*8),i)
+  end
+end
+
 function grid_actions.init(x,y,z)
   
   if osc_communication == true then osc_communication = false end
@@ -612,19 +624,6 @@ function grid_actions.init(x,y,z)
             end
           end
         end
-
-        function reset_step_seq(i) -- TODO: funky on some...
-          step_seq[i].active = (step_seq[i].active + 1)%2
-          step_seq[i].meta_meta_step = 1
-          step_seq[i].meta_step = 1
-          step_seq[i].current_step = step_seq[i].start_point
-          clock.sync(1)
-          step_seq[i].active = (step_seq[i].active + 1)%2
-          if step_seq[i].active == 1 and step_seq[i][step_seq[i].current_step].assigned_to ~= 0 then
-            test_load(step_seq[i][step_seq[i].current_step].assigned_to+(((i)-1)*8),i)
-          end
-        end
-        
         
         if x == 16 and y == 8 then
           grid_alt = z == 1 and true or false
@@ -665,37 +664,6 @@ function grid_actions.init(x,y,z)
         grid_loop_mod = z
         if menu ~= 1 then screen_dirty = true end
         -- grid_redraw()
-      end
-      
-      if menu == 11 then
-        if x == 1 or x == 6 or x == 11 then
-          help_menu = "meta: slots"
-        elseif x == 2 or x == 7 or x == 12 then
-          help_menu = "meta: clock"
-        elseif x == 3 or x == 4 or x == 8 or x == 9 or x == 13 or x == 14 then
-          if grid_loop_mod == 0 then
-            help_menu = "meta: step"
-          end
-        elseif x == 5 or x == 10 or x == 15 then
-          help_menu = "meta: duration"
-        elseif x == 16 then
-          if y == 8 then
-            if z == 1 then
-              help_menu = "meta: alt"
-            elseif z == 0 then
-              help_menu = "welcome"
-            end
-          elseif y == 7 or y == 6 or y == 5 then
-            help_menu = "meta: toggle"
-          elseif y == 2 then
-            if z == 1 then
-              help_menu = "meta: loop mod"
-            elseif z == 0 then
-              help_menu = "welcome"
-            end
-          end
-        end
-        if menu ~= 1 then screen_dirty = true end
       end
     
     elseif grid_page == 2 then
@@ -1385,10 +1353,119 @@ function grid_actions.init(x,y,z)
       end
 
       if x == 8 and y == 1 and z == 1 then
+        grid_page_64 = 2
+      end
+
+    elseif grid_page_64 == 2 then
+      local save_pat;
+      local current = bank_64
+      if grid_loop_mod == 0 then
+      
+        if y == 2 then
+          if z == 1 then
+            save_pad = pattern_saver[current].saved[x]
+            if step_seq[current].held == 0 then
+              pattern_saver[current].source = current
+              pattern_saver[current].save_slot = x
+              pattern_saver[current].clock = clock.run(test_save,current)
+              -- print("starting save "..pattern_saver[current].clock)
+            else
+              --if there's a pattern saved there...
+              if pattern_saver[current].saved[x] == 1 then
+                if not grid_alt then
+                  step_seq[current][step_seq[current].held].assigned_to = x
+                end
+              end
+            end
+          elseif z == 0 then
+            if step_seq[current].held == 0 then
+              if pattern_saver[current].clock then
+                clock.cancel(pattern_saver[current].clock)
+              end
+              pattern_saver[current].active = false
+              if not grid_alt and saved_pat == 1 then
+                if pattern_saver[current].saved[x] == 1 then
+                  pattern_saver[current].load_slot = x
+                  test_load((x)+(8*(current-1)),current)
+                end
+              end
+            end
+          end
+        elseif y == 3 then
+          if z == 1 then
+            step_seq[current].meta_duration = x
+          end
+        elseif y == 4 or y == 5 then
+          if z == 1 then
+            step_seq[current].held = x + (y == 4 and 0 or 8)
+            if grid_alt then
+              step_seq[current][step_seq[current].held].assigned_to = 0
+            end
+          elseif z == 0 then
+            step_seq[current].held = 0
+          end
+        elseif y == 6 then
+          if step_seq[current].held == 0 then
+            step_seq[current][step_seq[current].current_step].meta_meta_duration = x
+          else
+            step_seq[current][step_seq[current].held].meta_meta_duration = x
+          end
+          if grid_alt then
+            for k = 1,16 do
+              step_seq[current][k].meta_meta_duration = x
+            end
+          end
+        end
+
+        if (x == 2 or x == 3 or x == 4) and y == 8 and z == 1 then
+          if step_seq[x-1].held == 0 then
+            if grid_alt then
+              clock.run(reset_step_seq,x-1)
+            else
+              step_seq[x-1].active = (step_seq[x-1].active + 1) % 2
+            end
+          else
+            step_seq[x-1][step_seq[x-1].held].loop_pattern = (step_seq[x-1][step_seq[x-1].held].loop_pattern + 1) % 2
+          end
+        end
+        
+        if x == 1 and y == 8 then
+          grid_alt = z == 1 and true or false
+          if menu ~= 1 then screen_dirty = true end
+        end
+      
+      elseif grid_loop_mod == 1 then
+
+        if (y == 4 or y == 5) then
+          if z == 1 then
+            step_seq[current].loop_held = step_seq[current].loop_held + 1
+            if step_seq[current].loop_held == 1 then
+              step_seq[current].start_point = x + (y == 5 and 8 or 0)
+              if step_seq[current].start_point > step_seq[current].current_step then
+                step_seq[current].current_step = step_seq[current].start_point
+              end
+            elseif step_seq[current].loop_held == 2 then
+              step_seq[current].end_point = x + (y == 5 and 8 or 0)
+            end
+          elseif z == 0 then
+            step_seq[current].loop_held = step_seq[current].loop_held - 1
+          end
+        end
+        
+      end
+
+      if x == 8 and y == 8 then
+        grid_loop_mod = z
+        if menu ~= 1 then screen_dirty = true end
+        grid_dirty = true
+      end
+
+      if x == 8 and y == 1 and z == 1 then
         grid_page_64 = 0
       end
 
     end
+
     grid_dirty = true
   end
 end

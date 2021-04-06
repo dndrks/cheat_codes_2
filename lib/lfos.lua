@@ -77,6 +77,9 @@ function lfos.init()
     for i = 1,8 do
       lfos.iterate(i,"macro_lfo")
     end
+    for i = 1,2 do
+      lfos.iterate(i,"delay_filter_lfo")
+    end
   end
   lfo_metro:start()
 end
@@ -183,13 +186,17 @@ function lfos.iterate(id,parameter)
   -- want to basically pass the lfo metro ticker to the different lfos
   -- need to watch for oversaturattion -- does there need to be 10ms processing?
   -- at least stuff like pans shouldn't be sent to softcut every 10ms...
-  if parameter ~= "macro_lfo" then
+  if parameter ~= "macro_lfo" and parameter ~= "delay_filter_lfo" then
     if bank ~= nil and bank[id][parameter].active then
       lfos.parse("banks",id,parameter)
     end
-  else
+  elseif parameter == "macro_lfo" then
     if macro[id].lfo.active then
       lfos.parse("macros",id,parameter)
+    end
+  elseif parameter == "delay_filter_lfo" then
+    if delay ~= nil and delay[id].filter_lfo.active then
+      lfos.parse("delays",id,parameter)
     end
   end
 end
@@ -200,6 +207,8 @@ function lfos.parse(style,id,parameter)
     construct = bank[id][parameter]
   elseif style == "macros" then
     construct = macro[id].lfo
+  elseif style == "delays" then
+    construct = delay[id].filter_lfo
   end
   local slope;
   construct.prev_slope = construct.slope
@@ -254,6 +263,8 @@ function lfos.process(id,parameter)
     if util.round(bank[id][parameter].prev_slope,0.05) ~= util.round(bank[id][parameter].slope,0.05) then
       if not bank[id][bank[id].id].enveloped then
         softcut.level(id+1,bank[id][bank[id].id].level * _l.get_global_level(id))
+        softcut.level_cut_cut(id+1,5,(bank[id][bank[id].id].left_delay_level*bank[id][bank[id].id].level)*_l.get_global_level(id))
+        softcut.level_cut_cut(id+1,6,(bank[id][bank[id].id].right_delay_level*bank[id][bank[id].id].level)*_l.get_global_level(id))
       end
       -- print(highest_to_lowest)
       -- softcut.level(id+1,bank[id][bank[id].id].level * highest_to_lowest)
@@ -263,6 +274,8 @@ function lfos.process(id,parameter)
     softcut.post_filter_fc(id+1,util.linlin(-1,1,8000,12000,bank[id][parameter].slope))
   elseif parameter == "macro_lfo" then
     macros.lfo_process(id,macro[id].lfo.slope)
+  elseif parameter == "delay_filter_lfo" then
+    del.lfo_process(id,"filter",delay[id].filter_lfo.slope)
   end
 end
 

@@ -63,8 +63,9 @@ function mc.adjust_pad_level(target,val) -- expects (bank[x][y],0-127)
     softcut.level_slew_time(target.bank_id +1,1.0)
     -- softcut.level(target.bank_id +1,target.level*bank[target.bank_id].global_level)
     softcut.level(target.bank_id +1,target.level*_l.get_global_level(target.bank_id))
-    softcut.level_cut_cut(target.bank_id +1,5,(target.left_delay_level*target.level)*bank[target.bank_id].global_level)
-    softcut.level_cut_cut(target.bank_id +1,6,(target.right_delay_level*target.level)*bank[target.bank_id].global_level)
+    -- softcut.level_cut_cut(target.bank_id +1,5,(target.left_delay_level*target.level)*bank[target.bank_id].global_level)
+    -- softcut.level_cut_cut(target.bank_id +1,6,(target.right_delay_level*target.level)*bank[target.bank_id].global_level)
+    _l.calc_delay_sends(target.bank_id,bank[target.bank_id].id,{"L","R"})
   end
   params:set("level "..target.bank_id,val,"true")
   if menu ~= 1 then screen_dirty = true end
@@ -76,8 +77,9 @@ function mc.adjust_bank_level(target,val)
     softcut.level_slew_time(target.bank_id +1,1.0)
     -- softcut.level(target.bank_id +1,target.level*bank[target.bank_id].global_level)
     softcut.level(target.bank_id +1,target.level*_l.get_global_level(target.bank_id))
-    softcut.level_cut_cut(target.bank_id +1,5,(target.left_delay_level*target.level)*bank[target.bank_id].global_level)
-    softcut.level_cut_cut(target.bank_id +1,6,(target.right_delay_level*target.level)*bank[target.bank_id].global_level)
+    -- softcut.level_cut_cut(target.bank_id +1,5,(target.left_delay_level*target.level)*bank[target.bank_id].global_level)
+    -- softcut.level_cut_cut(target.bank_id +1,6,(target.right_delay_level*target.level)*bank[target.bank_id].global_level)
+    _l.calc_delay_sends(target.bank_id,bank[target.bank_id].id,{"L","R"})
   end
   params:set("bank level "..target.bank_id,val,"true")
   if menu ~= 1 then screen_dirty = true end
@@ -358,7 +360,7 @@ local function refresh_params_vports()
 end
 
 function mc.pad_to_note_params()
-  params:add_group("pad to note setup",50)
+  params:add_group("pad to note setup",65)
   refresh_params_vports()
   local banks = {"a","b","c"}
   mc_notes = {{},{},{}}
@@ -542,6 +544,11 @@ function mc.pad_to_note_params()
     params:set_action(i.."_pad_to_mxcc_note_enabled",function(x)
       mx_dests[i] = mxcc_available[x]
     end)
+    params:add{type="number",id=i.."mx_velocity",name="Mx.velocity",min=0,max=127,default=80}
+    params:add{type='control',id=i.."mx_amp",name="Mx.amp",controlspec=controlspec.new(0,2,'lin',0.01,0.5,'amp',0.01/2)}
+    params:add{type="control",id=i.."mx_pan",name="Mx.pan",controlspec=controlspec.new(-1,1,'lin',0,0)}
+    params:add{type='control',id=i.."mx_attack",name="Mx.attack",controlspec=controlspec.new(0,10,'lin',0,0,'s')}
+    params:add{type='control',id=i.."mx_release",name="Mx.release",controlspec=controlspec.new(0,10,'lin',0,2,'s')}
   end
 
   params:add_group("w/syn controls",10)
@@ -710,7 +717,15 @@ function mc.midi_note_from_pad(b,p)
       local note_num = mc.get_midi("midi_notes",b,p)
       local vel = mc.get_midi("midi_notes_velocities",b,p)
       if mxcc ~= nil then
-        mxcc:on({name = mx_dests[b],midi=note_num,velocity=vel})
+        mxcc:on({
+          name = mx_dests[b],
+          midi=note_num,
+          velocity=vel,
+          amp=params:get(b.."mx_amp"),
+          attack=params:get(b.."mx_attack"),
+          release=params:get(b.."mx_release"),
+          pan=params:get(b.."mx_pan"),
+        })
         table.insert(active_mx_notes[b], note_num)
         clock.run(mc.mx_note_from_pad_off,b,p)
       end

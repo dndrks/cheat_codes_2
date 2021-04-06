@@ -614,7 +614,7 @@ params:add_separator("ALT key")
     end)
   end
   
-  params:add_group("delays",65)
+  params:add_group("delays",73)
 
   params:add_separator("manage delay audio")
   params:add{type = "trigger", id = "save_left_delay", name = "** save L delay", action = function() del.save_delay(1) end}
@@ -821,7 +821,8 @@ params:add_separator("ALT key")
     params:add_control("delay L: ("..banks[i]..") send", "delay L: ("..banks[i]..") send", controlspec.new(0,1,'lin',0.1,0,""))
     params:set_action("delay L: ("..banks[i]..") send", function(x)
       if bank[i][bank[i].id].enveloped == false then
-        softcut.level_cut_cut(i+1,5,(x*bank[i][bank[i].id].level)*bank[i].global_level)
+        -- softcut.level_cut_cut(i+1,5,(x*bank[i][bank[i].id].level)*bank[i].global_level)
+        softcut.level_cut_cut(i+1,5,(x*bank[i][bank[i].id].level)*_l.get_global_level(i))
       end
       for j = 1,16 do
         bank[i][j].left_delay_level = x
@@ -831,7 +832,8 @@ params:add_separator("ALT key")
     params:add_control("delay R: ("..banks[i]..") send", "delay R: ("..banks[i]..") send", controlspec.new(0,1,'lin',0.1,0,""))
     params:set_action("delay R: ("..banks[i]..") send", function(x)
       if bank[i][bank[i].id].enveloped == false then
-        softcut.level_cut_cut(i+1,6,(x*bank[i][bank[i].id].level)*bank[i].global_level)
+        -- softcut.level_cut_cut(i+1,6,(x*bank[i][bank[i].id].level)*bank[i].global_level)
+        softcut.level_cut_cut(i+1,6,(x*bank[i][bank[i].id].level)*_l.get_global_level(i))
       end
       for j = 1,16 do
         bank[i][j].right_delay_level = x
@@ -866,6 +868,7 @@ params:add_separator("ALT key")
       end
       softcut.post_filter_fc(i+1,modified_freq)
       encoder_actions.check_delay_links(sides[i-3], sides[i-3] == "L" and "R" or "L","filter cut")
+      delay[i-3].filter_lfo.offset = util.linlin(10,12000,-1,1,modified_freq)
     end)
     params:add_control("delay "..sides[i-3]..": filter q", "delay "..sides[i-3]..": filter q", controlspec.new(0.001, 8.0, 'exp', 0, 1.0, ""))
     params:set_action("delay "..sides[i-3]..": filter q",
@@ -896,6 +899,26 @@ params:add_separator("ALT key")
     function(x)
       softcut.post_filter_dry(i+1,x)
       encoder_actions.check_delay_links(sides[i-3], sides[i-3] == "L" and "R" or "L","filter dry")
+    end)
+    params:add_option("delay "..sides[i-3]..": filter lfo active", "delay "..sides[i-3]..": filter lfo active",{"no","yes"},1)
+    params:set_action("delay "..sides[i-3]..": filter lfo active", function(x)
+      if x == 1 then
+        delay[i-3].filter_lfo.active = false
+      else
+        delay[i-3].filter_lfo.active = true
+      end
+    end)
+    params:add_option("delay "..sides[i-3]..": filter lfo shape", "delay "..sides[i-3]..": filter lfo shape",lfo_types,1)
+    params:set_action("delay "..sides[i-3]..": filter lfo shape", function(x)
+      delay[i-3].filter_lfo.waveform = lfo_types[x]
+    end)
+    params:add_number("delay "..sides[i-3]..": filter lfo depth", "delay "..sides[i-3]..": filter lfo depth",1,200,100)
+    params:set_action("delay "..sides[i-3]..": filter lfo depth", function(x)
+      delay[i-3].filter_lfo.depth = x
+    end)
+    params:add_option("delay "..sides[i-3]..": filter lfo rate", "delay "..sides[i-3]..": filter lfo rate",lfo_rates.names,15)
+    params:set_action("delay "..sides[i-3]..": filter lfo rate", function(x)
+      delay[i-3].filter_lfo.freq = 1/((clock.get_beat_sec()*4) * lfo_rates.values[x])
     end)
     
     --this is dumb:
