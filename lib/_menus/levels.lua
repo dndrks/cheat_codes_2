@@ -308,11 +308,11 @@ function _l.process_encoder(n,d)
           if b.focus_hold == false then
             softcut.level_slew_time(_l_.bank+1,1.0)
             -- softcut.level(_l_.bank+1,b[b.id].level*b.global_level)
-            softcut.level(_l_.bank+1,b[b.id].level*_l.get_global_level(b.id))
+            softcut.level(_l_.bank+1,b[b.id].level*_l.get_global_level(_l_.bank))
             -- softcut.level_cut_cut(_l_.bank+1,5,(b[b.id].left_delay_level*b[b.id].level)*b.global_level)
             -- softcut.level_cut_cut(_l_.bank+1,6,(b[b.id].right_delay_level*b[b.id].level)*b.global_level)
-            softcut.level_cut_cut(_l_.bank+1,5,(b[b.id].left_delay_level*b[b.id].level)*_l.get_global_level(b.id))
-            softcut.level_cut_cut(_l_.bank+1,6,(b[b.id].right_delay_level*b[b.id].level)*_l.get_global_level(b.id))
+            softcut.level_cut_cut(_l_.bank+1,5,(b[b.id].left_delay_level*b[b.id].level)*_l.get_global_level(_l_.bank))
+            softcut.level_cut_cut(_l_.bank+1,6,(b[b.id].right_delay_level*b[b.id].level)*_l.get_global_level(_l_.bank))
           end
         end
       elseif _l_.selected_region == "pad_env" then

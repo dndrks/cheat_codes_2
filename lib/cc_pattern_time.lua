@@ -271,6 +271,13 @@ function quantized_advance(target)
   end
 end
 
+function pattern:check_unloop()
+  if self.queued_unloop ~= nil and self.queued_unloop then
+    self.loop = 0
+    self.queued_unloop = false
+  end
+end
+
 --- process next event
 function pattern:next_event()
   local diff = nil
@@ -286,6 +293,7 @@ function pattern:next_event()
   self.process(self.event[self.step])
   self.metro.time = self.time[self.step] * self.time_factor
   self.curr_time[self.step] = util.time()
+  self:check_unloop()
   --print("next time "..self.metro.time)
   if self.step == diff and self.loop == 0 then
     if self.play == 1 then

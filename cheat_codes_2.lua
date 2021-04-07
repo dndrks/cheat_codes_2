@@ -2042,7 +2042,7 @@ end
 
 function start_pattern(target,state)
   if transport.is_running then
-    print("new start")
+    -- print("new start")
     if target.playmode == 2 then
       target.clock = clock.run(alt_synced_loop, target, state == nil and "restart" or "jumpstart")
     else
@@ -4247,7 +4247,7 @@ end
 function grid_pattern_execute(entry)
   if entry ~= nil then
     if entry ~= "pause" then
-      print(clock.get_beats().."<<<<<<<")
+      -- print(clock.get_beats().."<<<<<<<")
       local i = entry.i
       local a_p; -- this will index the arc encoder recorders
         if arc_param[i] == 1 or arc_param[i] == 2 or arc_param[i] == 3 then
@@ -5382,7 +5382,7 @@ function load_pattern(slot,destination)
   if file then
     io.input(file)
     if io.read() == "stored pad pattern: collection "..selected_coll.." + slot "..slot then
-      print("loading grid pat")
+      -- print("loading grid pat")
       grid_pat[destination].event = {}
       grid_pat[destination].count = tonumber(io.read())
       for i = 1,grid_pat[destination].count do
