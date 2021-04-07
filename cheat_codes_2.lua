@@ -2013,7 +2013,7 @@ function alt_synced_loop(target,state)
     end
     target:start()
     target.synced_loop_runner = 1
-    print("alt_synced")
+    print("alt_synced",clock.get_beats())
     while true do
       clock.sync(1/4)
       if target.synced_loop_runner == target.rec_clock_time * 4 then
@@ -2023,7 +2023,9 @@ function alt_synced_loop(target,state)
         if overdub_flag == 1 then
           target.overdub = 1
         end
-        target:start()
+        if target.loop == 1 then
+          target:start()
+        end
         target.synced_loop_runner = 1
       else
         target.synced_loop_runner =  target.synced_loop_runner + 1
@@ -2044,6 +2046,7 @@ function start_pattern(target,state)
   if transport.is_running then
     -- print("new start")
     if target.playmode == 2 then
+      if target.clock ~= nil then clock.cancel(target.clock) end
       target.clock = clock.run(alt_synced_loop, target, state == nil and "restart" or "jumpstart")
     else
       target:start()
@@ -2105,6 +2108,7 @@ function synced_pattern_record(target)
       --target:start()
       print("started first run..."..clock.get_beats())
       --target.clock = clock.run(synced_loop, target)
+      if target.clock ~= nil then clock.cancel(target.clock) end
       target.clock = clock.run(alt_synced_loop, target)
     end
   else
@@ -4047,6 +4051,7 @@ function key(n,z)
                 elseif midi_pat[id].playmode == 2 then
                   print("line 2387")
                   --midi_pat[id].clock = clock.run(synced_loop, midi_pat[id], "restart")
+                  if midi_pat[id].clock ~= nil then clock.cancel(midi_pat[id].clock) end
                   midi_pat[id].clock = clock.run(alt_synced_loop, midi_pat[id], "restart")
                 end
               end
@@ -5072,7 +5077,7 @@ function test_load(slot,destination)
     end
     load_pattern(slot,destination)
     if grid_pat[destination].count > 0 then
-      start_pattern(grid_pat[destination])
+      start_pattern(grid_pat[destination],"jumpstart")
     elseif #arp[destination].notes > 0 then
       local arp_start =
       {

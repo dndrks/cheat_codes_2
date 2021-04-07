@@ -1111,6 +1111,7 @@ function grid_actions.init(x,y,z)
               --grid_pat[i]:stop()
               stop_pattern(grid_pat[i])
             else
+              print("line 1114")
               start_pattern(grid_pat[i])
             end
           end
