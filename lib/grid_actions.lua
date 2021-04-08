@@ -1359,6 +1359,24 @@ function grid_actions.init(x,y,z)
 
     elseif grid_page_64 == 2 then
       local save_pat;
+      if x <=3 and y == 1 and z ==1  then
+        bank_64 = x
+        b = bank[x]
+        if menu == 2 then
+          page.loops.sel = x
+        elseif menu == 7 then
+          page.time_sel = x
+        elseif menu == 8 then
+          rytm.track_edit = x
+        elseif menu == 9 then
+          page.arp_page_sel = x
+        elseif menu == 10 then
+          page.rnd_page = x
+        elseif menu == "MIDI_config" then
+          page.midi_bank = x
+        end
+        screen_dirty = true
+      end
       local current = bank_64
       if grid_loop_mod == 0 then
       

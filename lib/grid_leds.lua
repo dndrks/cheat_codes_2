@@ -860,6 +860,10 @@ function _gleds.grid_redraw()
         end
 
       elseif grid_page_64 == 2 then
+
+        for x = 1,3 do
+          g:led(x,1,x == bank_64 and 12 or 4)
+        end
         
         -- if we're on page 3...
       

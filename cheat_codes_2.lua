@@ -912,7 +912,8 @@ function init()
     rec[i].queued = false
   end
 
-  params:add_group("GRID",5)
+  params:add_group("GRID + ARC",8)
+  params:add_separator("GRID")
   params:add_option("LED_style","LED style",{"varibright","4-step","grayscale"},1)
   params:set_action("LED_style",
   function()
@@ -961,6 +962,14 @@ function init()
 
   params:add_option("alt_corner","alt+corner action",{"none","tap-tempo","transport"},1)
   params:hide("alt_corner")
+
+  params:add_separator("ARC")
+  params:add_option("arc_size","arc size",{4,2},1)
+  params:set_action("arc_size", function(x)
+    if all_loaded then
+      persistent_state_save()
+    end
+  end)
 
 
   params:add_group("CROW IN/OUT",5)
@@ -4432,39 +4441,35 @@ end
 arc_redraw = function()
   a:all(0)
   local which_pad = nil
-  for i = 1,3 do
-    if bank[arc_control[i]].focus_hold == false then
-      which_pad = bank[arc_control[i]].id
+  local this_bank;
+  local arc_min;
+  local arc_max;
+
+  for i = 1,(params:string("arc_size") == 4 and 3 or 1) do
+    i = (params:string("arc_size") == 4 and i or bank_64)
+    local which_enc = params:string("arc_size") == 4 and i or 1
+    if bank[i].focus_hold == false then
+      which_pad = bank[i].id
     else
-      which_pad = bank[arc_control[i]].focus_pad
+      which_pad = bank[i].focus_pad
     end
 
-    local duration = bank[i][which_pad].mode == 1 and 8 or clip[bank[i][which_pad].clip].sample_length
     if arc_param[i] == 1 then
-      -- if start_to_led <= end_to_led then
-      --   a:segment(i, util.linlin(0, duration, tau*(1/4), tau*1.23, start_to_led), util.linlin(0, duration, (tau*(1/4))+0.1, tau*1.249999, end_to_led), 15)
-      -- else
-      --   a:segment(i, util.linlin(0, duration, (tau*(1/4))+0.1, tau*1.23, end_to_led), util.linlin(0, duration, tau*(1/4), tau*1.249999, start_to_led), 15)
-      -- end
-
       local minimum = bank[i][which_pad].mode == 1 and live[bank[i][which_pad].clip].min or clip[bank[i][which_pad].clip].min
       local maximum = bank[i][which_pad].mode == 1 and live[bank[i][which_pad].clip].max or clip[bank[i][which_pad].clip].max
-      local start_to_led = bank[arc_control[i]][which_pad].start_point
-      local end_to_led = bank[arc_control[i]][which_pad].end_point
-      a:segment(i, util.linlin(minimum, maximum, tau*(1/4), tau*1.23, start_to_led), util.linlin(minimum, maximum, (tau*(1/4))+0.1, tau*1.249999, end_to_led), 15)
-      -- DOES THERE NEED TO BE AN ELSE CASE TO START < = END ???
-
+      local start_to_led = bank[i][which_pad].start_point
+      local end_to_led = bank[i][which_pad].end_point
+      a:segment(which_enc, util.linlin(minimum, maximum, tau*(1/4), tau*1.23, start_to_led), util.linlin(minimum, maximum, (tau*(1/4))+0.1, tau*1.249999, end_to_led), 15)
     end
     if arc_param[i] == 2 or arc_param[i] == 3 then
       local minimum = bank[i][which_pad].mode == 1 and live[bank[i][which_pad].clip].min or clip[bank[i][which_pad].clip].min
       local maximum = bank[i][which_pad].mode == 1 and live[bank[i][which_pad].clip].max or clip[bank[i][which_pad].clip].max
-      local start_to_led = math.floor(util.linlin(minimum,maximum,1,64,bank[arc_control[i]][which_pad].start_point))
-      local end_to_led = math.floor(util.linlin(minimum,maximum,1,64,bank[arc_control[i]][which_pad].end_point))
+      local start_to_led = math.floor(util.linlin(minimum,maximum,1,64,bank[i][which_pad].start_point))
+      local end_to_led = math.floor(util.linlin(minimum,maximum,1,64,bank[i][which_pad].end_point))
       local playhead_to_led = util.linlin(minimum,maximum,1,64,poll_position_new[i+1])
-      a:led(i,(math.floor(playhead_to_led))+16,5)
-      a:led(i, arc_param[i] == 2 and (start_to_led+16) or (end_to_led+17),15)
-      a:led(i, arc_param[i] == 2 and (end_to_led+17) or (start_to_led+16),8)
-
+      a:led(which_enc,(math.floor(playhead_to_led))+16,5)
+      a:led(which_enc, arc_param[i] == 2 and (start_to_led+16) or (end_to_led+17),15)
+      a:led(which_enc, arc_param[i] == 2 and (end_to_led+17) or (start_to_led+16),8)
     end
     if arc_param[i] == 4 then
       local tilt_to_led = slew_counter[i].slewedVal
@@ -4476,21 +4481,21 @@ arc_redraw = function()
       end
       if tilt_to_led == nil then
         tilt_to_led = bank[i][which_pad].tilt
-        a:led(i,47,5)
-        a:led(i,48,10)
-        a:led(i,49,15)
-        a:led(i,50,10)
-        a:led(i,51,5)
+        a:led(which_enc,47,5)
+        a:led(which_enc,48,10)
+        a:led(which_enc,49,15)
+        a:led(which_enc,50,10)
+        a:led(which_enc,51,5)
       elseif tilt_to_led >= -0.04 and tilt_to_led <=0.20 then
-        a:led(i,47,5)
-        a:led(i,48,10)
-        a:led(i,49,15)
-        a:led(i,50,10)
-        a:led(i,51,5)
+        a:led(which_enc,47,5)
+        a:led(which_enc,48,10)
+        a:led(which_enc,49,15)
+        a:led(which_enc,50,10)
+        a:led(which_enc,51,5)
       elseif tilt_to_led < -0.04 then
-        a:segment(i, tau*(1/4), util.linlin(-1, 1, (tau*(1/4))+0.1, tau*1.249999, tilt_to_led), 15)
+        a:segment(which_enc, tau*(1/4), util.linlin(-1, 1, (tau*(1/4))+0.1, tau*1.249999, tilt_to_led), 15)
       elseif tilt_to_led > 0.20 then
-        a:segment(i, util.linlin(-1, 1, (tau*(1/4)), (tau*1.24)+0.4, tilt_to_led-0.1), tau*(1/4)+0.1, 15)
+        a:segment(which_enc, util.linlin(-1, 1, (tau*(1/4)), (tau*1.24)+0.4, tilt_to_led-0.1), tau*(1/4)+0.1, 15)
       end
     end
     if arc_param[i] == 5 then
@@ -4501,21 +4506,21 @@ arc_redraw = function()
         level_to_led = bank[i][bank[i].id].level
       end
       for j = 1,17 do
-        a:led(i,(math.floor(util.linlin(0,2,5,70,(level_to_led)-(1/8*j))))+16,15)
+        a:led(which_enc,(math.floor(util.linlin(0,2,5,70,(level_to_led)-(1/8*j))))+16,15)
       end
     end
     if arc_param[i] == 6 then
       local pan_to_led = bank[i][bank[i].id].pan
-      a:led(i,(math.floor(util.linlin(-1,1,10,55,pan_to_led)))+22,4)
-      a:led(i,(math.floor(util.linlin(-1,1,10,55,pan_to_led)))+17,15)
-      a:led(i,(math.floor(util.linlin(-1,1,10,55,pan_to_led)))+12,4)
+      a:led(which_enc,(math.floor(util.linlin(-1,1,10,55,pan_to_led)))+22,4)
+      a:led(which_enc,(math.floor(util.linlin(-1,1,10,55,pan_to_led)))+17,15)
+      a:led(which_enc,(math.floor(util.linlin(-1,1,10,55,pan_to_led)))+12,4)
     end
   end
 
   arc_meta_level = {}
   for i = 1,6 do
     arc_meta_level[i] = util.round(arc_meta_focus) == i and 15 or 5
-    a:led(4,((i-1)*8)+25,arc_meta_level[i])
+    a:led((params:string("arc_size") == 4 and 4 or 2),((i-1)*8)+25,arc_meta_level[i])
   end
 
   a:refresh()
@@ -4577,6 +4582,7 @@ function persistent_state_save()
   for i = 1,3 do
     io.write("start_arp_"..i.."_at_launch: "..params:get("start_arp_"..i.."_at_launch").."\n")
   end
+  io.write("arc_size: "..params:get("arc_size").."\n")
   io.close(file)
 end
 

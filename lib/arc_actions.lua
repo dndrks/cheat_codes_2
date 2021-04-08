@@ -7,34 +7,48 @@ aa.sc = {}
 
 function aa.init(n,d)
 
-  local this_bank = bank[arc_control[n]]
-  if n ~= 4 then
+  local this_bank;
+  local which_enc;
+
+  if params:string("arc_size") == 4 then
+    which_enc = n
+    this_bank = bank[arc_control[n]]
+  elseif params:string("arc_size") == 2 and params:string("grid_size") == "64" then
+    if n == 2 then
+      which_enc = 4
+    else
+      which_enc = bank_64
+    end
+    this_bank = bank[bank_64]
+  end
+
+  if which_enc ~= 4 then
     if this_bank.focus_hold == false then
       which_pad = this_bank.id
     else
       which_pad = this_bank.focus_pad
     end
     local this_pad = this_bank[which_pad]
-    local p_action = aa.actions[arc_param[n]][1]
-    local sc_action = aa.actions[arc_param[n]][2]
+    local p_action = aa.actions[arc_param[which_enc]][1]
+    local sc_action = aa.actions[arc_param[which_enc]][2]
     if not this_bank.alt_lock and not grid_alt then
-      if arc_param[n] ~= 4 then
+      if arc_param[which_enc] ~= 4 then
         p_action(this_pad,d)
       else
-        aa.map(p_action, this_bank, arc_param[n] == 4 and d/1000 or d, n)
+        aa.map(p_action, this_bank, arc_param[which_enc] == 4 and d/1000 or d, which_enc)
       end
     elseif this_bank.alt_lock or grid_alt then
-      if arc_param[n] ~= 4 then
+      if arc_param[which_enc] ~= 4 then
         aa.map(p_action,this_bank,d)
       else
-        p_action(this_pad, arc_param[n] == 4 and d/1000 or d, n)
+        p_action(this_pad, arc_param[which_enc] == 4 and d/1000 or d, which_enc)
       end
     end
     if this_bank.focus_hold == false or this_bank.focus_pad == this_bank.id then
-      sc_action(n, this_pad)
+      sc_action(which_enc, this_pad)
     end
     if n < 4 then
-      aa.record(n)
+      aa.record(which_enc)
     end
   else
     aa.change_param_focus(d)
