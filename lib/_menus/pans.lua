@@ -94,25 +94,6 @@ function _p.draw_alt_view()
   screen.level(_p_.alt_view_sel == 8 and 15 or 3)
   screen.move(122,60)
   screen.text_right("bank")
-
-  -- screen.level(_p_.alt_view_sel == 2 and 15 or (_p_.alt_view_sel == 3 and 15 or 3))
-  -- screen.move(26,30)
-  -- screen.text("COPY TO:")
-  -- screen.level(_p_.alt_view_sel == 2 and 15 or 3)
-  -- screen.move(122,30)
-  -- screen.text_right("unassigned")
-  -- screen.level(_p_.alt_view_sel == 3 and 15 or 3)
-  -- screen.move(122,40)
-  -- screen.text_right("entire bank")
-  -- screen.level(_p_.alt_view_sel == 4 and 15 or (_p_.alt_view_sel == 5 and 15 or 3))
-  -- screen.move(26,50)
-  -- screen.text("RANDOMIZE: ")
-  -- screen.level(_p_.alt_view_sel == 4 and 15 or 3)
-  -- screen.move(122,50)
-  -- screen.text_right("this pad")
-  -- screen.level(_p_.alt_view_sel == 5 and 15 or 3)
-  -- screen.move(122,60)
-  -- screen.text_right("entire bank")
 end
 
 function _p.draw_side()
@@ -244,7 +225,6 @@ function _p.process_meta_encoder(n,d)
   elseif n == 2 then
     _p_.alt_view_sel = util.clamp(_p_.alt_view_sel+d,1,8)
   elseif n == 3 then
-    local _f = _p_.meta_pad[_p_.bank]
     if _p_.alt_view_sel == 1 then
       _p_.meta_pad[_p_.bank] = util.clamp(_p_.meta_pad[_p_.bank]+d,1,16)
     elseif _p_.alt_view_sel == 2 then

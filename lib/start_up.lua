@@ -234,7 +234,7 @@ function start_up.init()
   
   --params:add_option("zilchmo_bind_rand","bind random zilchmo?", {"no","yes"}, 1)
   
-  params:add_group("patterns + arps",23)
+  params:add_group("patterns + arps",29)
   params:add_separator("patterns")
   params:add_option("zilchmo_patterning", "grid pat style", { "classic", "rad sauce" })
   params:set_action("zilchmo_patterning", function() if all_loaded then persistent_state_save() end end)
@@ -301,6 +301,23 @@ function start_up.init()
       end
     end
   )
+  
+  for i = 1,3 do
+    params:add_number("grid_pat_"..i.."_playmode","grid_pat_"..i.."_playmode",1,2,1)
+    params:set_action("grid_pat_"..i.."_playmode", function(x)
+      if all_loaded then
+        grid_pat[i].playmode = x
+      end
+    end)
+    params:hide("grid_pat_"..i.."_playmode")
+    params:add_number("grid_pat_"..i.."_rec_clock_time","grid_pat_"..i.."_rec_clock_time",1,64,2)
+    params:set_action("grid_pat_"..i.."_rec_clock_time", function(x)
+      if all_loaded then
+        grid_pat[i].rec_clock_time = x
+      end
+    end)
+    params:hide("grid_pat_"..i.."_rec_clock_time")
+  end
   
   params:add_group("mappable control",99)
 

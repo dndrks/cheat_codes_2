@@ -1718,15 +1718,8 @@ end
 function main_menu.process_key(target,n,z)
   local target_to_destination =
   {
-    ["pans"] = _p.process_key
-  }
-  target_to_destination[target](n,z)
-end
-
-function main_menu.process_key(target,n,z)
-  local target_to_destination =
-  {
-    ["pans"] = _p.process_key
+    ["pans"] = _p.process_key,
+    ["levels"] = _l.process_key
   }
   target_to_destination[target](n,z)
 end
@@ -1734,7 +1727,8 @@ end
 function main_menu.reset_view(target)
   local target_to_destination =
   {
-    ["pans"] = _p.reset_view
+    ["pans"] = _p.reset_view,
+    ["levels"] = _l.reset_view
   }
   target_to_destination[target]()
 end

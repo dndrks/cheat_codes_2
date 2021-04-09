@@ -597,10 +597,12 @@ function encoder_actions.init(n,d)
                 -- end
               else
                 pattern.playmode = util.clamp(pattern.playmode+d,1,2)
+                params:set("grid_pat_"..pattern_page.."_playmode",pattern.playmode,true)
               end
             elseif key1_hold and pattern.playmode == 2 then
               key1_hold_and_modify = true
               pattern.rec_clock_time = util.clamp(pattern.rec_clock_time+d,1,64)
+              params:set("grid_pat_"..pattern_page.."_rec_clock_time",pattern.rec_clock_time,true)
             end
           end
         elseif page_line[pattern_page] == 8 and bank[pattern_page].crow_execute ~= 1 then

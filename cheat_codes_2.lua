@@ -43,11 +43,11 @@ function push_to_cc2(encoder, d)
 end
 
 if util.file_exists(_path.code.."mx.samples") then
-  mxsamples = include 'mx.samples/lib/mx.samples'
-  engine.name = "MxSamples"
-  mxcc = mxsamples:new()
-  print("available instruments: ")
-  tab.print(mxcc:list_instruments())
+  -- mxsamples = include 'mx.samples/lib/mx.samples'
+  -- engine.name = "MxSamples"
+  -- mxcc = mxsamples:new()
+  -- print("available instruments: ")
+  -- tab.print(mxcc:list_instruments())
 end
 
 local pattern_time = include 'lib/cc_pattern_time'
@@ -566,6 +566,7 @@ function random_grid_pat(which,mode)
       print("auto-snap")
       snap_to_bars(which,how_many_bars(which))
     end
+    print("569")
     start_pattern(pattern)
     pattern.loop = 1
   else
@@ -2022,7 +2023,7 @@ function alt_synced_loop(target,state)
     end
     target:start()
     target.synced_loop_runner = 1
-    print("alt_synced",clock.get_beats())
+    print("alt_synced",clock.get_beats(),target)
     while true do
       clock.sync(1/4)
       if target.synced_loop_runner == target.rec_clock_time * 4 then
@@ -2212,6 +2213,7 @@ function random_midi_pat(target)
   pattern.start_point = 1
   pattern.end_point = count
   pattern_length_to_bars(pattern, "destructive")
+  print("2216")
   start_pattern(pattern)
 end
 
@@ -2354,17 +2356,16 @@ function step_sequence_super_clock()
 end
 
 function toggle_meta(state,target)
+  -- print("2359!",target)
   if state == "start" then
     if step_sequence_clock ~= nil then
       clock.cancel(step_sequence_clock)
     end
-    for target = 1,3 do
-      step_seq[target].meta_meta_step = 1
-      step_seq[target].meta_step = 1
-      step_seq[target].current_step = step_seq[target].start_point
-      if step_seq[target].active == 1 and step_seq[target][step_seq[target].current_step].assigned_to ~= 0 then
-        test_load(step_seq[target][step_seq[target].current_step].assigned_to+(((target)-1)*8),target)
-      end
+    step_seq[target].meta_meta_step = 1
+    step_seq[target].meta_step = 1
+    step_seq[target].current_step = step_seq[target].start_point
+    if step_seq[target].active == 1 and step_seq[target][step_seq[target].current_step].assigned_to ~= 0 then
+      test_load(step_seq[target][step_seq[target].current_step].assigned_to+(((target)-1)*8),target)
     end
     step_sequence_clock = clock.run(step_sequence_super_clock)
     screen.dirty = true
@@ -3555,6 +3556,8 @@ function key(n,z)
       print("cancel delete")
       clock.run(canceled_delete)
     end
+  elseif menu == 3 then
+    main_menu.process_key("levels",n,z)
   elseif menu == 4 then
     main_menu.process_key("pans",n,z)
   else
@@ -3668,9 +3671,6 @@ function key(n,z)
             end
           end
         end
-      elseif menu == 3 then
-        local level_nav = (page.levels.sel + 1)%4
-        page.levels.sel = level_nav
       elseif menu == 5 then
         local filter_nav = (page.filters.sel + 1)%4
         page.filters.sel = filter_nav
@@ -4056,9 +4056,10 @@ function key(n,z)
               if midi_pat[id].count > 0 then
                 if midi_pat[id].playmode == 1 then
                   --midi_pat[id]:start()
+                  -- print("4060")
                   start_pattern(midi_pat[id])
                 elseif midi_pat[id].playmode == 2 then
-                  print("line 2387")
+                  -- print("line 2387")
                   --midi_pat[id].clock = clock.run(synced_loop, midi_pat[id], "restart")
                   if midi_pat[id].clock ~= nil then clock.cancel(midi_pat[id].clock) end
                   midi_pat[id].clock = clock.run(alt_synced_loop, midi_pat[id], "restart")
@@ -5016,6 +5017,9 @@ function named_loadstate(path)
     end
   end
     
+  if not lfo_metro.is_running then
+    lfo_metro:start()
+  end
 
   grid_dirty = true
 
@@ -5083,6 +5087,7 @@ function test_load(slot,destination)
     end
     load_pattern(slot,destination)
     if grid_pat[destination].count > 0 then
+      -- print("5091", destination)
       start_pattern(grid_pat[destination],"jumpstart")
     elseif #arp[destination].notes > 0 then
       local arp_start =

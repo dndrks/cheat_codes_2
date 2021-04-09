@@ -859,6 +859,8 @@ function _gleds.grid_redraw()
           end
         end
 
+        g:led(1,8,grid_alt and led_maps["alt_on"][edition] or led_maps["alt_off"][edition])
+
       elseif grid_page_64 == 2 then
 
         for x = 1,3 do

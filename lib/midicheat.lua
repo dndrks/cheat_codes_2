@@ -59,6 +59,7 @@ end
 
 function mc.adjust_pad_level(target,val) -- expects (bank[x][y],0-127)
   target.level = util.linlin(0,127,0,2,val)
+  if util.round(target.level,0.01) == 1.01 then target.level = 1.0 end
   if target.envelope_mode == 2 or not target.enveloped then
     softcut.level_slew_time(target.bank_id +1,1.0)
     -- softcut.level(target.bank_id +1,target.level*bank[target.bank_id].global_level)

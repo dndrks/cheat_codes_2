@@ -97,6 +97,7 @@ function tp.start()
     end
     if #grid_pat[i].event > 0 and params:string("start_pat_"..i.."_at_launch") == "yes" then
       -- grid_pat[i]:start()
+      print("100 in transport")
       start_pattern(grid_pat[i],"jumpstart")
     end
     toggle_meta("start",i)
@@ -125,6 +126,7 @@ function tp.start_from_midi_message()
     end
     if #grid_pat[i].event > 0 then
       -- grid_pat[i]:start()
+      print("128 in transport")
       start_pattern(grid_pat[i],"jumpstart")
     end
     toggle_meta("stop",i)
@@ -258,6 +260,7 @@ function tp.crow_toggle_now()
       end
       if #grid_pat[i].event > 0 and params:string("start_pat_"..i.."_at_launch") == "yes" then
         -- grid_pat[i]:start()
+        print("263 in transport")
         start_pattern(grid_pat[i],"jumpstart")
       end
       toggle_meta("start",i)

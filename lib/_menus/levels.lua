@@ -31,13 +31,17 @@ function _l.draw_menu()
   end
   _l.draw_side()
   _l.draw_header()
-  _l.draw_levels()
-  _l.draw_env()
-  _l.draw_repeat()
-  _l.draw_time()
-  _l.draw_lfo_active()
-  _l.draw_lfo_shape()
-  _l.draw_lfo_freq()
+  if not _l_.alt_view then
+    _l.draw_levels()
+    _l.draw_env()
+    _l.draw_repeat()
+    _l.draw_time()
+    _l.draw_lfo_active()
+    _l.draw_lfo_shape()
+    _l.draw_lfo_freq()
+  elseif _l_.alt_view then
+    _l.draw_alt_view()
+  end
 end
 
 function _l.draw_header()
@@ -54,31 +58,47 @@ function _l.draw_header()
   -- end
 end
 
--- function _l.draw_alt_view()
---   screen.level(_l_.alt_view_sel == 1 and 15 or 3)
---   screen.move(26,20)
---   screen.text("SOURCE:")
---   screen.move(122,20)
---   screen.text_right("pad ".._l_.meta_pad[_l_.bank])
---   screen.level(_l_.alt_view_sel == 2 and 15 or (_l_.alt_view_sel == 3 and 15 or 3))
---   screen.move(26,30)
---   screen.text("COPY TO:")
---   screen.level(_l_.alt_view_sel == 2 and 15 or 3)
---   screen.move(122,30)
---   screen.text_right("unassigned")
---   screen.level(_l_.alt_view_sel == 3 and 15 or 3)
---   screen.move(122,40)
---   screen.text_right("entire bank")
---   screen.level(_l_.alt_view_sel == 4 and 15 or (_l_.alt_view_sel == 5 and 15 or 3))
---   screen.move(26,50)
---   screen.text("RANDOMIZE: ")
---   screen.level(_l_.alt_view_sel == 4 and 15 or 3)
---   screen.move(122,50)
---   screen.text_right("this pad")
---   screen.level(_l_.alt_view_sel == 5 and 15 or 3)
---   screen.move(122,60)
---   screen.text_right("entire bank")
--- end
+function _l.draw_alt_view()
+  local f = _l_.meta_pad[_l_.bank]
+  screen.level(_l_.alt_view_sel == 1 and 15 or 3)
+  screen.move(26,20)
+  screen.text("PAD: "..f)
+  screen.level(_l_.alt_view_sel == 2 and 15 or 3)
+  screen.move(26,30)
+  screen.text("LEVEL: "..util.round(bank[_l_.bank][f].level,(#arc.devices > 0 and 0.001 or 0.01)))
+  local x_positions = {33,60,88}
+
+  local shapes = {"\\","/","/\\"}
+
+  local text_to_display =
+  {
+    "ENV",
+    "LOOP",
+    "DUR"
+  }
+  local data_to_display =
+  {
+    bank[_l_.bank][f].enveloped == true and (shapes[bank[_l_.bank][f].envelope_mode]) or "off",
+    bank[_l_.bank][f].envelope_loop == true and "on" or "off",
+    lfo_rates.names[bank[_l_.bank][f].envelope_rate_index]
+  }
+  for i = 1,3 do
+    screen.level(_l_.alt_view_sel == i+2 and 15 or 3)
+    screen.move(x_positions[i],40)
+    screen.text_center(text_to_display[i])
+    screen.move(x_positions[i],50)
+    screen.text_center(data_to_display[i])
+  end
+  screen.level(_l_.alt_view_sel == 6 and 15 or (_l_.alt_view_sel == 7 and 15 or 3))
+  screen.move(26,60)
+  screen.text("RANDOMIZE: ")
+  screen.level(_l_.alt_view_sel == 6 and 15 or 3)
+  screen.move(80,60)
+  screen.text("pad")
+  screen.level(_l_.alt_view_sel == 7 and 15 or 3)
+  screen.move(122,60)
+  screen.text_right("bank")
+end
 
 function _l.draw_side()
   local modifier;
@@ -95,7 +115,7 @@ function _l.draw_levels()
 
   screen.level(_l_.selected_region == "pad_level" and 15 or 3)
   screen.move(35,18)
-  if _l_.selected_region == "pad_env" or  _l_.selected_region == "pad_repeat" or  _l_.selected_region == "pad_time" then
+  if (_l_.selected_region == "pad_env" or  _l_.selected_region == "pad_repeat" or  _l_.selected_region == "pad_time") and bank[_l_.bank].focus_hold then
     screen.text_center("[PAD]")
   else
     screen.text_center("PAD")
@@ -129,10 +149,14 @@ function _l.draw_levels()
 
   screen.level(_l_.selected_region == "bank_level" and 15 or 3)
   screen.move(65,18)
-  if _l_.selected_region == "bank_lfo_active" or  _l_.selected_region == "bank_lfo_shape" or  _l_.selected_region == "bank_lfo_freq" then
+  if (_l_.selected_region ~= "pad_level" and  _l_.selected_region ~= "bank_level") and not bank[_l_.bank].focus_hold then
     screen.text_center("[BANK]")
   else
-    screen.text_center("BANK")
+    if _l_.selected_region == "bank_lfo_active" or  _l_.selected_region == "bank_lfo_shape" or  _l_.selected_region == "bank_lfo_freq" and bank[_l_.bank].focus_hold then
+      screen.text_center("[BANK]")
+    else
+      screen.text_center("BANK")
+    end
   end
   for i = 1,9 do
     screen.level(3)
@@ -231,17 +255,8 @@ end
 
 function _l.draw_boundaries()
   screen.level(15)
-  screen.move(20,10)
-  screen.line(20,64)
-  screen.stroke()
   screen.move(1,10)
   screen.line(1,64)
-  screen.stroke()
-  screen.move(50,10)
-  screen.line(50,64)
-  screen.stroke()
-  screen.move(80,10)
-  screen.line(80,64)
   screen.stroke()
   screen.move(128,10)
   screen.line(128,64)
@@ -249,15 +264,20 @@ function _l.draw_boundaries()
   screen.move(0,64)
   screen.line(128,64)
   screen.stroke()
-  screen.move(80,37)
-  screen.line(128,37)
+  screen.move(20,10)
+  screen.line(20,64)
   screen.stroke()
-  -- screen.move(80,28)
-  -- screen.line(128,28)
-  -- screen.stroke()
-  -- screen.move(80,46)
-  -- screen.line(128,46)
-  -- screen.stroke()
+  if not _l_.alt_view then
+    screen.move(50,10)
+    screen.line(50,64)
+    screen.stroke()
+    screen.move(80,10)
+    screen.line(80,64)
+    screen.stroke()
+    screen.move(80,37)
+    screen.line(128,37)
+    screen.stroke()
+  end
 end
 
 function _l.process_encoder(n,d)
@@ -267,7 +287,7 @@ function _l.process_encoder(n,d)
     _l_.bank = util.clamp(_l_.bank + d,1,3)
   elseif n == 2 then
     if _l_.alt_view then
-      _l_.alt_view_sel = util.clamp(_l_.alt_view_sel+d,1,5)
+      _l_.alt_view_sel = util.clamp(_l_.alt_view_sel+d,1,7)
     else
       local current_area = tab.key(_l_.regions,_l_.selected_region)
       current_area = util.clamp(current_area+d,1,#_l_.regions)
@@ -275,9 +295,7 @@ function _l.process_encoder(n,d)
     end
   elseif n == 3 then
     if _l_.alt_view then
-      if _l_.alt_view_sel == 1 then
-        _l_.meta_pad[_l_.bank] = util.clamp(_l_.meta_pad[_l_.bank]+d,1,16)
-      end
+      _l.process_meta_encoder(n,d)
     else
       if _l_.selected_region == "pad_level" or _l_.selected_region == "bank_level" then
         if _l_.selected_region == "bank_level" then
@@ -315,6 +333,7 @@ function _l.process_encoder(n,d)
             softcut.level_cut_cut(_l_.bank+1,6,(b[b.id].right_delay_level*b[b.id].level)*_l.get_global_level(_l_.bank))
           end
         end
+
       elseif _l_.selected_region == "pad_env" then
 
         local pre_enveloped = b[f].enveloped
@@ -323,6 +342,12 @@ function _l.process_encoder(n,d)
         
         if b[f].envelope_mode == 0 then
           b[f].enveloped = false
+          if b.id == f then
+            softcut.level_slew_time(_l_.bank+1,1.0)
+            softcut.level(_l_.bank+1,b[b.id].level*_l.get_global_level(_l_.bank))
+            softcut.level_cut_cut(_l_.bank+1,5,(b[b.id].left_delay_level*b[b.id].level)*_l.get_global_level(_l_.bank))
+            softcut.level_cut_cut(_l_.bank+1,6,(b[b.id].right_delay_level*b[b.id].level)*_l.get_global_level(_l_.bank))
+          end
         else
           b[f].enveloped = true
           if pre_enveloped ~= b[f].enveloped then
@@ -335,25 +360,34 @@ function _l.process_encoder(n,d)
             end
           end
         end
+        if bank[_l_.bank].focus_hold == false then
+          _l.pass_to_all(_l_.bank,f,"enveloped")
+          _l.pass_to_all(_l_.bank,f,"envelope_mode")
+        end
       elseif _l_.selected_region == "pad_repeat" then
-        if b[f].enveloped then
-          local pre_loop = b[f].envelope_loop
-          if d>0 then
-            b[f].envelope_loop = true
-            if pre_loop ~= b[f].envelope_loop then
-              if bank[n].focus_hold == false then
-                cheat(n, bank[n].id)
-              end
+        local pre_loop = b[f].envelope_loop
+        if d>0 then
+          b[f].envelope_loop = true
+          if pre_loop ~= b[f].envelope_loop then
+            if bank[_l_.bank].focus_hold == false and b[f].enveloped then
+              cheat(_l_.bank, bank[_l_.bank].id)
             end
-          else
-            b[f].envelope_loop = false
           end
+        else
+          b[f].envelope_loop = false
+        end
+        if bank[_l_.bank].focus_hold == false then
+          _l.pass_to_all(_l_.bank,f,"envelope_loop")
         end
       elseif _l_.selected_region == "pad_time" then
         b[f].envelope_rate_index = util.clamp(b[f].envelope_rate_index + d,1,#lfo_rates.values)
         b[f].envelope_time = (clock.get_beat_sec() * lfo_rates.values[b[f].envelope_rate_index]) * 4
         if b.id == f and b[f].level > 0.05 then
           env_counter[b[f].bank_id].time = (b[f].envelope_time/(b[f].level/0.05))
+        end
+        if bank[_l_.bank].focus_hold == false then
+          _l.pass_to_all(_l_.bank,f,"envelope_rate_index")
+          _l.pass_to_all(_l_.bank,f,"envelope_time")
         end
       elseif _l_.selected_region == "bank_lfo_active" then
         b.level_lfo.active = d > 0 and true or false
@@ -365,6 +399,83 @@ function _l.process_encoder(n,d)
         b.level_lfo.rate_index = util.clamp(b.level_lfo.rate_index + d,1,#lfo_rates.values)
         b.level_lfo.freq = 1/((clock.get_beat_sec()*4) * lfo_rates.values[b.level_lfo.rate_index])
       end
+    end
+  end
+end
+
+function _l.process_meta_encoder(n,d)
+  local b = bank[_l_.bank]
+  local _f = _l_.meta_pad[_l_.bank]
+  local f = focused_pad[_l_.bank]
+  if n == 3 then
+    if _l_.alt_view_sel == 1 then
+      _l_.meta_pad[_l_.bank] = util.clamp(_l_.meta_pad[_l_.bank]+d,1,16)
+    elseif _l_.alt_view_sel == 2 then
+      if b[_f].level < 0.4 then
+        b[_f].level = util.clamp(b[_f].level+d/50,0,2)
+      elseif b[_f].level >= 1.3 then
+        b[_f].level = util.clamp(b[_f].level+d/25,0,2)
+      else
+        b[_f].level = util.clamp(b[_f].level+d/20,0,2)
+      end
+      if _f == f then
+        if b[f].enveloped and not b[f].pause then
+          if b[f].level > 0.05 then
+            env_counter[n].time = (b[f].envelope_time/(b[f].level/0.05))
+          end
+        end
+        if b[f].envelope_mode == 2 or b[f].enveloped == false then
+          softcut.level_slew_time(_l_.bank+1,1.0)
+          softcut.level(_l_.bank+1,b[f].level*_l.get_global_level(_l_.bank))
+          softcut.level_cut_cut(_l_.bank+1,5,(b[f].left_delay_level*b[f].level)*_l.get_global_level(_l_.bank))
+          softcut.level_cut_cut(_l_.bank+1,6,(b[f].right_delay_level*b[f].level)*_l.get_global_level(_l_.bank))
+        end
+      end
+    elseif _l_.alt_view_sel == 3 then
+      local pre_enveloped = b[_f].enveloped
+      local pre_mode = b[_f].envelope_mode
+      b[_f].envelope_mode = util.clamp(b[_f].envelope_mode + d,0,3)
+      
+      if b[_f].envelope_mode == 0 then
+        b[_f].enveloped = false
+      else
+        b[_f].enveloped = true
+        if pre_enveloped ~= b[_f].enveloped and _f == f then
+          if bank[_l_.bank].focus_hold == false then
+            cheat(_l_.bank, f)
+          end
+        elseif pre_mode ~= b[_f].envelope_mode and _f == f then
+          if bank[_l_.bank].focus_hold == false then
+            cheat(_l_.bank, f)
+          end
+        end
+      end
+    elseif _l_.alt_view_sel == 4 then
+      local pre_loop = b[_f].envelope_loop
+      if d>0 then
+        b[_f].envelope_loop = true
+        if pre_loop ~= b[f].envelope_loop and f == _f then
+          if bank[_l_.bank].focus_hold == false and b[f].enveloped then
+            cheat(_l_.bank, f)
+          end
+        end
+      else
+        b[_f].envelope_loop = false
+      end
+    elseif _l_.alt_view_sel == 5 then
+      b[_f].envelope_rate_index = util.clamp(b[_f].envelope_rate_index + d,1,#lfo_rates.values)
+      b[_f].envelope_time = (clock.get_beat_sec() * lfo_rates.values[b[_f].envelope_rate_index]) * 4
+      if b.id == f and b[f].level > 0.05 and f == _f then
+        env_counter[b[f].bank_id].time = (b[f].envelope_time/(b[f].level/0.05))
+      end
+    end
+  end
+end
+
+function _l.pass_to_all(bank_id,f,param)
+  for i = 1,16 do
+    if i ~= f then
+      bank[bank_id][i][param] = bank[bank_id][f][param]
     end
   end
 end
@@ -389,26 +500,22 @@ function _l.calc_delay_sends(b,p,side_table)
   -- softcut.level_cut_cut(b+1,6,(bank[b][p].right_delay_level*bank[b][p].level)*_l.get_global_level(b))
 end
 
--- function _l.process_key(n,z)
---   if n == 1 and z == 1 then
---     _l_.alt_view = not _l_.alt_view
---     if _l_.alt_view then
---       _l_.meta_pad[_l_.bank] = focused_pad[_l_.bank]
---     end
---   elseif n == 3 and z == 1 and _l_.alt_view then
---     if _l_.alt_view_sel == 2 then
---       _l.meta_actions("copy_to_unassigned")
---     elseif _l_.alt_view_sel == 3 then
---       _l.meta_actions("copy_to_entire_bank")
---     elseif _l_.alt_view_sel == 4 then
---       _l.meta_actions("randomize_this_pad")
---     elseif _l_.alt_view_sel == 5 then
---       _l.meta_actions("randomize_this_bank")
---     end
---   elseif n == 2 and z == 1 then
---     menu = 1
---   end
--- end
+function _l.process_key(n,z)
+  if n == 1 and z == 1 then
+    _l_.alt_view = not _l_.alt_view
+    if _l_.alt_view then
+      _l_.meta_pad[_l_.bank] = focused_pad[_l_.bank]
+    end
+  elseif n == 3 and z == 1 and _l_.alt_view then
+    if _l_.alt_view_sel == 6 then
+      _l.meta_actions("randomize_this_pad")
+    elseif _l_.alt_view_sel == 7 then
+      _l.meta_actions("randomize_this_bank")
+    end
+  elseif n == 2 and z == 1 then
+    menu = 1
+  end
+end
 
 -- function _l.meta_actions(id)
 --   if id == "copy_to_unassigned" or id == "copy_to_entire_bank" then
