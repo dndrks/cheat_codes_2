@@ -2023,7 +2023,7 @@ function alt_synced_loop(target,state)
     end
     target:start()
     target.synced_loop_runner = 1
-    print("alt_synced",clock.get_beats(),target)
+    -- print("alt_synced",clock.get_beats(),target)
     while true do
       clock.sync(1/4)
       if target.synced_loop_runner == target.rec_clock_time * 4 then
@@ -4979,6 +4979,7 @@ function named_loadstate(path)
       cleanup()
     end
     one_point_two()
+    queue_saved_patterns()
     -- / GRID pattern restore
 
     for i = 1,3 do
@@ -5085,7 +5086,8 @@ function test_load(slot,destination)
       quantized_grid_pat[destination].current_step = grid_pat[destination].start_point
       quantized_grid_pat[destination].sub_step = 1
     end
-    load_pattern(slot,destination)
+    -- load_pattern(slot,destination)
+    new_load_pattern(slot,destination)
     if grid_pat[destination].count > 0 then
       -- print("5091", destination)
       start_pattern(grid_pat[destination],"jumpstart")
@@ -5392,19 +5394,186 @@ function meta_copy_coll(read_coll,write_coll)
   end
 end
 
+function redux_recall_pattern(slot,destination)
+end
+
+function queue_saved_patterns()
+  for i = 1,3 do
+    for j = 1+((i-1)*8),8+((i-1)*8) do
+      build_pattern_queue(j,i)
+    end
+  end
+end
+
+function build_pattern_queue(slot,destination)
+  local file = io.open(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/patterns/"..slot..".data", "r")
+  if file then
+    -- io.input(file)
+    if meta_grid_pattern == nil then meta_grid_pattern = {} end
+    if meta_grid_pattern[destination] == nil then meta_grid_pattern[destination] = {} end
+    if meta_grid_pattern[destination][slot] == nil then meta_grid_pattern[destination][slot] = {} end
+    for line in file:lines() do
+      meta_grid_pattern[destination][slot][#meta_grid_pattern[destination][slot]+1] = line
+    end
+    io.close(file)
+  else
+    print("no grid patterns for bank "..destination..", slot "..slot)
+  end
+end
+
+function new_load_pattern(slot,destination)
+  if meta_grid_pattern[destination][slot] ~= nil then
+    if meta_grid_pattern[destination][slot][1] == "stored pad pattern: collection "..selected_coll.." + slot "..slot then
+      grid_pat[destination].event = {}
+      grid_pat[destination].count = tonumber(meta_grid_pattern[destination][slot][2])
+      local skip_pause = false
+      -- pause only ever happens at meta_grid_pattern[destination][slot][4]...
+      if meta_grid_pattern[destination][slot][4] == "pause" then
+        grid_pat[destination].event[1] = "pause"
+        grid_pat[destination].time[1] = tonumber(meta_grid_pattern[destination][slot][3])
+        skip_pause = true
+      end
+      for i = skip_pause and 2 or 1,grid_pat[destination].count do -- it's chunks of 17
+        local c_l;
+        if skip_pause then
+          c_l = ((i + ((i-1)*17))+2)-16
+        else
+          c_l = (i + ((i-1)*17))+2
+        end
+        -- if destination == 1 then print(c_l) end
+        grid_pat[destination].time[i] = tonumber(meta_grid_pattern[destination][slot][c_l])
+        local pause_or_id = meta_grid_pattern[destination][slot][c_l+1]
+        grid_pat[destination].event[i] = {}
+        if pause_or_id ~= "pause" then
+          grid_pat[destination].event[i].id = {}
+          grid_pat[destination].event[i].rate = {}
+          grid_pat[destination].event[i].loop = {}
+          grid_pat[destination].event[i].mode = {}
+          grid_pat[destination].event[i].pause = {}
+          grid_pat[destination].event[i].start_point = {}
+          grid_pat[destination].event[i].clip = {}
+          grid_pat[destination].event[i].end_point = {}
+          grid_pat[destination].event[i].rate_adjusted = {}
+          grid_pat[destination].event[i].y = {}
+          grid_pat[destination].event[i].x = {}
+          grid_pat[destination].event[i].action = {}
+          grid_pat[destination].event[i].i = {}
+          grid_pat[destination].event[i].previous_rate = {}
+          grid_pat[destination].event[i].row = {}
+          grid_pat[destination].event[i].con = {}
+          grid_pat[destination].event[i].bank = nil
+          grid_pat[destination].event[i].id = tonumber(pause_or_id)
+          grid_pat[destination].event[i].rate = tonumber(meta_grid_pattern[destination][slot][c_l+2])
+          local loop_to_boolean = meta_grid_pattern[destination][slot][c_l+3]
+          if loop_to_boolean == "true" then
+            grid_pat[destination].event[i].loop = true
+          else
+            grid_pat[destination].event[i].loop = false
+          end
+          grid_pat[destination].event[i].mode = tonumber(meta_grid_pattern[destination][slot][c_l+4])
+          local pause_to_boolean = meta_grid_pattern[destination][slot][c_l+5]
+          if pause_to_boolean == "true" then
+            grid_pat[destination].event[i].pause = true
+          else
+            grid_pat[destination].event[i].pause = false
+          end
+          grid_pat[destination].event[i].start_point = tonumber(meta_grid_pattern[destination][slot][c_l+6])
+          grid_pat[destination].event[i].clip = tonumber(meta_grid_pattern[destination][slot][c_l+7])
+          grid_pat[destination].event[i].end_point = tonumber(meta_grid_pattern[destination][slot][c_l+8])
+          local rate_adjusted_to_boolean = meta_grid_pattern[destination][slot][c_l+9]
+          if rate_adjusted_to_boolean == "true" then
+            grid_pat[destination].event[i].rate_adjusted = true
+          else
+            grid_pat[destination].event[i].rate_adjusted = false
+          end
+          grid_pat[destination].event[i].y = tonumber(meta_grid_pattern[destination][slot][c_l+10])
+          local loaded_x = tonumber(meta_grid_pattern[destination][slot][c_l+11])
+          grid_pat[destination].event[i].action = meta_grid_pattern[destination][slot][c_l+12]
+          grid_pat[destination].event[i].i = destination
+          local source = tonumber(meta_grid_pattern[destination][slot][c_l+13])
+          if destination < source then
+            grid_pat[destination].event[i].x = loaded_x - (5*(source-destination))
+          elseif destination > source then
+            grid_pat[destination].event[i].x = loaded_x + (5*(destination-source))
+          elseif destination == source then
+            grid_pat[destination].event[i].x = loaded_x
+          end
+          grid_pat[destination].event[i].previous_rate = tonumber(meta_grid_pattern[destination][slot][c_l+14])
+          grid_pat[destination].event[i].row = tonumber(meta_grid_pattern[destination][slot][c_l+15])
+          grid_pat[destination].event[i].con = meta_grid_pattern[destination][slot][c_l+16]
+          local loaded_bank = tonumber(meta_grid_pattern[destination][slot][c_l+17])
+          if loaded_bank ~= nil then
+            if destination < source then
+              grid_pat[destination].event[i].bank = loaded_bank - (5*(source-destination))
+            elseif destination > source then
+              grid_pat[destination].event[i].bank = loaded_bank + (5*(source-destination))
+            elseif destination == source then
+              grid_pat[destination].event[i].bank = loaded_bank
+            end
+          end
+        else
+          grid_pat[destination].event[i] = "pause"
+        end
+
+      end
+      local last_line = ((meta_grid_pattern[destination][slot][2] + ((meta_grid_pattern[destination][slot][2]-1)*17))+2)+(skip_pause and 1 or 17)
+      local end_line = #meta_grid_pattern[destination][slot]
+      grid_pat[destination].metro.props.time = tonumber(meta_grid_pattern[destination][slot][last_line+1])
+      grid_pat[destination].prev_time = tonumber(meta_grid_pattern[destination][slot][last_line+2])
+      if meta_grid_pattern[destination][slot][last_line+3] == "which playmode?" then
+        local pm = tonumber(meta_grid_pattern[destination][slot][last_line+4])
+        if pm ~= 1 then
+          grid_pat[destination].playmode = 2
+        else
+          grid_pat[destination].playmode = 1
+        end
+      else
+        grid_pat[destination].playmode = 1
+      end
+      --set_pattern_mode(grid_pat[destination],destination)
+      if meta_grid_pattern[destination][slot][last_line+5] == "start point" then
+        grid_pat[destination].start_point = tonumber(meta_grid_pattern[destination][slot][last_line+6])
+      else
+        grid_pat[destination].start_point = 1
+      end
+      if meta_grid_pattern[destination][slot][last_line+7] == "end point" then
+        grid_pat[destination].end_point = tonumber(meta_grid_pattern[destination][slot][last_line+8])
+      else
+        grid_pat[destination].end_point = grid_pat[destination].count
+      end
+      if meta_grid_pattern[destination][slot][last_line+9] == "cheat codes 2.0" then
+        for i = 1,grid_pat[destination].count do
+          local c_l = (i + ((i-1)))+9
+          grid_pat[destination].quantum[i] = tonumber(meta_grid_pattern[destination][slot][c_l])
+          grid_pat[destination].time_beats[i] = tonumber(meta_grid_pattern[destination][slot][c_l+1])
+        end
+        grid_pat[destination].mode = meta_grid_pattern[destination][slot][end_line-1]
+        grid_pat[destination].rec_clock_time = tonumber(meta_grid_pattern[destination][slot][end_line])
+        ignore_external_timing = true
+      end
+    else
+      -- print("it's an arp!")
+      arp[destination] = tab.load(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/patterns/"..slot..".data")
+      ignore_external_timing = true
+    end
+    if not ignore_external_timing then
+      print("see load_external_timing")
+    end
+  else
+    print("no grid patterns to load!")
+  end
+end
+
 function load_pattern(slot,destination)
   local ignore_external_timing = false
   local file = io.open(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/patterns/"..slot..".data", "r")
   if file then
     io.input(file)
     if io.read() == "stored pad pattern: collection "..selected_coll.." + slot "..slot then
-      -- print("loading grid pat")
       grid_pat[destination].event = {}
       grid_pat[destination].count = tonumber(io.read())
       for i = 1,grid_pat[destination].count do
         grid_pat[destination].time[i] = tonumber(io.read())
-
-        -- new stuff
         local pause_or_id = io.read()
         grid_pat[destination].event[i] = {}
         if pause_or_id ~= "pause" then
@@ -5425,8 +5594,6 @@ function load_pattern(slot,destination)
           grid_pat[destination].event[i].row = {}
           grid_pat[destination].event[i].con = {}
           grid_pat[destination].event[i].bank = nil
-          --grid_pat[destination].event[i].id = tonumber(io.read())
-          -- new stuff
           grid_pat[destination].event[i].id = tonumber(pause_or_id)
           grid_pat[destination].event[i].rate = tonumber(io.read())
           local loop_to_boolean = io.read()
@@ -5504,8 +5671,6 @@ function load_pattern(slot,destination)
       else
         grid_pat[destination].end_point = grid_pat[destination].count
       end
-
-      --new stuff, quantum and time_beats!
       if io.read() == "cheat codes 2.0" then
         for i = 1,grid_pat[destination].count do
           grid_pat[destination].quantum[i] = tonumber(io.read())
@@ -5515,18 +5680,15 @@ function load_pattern(slot,destination)
         grid_pat[destination].rec_clock_time = tonumber(io.read())
         ignore_external_timing = true
       end
-      --/new stuff, quantum and time_beats!
     else
       -- print("it's an arp!")
       arp[destination] = tab.load(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/patterns/"..slot..".data")
-      -- arp[destination] = tab.load(_path.data .. "cheat_codes_2/pattern"..selected_coll.."_"..slot..".data")
       ignore_external_timing = true
     end
 
     io.close(file)
     if not ignore_external_timing then
       print("see load_external_timing")
-      -- load_external_timing(destination,slot)
     end
   else
     print("no grid patterns to load!")
