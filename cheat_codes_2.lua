@@ -2642,12 +2642,17 @@ function update_tempo()
       -- _p.adjust_lfo_rate(i)
     end
     if math.abs(pre_bpm - bpm) >= 1 then
-      --print("a change in time!")
+      for i = 1,3 do
+        for j = 1,16 do
+          bank[i][j].envelope_time = (clock.get_beat_sec() * lfo_rates.values[bank[i][j].envelope_rate_index]) * 4
+          bank[i][j].pan_lfo.freq = 1/((clock.get_beat_sec()*4) * lfo_rates.values[bank[i][j].pan_lfo.rate_index])
+        end
+        bank[i].level_lfo.freq = 1/((clock.get_beat_sec()*4) * lfo_rates.values[bank[i].level_lfo.rate_index])
+        env_counter[i].time = (bank[i][bank[i].id].envelope_time/(bank[i][bank[i].id].level/0.05))
+        --quantizer[i].time = interval
+        --grid_pat_quantizer[i].time = interval_pats
+      end
     end
-  end
-  for i = 1,3 do
-    --quantizer[i].time = interval
-    --grid_pat_quantizer[i].time = interval_pats
   end
 end
 
