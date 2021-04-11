@@ -69,7 +69,7 @@ rnd = include 'lib/rnd_actions'
 del = include 'lib/delay'
 rytm = include 'lib/euclid'
 mc = include 'lib/midicheat'
-sharer = include 'lib/sharer'
+-- sharer = include 'lib/sharer'
 macros = include 'lib/macros'
 transport = include 'lib/transport'
 speed_dial = include 'lib/speed_dial'
@@ -869,7 +869,7 @@ function init()
     end
   end
 
-  sharer.setup("cheat_codes_2")
+  -- sharer.setup("cheat_codes_2")
 
   clock.run(check_page_for_k1)
 
@@ -4611,7 +4611,8 @@ function persistent_state_restore()
   clock.run(
     function()
       clock.sleep(1)
-      if (params:string("start_transport_at_launch") == "yes" and params:string("clock_source") == "internal") then
+      -- if (params:string("start_transport_at_launch") == "yes" and params:string("clock_source") == "internal") then
+      if params:string("clock_source") == "internal" then
         clock.transport.start()
       end
     end
@@ -4749,14 +4750,7 @@ function named_savestate(text)
 
   tab.save(rec,_path.data .. "cheat_codes_2/collection-"..collection.."/rec/rec[rec.focus].data")
 
-  -- GRID pattern save
-  -- if selected_coll ~= collection then
-  --   -- meta_copy_coll(selected_coll,collection)
-  --   print(collection)
-  --   disk_save_patterns(collection)
-  -- end
   disk_save_patterns(collection)
-  -- meta_shadow(collection)
 
   selected_coll = collection
   --/ GRID pattern save
@@ -4977,7 +4971,6 @@ function named_loadstate(path)
 
     -- GRID pattern restore
     if selected_coll ~= collection then
-      -- meta_shadow(selected_coll)
     elseif selected_coll == collection then
       cleanup()
       print("cleaning up")
@@ -5028,15 +5021,6 @@ function named_loadstate(path)
 
   grid_dirty = true
 
-  -- clock.run(
-  --   function()
-  --     clock.sleep(1)
-  --     if (params:string("start_transport_at_launch") == "yes" and params:string("clock_source") == "internal") then
-  --       clock.transport.start()
-  --     end
-  --   end
-  -- )
-
 end
 
 function test_save(i)
@@ -5067,7 +5051,7 @@ function test_save(i)
       grid_dirty = true
     else
       if pattern_saver[i].saved[pattern_saver[i].save_slot] == 1 then
-        delete_pattern(pattern_saver[i].save_slot+8*(i-1))
+        delete_pattern(i,pattern_saver[i].save_slot+8*(i-1))
         pattern_saver[i].saved[pattern_saver[i].save_slot] = 0
         pattern_saver[i].load_slot = 0
       else
@@ -5211,6 +5195,14 @@ function disk_save_patterns(coll)
     os.execute("mkdir " .. dirname)
   end
 
+  for i = 1,24 do
+    local file = io.open(_path.data .. "cheat_codes_2/collection-"..coll.."/patterns/"..i..".data", "w+")
+    if file then
+      os.remove(_path.data .. "cheat_codes_2/collection-"..coll.."/patterns/"..i..".data")
+      io.close(file)
+    end
+  end
+
   for i = 1,3 do
     if meta_grid_pattern ~= nil and meta_grid_pattern[i] ~= nil then
       for k,v in pairs(meta_grid_pattern[i]) do
@@ -5222,6 +5214,7 @@ function disk_save_patterns(coll)
         end
         io.close(file)
       end
+      -- need to delete unused patterns
     end
   end
 end
@@ -5394,124 +5387,8 @@ function clear_zero()
   end
 end
 
-function delete_pattern(slot)
-  local file = io.open(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/patterns/"..slot..".data", "w+")
-  io.output(file)
-  io.write()
-  io.close(file)
-  print("deleted pattern from slot "..slot)
-end
-
-function copy_pattern_across_coll(read_coll,write_coll,slot)
-  print("4610: "..read_coll,write_coll,slot)
-  local infile = io.open(_path.data .. "cheat_codes_2/collection-"..read_coll.."/patterns/"..slot..".data", "r")
-  local outfile = io.open(_path.data .. "cheat_codes_2/collection-"..write_coll.."/patterns/"..slot..".data", "w+")
-  io.output(outfile)
-  for line in infile:lines() do
-    if line == "stored pad pattern: collection "..read_coll.." + slot "..slot then
-      io.write("stored pad pattern: collection "..write_coll.." + slot "..slot.."\n")
-    else
-      io.write(line.."\n")
-    end
-  end
-  io.close(infile)
-  io.close(outfile)
-  
-end
-
-function shadow_pattern(read_coll,write_coll,slot)
-  local infile = io.open(_path.data .. "cheat_codes_2/collection-"..read_coll.."/patterns/"..slot..".data", "r")
-  local outfile = io.open(_path.data .. "cheat_codes_2/collection-"..write_coll.."/patterns/shadow-pattern_"..slot..".data", "w+")
-  io.output(outfile)
-  for line in infile:lines() do
-    -- io.write(line.."\n")
-    if line == "stored pad pattern: collection "..read_coll.." + slot "..slot then
-      io.write("stored pad pattern: collection "..write_coll.." + slot "..slot.."\n")
-    else
-      io.write(line.."\n")
-    end
-  end
-  io.close(infile)
-  io.close(outfile)
-end
-
-function meta_shadow(coll)
-  for i = 1,3 do
-    for j = 1,8 do
-      if pattern_saver[i].saved[j] == 1 then
-        shadow_pattern(coll,coll,j+(8*(i-1)))
-      elseif pattern_saver[i].saved[j] == 0 then
-        local file = io.open(_path.data .. "cheat_codes_2/collection-"..coll.."/patterns/shadow-pattern_"..j+(8*(i-1))..".data", "w+")
-        if file then
-          io.output(file)
-          io.write()
-          io.close(file)
-        end
-      end
-    end
-  end
-end
-
-function clear_empty_shadows(coll)
-  for i = 1,24 do
-    local file = io.open(_path.data .. "cheat_codes_2/collection-"..coll.."/patterns/shadow-pattern_"..i..".data", "r")
-    if file then
-      io.input(file)
-      local line_count = 0
-      for lines in io.lines(_path.data .. "cheat_codes_2/collection-"..coll.."/patterns/shadow-pattern_"..i..".data") do
-        line_count = line_count + 1
-      end
-      if line_count > 0 then
-        local current = math.floor((i-1)/8)+1
-        pattern_saver[current].saved[i-(8*(current-1))] = 1
-      else
-        local current = math.floor((i-1)/8)+1
-        pattern_saver[current].saved[i-(8*(current-1))] = 0
-        os.remove(_path.data .. "cheat_codes_2/collection-"..coll.."/patterns/shadow-pattern_"..i..".data")
-      end
-      io.close(file)
-    else
-      local current = math.floor((i-1)/8)+1
-      pattern_saver[current].saved[i-(8*(current-1))] = 0
-    end
-  end
-end
-
-function shadow_to_play(coll,slot)
-  local infile = io.open(_path.data .. "cheat_codes_2/collection-"..coll.."/patterns/shadow-pattern_"..slot..".data", "r")
-  local outfile = io.open(_path.data .. "cheat_codes_2/collection-"..coll.."/patterns/"..slot..".data", "w+")
-  io.output(outfile)
-  if infile then
-    for line in infile:lines() do
-      if line == "stored pad pattern: collection "..coll.." + slot "..slot then
-        io.write("stored pad pattern: collection "..coll.." + slot "..slot.."\n")
-      else
-        io.write(line.."\n")
-      end
-    end
-    io.close(infile)
-    io.close(outfile)
-  end
-end
-
-function meta_copy_coll(read_coll,write_coll)
-  for i = 1,3 do
-    for j = 1,8 do
-      if pattern_saver[i].saved[j] == 1 then
-        copy_pattern_across_coll(read_coll,write_coll,j+(8*(i-1)))
-      elseif pattern_saver[i].saved[j] == 0 then
-        local file = io.open(_path.data .. "cheat_codes_2/collection-"..write_coll.."/patterns/"..j+(8*(i-1))..".data", "w+")
-        if file then
-          io.output(file)
-          io.write()
-          io.close(file)
-        end        
-      end
-    end
-  end
-end
-
-function redux_recall_pattern(slot,destination)
+function delete_pattern(i,slot)
+  meta_grid_pattern[i][slot] = nil
 end
 
 function queue_saved_patterns()
@@ -5824,37 +5701,7 @@ function cleanup()
 
   lfo_metro:stop()
 
-  clear_zero()
-  -- for i = 1,3 do
-  --   for j = 1,8 do
-  --     shadow_to_play(selected_coll,j+(8*(i-1)))
-  --   end
-  -- end
-  
-  --need all this to just happen at cleanup after save
-  -- for i = 1,24 do
-  --   local file = io.open(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/patterns/"..i..".data", "r")
-  --   if file then
-  --     io.input(file)
-  --     local line_count = 0
-  --     for lines in io.lines(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/patterns/"..i..".data") do
-  --       line_count = line_count + 1
-  --     end
-  --     if line_count > 0 then
-  --         local current = math.floor((i-1)/8)+1
-  --         pattern_saver[current].saved[i-(8*(current-1))] = 1
-  --     else
-  --       local current = math.floor((i-1)/8)+1
-  --       pattern_saver[current].saved[i-(8*(current-1))] = 0
-  --       os.remove(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/patterns/"..i..".data")
-  --     end
-  --     io.close(file)
-  --   else
-  --     local current = math.floor((i-1)/8)+1
-  --     pattern_saver[current].saved[i-(8*(current-1))] = 0
-  --   end
-  -- end
-  -- clear_empty_shadows(selected_coll)
+  -- clear_zero()
 
 end
 

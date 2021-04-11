@@ -29,6 +29,7 @@ function tp.init()
   --     persistent_state_save()
   --   end
   -- end)
+  params:hide("start_transport_at_launch")
   local banks = {"a","b","c"}
   for i = 1,3 do
     params:add_option("start_arp_"..i.."_at_launch", "auto-start arp "..banks[i].."?",{"no","yes"},2)

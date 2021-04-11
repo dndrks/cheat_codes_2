@@ -518,36 +518,29 @@ function grid_actions.init(x,y,z)
             if x == i and y == j then
               local current = math.floor(x/5)+1
               if z == 1 then
-                saved_pat = pattern_saver[current].saved[9-y] -- hate that this is global...
-                if step_seq[current].held == 0 then
-                  pattern_saver[current].source = math.floor(x/5)+1
-                  pattern_saver[current].save_slot = 9-y
-                  pattern_saver[current].clock = clock.run(test_save,current)
-                  -- print("starting save "..pattern_saver[current].clock)
-                else
+                if pattern_saver[current].saved[9-y] == 0 then
+                  if step_seq[current].held == 0 then
+                    pattern_saver[current].source = math.floor(x/5)+1
+                    pattern_saver[current].save_slot = 9-y
+                    pattern_saver[current].clock = clock.run(test_save,current)
+                    -- print("starting save "..pattern_saver[current].clock)
+                  else
                   --if there's a pattern saved there...
-                  if pattern_saver[current].saved[9-y] == 1 then
-                    if not grid_alt then
-                      step_seq[current][step_seq[current].held].assigned_to = 9-y
-                    end
+                  end
+                elseif pattern_saver[current].saved[9-y] == 1 then
+                  if step_seq[current].held == 0 then
+                    pattern_saver[current].load_slot = 9-y
+                    test_load((9-y)+(8*(current-1)),current)
+                  elseif pattern_saver[current].saved[9-y] == 1 and not grid_alt then
+                    step_seq[current][step_seq[current].held].assigned_to = 9-y
                   end
                 end
               elseif z == 0 then
                 if step_seq[current].held == 0 then
                   if pattern_saver[math.floor(x/5)+1].clock then
                     clock.cancel(pattern_saver[math.floor(x/5)+1].clock)
-                    -- TODO: FIX THIS OVERWRITING...
-                    -- clock.cancel(pattern_saver[math.floor(x/5)+1].clock-1)
-                    -- clock.cancel(pattern_saver[math.floor(x/5)+1].clock-2)
-                    -- print("killing save "..pattern_saver[math.floor(x/5)+1].clock)
                   end
                   pattern_saver[math.floor(x/5)+1].active = false
-                  if not grid_alt and saved_pat == 1 then
-                    if pattern_saver[current].saved[9-y] == 1 then
-                      pattern_saver[current].load_slot = 9-y
-                      test_load((9-y)+(8*(current-1)),current)
-                    end
-                  end
                 end
               end
             end
@@ -1382,18 +1375,21 @@ function grid_actions.init(x,y,z)
       
         if y == 2 then
           if z == 1 then
-            save_pad = pattern_saver[current].saved[x]
-            if step_seq[current].held == 0 then
-              pattern_saver[current].source = current
-              pattern_saver[current].save_slot = x
-              pattern_saver[current].clock = clock.run(test_save,current)
-              -- print("starting save "..pattern_saver[current].clock)
-            else
-              --if there's a pattern saved there...
-              if pattern_saver[current].saved[x] == 1 then
-                if not grid_alt then
-                  step_seq[current][step_seq[current].held].assigned_to = x
-                end
+            if pattern_saver[current].saved[x] == 0 then
+              if step_seq[current].held == 0 then
+                pattern_saver[current].source = current
+                pattern_saver[current].save_slot = x
+                pattern_saver[current].clock = clock.run(test_save,current)
+                -- print("starting save "..pattern_saver[current].clock)
+              else
+                --if there's a pattern saved there...
+              end
+            elseif pattern_saver[current].saved[x] == 1 then
+              if step_seq[current].held == 0 then
+                pattern_saver[current].load_slot = x
+                test_load((x)+(8*(current-1)),current)
+              elseif pattern_saver[current].saved[x] == 1 and not grid_alt then
+                step_seq[current][step_seq[current].held].assigned_to = x
               end
             end
           elseif z == 0 then
@@ -1402,12 +1398,6 @@ function grid_actions.init(x,y,z)
                 clock.cancel(pattern_saver[current].clock)
               end
               pattern_saver[current].active = false
-              if not grid_alt and saved_pat == 1 then
-                if pattern_saver[current].saved[x] == 1 then
-                  pattern_saver[current].load_slot = x
-                  test_load((x)+(8*(current-1)),current)
-                end
-              end
             end
           end
         elseif y == 3 then
