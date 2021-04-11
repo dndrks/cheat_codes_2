@@ -206,16 +206,18 @@ function pattern:start()
   --if self.count > 0 then
   if self.count > 0 and self.rec == 0 then
     --print("start pattern ")
-    if self.mode == "unquantized" then
+    if tostring(self.mode) == "unquantized" then
       self.prev_time = util.time()
       self.process(self.event[self.start_point])
       self.play = 1
       self.step = self.start_point
       self.metro.time = self.time[self.start_point] * self.time_factor
       self.metro:start()
-    else
+    elseif tostring(self.mode) == "quantized" then
       --clock.run(quantize_start, self)
       quantize_start(self)
+    else
+      print("mode is "..self.mode)
     end
   end
 end
@@ -259,6 +261,7 @@ function quantized_advance(target)
       end
       clock.sync(1/4)
       target.runner = target.runner + 1
+      print(step,target.quantum[step],target.runner)
       if target.runner > target.quantum[step]*4 then
         target.step = target.step + 1
         target.runner = 1

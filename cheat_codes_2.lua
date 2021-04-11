@@ -4750,10 +4750,13 @@ function named_savestate(text)
   tab.save(rec,_path.data .. "cheat_codes_2/collection-"..collection.."/rec/rec[rec.focus].data")
 
   -- GRID pattern save
-  if selected_coll ~= collection then
-    meta_copy_coll(selected_coll,collection)
-  end
-  meta_shadow(collection)
+  -- if selected_coll ~= collection then
+  --   -- meta_copy_coll(selected_coll,collection)
+  --   print(collection)
+  --   disk_save_patterns(collection)
+  -- end
+  disk_save_patterns(collection)
+  -- meta_shadow(collection)
 
   selected_coll = collection
   --/ GRID pattern save
@@ -4974,11 +4977,12 @@ function named_loadstate(path)
 
     -- GRID pattern restore
     if selected_coll ~= collection then
-      meta_shadow(selected_coll)
+      -- meta_shadow(selected_coll)
     elseif selected_coll == collection then
       cleanup()
+      print("cleaning up")
     end
-    one_point_two()
+    -- one_point_two()
     queue_saved_patterns()
     -- / GRID pattern restore
 
@@ -5041,8 +5045,9 @@ function test_save(i)
   -- if pattern_saver[i].active then
     if not grid_alt then
       if grid_pat[i].count > 0 and grid_pat[i].rec == 0 then
-        copy_entire_pattern(i)
-        save_pattern(i,pattern_saver[i].save_slot+8*(i-1),"pattern")
+        -- copy_entire_pattern(i)
+        -- save_pattern(i,pattern_saver[i].save_slot+8*(i-1),"pattern")
+        redux_save_pattern(i,pattern_saver[i].save_slot+8*(i-1),"pattern")
         pattern_saver[i].saved[pattern_saver[i].save_slot] = 1
         pattern_saver[i].load_slot = pattern_saver[i].save_slot
         g:led(math.floor((i-1)*5)+1,9-pattern_saver[i].save_slot,15)
@@ -5104,6 +5109,118 @@ function test_load(slot,destination)
       arp[destination].playing = true
       if arp[destination].mode == "pend" then
         arp_direction[destination] = "negative"
+      end
+    end
+  end
+end
+
+function redux_save_pattern(source,slot,style)
+  if style == "pattern" then
+    if meta_grid_pattern == nil then meta_grid_pattern = {} end
+    if meta_grid_pattern[source] == nil then meta_grid_pattern[source] = {} end
+    if meta_grid_pattern[source][slot] == nil then meta_grid_pattern[source][slot] = {} end
+    table.insert(meta_grid_pattern[source][slot],"stored pad pattern: collection "..selected_coll.." + slot "..slot)
+    table.insert(meta_grid_pattern[source][slot],grid_pat[source].count)
+    for i = 1,grid_pat[source].count do
+      table.insert(meta_grid_pattern[source][slot],grid_pat[source].time[i])
+      if grid_pat[source].event[i] ~= "pause" then
+        table.insert(meta_grid_pattern[source][slot],grid_pat[source].event[i].id)
+        table.insert(meta_grid_pattern[source][slot],grid_pat[source].event[i].rate)
+        table.insert(meta_grid_pattern[source][slot],tostring(grid_pat[source].event[i].loop))
+        if grid_pat[source].event[i].mode ~= nil then
+          table.insert(meta_grid_pattern[source][slot],grid_pat[source].event[i].mode)
+        else
+          table.insert(meta_grid_pattern[source][slot],"nil")
+        end
+        table.insert(meta_grid_pattern[source][slot],tostring(grid_pat[source].event[i].pause))
+        table.insert(meta_grid_pattern[source][slot],grid_pat[source].event[i].start_point)
+        if grid_pat[source].event[i].clip ~= nil then
+          table.insert(meta_grid_pattern[source][slot],grid_pat[source].event[i].clip)
+        else
+          table.insert(meta_grid_pattern[source][slot],"nil")
+        end
+        table.insert(meta_grid_pattern[source][slot],grid_pat[source].event[i].end_point)
+        if grid_pat[source].event[i].rate_adjusted ~= nil then
+          table.insert(meta_grid_pattern[source][slot],tostring(grid_pat[source].event[i].rate_adjusted))
+        else
+          table.insert(meta_grid_pattern[source][slot],"nil")
+        end
+        table.insert(meta_grid_pattern[source][slot],grid_pat[source].event[i].y)
+        table.insert(meta_grid_pattern[source][slot],grid_pat[source].event[i].x)
+        table.insert(meta_grid_pattern[source][slot],tostring(grid_pat[source].event[i].action))
+        table.insert(meta_grid_pattern[source][slot],grid_pat[source].event[i].i)
+        if grid_pat[source].event[i].previous_rate ~= nil then
+          table.insert(meta_grid_pattern[source][slot],grid_pat[source].event[i].previous_rate)
+        else
+          table.insert(meta_grid_pattern[source][slot],"nil")
+        end
+        if grid_pat[source].event[i].row ~=nil then
+          table.insert(meta_grid_pattern[source][slot],grid_pat[source].event[i].row)
+        else
+          table.insert(meta_grid_pattern[source][slot],"nil")
+        end
+        if grid_pat[source].event[i].con ~= nil then
+          table.insert(meta_grid_pattern[source][slot],grid_pat[source].event[i].con)
+        else
+          table.insert(meta_grid_pattern[source][slot],"nil")
+        end
+        if grid_pat[source].event[i].bank ~= nil and #grid_pat[source].event > 0 then
+          table.insert(meta_grid_pattern[source][slot],grid_pat[source].event[i].bank)
+        else
+          table.insert(meta_grid_pattern[source][slot],"nil")
+        end
+      else
+        table.insert(meta_grid_pattern[source][slot],"pause")
+      end
+    end
+    --/new stuff!
+
+    table.insert(meta_grid_pattern[source][slot],grid_pat[source].metro.props.time)
+    table.insert(meta_grid_pattern[source][slot],grid_pat[source].prev_time)
+    table.insert(meta_grid_pattern[source][slot],"which playmode?")
+    table.insert(meta_grid_pattern[source][slot],grid_pat[source].playmode)
+    table.insert(meta_grid_pattern[source][slot],"start point")
+    table.insert(meta_grid_pattern[source][slot],grid_pat[source].start_point)
+    table.insert(meta_grid_pattern[source][slot],"end point")
+    table.insert(meta_grid_pattern[source][slot],grid_pat[source].end_point)
+
+    --new stuff, quantum and time_beats!
+    table.insert(meta_grid_pattern[source][slot],"cheat codes 2.0")
+    for i = 1,grid_pat[source].count do
+      table.insert(meta_grid_pattern[source][slot],grid_pat[source].quantum[i])
+      table.insert(meta_grid_pattern[source][slot],grid_pat[source].time_beats[i])
+    end
+    --/new stuff, quantum and time_beats!
+
+    -- new stuff, quant or unquant + rec_clock_time
+    table.insert(meta_grid_pattern[source][slot],grid_pat[source].mode)
+    table.insert(meta_grid_pattern[source][slot],grid_pat[source].rec_clock_time)
+  elseif style =="arp" then
+    save_pattern(source,slot,style)
+  end
+end
+
+function disk_save_patterns(coll)
+
+  local dirname = _path.data.."cheat_codes_2/collection-"..coll.."/"
+  if os.rename(dirname, dirname) == nil then
+    os.execute("mkdir " .. dirname)
+  end
+  local dirname = _path.data.."cheat_codes_2/collection-"..coll.."/patterns/"
+  if os.rename(dirname, dirname) == nil then
+    os.execute("mkdir " .. dirname)
+  end
+
+  for i = 1,3 do
+    if meta_grid_pattern ~= nil and meta_grid_pattern[i] ~= nil then
+      for k,v in pairs(meta_grid_pattern[i]) do
+        local file = io.open(_path.data .. "cheat_codes_2/collection-"..coll.."/patterns/"..k..".data", "w+")
+        io.output(file)
+        meta_grid_pattern[i][k][1] = "stored pad pattern: collection "..coll.." + slot "..k
+        for key,val in ipairs(meta_grid_pattern[i][k]) do
+          io.write(val.."\n")
+        end
+        io.close(file)
       end
     end
   end
@@ -5416,8 +5533,10 @@ function build_pattern_queue(slot,destination)
       meta_grid_pattern[destination][slot][#meta_grid_pattern[destination][slot]+1] = line
     end
     io.close(file)
+    pattern_saver[destination].saved[slot-(8*(destination-1))] = 1
   else
-    print("no grid patterns for bank "..destination..", slot "..slot)
+    -- print("no grid patterns for bank "..destination..", slot "..slot)
+    pattern_saver[destination].saved[slot-(8*(destination-1))] = 0
   end
 end
 
@@ -5706,36 +5825,36 @@ function cleanup()
   lfo_metro:stop()
 
   clear_zero()
-  for i = 1,3 do
-    for j = 1,8 do
-      shadow_to_play(selected_coll,j+(8*(i-1)))
-    end
-  end
+  -- for i = 1,3 do
+  --   for j = 1,8 do
+  --     shadow_to_play(selected_coll,j+(8*(i-1)))
+  --   end
+  -- end
   
   --need all this to just happen at cleanup after save
-  for i = 1,24 do
-    local file = io.open(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/patterns/"..i..".data", "r")
-    if file then
-      io.input(file)
-      local line_count = 0
-      for lines in io.lines(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/patterns/"..i..".data") do
-        line_count = line_count + 1
-      end
-      if line_count > 0 then
-          local current = math.floor((i-1)/8)+1
-          pattern_saver[current].saved[i-(8*(current-1))] = 1
-      else
-        local current = math.floor((i-1)/8)+1
-        pattern_saver[current].saved[i-(8*(current-1))] = 0
-        os.remove(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/patterns/"..i..".data")
-      end
-      io.close(file)
-    else
-      local current = math.floor((i-1)/8)+1
-      pattern_saver[current].saved[i-(8*(current-1))] = 0
-    end
-  end
-  clear_empty_shadows(selected_coll)
+  -- for i = 1,24 do
+  --   local file = io.open(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/patterns/"..i..".data", "r")
+  --   if file then
+  --     io.input(file)
+  --     local line_count = 0
+  --     for lines in io.lines(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/patterns/"..i..".data") do
+  --       line_count = line_count + 1
+  --     end
+  --     if line_count > 0 then
+  --         local current = math.floor((i-1)/8)+1
+  --         pattern_saver[current].saved[i-(8*(current-1))] = 1
+  --     else
+  --       local current = math.floor((i-1)/8)+1
+  --       pattern_saver[current].saved[i-(8*(current-1))] = 0
+  --       os.remove(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/patterns/"..i..".data")
+  --     end
+  --     io.close(file)
+  --   else
+  --     local current = math.floor((i-1)/8)+1
+  --     pattern_saver[current].saved[i-(8*(current-1))] = 0
+  --   end
+  -- end
+  -- clear_empty_shadows(selected_coll)
 
 end
 
