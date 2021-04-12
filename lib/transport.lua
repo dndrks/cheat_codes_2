@@ -49,6 +49,9 @@ function tp.init()
       if x == 2 and params:get("port_"..i.."_start_stop_in") == 2 then
         params:set("port_"..i.."_start_stop_in", 1)
       end
+      if all_loaded then
+        persistent_state_save()
+      end
     end)
   end
   params:add_separator("receive MIDI transport?")
@@ -63,6 +66,9 @@ function tp.init()
       if x == 2 and params:get("port_"..i.."_start_stop_out") == 2 then
         params:set("port_"..i.."_start_stop_out", 1)
       end
+      if all_loaded then
+        persistent_state_save()
+      end
     end)
   end
   params:add_separator("send MIDI clock?")
@@ -76,6 +82,9 @@ function tp.init()
         if params:get("clock_midi_out") - 1 == i then
           params:set("clock_midi_out",1)
         end
+      end
+      if all_loaded then
+        persistent_state_save()
       end
     end)
   end

@@ -528,11 +528,13 @@ function grid_actions.init(x,y,z)
                   --if there's a pattern saved there...
                   end
                 elseif pattern_saver[current].saved[9-y] == 1 then
-                  if step_seq[current].held == 0 then
+                  if step_seq[current].held == 0 and not grid_alt then
                     pattern_saver[current].load_slot = 9-y
                     test_load((9-y)+(8*(current-1)),current)
-                  elseif pattern_saver[current].saved[9-y] == 1 and not grid_alt then
+                  elseif step_seq[current].held == 1 and not grid_alt then
                     step_seq[current][step_seq[current].held].assigned_to = 9-y
+                  elseif grid_alt then
+                    pattern_deleter[current].clock = clock.run(test_delete,current,9-y)
                   end
                 end
               elseif z == 0 then
@@ -542,10 +544,16 @@ function grid_actions.init(x,y,z)
                   end
                   pattern_saver[math.floor(x/5)+1].active = false
                 end
+                if pattern_deleter[math.floor(x/5)+1].clock then
+                  clock.cancel(pattern_deleter[math.floor(x/5)+1].clock)
+                  pattern_deleter[math.floor(x/5)+1].active = false
+                end
               end
             end
           end
         end
+
+
         
         for i = 2,12,5 do
           for j = 1,8 do
@@ -1385,11 +1393,13 @@ function grid_actions.init(x,y,z)
                 --if there's a pattern saved there...
               end
             elseif pattern_saver[current].saved[x] == 1 then
-              if step_seq[current].held == 0 then
+              if step_seq[current].held == 0 and not grid_alt then
                 pattern_saver[current].load_slot = x
                 test_load((x)+(8*(current-1)),current)
-              elseif pattern_saver[current].saved[x] == 1 and not grid_alt then
+              elseif step_seq[current].held == 1 and not grid_alt then
                 step_seq[current][step_seq[current].held].assigned_to = x
+              elseif grid_alt then
+                pattern_deleter[current].clock = clock.run(test_delete,current,x)
               end
             end
           elseif z == 0 then
@@ -1398,6 +1408,10 @@ function grid_actions.init(x,y,z)
                 clock.cancel(pattern_saver[current].clock)
               end
               pattern_saver[current].active = false
+            end
+            if pattern_deleter[current].clock then
+              clock.cancel(pattern_deleter[current].clock)
+              pattern_deleter[current].active = false
             end
           end
         elseif y == 3 then

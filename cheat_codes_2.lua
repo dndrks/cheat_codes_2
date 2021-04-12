@@ -285,6 +285,12 @@ for i = 1,3 do
   end
 end
 
+pattern_deleter = { {},{},{} }
+for i = 1,3 do
+  pattern_deleter[i].active = false
+  pattern_deleter[i].clock = nil
+end
+
 env_counter = {}
 for i = 1,3 do
   env_counter[i] = metro.init()
@@ -4535,6 +4541,7 @@ end
 --file loading
 
 function persistent_state_save()
+  print("savinggggggg")
   local dirname = _path.data.."cheat_codes_2/"
   if os.rename(dirname, dirname) == nil then
     os.execute("mkdir " .. dirname)
@@ -4584,6 +4591,8 @@ function persistent_state_save()
   io.write("start_transport_at_launch: "..params:get("start_transport_at_launch").."\n")
   for i = 1,16 do
     io.write("port_"..i.."_start_stop_out: "..params:get("port_"..i.."_start_stop_out").."\n")
+    io.write("port_"..i.."_start_stop_in: "..params:get("port_"..i.."_start_stop_in").."\n")
+    io.write("port_"..i.."_clock_out: "..params:get("port_"..i.."_clock_out").."\n")
   end
   for i = 1,3 do
     io.write("start_arp_"..i.."_at_launch: "..params:get("start_arp_"..i.."_at_launch").."\n")
@@ -5042,7 +5051,8 @@ function test_save(i)
         g:led(math.floor((i-1)*5)+1,9-pattern_saver[i].save_slot,15)
         -- g:refresh()
       elseif #arp[i].notes > 0 then
-        save_pattern(i,pattern_saver[i].save_slot+8*(i-1),"arp")
+        -- save_pattern(i,pattern_saver[i].save_slot+8*(i-1),"arp")
+        redux_save_pattern(i,pattern_saver[i].save_slot+8*(i-1),"arp")
         pattern_saver[i].saved[pattern_saver[i].save_slot] = 1
         pattern_saver[i].load_slot = pattern_saver[i].save_slot
         g:led(math.floor((i-1)*5)+1,9-pattern_saver[i].save_slot,15)
@@ -5055,6 +5065,7 @@ function test_save(i)
       pattern_saver[i].clock = nil
       grid_dirty = true
     else
+      print("should delete")
       if pattern_saver[i].saved[pattern_saver[i].save_slot] == 1 then
         delete_pattern(i,pattern_saver[i].save_slot+8*(i-1))
         pattern_saver[i].saved[pattern_saver[i].save_slot] = 0
@@ -5065,6 +5076,17 @@ function test_save(i)
     end
   -- end
   pattern_saver[i].active = false
+end
+
+function test_delete(i,x)
+  pattern_deleter[i].active = true
+  clock.sleep(1)
+  if pattern_saver[i].saved[x] == 1 and pattern_deleter[i].active then
+    delete_pattern(i,x+8*(i-1))
+    pattern_saver[i].saved[x] = 0
+    pattern_saver[i].load_slot = 0
+  end
+  pattern_deleter.active = false
 end
 
 function test_load(slot,destination)
@@ -5104,10 +5126,13 @@ function test_load(slot,destination)
 end
 
 function redux_save_pattern(source,slot,style)
+  if meta_grid_pattern == nil then meta_grid_pattern = {} end
+  if meta_grid_pattern[source] == nil then meta_grid_pattern[source] = {} end
+  if meta_grid_pattern[source][slot] == nil then meta_grid_pattern[source][slot] = {} end
   if style == "pattern" then
-    if meta_grid_pattern == nil then meta_grid_pattern = {} end
-    if meta_grid_pattern[source] == nil then meta_grid_pattern[source] = {} end
-    if meta_grid_pattern[source][slot] == nil then meta_grid_pattern[source][slot] = {} end
+    -- if meta_grid_pattern == nil then meta_grid_pattern = {} end
+    -- if meta_grid_pattern[source] == nil then meta_grid_pattern[source] = {} end
+    -- if meta_grid_pattern[source][slot] == nil then meta_grid_pattern[source][slot] = {} end
     table.insert(meta_grid_pattern[source][slot],"stored pad pattern: collection "..selected_coll.." + slot "..slot)
     table.insert(meta_grid_pattern[source][slot],grid_pat[source].count)
     for i = 1,grid_pat[source].count do
@@ -5185,7 +5210,8 @@ function redux_save_pattern(source,slot,style)
     table.insert(meta_grid_pattern[source][slot],grid_pat[source].mode)
     table.insert(meta_grid_pattern[source][slot],grid_pat[source].rec_clock_time)
   elseif style =="arp" then
-    save_pattern(source,slot,style)
+    -- save_pattern(source,slot,style)
+    meta_grid_pattern[source][slot] = deep_copy(arp[source])
   end
 end
 
@@ -5211,13 +5237,17 @@ function disk_save_patterns(coll)
   for i = 1,3 do
     if meta_grid_pattern ~= nil and meta_grid_pattern[i] ~= nil then
       for k,v in pairs(meta_grid_pattern[i]) do
-        local file = io.open(_path.data .. "cheat_codes_2/collection-"..coll.."/patterns/"..k..".data", "w+")
-        io.output(file)
-        meta_grid_pattern[i][k][1] = "stored pad pattern: collection "..coll.." + slot "..k
-        for key,val in ipairs(meta_grid_pattern[i][k]) do
-          io.write(val.."\n")
+        if #meta_grid_pattern[i][k] == 0 then
+          tab.save(meta_grid_pattern[i][k],_path.data .. "cheat_codes_2/collection-"..coll.."/patterns/"..k..".data")
+        else
+          local file = io.open(_path.data .. "cheat_codes_2/collection-"..coll.."/patterns/"..k..".data", "w+")
+          io.output(file)
+          meta_grid_pattern[i][k][1] = "stored pad pattern: collection "..coll.." + slot "..k
+          for key,val in ipairs(meta_grid_pattern[i][k]) do
+            io.write(val.."\n")
+          end
+          io.close(file)
         end
-        io.close(file)
       end
       -- need to delete unused patterns
     end
@@ -5404,6 +5434,17 @@ function queue_saved_patterns()
   end
 end
 
+function get_line(filename, line_number)
+  local i = 0
+  for line in io.lines(filename) do
+    i = i + 1
+    if i == line_number then
+      return line
+    end
+  end
+  return nil -- line not found
+end
+
 function build_pattern_queue(slot,destination)
   local file = io.open(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/patterns/"..slot..".data", "r")
   if file then
@@ -5411,8 +5452,13 @@ function build_pattern_queue(slot,destination)
     if meta_grid_pattern == nil then meta_grid_pattern = {} end
     if meta_grid_pattern[destination] == nil then meta_grid_pattern[destination] = {} end
     if meta_grid_pattern[destination][slot] == nil then meta_grid_pattern[destination][slot] = {} end
-    for line in file:lines() do
-      meta_grid_pattern[destination][slot][#meta_grid_pattern[destination][slot]+1] = line
+    local first_line = get_line(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/patterns/"..slot..".data",1)
+    if first_line ~= "return {" then
+      for line in file:lines() do
+        meta_grid_pattern[destination][slot][#meta_grid_pattern[destination][slot]+1] = line
+      end
+    else
+      meta_grid_pattern[destination][slot] = tab.load(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/patterns/"..slot..".data")
     end
     io.close(file)
     pattern_saver[destination].saved[slot-(8*(destination-1))] = 1
@@ -5554,7 +5600,8 @@ function new_load_pattern(slot,destination)
       end
     else
       -- print("it's an arp!")
-      arp[destination] = tab.load(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/patterns/"..slot..".data")
+      -- arp[destination] = tab.load(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/patterns/"..slot..".data")
+      arp[destination] = deep_copy(meta_grid_pattern[destination][slot])
       ignore_external_timing = true
     end
     if not ignore_external_timing then

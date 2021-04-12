@@ -122,10 +122,14 @@ function start_up.init()
     function(x)
       if x ~= 4 then
         params:hide("one_shot_threshold")
-        _menu.rebuild_params()
+        if all_loaded then
+          _menu.rebuild_params()
+        end
       else
         params:show("one_shot_threshold")
-        _menu.rebuild_params()
+        if all_loaded then
+          _menu.rebuild_params()
+        end
       end
     end
   )
