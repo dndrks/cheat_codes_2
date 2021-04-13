@@ -89,10 +89,9 @@ function start_up.init()
   end
 
   params:add_separator("live")
-
+  local bank_names = {"a","b","c"}
   for i = 1,3 do
-    -- params:add_option("rec_loop_"..i, "live "..i.." rec behavior", {"loop","1-shot","SOS"}, 1)
-    params:add_option("rec_loop_"..i, "live "..i.." rec behavior", {"loop","1-shot"}, 1)
+    params:add_option("rec_loop_"..i, "live "..i.." rec behavior", {"loop","1-shot","SOS ["..bank_names[i].."]"}, 1)
     params:set_action("rec_loop_"..i,
       function(x)
         if x < 3 then

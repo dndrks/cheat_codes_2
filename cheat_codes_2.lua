@@ -93,37 +93,41 @@ end
 
 SOS = {}
 
-function SOS.sync_to_recordhead(source,target)
-  -- expects source: x, target: bank[x][y]
-  if target.mode == 1 and target.clip == source then
-    softcut.loop_start(target.bank_id+1,rec[source].start_point)
-    softcut.loop_end(target.bank_id+1,rec[source].end_point)
-    -- softcut.voice_sync(target.bank_id,0,0.1)
-    softcut.position(target.bank_id+1,poll_position_new[1]+0.01)
-    softcut.loop(target.bank_id+1,1)
-    target.start_point = rec[source].start_point
-    target.end_point = rec[source].end_point
-    target.loop = true
+-- function SOS.sync_to_recordhead(source,target)
+--   -- expects source: x, target: bank[x][y]
+--   if target.mode == 1 and target.clip == source then
+--     softcut.loop_start(target.bank_id+1,rec[source].start_point)
+--     softcut.loop_end(target.bank_id+1,rec[source].end_point)
+--     softcut.position(target.bank_id+1,poll_position_new[1]+0.01)
+--     softcut.loop(target.bank_id+1,1)
+--     target.start_point = rec[source].start_point
+--     target.end_point = rec[source].end_point
+--     target.loop = true
+--   end
+-- end
+
+function SOS.voice_overwrite(target,state)
+  --expects source: bank[x][y], state: boolean
+  if state then
+    softcut.pre_level(target.bank_id+1,1)
+    softcut.rec_level(target.bank_id+1,1)
+    softcut.level_input_cut(1,target.bank_id+1,1)
+    softcut.level_input_cut(2,target.bank_id+1,1)
+    softcut.rec(target.bank_id+1,1)
+  else
+    softcut.pre_level(target.bank_id+1,1)
+    softcut.rec_level(target.bank_id+1,0)
   end
 end
 
-function SOS.voice_overwrite(target)
-  -- this should just 1:1 replace the corresponding Live clip
-  softcut.pre_level(target.bank_id+1,1)
-  softcut.rec_level(target.bank_id+1,1)
-  softcut.level_input_cut(1,target.bank_id+1,1)
-  softcut.level_input_cut(2,target.bank_id+1,1)
-  softcut.rec(target.bank_id+1,1)
-end
-
-function SOS.voice_sync(source,target)
-  -- expects source: bank[x][y], target: bank[z][a]
-  softcut.loop_start(target.bank_id+1,source.start_point)
-  softcut.loop_end(target.bank_id+1,source.end_point)
-  softcut.position(target.bank_id+1,poll_position_new[source.bank_id+1])
-  target.start_point = source.start_point
-  target.end_point = source.end_point
-end
+-- function SOS.voice_sync(source,target)
+--   -- expects source: bank[x][y], target: bank[z][a]
+--   softcut.loop_start(target.bank_id+1,source.start_point)
+--   softcut.loop_end(target.bank_id+1,source.end_point)
+--   softcut.position(target.bank_id+1,poll_position_new[source.bank_id+1])
+--   target.start_point = source.start_point
+--   target.end_point = source.end_point
+-- end
 
 function make_a_gif(filename,time)
   local steps = time*24
@@ -3348,57 +3352,62 @@ function toggle_buffer(i,untrue_alt)
   
   local old_clip = rec.focus
 
-  for j = 1,3 do
-    if j ~= i then
-      rec[j].state = 0
-    end
-  end
+  if params:get("rec_loop_"..i) == 1 or params:get("rec_loop_"..i) == 2 then
 
-  rec.focus = i
-
-  if rec[rec.focus].loop == 0 and params:string("one_shot_clock_div") == "threshold" and rec[rec.focus].queued then
-    softcut.level_slew_time(1,0)
-    softcut.fade_time(1,0)
-    one_shot_clock()
-  else
-    softcut.level_slew_time(1,0.05)
-    softcut.fade_time(1,0.01)
-    if rec[rec.focus].loop == 0 and not grid_alt then
-      if rec[rec.focus].state == 0 then
-        run_one_shot_rec_clock() -- this runs only if not recording
-      elseif rec[rec.focus].state == 1 and rec_state_watcher.is_running then -- can have both conditions, right?
-        cancel_one_shot_rec_clock()
+    for j = 1,3 do
+      if j ~= i then
+        rec[j].state = 0
       end
-    elseif rec[rec.focus].loop == 0 and (grid_alt and untrue_alt ~= nil) then
-      -- buff_flush()
-    elseif rec[rec.focus].loop == 1 and not grid_alt then
-      if one_shot_rec_clock ~= nil then
-        cancel_one_shot_rec_clock()
-      end
-      softcut.loop_start(1,rec[rec.focus].start_point)
-      softcut.loop_end(1,rec[rec.focus].end_point-0.01)
     end
-  end
   
-  rec.play_segment = rec.focus
-  softcut.loop(1,rec[rec.focus].loop)
-  if rec.stopped == true then
-    rec.stopped = false
+    rec.focus = i
+
+    if rec[rec.focus].loop == 0 and params:string("one_shot_clock_div") == "threshold" and rec[rec.focus].queued then
+      softcut.level_slew_time(1,0)
+      softcut.fade_time(1,0)
+      one_shot_clock()
+    else
+      softcut.level_slew_time(1,0.05)
+      softcut.fade_time(1,0.01)
+      if rec[rec.focus].loop == 0 and not grid_alt then
+        if rec[rec.focus].state == 0 then
+          run_one_shot_rec_clock() -- this runs only if not recording
+        elseif rec[rec.focus].state == 1 and rec_state_watcher.is_running then -- can have both conditions, right?
+          cancel_one_shot_rec_clock()
+        end
+      elseif rec[rec.focus].loop == 0 and (grid_alt and untrue_alt ~= nil) then
+        -- buff_flush()
+      elseif rec[rec.focus].loop == 1 and not grid_alt then
+        if one_shot_rec_clock ~= nil then
+          cancel_one_shot_rec_clock()
+        end
+        softcut.loop_start(1,rec[rec.focus].start_point)
+        softcut.loop_end(1,rec[rec.focus].end_point-0.01)
+      end
+    end
+    
+    rec.play_segment = rec.focus
+    softcut.loop(1,rec[rec.focus].loop)
+    if rec.stopped == true then
+      rec.stopped = false
+      if rec[rec.focus].loop == 1 then
+        softcut.position(1,rec[rec.focus].start_point)
+      end
+    end
     if rec[rec.focus].loop == 1 then
-      softcut.position(1,rec[rec.focus].start_point)
+      if old_clip ~= rec.focus then rec[rec.focus].state = 0 end
+      buff_freeze()
+      if rec[rec.focus].clear == 1 then
+        rec[rec.focus].clear = 0
+      end
     end
+    -- end
+    grid_dirty = true
+    update_waveform(1,key1_hold and rec[rec.focus].start_point or live[rec.focus].min,key1_hold and rec[rec.focus].end_point or live[rec.focus].max,128)
+    -- update_waveform(1,live[rec.focus].min,live[rec.focus].max,128)
+  elseif params:get("rec_loop_"..i) == 3 then
+
   end
-  if rec[rec.focus].loop == 1 then
-    if old_clip ~= rec.focus then rec[rec.focus].state = 0 end
-    buff_freeze()
-    if rec[rec.focus].clear == 1 then
-      rec[rec.focus].clear = 0
-    end
-  end
-  -- end
-  grid_dirty = true
-  update_waveform(1,key1_hold and rec[rec.focus].start_point or live[rec.focus].min,key1_hold and rec[rec.focus].end_point or live[rec.focus].max,128)
-  -- update_waveform(1,live[rec.focus].min,live[rec.focus].max,128)
 end
 
 function update_delays()
@@ -3852,7 +3861,7 @@ function key(n,z)
             rnd.restore_default(rnd_bank,rnd_slot)
           end
         else
-          page.rnd_page_section = page.rnd_page_section == 1 and 2 or 1
+          -- page.rnd_page_section = page.rnd_page_section == 1 and 2 or 1
         end
       end
 

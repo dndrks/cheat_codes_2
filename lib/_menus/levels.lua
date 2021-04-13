@@ -102,10 +102,11 @@ end
 
 function _l.draw_side()
   local modifier;
-  local level_to_screen_options = {"a"..focused_pad[1], "b"..focused_pad[2], "c"..focused_pad[3],"#"}
+  local level_to_screen_options = {"a"..focused_pad[1], "b"..focused_pad[2], "c"..focused_pad[3]}
+  local y_pos = {21,38,55}
   for i = 1, #level_to_screen_options do
     screen.level(i == _l_.bank and 15 or 3)
-    screen.move(10,20+((i-1)*13))
+    screen.move(10,y_pos[i])
     screen.text_center(level_to_screen_options[i])
   end
   _l.draw_boundaries()

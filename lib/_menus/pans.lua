@@ -99,7 +99,7 @@ end
 function _p.draw_side()
   local modifier;
   local pan_to_screen_options = {"a", "b", "c"}
-  local y_pos = {23,38,53}
+  local y_pos = {21,38,55}
   for i = 1, #pan_to_screen_options do
     screen.level(i == _p_.bank and 15 or 3)
     screen.move(8,y_pos[i])
