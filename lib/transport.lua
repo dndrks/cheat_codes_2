@@ -26,7 +26,7 @@ function tp.init()
   params:add_option("start_transport_at_launch", "start at load (internal)?",{"no","yes"},2)
   -- params:set_action("start_transport_at_launch", function()
   --   if all_loaded then
-  --     persistent_state_save()
+  --     
   --   end
   -- end)
   params:hide("start_transport_at_launch")
@@ -49,9 +49,7 @@ function tp.init()
       if x == 2 and params:get("port_"..i.."_start_stop_in") == 2 then
         params:set("port_"..i.."_start_stop_in", 1)
       end
-      if all_loaded then
-        persistent_state_save()
-      end
+
     end)
   end
   params:add_separator("receive MIDI transport?")
@@ -66,9 +64,7 @@ function tp.init()
       if x == 2 and params:get("port_"..i.."_start_stop_out") == 2 then
         params:set("port_"..i.."_start_stop_out", 1)
       end
-      if all_loaded then
-        persistent_state_save()
-      end
+
     end)
   end
   params:add_separator("send MIDI clock?")
@@ -83,9 +79,7 @@ function tp.init()
           params:set("clock_midi_out",1)
         end
       end
-      if all_loaded then
-        persistent_state_save()
-      end
+
     end)
   end
 

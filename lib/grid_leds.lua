@@ -714,10 +714,19 @@ function _gleds.grid_redraw()
         end
         
         -- Live buffers
-        if rec[rec.focus].clear == 0 then
-          g:led(rec.focus,2,rec[rec.focus].state == 1 and led_maps["live_rec"][edition] or (rec[rec.focus].queued and 15 or led_maps["live_pause"][edition]))
-        elseif rec[rec.focus].clear == 1 then
-          g:led(rec.focus,2,rec[rec.focus].queued and 9 or led_maps["live_empty"][edition])
+        
+        -- if rec[rec.focus].clear == 0 then
+        --   g:led(rec.focus,2,rec[rec.focus].state == 1 and led_maps["live_rec"][edition] or (rec[rec.focus].queued and 15 or led_maps["live_pause"][edition]))
+        -- elseif rec[rec.focus].clear == 1 then
+        --   g:led(rec.focus,2,rec[rec.focus].queued and 9 or led_maps["live_empty"][edition])
+        -- end
+        for i = 1,3 do
+          if rec[rec.focus].clear == 0 then
+            g:led(rec.focus,2,rec[rec.focus].state == 1 and led_maps["live_rec"][edition] or (rec[rec.focus].queued and 15 or led_maps["live_pause"][edition]))
+          elseif rec[rec.focus].clear == 1 then
+            g:led(rec.focus,2,rec[rec.focus].queued and 9 or led_maps["live_empty"][edition])
+          end
+          g:led(i,3,(params:get("SOS_enabled_"..i) == 1 and led_maps["live_rec"][edition] or 0))
         end
       
       elseif grid_page_64 == 1 then

@@ -374,7 +374,7 @@ function mc.pad_to_note_params()
   params:set_action("global_pad_to_midi_note_enabled",
   function(x)
     if all_loaded then
-      persistent_state_save()
+      
       for i = 1,3 do
         params:set(i.."_pad_to_midi_note_enabled",x)
       end
@@ -384,7 +384,7 @@ function mc.pad_to_note_params()
   params:set_action("global_pad_to_midi_note_destination",
   function(x)
     if all_loaded then
-      persistent_state_save()
+      
       for i = 1,3 do
         params:set(i.."_pad_to_midi_note_destination",x)
       end
@@ -394,7 +394,7 @@ function mc.pad_to_note_params()
   params:set_action("global_pad_to_midi_note_channel",
   function(x)
     if all_loaded then
-      persistent_state_save()
+      
       for i = 1,3 do
         params:set(i.."_pad_to_midi_note_channel",x)
       end
@@ -418,7 +418,7 @@ function mc.pad_to_note_params()
   params:set_action("global_pad_to_midi_note_scale",
   function(x)
     if all_loaded then
-      persistent_state_save()
+      
       for i = 1,3 do
         params:set(i.."_pad_to_midi_note_scale",x)
       end
@@ -428,7 +428,7 @@ function mc.pad_to_note_params()
   params:set_action("global_pad_to_midi_note_root",
   function(x)
     if all_loaded then
-      persistent_state_save()
+      
       for i = 1,3 do
         params:set(i.."_pad_to_midi_note_root",x)
       end
@@ -438,16 +438,13 @@ function mc.pad_to_note_params()
   params:set_action("global_pad_to_midi_note_root_octave",
   function(x)
     if all_loaded then
-      persistent_state_save()
+      
       for i = 1,3 do
         params:set(i.."_pad_to_midi_note_root_octave",x)
       end
     end
   end)
   params:add_option("global_pad_to_jf_note_enabled","Just Friends output?",{"no","yes"},1)
-  params:set_action("global_pad_to_jf_note_enabled",function()
-    if all_loaded then persistent_state_save() end
-  end)
   
   local jf_mode;
 
@@ -478,7 +475,7 @@ function mc.pad_to_note_params()
     wsyn_init()
     print("initializing wsyn")
     if all_loaded then
-      persistent_state_save()
+      
       wsyn_init()
       print("initializing wsyn")
     end
@@ -487,30 +484,27 @@ function mc.pad_to_note_params()
   for i = 1,3 do
     params:add_separator("bank "..banks[i])
     params:add_option(i.."_pad_to_midi_note_enabled", "bank "..banks[i].." MIDI output?", {"no","yes"},1)
-    params:set_action(i.."_pad_to_midi_note_enabled", function() if all_loaded then persistent_state_save() mc.all_midi_notes_off(i) end end)
+    params:set_action(i.."_pad_to_midi_note_enabled", function() if all_loaded then  mc.all_midi_notes_off(i) end end)
     params:add_option(i.."_pad_to_midi_note_destination", "MIDI dest",vports,2)
-    params:set_action(i.."_pad_to_midi_note_destination", function() if all_loaded then persistent_state_save() mc.all_midi_notes_off(i) end end)
+    params:set_action(i.."_pad_to_midi_note_destination", function() if all_loaded then  mc.all_midi_notes_off(i) end end)
     params:add_number(i.."_pad_to_midi_note_channel", "MIDI channel",1,16,1)
     params:set_action(i.."_pad_to_midi_note_channel", function(x) if all_loaded then
         mc.all_midi_notes_off(i)
         mc.set_parameter_all("midi_notes_channels",i,1,16,x)
-        persistent_state_save()
+        
       end 
     end)
     params:add_option(i.."_pad_to_midi_note_scale", "scale",mc_scale_names,5)
     params:set_action(i.."_pad_to_midi_note_scale",function()
       mc.build_scale(i)
-      if all_loaded then persistent_state_save() end
     end)
     params:add_number(i.."_pad_to_midi_note_root", "root note",0,11,0,function(param) return MU.note_num_to_name(param:get(), false) end)
     params:set_action(i.."_pad_to_midi_note_root",function()
       mc.build_scale(i)
-      if all_loaded then persistent_state_save() end
     end)
     params:add_option(i.."_pad_to_midi_note_root_octave", "octave", {"-5","-4","-3","-2","-1","middle","+1","+2","+3","+4","+5"},6)
     params:set_action(i.."_pad_to_midi_note_root_octave",function()
       mc.build_scale(i)
-      if all_loaded then persistent_state_save() end
     end)
     params:add_number(i.."_pad_to_midi_note_velocity", "velocity",0,127,127)
     params:set_action(i.."_pad_to_midi_note_velocity",function(x)
@@ -522,17 +516,8 @@ function mc.pad_to_note_params()
     end)
 
     params:add_option(i.."_pad_to_jf_note_enabled", "Just Friends channel",{"none","IDENTITY","2N","3N","4N","5N","6N","all","any"},9)
-    params:set_action(i.."_pad_to_jf_note_enabled",function()
-      if all_loaded then persistent_state_save() end
-    end)
     params:add_number(i.."_pad_to_jf_note_velocity", "Just Friends velocity",1,10,5)
-    params:set_action(i.."_pad_to_jf_note_velocity",function()
-      if all_loaded then persistent_state_save() end
-    end)
     params:add_option(i.."_pad_to_wsyn_note_enabled", "w/syn voice",{"none","1","2","3","4","any"},6)
-    params:set_action(i.."_pad_to_wsyn_note_enabled",function()
-      if all_loaded then persistent_state_save() end
-    end)
     params:add_number(i.."_pad_to_wsyn_note_velocity", "w/syn velocity",0,127,60)
     mc.build_scale(i)
     if mxcc ~= nil then

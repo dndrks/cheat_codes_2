@@ -109,7 +109,8 @@ SOS = {}
 function SOS.voice_overwrite(target,state)
   --expects source: bank[x][y], state: boolean
   if state then
-    softcut.pre_level(target.bank_id+1,1)
+    local feedback = params:get("SOS_feedback_"..target.bank_id)
+    softcut.pre_level(target.bank_id+1,feedback)
     softcut.rec_level(target.bank_id+1,1)
     softcut.level_input_cut(1,target.bank_id+1,1)
     softcut.level_input_cut(2,target.bank_id+1,1)
@@ -118,6 +119,15 @@ function SOS.voice_overwrite(target,state)
     softcut.pre_level(target.bank_id+1,1)
     softcut.rec_level(target.bank_id+1,0)
   end
+end
+
+function SOS.save_clip(i)
+  local dirname = _path.dust.."audio/cc2_saved_SOS_clips/"
+  if os.rename(dirname, dirname) == nil then
+    os.execute("mkdir " .. dirname)
+  end
+  local name = "cc2_"..os.date("%y%m%d_%X-SOS_clip")..i..".wav"
+  softcut.buffer_write_mono(_path.dust.."/audio/cc2_saved_SOS_clips/"..name,clip[i].min,clip[i].max-clip[i].min,2)
 end
 
 -- function SOS.voice_sync(source,target)
@@ -259,6 +269,11 @@ live[2].min = 9
 live[2].max = 17
 live[3].min = 17
 live[3].max = 25
+
+SOS_recording = {}
+for i = 1,3 do
+  SOS_recording[i] = false
+end
 
 help_menu = "welcome"
 
@@ -929,9 +944,6 @@ function init()
   params:set_action("LED_style",
   function()
     grid_dirty = true
-    if all_loaded then
-      persistent_state_save()
-    end
   end)
   params:add_option("grid_size","grid size",{"128","64"},1)
   params:set_action("grid_size",
@@ -939,9 +951,6 @@ function init()
     grid_dirty = true
     if x == 2 then
       params:set("LED_style",2)
-    end
-    if all_loaded then
-      persistent_state_save()
     end
   end)
   params:add_option("vert rotation", "vert rotation",{"usb on top","usb on bottom"},1)
@@ -953,9 +962,6 @@ function init()
       g:rotation(2)
     end
     grid_dirty = true
-    if all_loaded then
-      persistent_state_save()
-    end
   end
   )
   params:add_option("midigrid?","midigrid?",{"no","yes"},1)
@@ -963,9 +969,6 @@ function init()
   function(x)
     if x == 2 then
       params:set("grid_size",2)
-    end
-    if all_loaded then
-      persistent_state_save()
     end
   end)
 
@@ -977,9 +980,6 @@ function init()
   params:add_separator("ARC")
   params:add_option("arc_size","arc size",{4,2},1)
   params:set_action("arc_size", function(x)
-    if all_loaded then
-      persistent_state_save()
-    end
   end)
 
 
@@ -989,18 +989,14 @@ function init()
     params:set_action("crow input "..i,
     function(x)
       set_crow_input(i,x)
-      if all_loaded then
-        persistent_state_save()
-      end
+
     end)
     params:add_number("crow input "..i.." max voltage","crow in "..i.." max voltage",1,10,8)
   end
   params:add_option("crow output 4", "crow out 4",{"none","transport pulse","transport gate"},1)
   params:set_action("crow output 4",
     function(x)
-      if all_loaded then
-        persistent_state_save()
-      end
+
     end)
   
   params:add_separator("cheat codes params")
@@ -1325,6 +1321,14 @@ function init()
           update_waveform(1,key1_hold and rec[rec.focus].start_point or live[rec_on].min,key1_hold and rec[rec.focus].end_point or live[rec_on].max,128)
         end
       end
+      if page.loops.sel < 4 then
+        if params:get("SOS_enabled_"..page.loops.sel) == 1 then
+          local pad = bank[page.loops.sel][bank[page.loops.sel].id]
+          local min = pad.mode == 1 and live[pad.clip].min or clip[pad.clip].min
+          local max = pad.mode == 1 and live[pad.clip].max or clip[pad.clip].max
+          update_waveform(1,key1_hold and pad.start_point or min,key1_hold and pad.end_point or max,128)
+        end
+      end
       screen_dirty = true
     end
   end
@@ -1372,7 +1376,6 @@ function init()
 
   params:add_group("MIDI note/OP-Z setup",16)
   params:add_option("midi_control_enabled", "enable MIDI control?", {"no","yes"},1)
-  params:set_action("midi_control_enabled", function() if all_loaded then persistent_state_save() end end)
   -- params:add_option("midi_control_device", "MIDI control device",{"port 1", "port 2", "port 3", "port 4"},1)
   
   local vports = {}
@@ -1385,15 +1388,13 @@ function init()
   refresh_params_vports()
 
   params:add_option("midi_control_device", "MIDI ctrl dev",vports,1)
-  params:set_action("midi_control_device", function() if all_loaded then persistent_state_save() end end)
   params:add_option("midi_echo_enabled", "enable MIDI echo?", {"no","yes"},1)
-  params:set_action("midi_echo_enabled", function() if all_loaded then persistent_state_save() end end)
   local bank_names = {"(a)","(b)","(c)"}
   params:add_separator("channel")
   params:add_option("midi_control_channel_distribution", "channel distribution: ",{"multi","single"})
   params:set_action("midi_control_channel_distribution", function(x)
     if all_loaded then
-      persistent_state_save() 
+       
       if x == 2 then
         for i = 1,3 do params:set("bank_"..i.."_midi_channel",params:get("bank_1_midi_channel")) end
       end
@@ -1403,7 +1404,7 @@ function init()
     params:add_number("bank_"..i.."_midi_channel", "bank "..bank_names[i].." pad channel:",1,16,i)
     params:set_action("bank_"..i.."_midi_channel", function(x)
       if all_loaded then
-        persistent_state_save()
+        
         if params:get("midi_control_channel_distribution") == 2 then
           for j = 1,3 do
             params:set("bank_"..(j~=i and j or i).."_midi_channel",x)
@@ -1415,27 +1416,21 @@ function init()
   params:add_separator("note = pad 1")
   for i = 1,3 do
     params:add_number("bank_"..i.."_pad_midi_base", "bank "..bank_names[i].." midi base:",0,111,53)
-    params:set_action("bank_"..i.."_pad_midi_base", function() if all_loaded then persistent_state_save() end end)
   end
   params:add_separator("zilchmo")
   for i = 1,3 do
     params:add_option("bank_"..i.."_midi_zilchmo_enabled", "bank "..bank_names[i].." midi zilchmo?", {"no","yes"},2)
-    params:set_action("bank_"..i.."_midi_zilchmo_enabled", function() if all_loaded then persistent_state_save() end end)
   end
 
   params:add_group("MIDI encoder setup",7)
   params:add_option("midi_enc_control_enabled", "enable MIDI enc control?", {"no","yes"},1)
-  params:set_action("midi_enc_control_enabled", function() if all_loaded then persistent_state_save() end end)
   params:add_option("midi_enc_control_device", "MIDI enc dev",vports,2)
-  params:set_action("midi_enc_control_device", function() if all_loaded then persistent_state_save() end end)
   params:add_option("midi_enc_echo_enabled", "enable MIDI enc echo?", {"no","yes"},1)
-  params:set_action("midi_enc_echo_enabled", function() if all_loaded then persistent_state_save() end end)
   params:add_trigger("ping_for_MFT","refresh for MFT (K3)")
   params:set_action("ping_for_MFT",function(x) ping_midi_devices() end)
   local bank_names = {"(a)","(b)","(c)"}
   for i = 1,3 do
     params:add_number("bank_"..i.."_midi_enc_channel", "bank "..bank_names[i].." enc channel:",1,16,i)
-    params:set_action("bank_"..i.."_midi_enc_channel", function() if all_loaded then persistent_state_save() end end)
   end
 
   mc.pad_to_note_params()
@@ -2616,24 +2611,6 @@ poll_position_new = {}
 
 phase = function(n, x)
   poll_position_new[n] = x
-  -- if menu == 2 then
-    -- local rec_on = 0;
-    -- for i = 1,3 do
-    --   if rec[i].state == 1 then
-    --     rec_on = i
-    --   end
-    -- end
-    -- if rec_on ~= 0 and rec[rec_on].state == 1 then
-    --   if page.loops.sel < 4 then
-    --     local pad = bank[page.loops.sel][bank[page.loops.sel].id]
-    --     update_waveform(1,key1_hold and pad.start_point or live[rec_on].min,key1_hold and pad.end_point or live[rec_on].max,128)
-    --   elseif page.loops.sel == 4 then
-    --     update_waveform(1,key1_hold and rec[rec.focus].start_point or live[rec_on].min,key1_hold and rec[rec.focus].end_point or live[rec_on].max,128)
-    --   end
-    -- end
-    -- screen_dirty = true
-    -- if page.loops.sel ~= 5 then screen_dirty = true end
-  -- end
 end
 
 function update_tempo()
@@ -2968,15 +2945,15 @@ function cheat(b,i)
     end
   end
   --/ OH ALL THIS SUCKS TODO FIXME
-  softcut.fade_time(b+1,variable_fade_time)
-  softcut.loop_start(b+1,pad.start_point+variable_fade_time)
-  softcut.loop_end(b+1,pad.end_point-variable_fade_time)
-  softcut.buffer(b+1,pad.mode)
   if pad.pause == false then
     softcut.rate(b+1,pad.rate*pad.offset)
   else
     softcut.rate(b+1,0)
   end
+  softcut.fade_time(b+1,variable_fade_time)
+  softcut.loop_start(b+1,pad.start_point+variable_fade_time)
+  softcut.loop_end(b+1,pad.end_point-variable_fade_time)
+  softcut.buffer(b+1,pad.mode)
   if pad.loop == false then
     softcut.loop(b+1,0)
   else
@@ -3310,7 +3287,6 @@ function buff_flush()
   rec[rec.focus].state = 0
   rec[rec.focus].clear = 1
   softcut.rec_level(1,0)
-  -- update_waveform(1,rec[rec.focus].start_point, rec[rec.focus].end_point,128)
   if key1_hold then
     update_waveform(1,rec[rec.focus].start_point, rec[rec.focus].end_point,128)
   else
@@ -3352,62 +3328,83 @@ function toggle_buffer(i,untrue_alt)
   
   local old_clip = rec.focus
 
-  if params:get("rec_loop_"..i) == 1 or params:get("rec_loop_"..i) == 2 then
-
-    for j = 1,3 do
-      if j ~= i then
-        rec[j].state = 0
-      end
+  for j = 1,3 do
+    if j ~= i then
+      rec[j].state = 0
     end
-  
-    rec.focus = i
-
-    if rec[rec.focus].loop == 0 and params:string("one_shot_clock_div") == "threshold" and rec[rec.focus].queued then
-      softcut.level_slew_time(1,0)
-      softcut.fade_time(1,0)
-      one_shot_clock()
-    else
-      softcut.level_slew_time(1,0.05)
-      softcut.fade_time(1,0.01)
-      if rec[rec.focus].loop == 0 and not grid_alt then
-        if rec[rec.focus].state == 0 then
-          run_one_shot_rec_clock() -- this runs only if not recording
-        elseif rec[rec.focus].state == 1 and rec_state_watcher.is_running then -- can have both conditions, right?
-          cancel_one_shot_rec_clock()
-        end
-      elseif rec[rec.focus].loop == 0 and (grid_alt and untrue_alt ~= nil) then
-        -- buff_flush()
-      elseif rec[rec.focus].loop == 1 and not grid_alt then
-        if one_shot_rec_clock ~= nil then
-          cancel_one_shot_rec_clock()
-        end
-        softcut.loop_start(1,rec[rec.focus].start_point)
-        softcut.loop_end(1,rec[rec.focus].end_point-0.01)
-      end
-    end
-    
-    rec.play_segment = rec.focus
-    softcut.loop(1,rec[rec.focus].loop)
-    if rec.stopped == true then
-      rec.stopped = false
-      if rec[rec.focus].loop == 1 then
-        softcut.position(1,rec[rec.focus].start_point)
-      end
-    end
-    if rec[rec.focus].loop == 1 then
-      if old_clip ~= rec.focus then rec[rec.focus].state = 0 end
-      buff_freeze()
-      if rec[rec.focus].clear == 1 then
-        rec[rec.focus].clear = 0
-      end
-    end
-    -- end
-    grid_dirty = true
-    update_waveform(1,key1_hold and rec[rec.focus].start_point or live[rec.focus].min,key1_hold and rec[rec.focus].end_point or live[rec.focus].max,128)
-    -- update_waveform(1,live[rec.focus].min,live[rec.focus].max,128)
-  elseif params:get("rec_loop_"..i) == 3 then
-
   end
+
+  rec.focus = i
+
+  if rec[rec.focus].loop == 0 and params:string("one_shot_clock_div") == "threshold" and rec[rec.focus].queued then
+    softcut.level_slew_time(1,0)
+    softcut.fade_time(1,0)
+    one_shot_clock()
+  else
+    softcut.level_slew_time(1,0.05)
+    softcut.fade_time(1,0.01)
+    if rec[rec.focus].loop == 0 and not grid_alt then
+      if rec[rec.focus].state == 0 then
+        run_one_shot_rec_clock() -- this runs only if not recording
+      elseif rec[rec.focus].state == 1 and rec_state_watcher.is_running then -- can have both conditions, right?
+        cancel_one_shot_rec_clock()
+      end
+    elseif rec[rec.focus].loop == 0 and (grid_alt and untrue_alt ~= nil) then
+      -- buff_flush()
+    elseif rec[rec.focus].loop == 1 and not grid_alt then
+      if one_shot_rec_clock ~= nil then
+        cancel_one_shot_rec_clock()
+      end
+      softcut.loop_start(1,rec[rec.focus].start_point)
+      softcut.loop_end(1,rec[rec.focus].end_point-0.01)
+    end
+  end
+  
+  rec.play_segment = rec.focus
+  softcut.loop(1,rec[rec.focus].loop)
+  if rec.stopped == true then
+    rec.stopped = false
+    if rec[rec.focus].loop == 1 then
+      softcut.position(1,rec[rec.focus].start_point)
+    end
+  end
+  if rec[rec.focus].loop == 1 then
+    if old_clip ~= rec.focus then rec[rec.focus].state = 0 end
+    buff_freeze()
+    if rec[rec.focus].clear == 1 then
+      rec[rec.focus].clear = 0
+    end
+  end
+  -- end
+  grid_dirty = true
+  update_waveform(1,key1_hold and rec[rec.focus].start_point or live[rec.focus].min,key1_hold and rec[rec.focus].end_point or live[rec.focus].max,128)
+end
+
+function SOS.toggle(i)
+  local current_state = params:get("SOS_enabled_"..i)
+  params:set("SOS_enabled_"..i, current_state == 1 and 0 or 1)
+  -- SOS_recording[i] = not SOS_recording[i]
+  SOS.voice_overwrite(bank[i][bank[i].id],params:get("SOS_enabled_"..i) == 1 and true or false)
+end
+
+function SOS.erase(i)
+  local target = bank[i][bank[i].id].mode
+  local fade = params:get("SOS_erase_fade_"..i)
+  local preserve = 1 - params:get("SOS_erase_strength_"..i)
+  softcut.buffer_clear_region_channel(target,bank[i][bank[i].id].start_point, bank[i][bank[i].id].end_point-bank[i][bank[i].id].start_point,fade,preserve)
+  if key1_hold then
+    update_waveform(target,bank[i][bank[i].id].start_point, bank[i][bank[i].id].end_point,128)
+  else
+    local points;
+    local cl = bank[i][bank[i].id].clip
+    if target == 1 then
+      points = {live[cl].min,live[cl].max}
+    else
+      points = {clip[cl].min,clip[cl].max}
+    end
+    update_waveform(target,points[1],points[2],128)
+  end
+  grid_dirty = true
 end
 
 function update_delays()
@@ -4550,7 +4547,6 @@ end
 --file loading
 
 function persistent_state_save()
-  print("savinggggggg")
   local dirname = _path.data.."cheat_codes_2/"
   if os.rename(dirname, dirname) == nil then
     os.execute("mkdir " .. dirname)
@@ -5753,6 +5749,8 @@ function load_pattern(slot,destination)
 end
 
 function cleanup()
+
+  persistent_state_save()
 
   metro[31].time = 0.25
 

@@ -1208,7 +1208,7 @@ function grid_actions.init(x,y,z)
       if y == 2 and x <= 3 and z == 1 then
         if rec.focus ~= x then
           rec.focus = x
-        else
+        elseif rec.focus == x then
           if rec[rec.focus].loop == 0 and params:string("one_shot_clock_div") == "threshold" and not grid_alt then
             threshold_rec_handler()
           elseif not grid_alt then
@@ -1217,6 +1217,14 @@ function grid_actions.init(x,y,z)
           if grid_alt then
             buff_flush()
           end
+        end
+      end
+
+      if y == 3 and x <= 3 and z == 1 then
+        if not grid_alt then
+          SOS.toggle(x)
+        else
+          SOS.erase(x)
         end
       end
       

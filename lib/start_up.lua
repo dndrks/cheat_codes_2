@@ -29,6 +29,10 @@ function start_up.init()
     softcut.rate_slew_time(4,0.2)
   end
 
+  for i = 1,3 do
+    softcut.recpre_slew_time(i+1,0.01)
+  end
+
   clock.run(function()
     clock.sleep(0.25)
     softcut.rec(1, 1)
@@ -75,7 +79,7 @@ function start_up.init()
   
   --params:add_separator()
   
-  params:add_group("loops + buffers", 29)
+  params:add_group("loops + buffers", 45)
 
   params:add_separator("clips")
   
@@ -91,7 +95,7 @@ function start_up.init()
   params:add_separator("live")
   local bank_names = {"a","b","c"}
   for i = 1,3 do
-    params:add_option("rec_loop_"..i, "live "..i.." rec behavior", {"loop","1-shot","SOS ["..bank_names[i].."]"}, 1)
+    params:add_option("rec_loop_"..i, "live "..i.." rec behavior", {"loop","1-shot"}, 1)
     params:set_action("rec_loop_"..i,
       function(x)
         if x < 3 then
@@ -111,6 +115,7 @@ function start_up.init()
               end
             end
           end
+          grid_dirty = true
         end
       end
     )
@@ -184,6 +189,27 @@ function start_up.init()
     params:add_control("random_rec_clock_prob_"..i, "rand rec "..i.." probability", controlspec.new(0, 100, 'lin', 1, 0, "%"))
   end
 
+  params:add_separator("SOS")
+  for i = 1,3 do
+    params:add_binary("SOS_enabled_"..i,"SOS ["..bank_names[i].."]","toggle")
+    params:add{id="SOS_feedback_"..i, name="--> SOS feedback", type="control", 
+    controlspec=controlspec.new(0,1.0,'lin',0,1,""),
+    action = function(x)
+      if params:get("SOS_enabled_"..i) == 1 then
+        softcut.pre_level(i+1,x)
+      end
+    end}
+    params:add{id="SOS_erase_strength_"..i, name="--> SOS erase strength", type="control", 
+    controlspec=controlspec.new(0,1.0,'lin',0,1,"")}
+    params:hide("SOS_erase_strength_"..i)
+    params:add{id="SOS_erase_fade_"..i, name="--> SOS erase fade", type="control", 
+    controlspec=controlspec.new(0,1.0,'lin',0,0,"")}
+  end
+
+  for i = 1,3 do
+    params:add{type = "trigger", id = "SOS_save_clip"..i, name = "save clip "..i.." [K3]", action = function() SOS.save_clip(i) end}	
+  end
+
   params:add_separator("global")
 
   params:add_control("offset", "global pitch offset", controlspec.new(-24, 24, 'lin', 1, 0, "st"))
@@ -231,21 +257,16 @@ function start_up.init()
   end
 
   params:add_option("preview_clip_change", "preview clip changes?", {"yes","no"},1)
-  params:set_action("preview_clip_change", function() if all_loaded then persistent_state_save() end end)
   params:add_option("visual_metro", "visual metronome?", {"yes","no"},2)
-  params:set_action("visual_metro", function() if all_loaded then persistent_state_save() end end)
   
   --params:add_option("zilchmo_bind_rand","bind random zilchmo?", {"no","yes"}, 1)
   
   params:add_group("patterns + arps",29)
   params:add_separator("patterns")
   params:add_option("zilchmo_patterning", "grid pat style", { "classic", "rad sauce" })
-  params:set_action("zilchmo_patterning", function() if all_loaded then persistent_state_save() end end)
   params:add_option("arc_patterning", "arc pat style", { "passive", "active" })
-  params:set_action("arc_patterning", function() if all_loaded then persistent_state_save() end end)
   for i = 1,3 do
     params:add_option("sync_clock_to_pattern_"..i, "sync bpm to free pat "..i.."?", { "no", "yes" })
-    params:set_action("sync_clock_to_pattern_"..i, function() if all_loaded then persistent_state_save() end end)
   end
   params:add_separator("pattern quantization")
   for i = 1,3 do
