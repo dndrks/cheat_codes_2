@@ -591,7 +591,6 @@ function random_grid_pat(which,mode)
       print("auto-snap")
       snap_to_bars(which,how_many_bars(which))
     end
-    print("569")
     start_pattern(pattern)
     pattern.loop = 1
   else
@@ -739,7 +738,7 @@ function commit_midi_to_disk(target)
 end
 
 function update_pattern_bpm(bank)
-  grid_pat[bank].time_factor = 1*(synced_to_bpm/bpm)
+  grid_pat[bank].time_factor = 1*(synced_to_bpm/params:get("clock_tempo"))
 end
 
 function table.clone(org)
@@ -1332,6 +1331,15 @@ function init()
       screen_dirty = true
     end
   end
+
+  function force_waveform_redraw()
+    for i = 1,3 do
+      local pad = bank[i][bank[i].id]
+      local min = pad.mode == 1 and live[pad.clip].min or clip[pad.clip].min
+      local max = pad.mode == 1 and live[pad.clip].max or clip[pad.clip].max
+      update_waveform(1,min,max,128)
+    end
+  end
   
   softcut.poll_start_phase()
   
@@ -1444,9 +1452,18 @@ function init()
   task_id = clock.run(globally_clocked)
   pad_press_quant = clock.run(pad_clock)
   random_rec = clock.run(random_rec_clock)
+
+  params:set_action("clock_tempo",
+  function(x)
+    local source = params:string("clock_source")
+    if source == "internal" then clock.internal.set_tempo(x)
+    elseif source == "link" then clock.link.set_tempo(x) end
+    norns.state.clock.tempo = x
+    update_tempo()
+  end)
   
   if params:string("clock_source") == "internal" then
-    clock.internal.start(bpm)
+    clock.internal.start(params:get("clock_tempo"))
   end
 
   -- local midi_dev_max;
@@ -2390,7 +2407,7 @@ function globally_clocked()
     if menu == 2 then
       screen_dirty = true
     end
-    update_tempo()
+    -- update_tempo()
     -- step_sequence()
     for i = 1,3 do
       -- step_sequence(i)
@@ -2614,32 +2631,21 @@ phase = function(n, x)
 end
 
 function update_tempo()
-  local pre_bpm = bpm
-  params:set("bpm", util.round(clock.get_tempo()))
-  bpm = params:get("bpm") -- FIXME this is where the global bpm is defined
-  local t = params:get("bpm")
-  local d = params:get("quant_div")
-  local d_pat = params:get("quant_div_pats")
-  local interval = (60/t) / d
-  local interval_pats = (60/t) / d_pat
-  if pre_bpm ~= bpm then
-    compare_rec_resolution(params:get("rec_loop_enc_resolution"))
-    for i = 1,3 do
-      compare_loop_resolution(i,params:get("loop_enc_resolution_"..i))
-      -- _p.adjust_lfo_rate(i)
+  compare_rec_resolution(params:get("rec_loop_enc_resolution"))
+  for i = 1,3 do
+    compare_loop_resolution(i,params:get("loop_enc_resolution_"..i))
+  end
+  for i = 1,3 do
+    for j = 1,16 do
+      bank[i][j].envelope_time = (clock.get_beat_sec() * lfo_rates.values[bank[i][j].envelope_rate_index]) * 4
+      bank[i][j].pan_lfo.freq = 1/((clock.get_beat_sec()*4) * lfo_rates.values[bank[i][j].pan_lfo.rate_index])
     end
-    if math.abs(pre_bpm - bpm) >= 1 then
-      for i = 1,3 do
-        for j = 1,16 do
-          bank[i][j].envelope_time = (clock.get_beat_sec() * lfo_rates.values[bank[i][j].envelope_rate_index]) * 4
-          bank[i][j].pan_lfo.freq = 1/((clock.get_beat_sec()*4) * lfo_rates.values[bank[i][j].pan_lfo.rate_index])
-        end
-        bank[i].level_lfo.freq = 1/((clock.get_beat_sec()*4) * lfo_rates.values[bank[i].level_lfo.rate_index])
-        env_counter[i].time = (bank[i][bank[i].id].envelope_time/(bank[i][bank[i].id].level/0.05))
-        --quantizer[i].time = interval
-        --grid_pat_quantizer[i].time = interval_pats
-      end
-    end
+    bank[i].level_lfo.freq = 1/((clock.get_beat_sec()*4) * lfo_rates.values[bank[i].level_lfo.rate_index])
+    env_counter[i].time = (bank[i][bank[i].id].envelope_time/(bank[i][bank[i].id].level/0.05))
+    del.sync_lfos()
+    macros.sync_lfos()
+    --quantizer[i].time = interval
+    --grid_pat_quantizer[i].time = interval_pats
   end
 end
 
@@ -3385,14 +3391,15 @@ function SOS.toggle(i)
   params:set("SOS_enabled_"..i, current_state == 1 and 0 or 1)
   -- SOS_recording[i] = not SOS_recording[i]
   SOS.voice_overwrite(bank[i][bank[i].id],params:get("SOS_enabled_"..i) == 1 and true or false)
+  force_waveform_redraw()
 end
 
 function SOS.erase(i)
   local target = bank[i][bank[i].id].mode
   local fade = params:get("SOS_erase_fade_"..i)
   local preserve = 1 - params:get("SOS_erase_strength_"..i)
-  softcut.buffer_clear_region_channel(target,bank[i][bank[i].id].start_point, bank[i][bank[i].id].end_point-bank[i][bank[i].id].start_point,fade,preserve)
-  if key1_hold then
+  softcut.buffer_clear_region_channel(target,bank[i][bank[i].id].start_point, (bank[i][bank[i].id].end_point-bank[i][bank[i].id].start_point)+0.01,fade,preserve)
+  if key1_hold and menu == 2 then
     update_waveform(target,bank[i][bank[i].id].start_point, bank[i][bank[i].id].end_point,128)
   else
     local points;

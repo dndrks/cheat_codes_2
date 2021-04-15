@@ -403,51 +403,59 @@ function grid_actions.init(x,y,z)
       end
       
 
-      for i = 8,6,-1 do
-        if x == 5 or x == 10 or x == 15 then
-          if y == i then
-            if not grid_alt then
-              if z == 1 then
-                table.insert(arc_switcher[x/5],y)
-                held_query[x/5] = #arc_switcher[x/5]
-              elseif z == 0 then
-                held_query[x/5] = held_query[x/5] - 1
-                if held_query[x/5] == 0 then
-                  if #arc_switcher[x/5] == 1 then
-                    if arc_switcher[x/5][1] == 8 then
-                      arc_param[x/5] = 1
-                    elseif arc_switcher[x/5][1] == 7 then
-                      arc_param[x/5] = 2
-                    elseif arc_switcher[x/5][1] == 6 then
-                      arc_param[x/5] = 3
-                    end
-                  elseif #arc_switcher[x/5] == 2 then
-                    total = arc_switcher[x/5][1] + arc_switcher[x/5][2]
-                    if total == 15 then
-                      arc_param[x/5] = 5
-                    elseif total == 13 then
-                      arc_param[x/5] = 6
-                    end
-                  elseif #arc_switcher[x/5] == 3 then
-                    arc_param[x/5] = 4
-                  elseif #arc_switcher[x/5] > 3 then
-                    arc_switcher[x/5] = {}
-                  end
-                  arc_switcher[x/5] = {}
-                end
-              end
-            elseif grid_alt then
-              if y == 8 then
-                -- sixteen_slices(x/5)
-              elseif y == 7 then
-                -- rec_to_pad(x/5)
-              elseif y == 6 then
-                -- pad_to_rec(x/5)
-              end
-            end
-          end
+      if (x == 5 or x == 10 or x == 15) and y == 8 and z == 1 then
+        if not grid_alt then
+          SOS.toggle(util.round(x/5))
+        else
+          SOS.erase(util.round(x/5))
         end
       end
+
+      -- for i = 8,6,-1 do
+      --   if x == 5 or x == 10 or x == 15 then
+      --     if y == i then
+      --       if not grid_alt then
+      --         if z == 1 then
+      --           table.insert(arc_switcher[x/5],y)
+      --           held_query[x/5] = #arc_switcher[x/5]
+      --         elseif z == 0 then
+      --           held_query[x/5] = held_query[x/5] - 1
+      --           if held_query[x/5] == 0 then
+      --             if #arc_switcher[x/5] == 1 then
+      --               if arc_switcher[x/5][1] == 8 then
+      --                 arc_param[x/5] = 1
+      --               elseif arc_switcher[x/5][1] == 7 then
+      --                 arc_param[x/5] = 2
+      --               elseif arc_switcher[x/5][1] == 6 then
+      --                 arc_param[x/5] = 3
+      --               end
+      --             elseif #arc_switcher[x/5] == 2 then
+      --               total = arc_switcher[x/5][1] + arc_switcher[x/5][2]
+      --               if total == 15 then
+      --                 arc_param[x/5] = 5
+      --               elseif total == 13 then
+      --                 arc_param[x/5] = 6
+      --               end
+      --             elseif #arc_switcher[x/5] == 3 then
+      --               arc_param[x/5] = 4
+      --             elseif #arc_switcher[x/5] > 3 then
+      --               arc_switcher[x/5] = {}
+      --             end
+      --             arc_switcher[x/5] = {}
+      --           end
+      --         end
+      --       elseif grid_alt then
+      --         if y == 8 then
+      --           -- sixteen_slices(x/5)
+      --         elseif y == 7 then
+      --           -- rec_to_pad(x/5)
+      --         elseif y == 6 then
+      --           -- pad_to_rec(x/5)
+      --         end
+      --       end
+      --     end
+      --   end
+      -- end
       
       if y == 5 then
         if x == 5 or x == 10 or x == 15 then
@@ -853,24 +861,16 @@ function grid_actions.init(x,y,z)
     end
     
     if x == 16 and y == 1 and z == 1 then
-      if grid_page == 0 then
-        if not grid_alt then
+      if not grid_alt then
+        if grid_page == 0 then
           grid_page = 1
-        else
-         
-        end
-      elseif grid_page == 1 then
-        if not grid_alt then
+        elseif grid_page == 1 then
           grid_page = 2
-        else
-          -- grid_page = 0
-        end
-      elseif grid_page == 2 then
-        if not grid_alt then
+        elseif grid_page == 2 then  
           grid_page = 0
-        else
-          -- grid_page = 1
         end
+      elseif grid_alt then
+        transport.toggle_transport()
       end
     end
 
@@ -1276,7 +1276,11 @@ function grid_actions.init(x,y,z)
       end
 
       if x == 8 and y == 1 and z == 1 then
-        grid_page_64 = 1
+        if not grid_alt then
+          grid_page_64 = 1
+        elseif grid_alt then
+          transport.toggle_transport()
+        end
       end
 
     elseif grid_page_64 == 1 then
@@ -1363,7 +1367,11 @@ function grid_actions.init(x,y,z)
       end
 
       if x == 8 and y == 1 and z == 1 then
-        grid_page_64 = 2
+        if not grid_alt then
+          grid_page_64 = 2
+        elseif grid_alt then
+          transport.toggle_transport()
+        end
       end
 
     elseif grid_page_64 == 2 then
@@ -1492,7 +1500,11 @@ function grid_actions.init(x,y,z)
       end
 
       if x == 8 and y == 1 and z == 1 then
-        grid_page_64 = 0
+        if not grid_alt then
+          grid_page_64 = 0
+        elseif grid_alt then
+          transport.toggle_transport()
+        end
       end
 
     end

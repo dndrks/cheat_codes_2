@@ -178,6 +178,16 @@ default_vals =
   , target = 1
   , curve = "linear"
   }
+, ["rec_live_"] =
+  {
+    params_name = "rec_live_"
+  , enabled = false
+  , destructive = true
+  , min = 0
+  , max = 1
+  , target = 1
+  , curve = "linear"
+  }
 , ["macro"] =
   {
     params_name = "macro"
@@ -330,10 +340,12 @@ function Macro:pass_value(val)
           local target = m[i].target
           -- local name = m[i].params_name..(m[i].destructive and (" ".. target) or (" non-destructive "..target))
           local name;
-          if string.find(m[i].params_name, "w/") == nil then
-            name = m[i].params_name..(m[i].destructive and (" ".. target) or (" non-destructive "..target))
-          else
+          if string.find(m[i].params_name, "w/") ~= nil then
             name = m[i].params_name
+          elseif string.find(m[i].params_name, "rec_live_") ~= nil then
+            name = m[i].params_name..target
+          else
+            name = m[i].params_name..(m[i].destructive and (" ".. target) or (" non-destructive "..target))
           end
           local min = m[i].min
           local max = m[i].max
@@ -388,6 +400,7 @@ local parameter_names =
 , "delay free time"
 , "delay rate"
 , "delay pan"
+, "rec_live_"
 , "macro"
 , "w/curve"
 , "w/ramp"
@@ -549,7 +562,11 @@ function Container:convert(prm,trg,indx,controlspec_type)
   if lookup_name ~= "none" then
     local id;
     if string.find(lookup_name,"w/") == nil then
-      id = params.lookup[lookup_name.." "..trg]
+      if string.find(lookup_name,"rec_live") == nil then
+        id = params.lookup[lookup_name.." "..trg]
+      else
+        id = params.lookup[lookup_name..trg]
+      end
     else
       id = params.lookup[lookup_name]
     end
@@ -567,6 +584,12 @@ function Container:convert(prm,trg,indx,controlspec_type)
       elseif controlspec_type == "maxval" then
         -- return prm.max
         return tonumber(string.format("%.4g",util.round(prm.max,0.1)))
+      end
+    elseif params.params[id].t == 9 then
+      if controlspec_type == "minval" then
+        return 0
+      elseif controlspec_type == "maxval" then
+        return 1
       end
     end
   elseif lookup_name == "none" then
@@ -589,6 +612,8 @@ function get_target_display_name(prm,trg)
     end
   elseif string.find(prm,"w/")~= nil then
     return "w/synth"
+  elseif string.find(prm,"rec_live_")~= nil then
+    return "live "..trg
   else
     return bank_names[trg]
   end
@@ -653,7 +678,8 @@ function Container.UI()
     screen.font_size(8)
     screen.move(30,21)
     screen.level(edit_focus == 2 and 15 or 3)
-    screen.text("param: "..current.params_name)
+    local display_name = current.params_name ~= "rec_live_" and current.params_name or "live rec toggle"
+    screen.text("param: "..display_name)
 
     screen.move(30,31)
     screen.level(edit_focus == 3 and 15 or 3)
@@ -701,6 +727,12 @@ function Container.UI()
     end
   end
 
+end
+
+function Container.sync_lfos()
+  for i = 1,8 do
+    macro[i].lfo.freq = 1/((clock.get_beat_sec()*4) * lfo_rates.values[params:get("macro "..i.." lfo rate")])
+  end
 end
 
 function Container.lfo_process(id,movement)

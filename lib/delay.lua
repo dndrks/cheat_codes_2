@@ -108,6 +108,12 @@ function delays.init(target)
 
 end
 
+function delays.sync_lfos()
+  for i = 1,2 do
+    delay[i].filter_lfo.freq = 1/((clock.get_beat_sec()*4) * lfo_rates.values[delay[i].filter_lfo.rate_index])
+  end
+end
+
 function delays.links(prm)
   delay_links[prm] = not delay_links[prm]
   if prm == "mode" or prm == (delay[1].mode == "clocked" and "div/mult" or "free length") then
@@ -400,7 +406,7 @@ function delays.save_delay(source)
   end
 
   local id = os.date("%X")
-  local name = id.."-"..(source == 1 and "L-" or "R-")..params:get("bpm")..".wav"
+  local name = id.."-"..(source == 1 and "L-" or "R-")..params:get("clock_tempo")..".wav"
   local duration = delay[source].mode == "clocked" and delay[source].end_point-delay[source].start_point or delay[source].free_end_point-delay[source].start_point
   softcut.buffer_write_mono(_path.dust.."audio/cc2_saved-delays/"..os.date("%y%m%d").."/"..name,delay[source].start_point,duration,1)
 end

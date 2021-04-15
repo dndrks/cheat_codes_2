@@ -303,20 +303,7 @@ end
 function tp.key(n,z)
   if n == 3 and z == 1 then
     if page.transport.focus == "TRANSPORT" then
-      if tp.is_running then
-        clock.transport.stop()
-      else
-        if params:string("clock_source") == "internal" then
-          -- clock.internal.start(3.9)
-          clock.internal.start(-0.1)
-        -- elseif params:string("clock_source") == "link" then
-        else
-          tp.cycle = 1
-          clock.transport.start()
-        end
-        tp.pending = true
-        -- clock.transport.start()
-      end
+      tp.toggle_transport()
     elseif page.transport.focus == "TAP-TEMPO" then
       tp.tap_tempo()
     end
@@ -325,6 +312,20 @@ function tp.key(n,z)
     transport.tap_tempo_table = {}
     transport.tap_tempo_index = 1
     sum_tempo = 0
+  end
+end
+
+function tp.toggle_transport()
+  if tp.is_running then
+    clock.transport.stop()
+  else
+    if params:string("clock_source") == "internal" then
+      clock.internal.start(-0.1)
+    else
+      tp.cycle = 1
+      clock.transport.start()
+    end
+    tp.pending = true
   end
 end
 
@@ -372,7 +373,7 @@ function tp.UI()
   screen.move(0,30)
   screen.level(15)
   screen.font_size(18)
-  screen.text(params:get("clock_tempo").." bpm")
+  screen.text(util.round(params:get("clock_tempo"),0.01).." bpm")
   screen.move(0,50)
   screen.text("K3: ")
   if page.transport.focus == "TRANSPORT" then

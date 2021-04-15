@@ -171,25 +171,29 @@ function _gleds.grid_redraw()
           end
         end
         
-        if a.device ~= nil then
-          for i = 1,3 do
-            for j = 5,15,5 do
-              g:led(j,8,arc_param[j/5] == 1 and 5 or 0)
-              g:led(j,7,arc_param[j/5] == 2 and 5 or 0)
-              g:led(j,6,arc_param[j/5] == 3 and 5 or 0)
-              if arc_param[j/5] == 4 then
-                for k = 8,6,-1 do
-                  g:led(j,k,led_maps["arc_param_show"][edition])
-                end
-              elseif arc_param[j/5] == 5 then
-                g:led(j,8,led_maps["arc_param_show"][edition])
-                g:led(j,7,led_maps["arc_param_show"][edition])
-              elseif arc_param[j/5] == 6 then
-                g:led(j,7,led_maps["arc_param_show"][edition])
-                g:led(j,6,led_maps["arc_param_show"][edition])
-              end
-            end
-          end
+        -- if a.device ~= nil then
+        --   for i = 1,3 do
+        --     for j = 5,15,5 do
+        --       g:led(j,8,arc_param[j/5] == 1 and 5 or 0)
+        --       g:led(j,7,arc_param[j/5] == 2 and 5 or 0)
+        --       g:led(j,6,arc_param[j/5] == 3 and 5 or 0)
+        --       if arc_param[j/5] == 4 then
+        --         for k = 8,6,-1 do
+        --           g:led(j,k,led_maps["arc_param_show"][edition])
+        --         end
+        --       elseif arc_param[j/5] == 5 then
+        --         g:led(j,8,led_maps["arc_param_show"][edition])
+        --         g:led(j,7,led_maps["arc_param_show"][edition])
+        --       elseif arc_param[j/5] == 6 then
+        --         g:led(j,7,led_maps["arc_param_show"][edition])
+        --         g:led(j,6,led_maps["arc_param_show"][edition])
+        --       end
+        --     end
+        --   end
+        -- end
+
+        for j = 5,15,5 do
+          g:led(j,8,(params:get("SOS_enabled_"..util.round(j/5)) == 1 and led_maps["live_rec"][edition] or 0))
         end
         
         for i = 1,3 do
