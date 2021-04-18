@@ -126,8 +126,12 @@ function SOS.save_clip(i)
   if os.rename(dirname, dirname) == nil then
     os.execute("mkdir " .. dirname)
   end
-  local name = "cc2_"..os.date("%y%m%d_%X-SOS_clip")..i..".wav"
-  softcut.buffer_write_mono(_path.dust.."/audio/cc2_saved_SOS_clips/"..name,clip[i].min,clip[i].max-clip[i].min,2)
+  local dirname = _path.dust.."audio/cc2_saved_SOS_clips/"..os.date("%y%m%d").."/"
+  if os.rename(dirname, dirname) == nil then
+    os.execute("mkdir " .. dirname)
+  end
+  local name = "cc2_"..os.date("%X-SOS_clip")..i..".wav"
+  softcut.buffer_write_mono(_path.dust.."/audio/cc2_saved_SOS_clips/"..os.date("%y%m%d").."/"..name,clip[i].min,clip[i].max-clip[i].min,2)
 end
 
 -- function SOS.voice_sync(source,target)
