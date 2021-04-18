@@ -122,7 +122,13 @@ function encoder_actions.init(n,d)
         end
       end
     elseif menu == 6 then
-      page.delay.focus = util.clamp(page.delay.focus+d,1,2)
+      page.delay.nav = util.clamp(page.delay.nav+d,1,4)
+      if page.delay.nav > 1 then
+        for i = 1,2 do
+          page.delay[i].menu = page.delay.nav - 1
+        end
+        page.delay.section = 2
+      end
     elseif menu == 7 then
       page.time_sel = util.clamp(page.time_sel+d,1,6)
     elseif menu == 8 then
@@ -261,12 +267,15 @@ function encoder_actions.init(n,d)
 
     elseif menu == 6 then
 
-      if page.delay.section == 1 then
-        page.delay[page.delay.focus].menu = util.clamp(page.delay[page.delay.focus].menu+d,1,3)
-      elseif page.delay.section == 2 then
+      -- if page.delay.section == 1 then
+      --   page.delay[page.delay.focus].menu = util.clamp(page.delay[page.delay.focus].menu+d,1,3)
+      -- elseif page.delay.section == 2 then
+      if page.delay.nav > 1 then
         local max_items = {5,10,7}
-        local target = page.delay[page.delay.focus].menu_sel[page.delay[page.delay.focus].menu]
-        page.delay[page.delay.focus].menu_sel[page.delay[page.delay.focus].menu] = util.clamp(target+d,1,max_items[page.delay[page.delay.focus].menu])
+        for i = 1,2 do
+          local target = page.delay[i].menu_sel[page.delay[i].menu]
+          page.delay[i].menu_sel[page.delay[i].menu] = util.clamp(target+d,1,max_items[page.delay[i].menu])
+        end
       end
       
     elseif menu == 7 then
@@ -416,7 +425,8 @@ function encoder_actions.init(n,d)
       local item = page.delay[page.delay.focus].menu_sel[page.delay[page.delay.focus].menu]
       local delay_name = page.delay.focus == 1 and "L" or "R"
       local focused_menu = page.delay[page.delay.focus].menu
-      if page.delay.section == 2 then
+      -- if page.delay.section == 2 then
+      if page.delay.nav > 1 then
         if focused_menu == 1 then
           if item == 1 then
             ea.delta_delay_param(delay_name,"mode",d)
@@ -548,6 +558,8 @@ function encoder_actions.init(n,d)
             ea.delta_delay_param(delay_name,"global level",d)
           end
         end
+      else
+        page.delay.focus = util.clamp(page.delay.focus+d,1,2)
       end
 
     elseif menu == 7 then
@@ -707,47 +719,48 @@ function encoder_actions.init(n,d)
   if menu == 4 then
     main_menu.process_encoder("pans",n,d)
   elseif menu == 5 then
-    local filt_page = page.filters.sel + 1
-    if filt_page == 1 then
-      if bank[n][bank[n].id].filter_type == 4 then
-        if key1_hold or grid_alt then
-          if slew_counter[n] ~= nil then
-            slew_counter[n].prev_tilt = bank[n][bank[n].id].tilt
-          end
-          bank[n][bank[n].id].tilt = util.clamp(bank[n][bank[n].id].tilt+(d/100),-1,1)
-          if d < 0 then
-            if util.round(bank[n][bank[n].id].tilt*100) < 0 and util.round(bank[n][bank[n].id].tilt*100) > -9 then
-              bank[n][bank[n].id].tilt = -0.10
-            elseif util.round(bank[n][bank[n].id].tilt*100) > 0 and util.round(bank[n][bank[n].id].tilt*100) < 32 then
-              bank[n][bank[n].id].tilt = 0.0
-            end
-          elseif d > 0 and util.round(bank[n][bank[n].id].tilt*100) > 0 and util.round(bank[n][bank[n].id].tilt*100) < 32 then
-            bank[n][bank[n].id].tilt = 0.32
-          end
-          slew_filter(n,slew_counter[n].prev_tilt,bank[n][bank[n].id].tilt,bank[n][bank[n].id].q,bank[n][bank[n].id].q,15)
-        else
-          ea.set_filter_cutoff(n,d)
-        end
-      end
-    elseif filt_page == 2 then
-      if key1_hold or grid_alt then
-        bank[n][bank[n].id].tilt_ease_time = util.clamp(bank[n][bank[n].id].tilt_ease_time+(d/1), 5, 15000)
-      else
-        for j = 1,16 do
-          bank[n][j].tilt_ease_time = util.clamp(bank[n][j].tilt_ease_time+(d/1), 5, 15000)
-        end
-      end
-    elseif filt_page == 3 then
-      params:delta("filter "..n.." q",d*-1)
-    elseif filt_page == 4 then
-      if key1_hold or grid_alt then
-        bank[n][bank[n].id].tilt_ease_type = util.clamp(bank[n][bank[n].id].tilt_ease_type+d, 1, 2)
-      else
-        for j = 1,16 do
-          bank[n][j].tilt_ease_type = util.clamp(bank[n][j].tilt_ease_type+d, 1, 2)
-        end
-      end
-    end
+    main_menu.process_encoder("filters",n,d)
+    -- local filt_page = page.filters.sel + 1
+    -- if filt_page == 1 then
+    --   if bank[n][bank[n].id].filter_type == 4 then
+    --     if key1_hold or grid_alt then
+    --       if slew_counter[n] ~= nil then
+    --         slew_counter[n].prev_tilt = bank[n][bank[n].id].tilt
+    --       end
+    --       bank[n][bank[n].id].tilt = util.clamp(bank[n][bank[n].id].tilt+(d/100),-1,1)
+    --       if d < 0 then
+    --         if util.round(bank[n][bank[n].id].tilt*100) < 0 and util.round(bank[n][bank[n].id].tilt*100) > -9 then
+    --           bank[n][bank[n].id].tilt = -0.10
+    --         elseif util.round(bank[n][bank[n].id].tilt*100) > 0 and util.round(bank[n][bank[n].id].tilt*100) < 32 then
+    --           bank[n][bank[n].id].tilt = 0.0
+    --         end
+    --       elseif d > 0 and util.round(bank[n][bank[n].id].tilt*100) > 0 and util.round(bank[n][bank[n].id].tilt*100) < 32 then
+    --         bank[n][bank[n].id].tilt = 0.32
+    --       end
+    --       slew_filter(n,slew_counter[n].prev_tilt,bank[n][bank[n].id].tilt,bank[n][bank[n].id].q,bank[n][bank[n].id].q,15)
+    --     else
+    --       ea.set_filter_cutoff(n,d)
+    --     end
+    --   end
+    -- elseif filt_page == 2 then
+    --   if key1_hold or grid_alt then
+    --     bank[n][bank[n].id].tilt_ease_time = util.clamp(bank[n][bank[n].id].tilt_ease_time+(d/1), 5, 15000)
+    --   else
+    --     for j = 1,16 do
+    --       bank[n][j].tilt_ease_time = util.clamp(bank[n][j].tilt_ease_time+(d/1), 5, 15000)
+    --     end
+    --   end
+    -- elseif filt_page == 3 then
+    --   params:delta("filter "..n.." q",d*-1)
+    -- elseif filt_page == 4 then
+    --   if key1_hold or grid_alt then
+    --     bank[n][bank[n].id].tilt_ease_type = util.clamp(bank[n][bank[n].id].tilt_ease_type+d, 1, 2)
+    --   else
+    --     for j = 1,16 do
+    --       bank[n][j].tilt_ease_type = util.clamp(bank[n][j].tilt_ease_type+d, 1, 2)
+    --     end
+    --   end
+    -- end
   elseif menu == 10 then
     main_menu.process_encoder("rnd",n,d)
   end

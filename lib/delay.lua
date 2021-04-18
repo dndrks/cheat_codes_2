@@ -115,9 +115,11 @@ function delays.sync_lfos()
 end
 
 function delays.links(prm)
-  delay_links[prm] = not delay_links[prm]
-  if prm == "mode" or prm == (delay[1].mode == "clocked" and "div/mult" or "free length") then
-    delay_links[prm == "mode" and (delay[1].mode == "clocked" and "div/mult" or "free length") or "mode"] = delay_links[prm]
+  if delay_links[prm] ~= nil then
+    delay_links[prm] = not delay_links[prm]
+    if prm == "mode" or prm == (delay[1].mode == "clocked" and "div/mult" or "free length") then
+      delay_links[prm == "mode" and (delay[1].mode == "clocked" and "div/mult" or "free length") or "mode"] = delay_links[prm]
+    end
   end
 end
 

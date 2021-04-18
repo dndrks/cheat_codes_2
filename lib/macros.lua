@@ -530,7 +530,7 @@ end
 function Container:add_params()
   params:add_group("macros",8*6)
   for i = 1,8 do
-    params:add_separator("MACRO "..i,1)
+    params:add_separator("macro: "..i)
     params:add_number("macro "..i, "macro "..i.." value", 0,127,0)
     params:set_action("macro "..i, function(x) if all_loaded then macro[i]:pass_value(x) end end)
     params:add_option("macro "..i.." lfo active", "macro "..i.." lfo active",{"no","yes"},1)

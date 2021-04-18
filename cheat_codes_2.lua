@@ -1015,7 +1015,8 @@ function init()
     end
     fileselect.enter(_path.data.."cheat_codes_2/names/", named_loadstate)
   end)
-  params:add_option("collect_live","collect Live buffers?",{"no","yes"})
+  params:add_option("collect_live","collect Live buffers?",{"no","yes"},2)
+  params:hide("collect_live")
   params:add_trigger("save", "save new collection")
   params:set_action("save", function(x)
     if Namesizer ~= nil then
@@ -1259,13 +1260,13 @@ function init()
   end
 
   counter_two = {}
-  counter_two.key_up = metro.init()
-  counter_two.key_up.time = 0.05
-  counter_two.key_up.count = 1
-  counter_two.key_up.event = function()
-    zilchmo(2,selected_zilchmo_bank)
-  end
-  counter_two.key_up:stop()
+  -- counter_two.key_up = metro.init()
+  -- counter_two.key_up.time = 0.05
+  -- counter_two.key_up.count = 1
+  -- counter_two.key_up.event = function()
+  --   zilchmo(2,selected_zilchmo_bank)
+  -- end
+  -- counter_two.key_up:stop()
   
   quantized_grid_pat = {}
   for i = 1,3 do
@@ -3502,6 +3503,7 @@ function reload_collected_samples(file,sample)
     buff_freeze()
   end
   if file ~= "-" then
+    print(file)
     softcut.buffer_read_mono(file, 0, 1+(8 * (sample-1)), 8, 1, 1)
     print("reloaded previous session's audio")
   end
@@ -3699,6 +3701,10 @@ function key(n,z)
         local filter_nav = (page.filters.sel + 1)%4
         page.filters.sel = filter_nav
       elseif menu == 6 then
+        if not key1_hold then
+          page.delay.focus = page.delay.focus == 1 and 2 or 1
+          screen_dirty = true
+        end
         if page.delay.section == 2 then
           if key1_hold then
             local k = page.delay[page.delay.focus].menu
@@ -3715,7 +3721,7 @@ function key(n,z)
               grid_dirty = true
             end
           else
-            page.delay.section = page.delay.section == 1 and 2 or 1
+            
           end
         elseif page.delay.section == 1 then
           if key1_hold then
@@ -4646,6 +4652,7 @@ function persistent_state_restore()
   if params:get("cut_input_adc") == -inf then
     params:set("cut_input_adc",0)
   end
+  metro.free(metro_persistent_state_restore.props.id)
 end
 
 function named_overwrite(path)
@@ -4751,9 +4758,10 @@ function named_savestate(text)
     tab.save(arp[i],_path.data .. "cheat_codes_2/collection-"..collection.."/arps/"..i..".data")
     tab.save(rytm.track[i],_path.data .. "cheat_codes_2/collection-"..collection.."/euclid/euclid"..i..".data")
     tab.save(rnd[i],_path.data .. "cheat_codes_2/collection-"..collection.."/rnd/"..i..".data")
-    if params:get("collect_live") == 2 then
-      collect_samples(i,collection)
-    end
+    collect_samples(i,collection)
+    -- if params:get("collect_live") == 2 then
+    --   collect_samples(i,collection)
+    -- end
   end
 
   for i = 1,2 do
@@ -4882,7 +4890,7 @@ function named_loadstate(path)
     selected_coll = collection
     collection_loaded = true
     if collection == "DEFAULT" then
-      clock.run(default_load_screen)
+      zilchmo_animation = clock.run(default_load_screen)
     else
       clock.run(load_screen)
     end
@@ -4958,8 +4966,14 @@ function named_loadstate(path)
         end
       end
 
-      if params:get("collect_live") == 2 then
+      -- if params:get("collect_live") == 2 then
+      --   reload_collected_samples(_path.dust.."audio/cc2_live-audio/"..collection.."/".."cc2_"..collection.."-"..i..".wav",i)
+      -- end
+      if util.file_exists(_path.dust.."audio/cc2_live-audio/"..collection.."/".."cc2_"..collection.."-"..i..".wav") then
         reload_collected_samples(_path.dust.."audio/cc2_live-audio/"..collection.."/".."cc2_"..collection.."-"..i..".wav",i)
+      else
+        print("don't worry, but no file: ".._path.dust.."audio/cc2_live-audio/"..collection.."/".."cc2_"..collection.."-"..i..".wav")
+        print("^ just a heads up, in case you were expecting a live recording to pre-load :)")
       end
       
       if tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/euclid/euclid"..i..".data") ~= nil then
@@ -5033,13 +5047,13 @@ function named_loadstate(path)
   end
 
   ping_midi_devices()
-  if file then
-    if tab.load(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/params/mappings.txt") ~= nil then
-      norns.pmap.rev = tab.load(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/params/mappings.txt")
-      norns.pmap.data = tab.load(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/params/map-data.txt")
-      -- BUT, i want the device to be present or reassigned...
-    end
-  end
+  -- if file then
+  --   if tab.load(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/params/mappings.txt") ~= nil then
+  --     norns.pmap.rev = tab.load(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/params/mappings.txt")
+  --     norns.pmap.data = tab.load(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/params/map-data.txt")
+  --     -- BUT, i want the device to be present or reassigned...
+  --   end
+  -- end
     
   if not lfo_metro.is_running then
     lfo_metro:start()
@@ -5766,8 +5780,6 @@ function cleanup()
   end
 
   lfo_metro:stop()
-
-  -- clear_zero()
 
 end
 
