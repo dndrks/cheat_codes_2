@@ -2681,7 +2681,7 @@ function step_sequence(i)
     end
   -- end
   end
-  if grid_page == 1 or grid_page_64 == 2 then
+  if grid_page == 1 or grid_page_64 == 1 then
     grid_dirty = true
   end
 end

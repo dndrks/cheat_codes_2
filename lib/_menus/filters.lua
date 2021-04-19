@@ -176,7 +176,7 @@ function _f.draw_params()
   end
   -- x_positions = {33,60,88,114}
   x_positions = {38,74,110}
-  local q_scaled = util.linlin(0.0005,4,100,0,params:get("filter ".._f_.bank.." q"))
+  local q_scaled = util.linlin(0.0005,4,100,0,bank[_f_.bank][bank[_f_.bank].id].q)
   local ease_time_to_screen = bank[_f_.bank][bank[_f_.bank].id].tilt_ease_time
   local ease_type_to_screen = bank[_f_.bank][bank[_f_.bank].id].tilt_ease_type
   local ease_types = {"cont","jumpy"}
@@ -258,6 +258,7 @@ function _f.process_meta_encoder(n,d)
     if _f_.alt_view_sel == 1 then
       _f_.meta_pad[_f_.bank] = util.clamp(_f_.meta_pad[_f_.bank]+d,1,16)
     elseif _f_.alt_view_sel == 2 then
+      slew_counter[_f_.bank].prev_tilt =  b[_f].tilt
       b[_f].tilt = util.clamp(b[_f].tilt+(d/100),-1,1)
       if d < 0 then
         if util.round(b[_f].tilt*100) < 0 and util.round(b[_f].tilt*100) > -9 then

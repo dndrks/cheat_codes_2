@@ -733,7 +733,7 @@ function _gleds.grid_redraw()
           g:led(i,3,(params:get("SOS_enabled_"..i) == 1 and led_maps["live_rec"][edition] or 0))
         end
       
-      elseif grid_page_64 == 1 then
+      elseif grid_page_64 == 2 then
 
         -- delay page!
         for i = 1,5 do
@@ -874,7 +874,7 @@ function _gleds.grid_redraw()
 
         g:led(1,8,grid_alt and led_maps["alt_on"][edition] or led_maps["alt_off"][edition])
 
-      elseif grid_page_64 == 2 then
+      elseif grid_page_64 == 1 then
 
         for x = 1,3 do
           g:led(x,1,x == bank_64 and 12 or 4)

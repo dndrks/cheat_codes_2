@@ -5,6 +5,9 @@ for i = 1,3 do
   held_query[i] = 0
 end
 
+page_switcher_held = false
+was_transport_toggled = false
+
 zilches = 
 { 
     [2] = {{},{},{}} 
@@ -304,8 +307,15 @@ function grid_actions.init(x,y,z)
       end
       
       if x == 16 and y == 8 then
-        grid_alt = z == 1 and true or false
-        arc_alt = z
+        if not page_switcher_held then
+          grid_alt = z == 1 and true or false
+          arc_alt = z
+        else
+          if z == 1 then
+            transport.toggle_transport()
+            was_transport_toggled = true
+          end
+        end
         if menu ~= 1 then screen_dirty = true end
       end
       
@@ -633,11 +643,17 @@ function grid_actions.init(x,y,z)
             end
           end
         end
-        
+
         if x == 16 and y == 8 then
-          grid_alt = z == 1 and true or false
+          if not page_switcher_held then
+            grid_alt = z == 1 and true or false
+          else
+            if z == 1 then
+              transport.toggle_transport()
+              was_transport_toggled = true
+            end
+          end
           if menu ~= 1 then screen_dirty = true end
-          -- grid_redraw()
         end
       
       elseif grid_loop_mod == 1 then
@@ -853,15 +869,24 @@ function grid_actions.init(x,y,z)
       end
 
       if x == 16 and y == 8 then
-        -- grid.alt_delay = not grid.alt_delay
-        -- grid_alt = not grid_alt
-        grid_alt = z == 1 and true or false
+        if not page_switcher_held then
+          grid_alt = z == 1 and true or false
+        else
+          if z == 1 then
+            transport.toggle_transport()
+            was_transport_toggled = true
+          end
+        end
+        if menu ~= 1 then screen_dirty = true end
       end
 
     end
     
     if x == 16 and y == 1 and z == 1 then
-      if not grid_alt then
+      page_switcher_held = true
+    elseif x == 16 and y == 1 and z == 0 then
+      page_switcher_held = false
+      if not grid_alt and not was_transport_toggled then
         if grid_page == 0 then
           grid_page = 1
         elseif grid_page == 1 then
@@ -870,8 +895,15 @@ function grid_actions.init(x,y,z)
           grid_page = 0
         end
       elseif grid_alt then
-        transport.toggle_transport()
+        if grid_page == 0 then
+          grid_page = 2
+        elseif grid_page == 1 then
+          grid_page = 0
+        elseif grid_page == 2 then  
+          grid_page = 1
+        end
       end
+      was_transport_toggled = false
     end
 
     grid_dirty = true
@@ -887,6 +919,12 @@ function grid_actions.init(x,y,z)
         b = bank[x]
         if menu == 2 then
           page.loops.sel = x
+        elseif menu == 3 then
+          page.levels.bank = x
+        elseif menu == 4 then
+          page.pans.bank = x
+        elseif menu == 5 then
+          page.filters.bank = x
         elseif menu == 7 then
           page.time_sel = x
         elseif menu == 8 then
@@ -1135,8 +1173,15 @@ function grid_actions.init(x,y,z)
       end
       
       if x == 1 and y == 8 then
-        grid_alt = z == 1 and true or false
-        arc_alt = z
+        if not page_switcher_held then
+          grid_alt = z == 1 and true or false
+          arc_alt = z
+        else
+          if z == 1 then
+            transport.toggle_transport()
+            was_transport_toggled = true
+          end
+        end
         if menu ~= 1 then screen_dirty = true end
       end
       
@@ -1275,15 +1320,7 @@ function grid_actions.init(x,y,z)
         random_grid_pat(bank_64,3)
       end
 
-      if x == 8 and y == 1 and z == 1 then
-        if not grid_alt then
-          grid_page_64 = 1
-        elseif grid_alt then
-          transport.toggle_transport()
-        end
-      end
-
-    elseif grid_page_64 == 1 then
+    elseif grid_page_64 == 2 then
 
       if x == 3 or x == 6 then
         if y <= 2 and z == 1 then
@@ -1363,18 +1400,18 @@ function grid_actions.init(x,y,z)
       end
 
       if x == 1 and y == 8 then
-        grid_alt = z == 1 and true or false
-      end
-
-      if x == 8 and y == 1 and z == 1 then
-        if not grid_alt then
-          grid_page_64 = 2
-        elseif grid_alt then
-          transport.toggle_transport()
+        if not page_switcher_held then
+          grid_alt = z == 1 and true or false
+        else
+          if z == 1 then
+            transport.toggle_transport()
+            was_transport_toggled = true
+          end
         end
+        if menu ~= 1 then screen_dirty = true end
       end
 
-    elseif grid_page_64 == 2 then
+    elseif grid_page_64 == 1 then
       local save_pat;
       if x <=3 and y == 1 and z ==1  then
         bank_64 = x
@@ -1469,7 +1506,14 @@ function grid_actions.init(x,y,z)
         end
         
         if x == 1 and y == 8 then
-          grid_alt = z == 1 and true or false
+          if not page_switcher_held then
+            grid_alt = z == 1 and true or false
+          else
+            if z == 1 then
+              transport.toggle_transport()
+              was_transport_toggled = true
+            end
+          end
           if menu ~= 1 then screen_dirty = true end
         end
       
@@ -1499,14 +1543,30 @@ function grid_actions.init(x,y,z)
         grid_dirty = true
       end
 
-      if x == 8 and y == 1 and z == 1 then
-        if not grid_alt then
+    end
+
+    if x == 8 and y == 1 and z == 1 then
+      page_switcher_held = true
+    elseif x == 8 and y == 1 and z == 0 then
+      page_switcher_held = false
+      if not grid_alt and not was_transport_toggled then
+        if grid_page_64 == 0 then
+          grid_page_64 = 1
+        elseif grid_page_64 == 1 then
+          grid_page_64 = 2
+        elseif grid_page_64 == 2 then  
           grid_page_64 = 0
-        elseif grid_alt then
-          transport.toggle_transport()
+        end
+      elseif grid_alt then
+        if grid_page_64 == 0 then
+          grid_page_64 = 2
+        elseif grid_page_64 == 1 then
+          grid_page_64 = 0
+        elseif grid_page_64 == 2 then  
+          grid_page_64 = 1
         end
       end
-
+      was_transport_toggled = false
     end
 
     grid_dirty = true
