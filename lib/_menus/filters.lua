@@ -39,8 +39,8 @@ function _f.draw_menu()
   _f.draw_side()
   _f.draw_header()
   if not _f_.alt_view then
-    _f.draw_panning()
-    _f.draw_lfo()
+    _f.draw_filters()
+    _f.draw_params()
   else
     _f.draw_alt_view()
   end
@@ -65,35 +65,63 @@ end
 function _f.draw_alt_view()
   local f = _f_.meta_pad[_f_.bank]
   screen.level(_f_.alt_view_sel == 1 and 15 or 3)
-  screen.move(26,20)
+  screen.move(24,20)
   screen.text("PAD: "..f)
+
+
   screen.level(_f_.alt_view_sel == 2 and 15 or 3)
   screen.move(26,30)
-  screen.text("cutoff: "..bank[_f_.bank][f].pan)
-  local x_positions = {33,60,88,114}
+  local tilt_options = {"LP", "-", "HP"}
+  local x_positions = {28,74,120}
+  for i = 1,3 do
+    screen.move(x_positions[i],30)
+    screen.text_center(tilt_options[i])
+  end
+  local cut_to_line = util.round(math.abs(bank[_f_.bank][f].tilt),0.01)*100
+  if bank[_f_.bank][f].tilt < 0 then
+    for i = 0,cut_to_line do
+      screen.move(util.linlin(0,100,74,28,i),38)
+      screen.text_center("|")
+    end
+  elseif bank[_f_.bank][f].tilt > 0 then
+    for i = 3,cut_to_line do
+      screen.move(util.linlin(30,100,74,120,i),38)
+      screen.text_center("|")
+    end
+  else
+    screen.move(74,38)
+    screen.text_center("|")
+  end
+
+
+  local x_positions = {43,74,105}
+  -- {38,74,110}
+  local q_scaled = util.linlin(0.0005,4,100,0,bank[_f_.bank][f].q)
+  local ease_time_to_screen = bank[_f_.bank][f].tilt_ease_time
+  local ease_type_to_screen = bank[_f_.bank][f].tilt_ease_type
+  local ease_types = {"cont","jumpy"}
   local text_to_display =
   {
-    bank[_f_.bank][f].filter_lfo.active == true and "on" or "off",
-    bank[_f_.bank][f].filter_lfo.waveform,
-    bank[_f_.bank][f].filter_lfo.depth,
-    lfo_rates.names[bank[_f_.bank][f].filter_lfo.rate_index]
+    string.format("%.4g",q_scaled) .."%",
+    string.format("%.2f",ease_time_to_screen/100) .."s",
+    ease_types[ease_type_to_screen]
   }
-  for i = 1,4 do
+  for i = 1,3 do
     screen.level(_f_.alt_view_sel == i+2 and 15 or 3)
-    screen.move(x_positions[i],40)
-    screen.text_center(_f_.regions[i+1])
     screen.move(x_positions[i],50)
+    screen.text_center(_f_.regions[i+1])
+    screen.move(x_positions[i],60)
     screen.text_center(text_to_display[i])
   end
-  screen.level(_f_.alt_view_sel == 7 and 15 or (_f_.alt_view_sel == 8 and 15 or 3))
-  screen.move(26,60)
-  screen.text("RANDOMIZE: ")
-  screen.level(_f_.alt_view_sel == 7 and 15 or 3)
-  screen.move(80,60)
-  screen.text("pad")
-  screen.level(_f_.alt_view_sel == 8 and 15 or 3)
-  screen.move(122,60)
-  screen.text_right("bank")
+  -- screen.level(_f_.alt_view_sel == 7 and 15 or (_f_.alt_view_sel == 8 and 15 or 3))
+  -- screen.move(26,60)
+  -- screen.text("RANDOMIZE: ")
+  -- screen.level(_f_.alt_view_sel == 7 and 15 or 3)
+  -- screen.move(80,60)
+  -- screen.text("pad")
+  -- screen.level(_f_.alt_view_sel == 8 and 15 or 3)
+  -- screen.move(122,60)
+  -- screen.text_right("bank")
 end
 
 function _f.draw_side()
@@ -108,7 +136,7 @@ function _f.draw_side()
   _f.draw_boundaries()
 end
 
-function _f.draw_panning()
+function _f.draw_filters()
   screen.level(_f_.selected_region == "cutoff" and 15 or 3)
   local tilt_options = {"LP", "-", "HP"}
   local x_positions = {28,74,120}
@@ -136,7 +164,7 @@ function _f.draw_panning()
 
 end
 
-function _f.draw_lfo()
+function _f.draw_params()
   screen.level(15)
   --three sections, 20 to 128: 36 each
   -- local x_positions = {47,75,101}
@@ -225,48 +253,36 @@ function _f.process_meta_encoder(n,d)
   if n == 1 then
     _f_.bank = util.clamp(_f_.bank + d,1,3)
   elseif n == 2 then
-    _f_.alt_view_sel = util.clamp(_f_.alt_view_sel+d,1,8)
+    _f_.alt_view_sel = util.clamp(_f_.alt_view_sel+d,1,5)
   elseif n == 3 then
     if _f_.alt_view_sel == 1 then
       _f_.meta_pad[_f_.bank] = util.clamp(_f_.meta_pad[_f_.bank]+d,1,16)
     elseif _f_.alt_view_sel == 2 then
-      if _f == f then
-        encoder_actions.set_filter_cutoff(_f_.bank,d)
-      else
-        b[_f].tilt = util.clamp(b[_f].tilt+(d/100),-1,1)
-        if d < 0 then
-          if util.round(b[_f].tilt*100) < 0 and util.round(b[_f].tilt*100) > -9 then
-            b[_f].tilt = -0.10
-          elseif util.round(b[_f].tilt*100) > 0 and util.round(b[_f].tilt*100) < 32 then
-            b[_f].tilt = 0.0
-          end
-        elseif d > 0 and util.round(b[_f].tilt*100) > 0 and util.round(b[_f].tilt*100) < 32 then
-          b[_f].tilt = 0.32
+      b[_f].tilt = util.clamp(b[_f].tilt+(d/100),-1,1)
+      if d < 0 then
+        if util.round(b[_f].tilt*100) < 0 and util.round(b[_f].tilt*100) > -9 then
+          b[_f].tilt = -0.10
+        elseif util.round(b[_f].tilt*100) > 0 and util.round(b[_f].tilt*100) < 32 then
+          b[_f].tilt = 0.0
         end
+      elseif d > 0 and util.round(b[_f].tilt*100) > 0 and util.round(b[_f].tilt*100) < 32 then
+        b[_f].tilt = 0.32
+      end
+      if _f == f then
+        slew_filter(_f_.bank,slew_counter[_f_.bank].prev_tilt,b[_f].tilt,b[_f].q,b[_f].q,15)
       end
     elseif _f_.alt_view_sel == 3 then
-      b[_f].filter_lfo.active = d > 0 and true or false
+      local cs_q = controlspec.new(0.0005, 2.0, 'exp', 0, 0.32, "")
+      local current_q = cs_q:unmap(b[_f].q)
+      current_q = current_q - (d/100)
+      b[_f].q = cs_q:map(current_q)
       if _f == f then
-        bank[_f_.bank].filter_lfo.active = b[_f].filter_lfo.active
+        softcut.post_filter_rq(_f_.bank+1,b[_f].q)
       end
     elseif _f_.alt_view_sel == 4 then
-      if _f == f then
-        bank[_f_.bank][j].tilt_ease_time = util.clamp(bank[_f_.bank][j].tilt_ease_time+(d/1), 5, 15000)
-      else
-        bank[_f].tilt_ease_time = util.clamp(bank[_f].tilt_ease_time+(d/1), 5, 15000)
-      end
+      b[_f].tilt_ease_time = util.clamp(b[_f].tilt_ease_time+(d/1), 5, 15000)
     elseif _f_.alt_view_sel == 5 then
-      b[_f].filter_lfo.depth = util.clamp(b[_f].filter_lfo.depth + d,1,200)
-      if _f == f then
-        bank[_f_.bank].filter_lfo.depth = b[_f].filter_lfo.depth
-      end
-    elseif _f_.alt_view_sel == 6 then
-      b[_f].filter_lfo.rate_index = util.clamp(b[_f].filter_lfo.rate_index + d,1,#lfo_rates.values)
-      b[_f].filter_lfo.freq = 1/((clock.get_beat_sec()*4) * lfo_rates.values[b[_f].filter_lfo.rate_index])
-      if _f == f then
-        bank[_f_.bank].filter_lfo.rate_index = b[_f].filter_lfo.rate_index
-        bank[_f_.bank].filter_lfo.freq = b[_f].filter_lfo.freq
-      end
+      b[_f].tilt_ease_type = util.clamp(b[_f].tilt_ease_type+d, 1, 2)
     end
   end
 end
@@ -276,12 +292,6 @@ function _f.process_key(n,z)
     _f_.alt_view = not _f_.alt_view
     if _f_.alt_view then
       _f_.meta_pad[_f_.bank] = focused_pad[_f_.bank]
-    end
-  elseif n == 3 and z == 1 and _f_.alt_view then
-    if _f_.alt_view_sel == 7 then
-      _f.meta_actions("randomize_this_pad")
-    elseif _f_.alt_view_sel == 8 then
-      _f.meta_actions("randomize_this_bank")
     end
   elseif n == 2 and z == 1 then
     menu = 1

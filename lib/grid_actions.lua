@@ -539,7 +539,7 @@ function grid_actions.init(x,y,z)
                   if step_seq[current].held == 0 and not grid_alt then
                     pattern_saver[current].load_slot = 9-y
                     test_load((9-y)+(8*(current-1)),current)
-                  elseif step_seq[current].held == 1 and not grid_alt then
+                  elseif step_seq[current].held ~= 0 and not grid_alt then
                     step_seq[current][step_seq[current].held].assigned_to = 9-y
                   elseif grid_alt then
                     pattern_deleter[current].clock = clock.run(test_delete,current,9-y)
@@ -1412,7 +1412,7 @@ function grid_actions.init(x,y,z)
               if step_seq[current].held == 0 and not grid_alt then
                 pattern_saver[current].load_slot = x
                 test_load((x)+(8*(current-1)),current)
-              elseif step_seq[current].held == 1 and not grid_alt then
+              elseif step_seq[current].held ~= 0 and not grid_alt then
                 step_seq[current][step_seq[current].held].assigned_to = x
               elseif grid_alt then
                 pattern_deleter[current].clock = clock.run(test_delete,current,x)

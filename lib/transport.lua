@@ -92,7 +92,6 @@ end
 function tp.start()
   -- set stuff to 1 and start them
   clock.sync(4)
-  -- print("starting at "..clock.get_beats())
   tp.is_running = true
   transport.status_icon.status = 4
   for i = 1,3 do
@@ -104,9 +103,9 @@ function tp.start()
       print("100 in transport")
       start_pattern(grid_pat[i],"jumpstart")
     end
-    toggle_meta("start",i)
-    -- print(clock.get_beats())
+    -- toggle_meta("start",i) -- AH !! TODO THIS ERRORS ON NEW CLOCK
   end
+  toggle_meta("start") -- AH !! TODO THIS ERRORS ON NEW CLOCK
   rytm.toggle("start")
   tp.start_midi()
   tp.send_midi_clock()
@@ -196,6 +195,10 @@ function tp.stop()
     end
     -- rytm.toggle("stop",i)
   end
+  if step_sequence_clock ~= nil then
+    clock.cancel(step_sequence_clock)
+    step_sequence_clock = nil
+  end
   rytm.toggle("stop")
   tp.stop_midi()
   if tp.midi_out_clocks ~= nil then
@@ -227,6 +230,10 @@ function tp.stop_from_midi_message()
     end
     -- rytm.toggle("stop",i)
   end
+  if step_sequence_clock ~= nil then
+    clock.cancel(step_sequence_clock)
+    step_sequence_clock = nil
+  end
   rytm.toggle("stop")
   if params:string("crow output 4") == "transport gate" then
     crow.output[4].volts = 0.0
@@ -244,6 +251,7 @@ function tp.crow_toggle(v)
   else
     if params:string("clock_source") == "internal" then
       clock.internal.start(-0.1)
+      -- clock.internal.start()
     else
       tp.cycle = 1
       clock.transport.start()
@@ -321,6 +329,7 @@ function tp.toggle_transport()
   else
     if params:string("clock_source") == "internal" then
       clock.internal.start(-0.1)
+      -- clock.internal.start()
     else
       tp.cycle = 1
       clock.transport.start()

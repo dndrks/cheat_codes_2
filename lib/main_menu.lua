@@ -1424,7 +1424,8 @@ function main_menu.process_key(target,n,z)
   local target_to_destination =
   {
     ["pans"] = _p.process_key,
-    ["levels"] = _l.process_key
+    ["levels"] = _l.process_key,
+    ["filters"] = _f.process_key
   }
   target_to_destination[target](n,z)
 end

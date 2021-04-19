@@ -1468,7 +1468,8 @@ function init()
   end)
   
   if params:string("clock_source") == "internal" then
-    clock.internal.start(params:get("clock_tempo"))
+    -- clock.internal.start(params:get("clock_tempo"))
+    clock.internal.start()
   end
 
   -- local midi_dev_max;
@@ -2382,17 +2383,16 @@ function step_sequence_super_clock()
   end
 end
 
-function toggle_meta(state,target)
-  -- print("2359!",target)
+function toggle_meta(state)
+  -- print(state)
   if state == "start" then
-    if step_sequence_clock ~= nil then
-      clock.cancel(step_sequence_clock)
-    end
-    step_seq[target].meta_meta_step = 1
-    step_seq[target].meta_step = 1
-    step_seq[target].current_step = step_seq[target].start_point
-    if step_seq[target].active == 1 and step_seq[target][step_seq[target].current_step].assigned_to ~= 0 then
-      test_load(step_seq[target][step_seq[target].current_step].assigned_to+(((target)-1)*8),target)
+    for target = 1,3 do
+      step_seq[target].meta_meta_step = 1
+      step_seq[target].meta_step = 1
+      step_seq[target].current_step = step_seq[target].start_point
+      if step_seq[target].active == 1 and step_seq[target][step_seq[target].current_step].assigned_to ~= 0 then
+        test_load(step_seq[target][step_seq[target].current_step].assigned_to+(((target)-1)*8),target)
+      end
     end
     step_sequence_clock = clock.run(step_sequence_super_clock)
     screen.dirty = true
@@ -3590,6 +3590,8 @@ function key(n,z)
     main_menu.process_key("levels",n,z)
   elseif menu == 4 then
     main_menu.process_key("pans",n,z)
+  elseif menu == 5 then
+    main_menu.process_key("filters",n,z)
   else
     if n == 3 and z == 1 then
       if menu == 1 then
@@ -3701,9 +3703,6 @@ function key(n,z)
             end
           end
         end
-      elseif menu == 5 then
-        local filter_nav = (page.filters.sel + 1)%4
-        page.filters.sel = filter_nav
       elseif menu == 6 then
         if not key1_hold then
           page.delay.focus = page.delay.focus == 1 and 2 or 1
@@ -3979,7 +3978,7 @@ function key(n,z)
     end
 
     if n == 1 and z == 1 then
-      if menu == 5 or menu == 11 then
+      if menu == 11 then
         if key1_hold == false then
           key1_hold = true
         else
@@ -5017,7 +5016,6 @@ function named_loadstate(path)
     if selected_coll ~= collection then
     elseif selected_coll == collection then
       cleanup()
-      print("cleaning up")
     end
     -- one_point_two()
     queue_saved_patterns()
@@ -5775,6 +5773,8 @@ end
 
 function cleanup()
 
+  -- print("cleaning up")
+
   persistent_state_save()
 
   metro[31].time = 0.25
@@ -5784,7 +5784,7 @@ function cleanup()
   end
 
   lfo_metro:stop()
-
+  -- print("cleaned up")
 end
 
 -- arc pattern stuff!
