@@ -1439,4 +1439,10 @@ function main_menu.reset_view(target)
   target_to_destination[target]()
 end
 
+function main_menu.change_pad_focus(b,p)
+  page.filters.meta_pad[b] = p
+  page.levels.meta_pad[b] = p
+  page.pans.meta_pad[b] = p
+end
+
 return main_menu

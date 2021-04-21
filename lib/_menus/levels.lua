@@ -505,7 +505,7 @@ function _l.process_key(n,z)
   if n == 1 and z == 1 then
     _l_.alt_view = not _l_.alt_view
     if _l_.alt_view then
-      _l_.meta_pad[_l_.bank] = focused_pad[_l_.bank]
+      -- _l_.meta_pad[_l_.bank] = focused_pad[_l_.bank]
     end
   elseif n == 3 and z == 1 and _l_.alt_view then
     if _l_.alt_view_sel == 6 then

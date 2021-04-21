@@ -4,11 +4,26 @@ arp = {}
 
 arp_clock = {}
 
--- arp_lattice = lattice:new{
---   auto = true,
---   meter = 4,
---   ppqn = 96
--- }
+arp_lattice = lattice:new{
+  -- auto = true,
+  -- meter = 4,
+  ppqn = 32
+}
+arp_timers = {}
+
+local deci_to_whole =
+{ ["0.125"] = 64
+, ["0.1667"] = 48
+, ["0.25"] = 32
+, ["0.3333"] = 24
+, ["0.5"] = 16
+, ["0.6667"] = 12
+, ["1.0"] = 8
+, ["1.3333"] = 6
+, ["2.0"] = 4
+, ["2.6667"] = 3
+, ["4.0"] = 2
+}
 
 function arp_actions.init(target)
     arp[target] = {}
@@ -25,13 +40,28 @@ function arp_actions.init(target)
     arp[target].down = 0
     arp[target].retrigger = true
     arp_clock[target] = clock.run(arp_actions.arpeggiate,target)
-    -- arp[target].lattice = arp_lattice:new_pattern{
-    --   action = function() arp_actions.lattice_advance(target) end,
-    --   division = arp[target].time/4,
-    --   enabled = arp[target].enabled
-    -- }
-    -- clock.run(function() clock.sync(4) arp_lattice:start() end)
+
+    -- arp_timers[target] = {}
+    -- arp_timers[target].divisions = {2,3,4,6,8,12,16,24,32,48,64}
+    -- for _,division in ipairs(arp_timers[target].divisions) do
+    --   arp_timers[target][division]={}
+    --   arp_timers[target][division].lattice=arp_lattice:new_pattern{
+    --     action=function(t)
+    --       arp_actions.iterate(target,division,t)
+    --     end,
+    --   division=1/(division/2)}
+    -- end
+    -- arp[target].active_division = 8
+
 end
+
+-- function arp_actions.iterate(target,div,step)
+--   -- if div == arp[target].active_division then
+--   if div == deci_to_whole[tostring(util.round(bank[target][bank[target].id].arp_time, 0.0001))] then
+--     if target == 1 then print(target,bank[target].id,clock.get_beats()) end
+--     arp_actions.alt_arpeggiate(target)
+--   end
+-- end
 
 -- function arp_actions.toggle_arp(target,enable)
 --   if enable then
@@ -94,32 +124,29 @@ function arp_actions.toggle(state,target)
   end
 end
 
--- function arp_actions.lattice_advance(target)
---   if target == 1 then
---     print(clock.get_beats())
---     if transport.is_running then
---       if #arp[target].notes > 0 then
---         if arp[target].pause == false then
---           -- if arp[target].step == 1 then print("arp "..target, clock.get_beats()) end
---           if menu ~= 1 then screen_dirty = true end
---           if arp[target].mode == "fwd" then
---             arp_actions.forward(target)
---           elseif arp[target].mode == "bkwd" then
---             arp_actions.backward(target)
---           elseif arp[target].mode == "pend" then
---             arp_actions.pendulum(target)
---           elseif arp[target].mode == "rnd" then
---             arp_actions.random(target)
---           end
---           arp[target].playing = true
---           arp_actions.cheat(target,arp[target].step)
---           grid_dirty = true
---         else
---           arp[target].playing = false
+-- function arp_actions.alt_arpeggiate(target)
+--   if transport.is_running then
+--     if #arp[target].notes > 0 then
+--       if arp[target].pause == false then
+--         -- if arp[target].step == 1 then print("arp "..target, clock.get_beats()) end
+--         if menu ~= 1 then screen_dirty = true end
+--         if arp[target].mode == "fwd" then
+--           arp_actions.forward(target)
+--         elseif arp[target].mode == "bkwd" then
+--           arp_actions.backward(target)
+--         elseif arp[target].mode == "pend" then
+--           arp_actions.pendulum(target)
+--         elseif arp[target].mode == "rnd" then
+--           arp_actions.random(target)
 --         end
+--         arp[target].playing = true
+--         arp_actions.cheat(target,arp[target].step)
+--         grid_dirty = true
 --       else
 --         arp[target].playing = false
 --       end
+--     else
+--       arp[target].playing = false
 --     end
 --   end
 -- end

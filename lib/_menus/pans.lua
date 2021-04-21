@@ -265,7 +265,7 @@ function _p.process_key(n,z)
   if n == 1 and z == 1 then
     _p_.alt_view = not _p_.alt_view
     if _p_.alt_view then
-      _p_.meta_pad[_p_.bank] = focused_pad[_p_.bank]
+      -- _p_.meta_pad[_p_.bank] = focused_pad[_p_.bank]
     end
   elseif n == 3 and z == 1 and _p_.alt_view then
     if _p_.alt_view_sel == 7 then

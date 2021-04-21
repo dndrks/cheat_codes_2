@@ -7,6 +7,7 @@ mx_dests ={"none","none","none"}
 function mc.init()
   active_midi_notes = {{},{},{}}
   active_mx_notes = {{},{},{}}
+  active_jf_notes = {}
   for i = 1,3 do
     mc.redraw(bank[i][bank[i].id])
   end
@@ -517,8 +518,10 @@ function mc.pad_to_note_params()
 
     params:add_option(i.."_pad_to_jf_note_enabled", "Just Friends channel",{"none","IDENTITY","2N","3N","4N","5N","6N","all","any"},9)
     params:add_number(i.."_pad_to_jf_note_velocity", "Just Friends velocity",1,10,5)
+    params:hide(i.."_pad_to_jf_note_velocity")
     params:add_option(i.."_pad_to_wsyn_note_enabled", "w/syn voice",{"none","1","2","3","4","any"},6)
     params:add_number(i.."_pad_to_wsyn_note_velocity", "w/syn velocity",0,127,60)
+    params:hide(i.."_pad_to_wsyn_note_velocity")
     mc.build_scale(i)
     if mxcc ~= nil then
       mxcc_available = mxcc:list_instruments()
@@ -737,19 +740,27 @@ function mc.midi_note_from_pad(b,p)
       , ["all"] = 0
       }
       if params:string(b.."_pad_to_jf_note_enabled") ~= "none" then
-        local note_num = mc_notes[b][p] - 60
-        local velocity = params:get(b.."_pad_to_jf_note_velocity")
+        -- local note_num = mc_notes[b][p] - 60
+        local note_num =  mc.get_midi("midi_notes",b,p) - 60
+        local velocity = util.round(util.linlin(0,127,0,10,mc.get_midi("midi_notes_velocities",b,p)))
+        -- local velocity = params:get(b.."_pad_to_jf_note_velocity")
         if params:string(b.."_pad_to_jf_note_enabled") == "any" then
           crow.ii.jf.play_note(note_num/12,velocity)
         else
           local jf_chan = jf_destinations[params:string(b.."_pad_to_jf_note_enabled")]
           crow.ii.jf.play_voice(jf_chan,note_num/12,velocity)
+          -- table.insert(active_jf_notes[b], jf_chan,note_num/12)
+          if active_jf_notes[b] ~= nil then
+            clock.cancel(active_jf_notes[b])
+          end
+          active_jf_notes[b] = clock.run(mc.jf_note_from_pad_off,b,p,jf_chan,note_num/12)
         end
       end
     end
     if params:string("global_pad_to_wsyn_note_enabled") == "yes" then
       if params:string(b.."_pad_to_wsyn_note_enabled") ~= "none" then
-        local note_num = mc_notes[b][p] - 60
+        -- local note_num = mc_notes[b][p] - 60
+        local note_num =  mc.get_midi("midi_notes",b,p) - 60
         local velocity = util.linlin(0,127,0,5,params:get(b.."_pad_to_wsyn_note_velocity"))
         if params:string(b.."_pad_to_wsyn_note_enabled") == "any" then
           -- crow.ii.jf.play_note(note_num/12,velocity)
@@ -765,15 +776,24 @@ function mc.midi_note_from_pad(b,p)
 end
 
 function mc.midi_note_from_pad_off(b,p)
-  clock.sleep(bank[b][p].arp_time-(bank[b][p].arp_time/100))
+  -- clock.sleep(bank[b][p].arp_time-(bank[b][p].arp_time/100))
+  clock.sleep((bank[b][p].arp_time-(bank[b][p].arp_time/100))*clock.get_beat_sec())
   mc.all_midi_notes_off(b)
   midi_off[b] = nil
 end
 
 function mc.mx_note_from_pad_off(b,p)
-  clock.sleep(bank[b][p].arp_time-(bank[b][p].arp_time/50))
-  -- mc.all_mx_notes_off(b)
+  -- clock.sleep(bank[b][p].arp_time-(bank[b][p].arp_time/50))
+  clock.sleep((bank[b][p].arp_time-(bank[b][p].arp_time/50))*clock.get_beat_sec())
   mc.this_mx_note_off(b,p)
+  -- mx_off[b] = nil
+end
+
+function mc.jf_note_from_pad_off(b,p,channel,note)
+  clock.sleep((bank[b][p].arp_time-(bank[b][p].arp_time/10))*clock.get_beat_sec())
+  -- mc.all_mx_notes_off(b)
+  crow.ii.jf.play_voice(channel,note,0)
+  active_jf_notes[b] = nil
   -- mx_off[b] = nil
 end
 

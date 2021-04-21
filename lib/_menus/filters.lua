@@ -292,7 +292,7 @@ function _f.process_key(n,z)
   if n == 1 and z == 1 then
     _f_.alt_view = not _f_.alt_view
     if _f_.alt_view then
-      _f_.meta_pad[_f_.bank] = focused_pad[_f_.bank]
+      -- _f_.meta_pad[_f_.bank] = focused_pad[_f_.bank]
     end
   elseif n == 2 and z == 1 then
     menu = 1

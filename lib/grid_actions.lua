@@ -102,6 +102,7 @@ function grid_actions.init(x,y,z)
             if not grid_alt then
               bank[i].focus_pad = (math.abs(y-9)+((x-1)*4))-(20*(i-1))
               mc.mft_redraw(bank[i][bank[i].focus_pad],"all")
+              main_menu.change_pad_focus(i,bank[i].focus_pad)
             elseif grid_alt then
               if not pad_clipboard then
                 pad_clipboard = {}
@@ -1038,6 +1039,7 @@ function grid_actions.init(x,y,z)
           if not grid_alt then
             b.focus_pad = (4*(y-4))+x
             mc.mft_redraw(b[b.focus_pad],"all")
+            main_menu.change_pad_focus(bank_64,b.focus_pad)
           elseif grid_alt then
             if not pad_clipboard then
               pad_clipboard = {}
