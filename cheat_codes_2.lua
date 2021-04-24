@@ -188,7 +188,9 @@ end
 -- waveform stuff
 local interval = 0
 waveform_samples = {}
-scale = 25
+bank_waveform_scale = 15
+live_waveform_scale = 10
+waveform_scale = 25
 
 function on_render(ch, start, i, s)
   -- cursor = util.clamp(cursor, 1, #s)
@@ -814,6 +816,9 @@ key2_hold_counter.time = 0.25
 key2_hold_counter.count = 1
 key2_hold_counter.event = function()
   key2_hold = true
+  if menu == 2 then
+    _loops.key2_activate()
+  end
 end
 
 key2_hold = false
@@ -2409,6 +2414,7 @@ function globally_clocked()
     if menu == 7 or menu == "transport_config" then
       if menu ~= 1 then screen_dirty = true end
     end
+    -- TODO CONFIRM THIS SHOULD HAPPEN:
     if menu == 2 then
       screen_dirty = true
     end
@@ -2630,9 +2636,26 @@ function osc_redraw(i)
 end
 
 poll_position_new = {}
+playhead_at_endpoint = {false,false,false}
 
 phase = function(n, x)
   poll_position_new[n] = x
+  if n > 1 and n < 5 and menu == 2 then
+    -- if util.round(x,0.01) == util.round(bank[n-1][bank[n-1].id].end_point,0.01) then
+    if bank[n-1][bank[n-1].id].rate > 0 then
+      if math.modf(util.round(x,0.01)*100) == math.modf(bank[n-1][bank[n-1].id].end_point*100) then
+        playhead_at_endpoint[n-1] = true
+      else
+        playhead_at_endpoint[n-1] = false
+      end
+    elseif bank[n-1][bank[n-1].id].rate < 0 then
+      if math.modf(util.round(x,0.01)*100) == math.modf(bank[n-1][bank[n-1].id].start_point*100) then
+        playhead_at_endpoint[n-1] = true
+      else
+        playhead_at_endpoint[n-1] = false
+      end
+    end
+  end
 end
 
 function update_tempo()
@@ -3042,7 +3065,9 @@ function cheat(b,i)
   end
 
   -- redraw waveform if it's zoomed in and the pad changes
-  if menu == 2 and page.loops.sel == b and page.loops.frame == 2 and not key2_hold and key1_hold then
+  -- TODO UPDATE FOR GUHHHH
+  -- if menu == 2 and page.loops.sel == b and page.loops.frame == 2 and not key2_hold and key1_hold then
+  if menu == 2 and page.loops.sel == b and not key2_hold and key1_hold then
     local focused_pad;
     if bank[page.loops.sel].focus_hold then
       focused_pad = bank[page.loops.sel].focus_pad
@@ -3586,6 +3611,8 @@ function key(n,z)
       print("cancel delete")
       clock.run(canceled_delete)
     end
+  elseif menu == 2 then
+    main_menu.process_key("loops",n,z)
   elseif menu == 3 then
     main_menu.process_key("levels",n,z)
   elseif menu == 4 then
@@ -3887,7 +3914,7 @@ function key(n,z)
         else
           menu = "transport_config"
         end
-      elseif (menu == 2 or menu == 7) and not key1_hold then
+      elseif menu == 7 and not key1_hold then
         -- key2_hold = true
         key2_hold_counter:start()
         key2_hold_and_modify = false
@@ -3918,7 +3945,7 @@ function key(n,z)
           end
         end
       end
-    elseif n == 2 and z == 0 and key2_hold == false and (menu == 2 or menu == 7) and not key1_hold then
+    elseif n == 2 and z == 0 and key2_hold == false and menu == 7 and not key1_hold then
       key2_hold_counter:stop()
       menu = 1
     elseif n == 2 and z == 0 and key2_hold_and_modify then

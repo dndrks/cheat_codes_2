@@ -14,6 +14,7 @@ function euclid.trig(target)
   if euclid.track[target].s[euclid.track[target].pos] then
     if euclid.track[target].mode == "single" then
       cheat(target,euclid.rotate_pads(bank[target].id + euclid.track[target].pad_offset))
+      if menu ~= 1 then screen_dirty = true end
     elseif euclid.track[target].mode == "span" then
       bank[target].id = euclid.rotate_pads(euclid.track[target].pos + euclid.track[target].pad_offset)
       selected[target].x = (5*(target-1)+1)+(math.ceil(bank[target].id/4)-1)
@@ -23,9 +24,10 @@ function euclid.trig(target)
         selected[target].y = 5
       end
       cheat(target,euclid.rotate_pads(euclid.track[target].pos + euclid.track[target].pad_offset))
+      if menu ~= 1 then screen_dirty = true end
     end
     grid_dirty = true
-    if menu ~= 1 then screen_dirty = true end
+    -- if menu ~= 1 then screen_dirty = true end
   end
 end
 

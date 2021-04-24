@@ -70,6 +70,7 @@ function grid_actions.init(x,y,z)
               selected[i].y = y
               selected[i].id = (math.abs(y-9)+((x-1)*4))-(20*(i-1))
               bank[i].id = selected[i].id
+              page.loops.meta_pad[i] = bank[i].id
               which_bank = i
               if menu == 11 then
                 help_menu = "banks"
@@ -1010,6 +1011,7 @@ function grid_actions.init(x,y,z)
             selected[bank_64].y = 9-x
             selected[bank_64].id = (4*(y-4))+x
             b.id = selected[bank_64].id
+            page.loops.meta_pad[bank_64] = b.id
             which_bank = bank_64
             pad_clipboard = nil
             if b.quantize_press == 0 then

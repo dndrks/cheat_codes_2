@@ -3,6 +3,50 @@ local encoder_actions = {}
 local ea = encoder_actions
 ea.sc = {}
 
+function adjust_loops(d,func)
+
+  if page.loops.frame == 2 then
+    if page.loops.meta_sel ~= 4 then
+      local i = page.loops.meta_sel
+      local resolution = key1_hold and 100 or 10
+      ea[func](bank[i][returns_target(i)],d/resolution)
+      if bank[i].focus_hold == false or bank[i].focus_pad == bank[i].id then
+        ea.sc[func](i)
+      end
+    else
+      if func == "move_start" then
+        ea.move_rec_start(d)
+      elseif func == "move_end" then
+        ea.move_rec_end(d)
+      elseif func == "move_play_window" then
+        ea.move_rec_window(rec[rec.focus],d)
+        if rec.play_segment == rec.focus then
+          ea.sc.move_rec_window(rec[rec.focus])
+        end
+      end
+    end
+  end
+
+end
+
+local function returns_target(i)
+  if bank[i].focus_hold then
+    return bank[i].focus_pad
+  elseif page.loops.frame == 1 then
+    return bank[i].id
+  elseif page.loops.frame == 2 then
+    if grid_pat[i].play == 0 and midi_pat[i].play == 0 and not arp[i].playing and rytm.track[i].k == 0 then
+      return bank[i].id
+    else
+      if key1_hold and page.loops.meta_sel == i then
+        return bank[i].focus_pad
+      else
+        return bank[i].id
+      end
+    end
+  end
+end
+
 function encoder_actions.init(n,d)
 
   if menu == "macro_config" then
@@ -11,50 +55,6 @@ function encoder_actions.init(n,d)
     mc.midi_config_enc(n,d)
   elseif menu == "transport_config" then
     transport.enc(n,d)
-  end
-
-  local function returns_target(i)
-    if bank[i].focus_hold then
-      return bank[i].focus_pad
-    elseif page.loops.frame == 1 then
-      return bank[i].id
-    elseif page.loops.frame == 2 then
-      if grid_pat[i].play == 0 and midi_pat[i].play == 0 and not arp[i].playing and rytm.track[i].k == 0 then
-        return bank[i].id
-      else
-        if key1_hold and page.loops.meta_sel == i then
-          return bank[i].focus_pad
-        else
-          return bank[i].id
-        end
-      end
-    end
-  end
-  
-  local function adjust_loops(d,func)
-
-    if page.loops.frame == 2 then
-      if page.loops.meta_sel ~= 4 then
-        local i = page.loops.meta_sel
-        local resolution = key1_hold and 100 or 10
-        ea[func](bank[i][returns_target(i)],d/resolution)
-        if bank[i].focus_hold == false or bank[i].focus_pad == bank[i].id then
-          ea.sc[func](i)
-        end
-      else
-        if func == "move_start" then
-          ea.move_rec_start(d)
-        elseif func == "move_end" then
-          ea.move_rec_end(d)
-        elseif func == "move_play_window" then
-          ea.move_rec_window(rec[rec.focus],d)
-          if rec.play_segment == rec.focus then
-            ea.sc.move_rec_window(rec[rec.focus])
-          end
-        end
-      end
-    end
-
   end
 
   if n == 1 then
@@ -713,10 +713,11 @@ function encoder_actions.init(n,d)
     rytm.reer(rytm.track_edit)
   end
 
-  if menu == 3 then
+  if menu == 2 then
+    main_menu.process_encoder("loops",n,d)
+  elseif menu == 3 then
     main_menu.process_encoder("levels",n,d)
-  end
-  if menu == 4 then
+  elseif menu == 4 then
     main_menu.process_encoder("pans",n,d)
   elseif menu == 5 then
     main_menu.process_encoder("filters",n,d)
@@ -802,6 +803,9 @@ function ea.move_play_window(target,delta)
     end
   end
 
+  if menu == 2 and page.loops.sel < 4 and key2_hold then
+    update_waveform(target.mode,target.start_point,target.end_point,128)
+  end
 
 end
 
@@ -822,7 +826,7 @@ function ea.move_rec_window(target,delta)
   end
 end
 
-function ea.change_pad(target,delta)
+function ea.change_pad(target,delta,silent)
   pad = bank[target]
   if grid_pat[target].play == 0 and grid_pat[target].tightened_start == 0 and not arp[target].playing and midi_pat[target].play == 0 then
     if not pad.focus_hold then
@@ -830,7 +834,7 @@ function ea.change_pad(target,delta)
       pad.id = util.clamp(pad.id + delta,1,16)
       selected[target].x = (math.ceil(pad.id/4)+(5*(target-1)))
       selected[target].y = 8-((pad.id-1)%4)
-      if pre_pad ~= pad.id then
+      if pre_pad ~= pad.id and not silent then
         cheat(target,pad.id)
       end
     else
@@ -915,7 +919,7 @@ function ea.move_start(target,delta)
   if target.start_point+delta < (target.end_point - 0.04) then
     target.start_point = util.clamp(target.start_point+delta,s_p,s_p+duration)
   end
-  if menu == 2 and page.loops.sel < 4 and key1_hold then
+  if menu == 2 and page.loops.sel < 4 and key2_hold then
     update_waveform(target.mode,target.start_point,target.end_point,128)
   end
 end
@@ -951,7 +955,7 @@ function ea.move_end(target,delta)
       target.end_point = util.clamp(util.round(target.end_point + delta,0.01),s_p,s_p+duration)
     end
   end
-  if menu == 2 and page.loops.sel < 4 and key1_hold then
+  if menu == 2 and page.loops.sel < 4 and key2_hold then
     update_waveform(target.mode,target.start_point,target.end_point,128)
   end
 end
