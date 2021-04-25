@@ -85,11 +85,11 @@ function start_up.init()
   
   for i = 1,3 do
     params:add_file("clip "..i.." sample", "clip "..i.." sample")
-    params:set_action("clip "..i.." sample", function(file) load_sample(file,i) end)
+    params:set_action("clip "..i.." sample", function(file) _ca.load_sample(file,i) end)
   end
 
   for i = 1,3 do
-    params:add{type = "trigger", id = "save_buffer"..i, name = "save live buffer "..i.." [K3]", action = function() save_sample(i) end}	
+    params:add{type = "trigger", id = "save_buffer"..i, name = "save live buffer "..i.." [K3]", action = function() _ca.save_sample(i) end}	
   end
 
   params:add_separator("live")
@@ -207,7 +207,7 @@ function start_up.init()
   end
 
   for i = 1,3 do
-    params:add{type = "trigger", id = "SOS_save_clip"..i, name = "save clip "..i.." [K3]", action = function() SOS.save_clip(i) end}	
+    params:add{type = "trigger", id = "SOS_save_clip"..i, name = "save clip "..i.." [K3]", action = function() _ca.SOS_save_clip(i) end}	
   end
 
   params:add_separator("global")
@@ -450,9 +450,9 @@ params:add_separator("ALT key")
       action=function()
         if all_loaded then
           if not grid_alt then
-            toggle_buffer(i)
+            _ca.toggle_buffer(i)
           else
-            buff_flush()
+            _ca.buff_flush()
           end
         end
       end

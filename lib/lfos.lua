@@ -187,8 +187,10 @@ function lfos.iterate(id,parameter)
   -- need to watch for oversaturattion -- does there need to be 10ms processing?
   -- at least stuff like pans shouldn't be sent to softcut every 10ms...
   if parameter ~= "macro_lfo" and parameter ~= "delay_filter_lfo" then
-    if bank ~= nil and bank[id][parameter].active then
-      lfos.parse("banks",id,parameter)
+    if bank ~= nil and bank[id]~= nil and bank[id][parameter]~= nil and bank[id][parameter].active ~= nil then
+      if bank[id][parameter].active then
+        lfos.parse("banks",id,parameter)
+      end
     end
   elseif parameter == "macro_lfo" then
     if macro[id].lfo.active then

@@ -8,7 +8,7 @@ local _loops_;
 function _loops.init()
   page.loops = {}
   page.loops.layer = "global" -- "global" or "clip"
-  page.loops.bank_controls = {"cheat_pad","start_point","end_point","rate","semitone","glide","buffer","loop_state"}
+  page.loops.bank_controls = {"cheat_pad","start_point","end_point","rate","semitone","glide","buffer","loop_state","auto_chop"}
   page.loops.selected_bank_control = "cheat_pad"
   page.loops.live_controls = {"segment","start_point","end_point","record","feedback","mode","duration","erase","random_rec"}
   page.loops.selected_live_control = "segment"
@@ -21,6 +21,7 @@ function _loops.init()
 end
 
 function _loops.process_key(n,z)
+  local pad = bank[util.clamp(page.loops.sel,1,3)][page.loops.meta_pad[util.clamp(1,3,page.loops.sel)]]
   if n == 2 and z == 1 then
     key2_hold_counter:start()
     key2_hold_and_modify = false
@@ -39,7 +40,6 @@ function _loops.process_key(n,z)
       key2_hold = false
       key2_hold_and_modify = false
     end
-    local pad = bank[page.loops.sel][page.loops.meta_pad[page.loops.sel]]
     local mode = pad.mode
     local min =
       { live[pad.clip].min
@@ -51,6 +51,36 @@ function _loops.process_key(n,z)
       }
     page.loops.zoomed_mode = false
     update_waveform(mode,min[mode],max[mode],128)
+  elseif n == 3 and z == 1 then
+    if page.loops.sel < 4 then
+      if page.loops.selected_bank_control == "cheat_pad"
+      or page.loops.selected_bank_control == "start_point"
+      or page.loops.selected_bank_control == "end_point"
+      then
+        bank[page.loops.sel].id = pad.pad_id
+        cheat(page.loops.sel,pad.pad_id)
+      elseif page.loops.selected_bank_control == "rate" then
+        pad.rate = pad.rate * -1
+        if pad.pause == false and bank[page.loops.sel].id == pad.pad_id then
+          softcut.rate(page.loops.sel+1, pad.rate*pad.offset)
+        end
+      elseif page.loops.selected_bank_control == "auto_chop" then
+        for i = 1,16 do
+          rightangleslice.start_end_default(bank[page.loops.sel][i])
+          if i == pad.pad_id and pad.pause == false and bank[page.loops.sel].id == pad.pad_id then
+            rightangleslice.sc.start_end(pad,pad.bank_id)
+          end
+        end
+      end
+    elseif page.loops.sel == 4 then
+      if page.loops.selected_live_control == "record" then
+        if rec[rec.focus].loop == 0 and params:string("one_shot_clock_div") == "threshold" and not grid_alt then
+          _ca.threshold_rec_handler()
+        else
+          _ca.toggle_buffer(rec.focus)
+        end
+      end
+    end
   end
   screen_dirty = true
 end
@@ -124,26 +154,26 @@ function _loops.process_encoder(n,d)
         elseif page.loops.selected_bank_control == "buffer" then
           if pad.mode == 1 and pad.clip + d > 3 then
             pad.mode = 2
-            change_mode(pad,1)
+            _ca.change_mode(pad,1)
             -- pad.clip = 1
-            jump_clip(page.loops.sel,pad.pad_id,1)
+            _ca.jump_clip(page.loops.sel,pad.pad_id,1)
           elseif pad.mode == 2 and pad.clip + d < 1 then
             pad.mode = 1
-            change_mode(pad,2)
+            _ca.change_mode(pad,2)
             -- pad.clip = 3
-            jump_clip(page.loops.sel,pad.pad_id,3)
+            _ca.jump_clip(page.loops.sel,pad.pad_id,3)
           else
             local tryit = util.clamp(pad.clip+d,1,3)
-            jump_clip(page.loops.sel,pad.pad_id,tryit)
+            _ca.jump_clip(page.loops.sel,pad.pad_id,tryit)
           end
           for i = 1,16 do
             if i ~= pad.pad_id then
               if pad.mode ~= bank[page.loops.sel][i].mode then
                 local old_mode = bank[page.loops.sel][i].mode
                 bank[page.loops.sel][i].mode = bank[page.loops.sel][pad.pad_id].mode
-                change_mode(bank[page.loops.sel][i],old_mode)
+                _ca.change_mode(bank[page.loops.sel][i],old_mode)
               end
-              jump_clip(page.loops.sel,i,bank[page.loops.sel][pad.pad_id].clip)
+              _ca.jump_clip(page.loops.sel,i,bank[page.loops.sel][pad.pad_id].clip)
             end
           end
           if bank[page.loops.sel].id == pad.pad_id then
@@ -335,6 +365,10 @@ function _loops.draw_menu()
         screen.move(64,54)
         screen.text_center("K3: toggle looping, all pads")
       else
+        screen.level(15)
+        screen.move(0,46)
+        screen.line(128,46)
+        screen.stroke()
         --new//
         screen.level(sel == "rate" and 15 or 3)
         screen.move(8,54)
@@ -347,10 +381,13 @@ function _loops.draw_menu()
         screen.text_right(string.format("%.1f",pad.rate_slew).."s")
         screen.level(sel == "buffer" and 15 or 3)
         screen.move(0,64)
-        screen.text(pad.mode == 1 and ("[bank] LIVE "..pad.clip) or ("[bank] CLIP "..pad.clip))
+        screen.text("["..header[page.loops.sel].."] "..(pad.mode == 1 and ("LIVE "..pad.clip) or ("CLIP "..pad.clip)))
         screen.level(sel == "loop_state" and 15 or 3)
-        screen.move(100,64)
-        screen.text(pad.loop == false and "1-shot" or "∞")
+        screen.move(64,64)
+        screen.text_center(pad.loop == false and "1-SHOT" or "∞")
+        screen.level(sel == "auto_chop" and 15 or 3)
+        screen.move(120,64)
+        screen.text_right("CHOP")
         --//new
       end
     elseif page.loops.sel == 4 then
@@ -411,9 +448,13 @@ function _loops.draw_menu()
         end
         screen.move(current_to_screen,19)
         screen.line_rel(0,19)
-        screen.stroke()
         screen.text(rec[rec.focus].state == 1 and ">" or "")
+        screen.stroke()
       end
+      screen.level(15)
+      screen.move(0,46)
+      screen.line(128,46)
+      screen.stroke()
 
       screen.level((sel == "start_point" or sel == "window" or page.loops.zoomed_mode) and (#waves > 0 and 3 or 5) or 2)
       screen.move(sp_to_screen,17)
@@ -451,18 +492,18 @@ function _loops.draw_menu()
       -- {"segment","start_point","end_point","feedback","duration","random_rec","record","mode"}
       screen.level(sel == "record" and 15 or 3)
       screen.move(0,54)
-      screen.text(rec[rec.focus].state == 1 and "rec off" or "rec on")
+      screen.text(rec[rec.focus].state == 1 and "turn rec off" or "turn rec on")
 
       screen.level(sel == "feedback" and 15 or 3)
-      screen.move(42,54)
+      screen.move(58,54)
       screen.text(string.format("%0.f",params:get("live_rec_feedback_"..rec.focus)*100).."%")
 
       local rec_mode = params:get("rec_loop_"..rec.focus) == 1 and "∞"
       or (params:get("one_shot_clock_div") == 4 and "thresh" or "1-shot")
       screen.level(sel == "mode" and 15 or 3)
       -- screen.move(64,54)
-      screen.move(86,54)
-      screen.text(rec_mode)
+      screen.move(96,54)
+      screen.text_center(rec_mode)
 
       screen.level(sel == "duration" and 15 or 3)
       screen.move(128,54)

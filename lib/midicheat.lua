@@ -257,7 +257,7 @@ function mc.zilch(target,note) -- expects (x,0-127)
     end
     softcut.loop(target+1,bank[target][bank[target].id].loop == true and 1 or 0)
   elseif note == 11 then
-    toggle_buffer(rec.focus)
+    _ca.toggle_buffer(rec.focus)
   elseif note == 13 or note == 14 then
     for i = (note == 13 and bank[target].id or 1), (note == 13 and bank[target].id or 16) do
       rightangleslice.actions[4]['12'][1](bank[target][i])
@@ -279,7 +279,7 @@ function mc.zilch(target,note) -- expects (x,0-127)
       rightangleslice.actions[4]['2'][2](bank[target][i],target)
     end
   elseif note == 23 then
-    buff_flush()
+    _ca.buff_flush()
   end
 
   if params:get("midi_echo_enabled") == 2 then

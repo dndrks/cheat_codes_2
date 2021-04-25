@@ -395,6 +395,18 @@ function delays.change_rate(target,param)
   end
 end
 
+function delays.update_delays()
+  for i = 1,2 do
+    if delay[i].mode == "clocked" then
+      local delay_rate_to_time = clock.get_beat_sec() * delay[i].clocked_length * delay[i].modifier
+      local delay_time = delay_rate_to_time + (41 + (30*(i-1)))
+      delay[i].end_point = delay_time
+      softcut.loop_end(i+4,delay[i].end_point)
+    else
+      softcut.loop_end(i+4,delay[i].free_end_point)
+    end
+  end
+end
 
 function delays.save_delay(source)
   local dirname = _path.dust.."audio/cc2_saved-delays/"

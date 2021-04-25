@@ -328,13 +328,13 @@ function grid_actions.init(x,y,z)
           if z == 1 then
             if not bank[current].alt_lock and not grid_alt then
               if bank[current].focus_hold == false then
-                jump_clip(current, bank[current].id, math.abs(y-5))
+                _ca.jump_clip(current, bank[current].id, math.abs(y-5))
               else
-                jump_clip(current, bank[current].focus_pad, math.abs(y-5))
+                _ca.jump_clip(current, bank[current].focus_pad, math.abs(y-5))
               end
             elseif bank[current].alt_lock or grid_alt then
               for j = 1,16 do
-                jump_clip(current, j, math.abs(y-5))
+                _ca.jump_clip(current, j, math.abs(y-5))
               end
             end
           end
@@ -360,7 +360,7 @@ function grid_actions.init(x,y,z)
               local old_mode = target.mode
               target.mode = math.abs(i-5)
               if old_mode ~= target.mode then
-                change_mode(target, old_mode)
+                _ca.change_mode(target, old_mode)
               end
 
             elseif bank[math.sqrt(math.abs(x-3))].alt_lock or grid_alt then
@@ -369,7 +369,7 @@ function grid_actions.init(x,y,z)
                 local old_mode = bank[current][k].mode
                 bank[current][k].mode = math.abs(i-5)
                 if old_mode ~= bank[current][k].mode then
-                  change_mode(bank[current][k], old_mode)
+                  _ca.change_mode(bank[current][k], old_mode)
                 end
               end
             end
@@ -403,12 +403,12 @@ function grid_actions.init(x,y,z)
             rec.focus = 8-y
           else
             if rec[rec.focus].loop == 0 and params:string("one_shot_clock_div") == "threshold" and not grid_alt then
-              threshold_rec_handler()
+              _ca.threshold_rec_handler()
             elseif not grid_alt then
-              toggle_buffer(8-y)
+              _ca.toggle_buffer(8-y)
             end
             if grid_alt then
-              buff_flush()
+              _ca.buff_flush()
             end
           end
         end
@@ -417,9 +417,9 @@ function grid_actions.init(x,y,z)
 
       if (x == 5 or x == 10 or x == 15) and y == 8 and z == 1 then
         if not grid_alt then
-          SOS.toggle(util.round(x/5))
+          _ca.SOS_toggle(util.round(x/5))
         else
-          SOS.erase(util.round(x/5))
+          _ca.SOS_erase(util.round(x/5))
         end
       end
 
@@ -1196,13 +1196,13 @@ function grid_actions.init(x,y,z)
           if z == 1 then
             if not bank[current].alt_lock and not grid_alt then
               if bank[current].focus_hold == false then
-                jump_clip(current, bank[current].id, x-4)
+                _ca.jump_clip(current, bank[current].id, x-4)
               else
-                jump_clip(current, bank[current].focus_pad, x-4)
+                _ca.jump_clip(current, bank[current].focus_pad, x-4)
               end
             elseif bank[current].alt_lock or grid_alt then
               for j = 1,16 do
-                jump_clip(current, j, x-4)
+                _ca.jump_clip(current, j, x-4)
               end
             end
           end
@@ -1226,7 +1226,7 @@ function grid_actions.init(x,y,z)
           local old_mode = target.mode
           target.mode = x-4
           if old_mode ~= target.mode then
-            change_mode(target, old_mode)
+            _ca.change_mode(target, old_mode)
           end
 
         elseif bank[current].alt_lock or grid_alt then
@@ -1234,7 +1234,7 @@ function grid_actions.init(x,y,z)
             local old_mode = bank[current][k].mode
             bank[current][k].mode = x-4
             if old_mode ~= bank[current][k].mode then
-              change_mode(bank[current][k], old_mode)
+              _ca.change_mode(bank[current][k], old_mode)
             end
           end
         end
@@ -1259,21 +1259,21 @@ function grid_actions.init(x,y,z)
           rec.focus = x
         elseif rec.focus == x then
           if rec[rec.focus].loop == 0 and params:string("one_shot_clock_div") == "threshold" and not grid_alt then
-            threshold_rec_handler()
+            _ca.threshold_rec_handler()
           elseif not grid_alt then
-            toggle_buffer(x)
+            _ca.toggle_buffer(x)
           end
           if grid_alt then
-            buff_flush()
+            _ca.buff_flush()
           end
         end
       end
 
       if y == 3 and x <= 3 and z == 1 then
         if not grid_alt then
-          SOS.toggle(x)
+          _ca.SOS_toggle(x)
         else
-          SOS.erase(x)
+          _ca.SOS_erase(x)
         end
       end
       

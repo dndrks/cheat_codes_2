@@ -164,9 +164,9 @@ function encoder_actions.init(n,d)
                   if bank[id][focused_pad].mode ~= bank[id][i].mode then
                     local old_mode = bank[id][i].mode
                     bank[id][i].mode = bank[id][focused_pad].mode
-                    change_mode(bank[id][i],old_mode)
+                    _ca.change_mode(bank[id][i],old_mode)
                   end
-                  jump_clip(id,i,bank[id][focused_pad].clip)
+                  _ca.jump_clip(id,i,bank[id][focused_pad].clip)
                 end
               end
             -- end
@@ -880,17 +880,17 @@ function ea.change_pad_clip(target,delta)
   
   if pad.mode == 1 and pad.clip + delta > 3 then
     pad.mode = 2
-    change_mode(pad,1)
+    _ca.change_mode(pad,1)
     -- pad.clip = 1
-    jump_clip(target,focused_pad,1)
+    _ca.jump_clip(target,focused_pad,1)
   elseif pad.mode == 2 and pad.clip + delta < 1 then
     pad.mode = 1
-    change_mode(pad,2)
+    _ca.change_mode(pad,2)
     -- pad.clip = 3
-    jump_clip(target,focused_pad,3)
+    _ca.jump_clip(target,focused_pad,3)
   else
     local tryit = util.clamp(pad.clip+delta,1,3)
-    jump_clip(target,focused_pad,tryit)
+    _ca.jump_clip(target,focused_pad,tryit)
   end
  
   if grid_pat[target].play == 0 and grid_pat[target].tightened_start == 0 and not arp[target].playing and midi_pat[target].play == 0 then
@@ -903,9 +903,9 @@ function ea.change_pad_clip(target,delta)
   --   for i = 1,15 do
   --     if bank[target][16].mode ~= bank[target][i].mode then
   --       bank[target][i].mode = bank[target][16].mode
-  --       change_mode(bank[target][i],bank[target][i].mode == 2 and 1 or 2)
+  --       _ca.change_mode(bank[target][i],bank[target][i].mode == 2 and 1 or 2)
   --     end
-  --     jump_clip(target,i,bank[target][16].clip)
+  --     _ca.jump_clip(target,i,bank[target][16].clip)
   --   end
   -- end
   

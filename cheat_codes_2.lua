@@ -56,6 +56,7 @@ UI = require "ui"
 lattice = require "lattice"
 fileselect = require 'fileselect'
 textentry = require 'textentry'
+_ca = include 'lib/clip_actions'
 _lfos = include 'lib/lfos'
 main_menu = include 'lib/main_menu'
 encoder_actions = include 'lib/encoder_actions'
@@ -91,58 +92,6 @@ function rec_ended_callback()
   -- end
 end
 
-SOS = {}
-
--- function SOS.sync_to_recordhead(source,target)
---   -- expects source: x, target: bank[x][y]
---   if target.mode == 1 and target.clip == source then
---     softcut.loop_start(target.bank_id+1,rec[source].start_point)
---     softcut.loop_end(target.bank_id+1,rec[source].end_point)
---     softcut.position(target.bank_id+1,poll_position_new[1]+0.01)
---     softcut.loop(target.bank_id+1,1)
---     target.start_point = rec[source].start_point
---     target.end_point = rec[source].end_point
---     target.loop = true
---   end
--- end
-
-function SOS.voice_overwrite(target,state)
-  --expects source: bank[x][y], state: boolean
-  if state then
-    local feedback = params:get("SOS_feedback_"..target.bank_id)
-    softcut.pre_level(target.bank_id+1,feedback)
-    softcut.rec_level(target.bank_id+1,1)
-    softcut.level_input_cut(1,target.bank_id+1,1)
-    softcut.level_input_cut(2,target.bank_id+1,1)
-    softcut.rec(target.bank_id+1,1)
-  else
-    softcut.pre_level(target.bank_id+1,1)
-    softcut.rec_level(target.bank_id+1,0)
-  end
-end
-
-function SOS.save_clip(i)
-  local dirname = _path.dust.."audio/cc2_saved_SOS_clips/"
-  if os.rename(dirname, dirname) == nil then
-    os.execute("mkdir " .. dirname)
-  end
-  local dirname = _path.dust.."audio/cc2_saved_SOS_clips/"..os.date("%y%m%d").."/"
-  if os.rename(dirname, dirname) == nil then
-    os.execute("mkdir " .. dirname)
-  end
-  local name = "cc2_"..os.date("%X-SOS_clip")..i..".wav"
-  softcut.buffer_write_mono(_path.dust.."/audio/cc2_saved_SOS_clips/"..os.date("%y%m%d").."/"..name,clip[i].min,clip[i].max-clip[i].min,2)
-end
-
--- function SOS.voice_sync(source,target)
---   -- expects source: bank[x][y], target: bank[z][a]
---   softcut.loop_start(target.bank_id+1,source.start_point)
---   softcut.loop_end(target.bank_id+1,source.end_point)
---   softcut.position(target.bank_id+1,poll_position_new[source.bank_id+1])
---   target.start_point = source.start_point
---   target.end_point = source.end_point
--- end
-
 function make_a_gif(filename,time)
   local steps = time*24
   local gif_step = 1
@@ -163,15 +112,6 @@ function make_a_gif(filename,time)
   -- os.execute("convert home/we/dust/image.gif -gamma 1.25 -filter point -resize 400% -gravity center -background black -extent 120% home/we/dust/image.gif")
   os.execute("rm -r /home/we/dust/tmp/frames/")
   print("done!")
-end
-
-function record_screen(state)
-  if state == 1 then
-    gif_step = 1
-    recording_screen = true
-  else
-    recording_screen = false
-  end
 end
 
 function screenshot()
@@ -840,7 +780,7 @@ local function crow_init()
     print("output["..i.."] initialized")
   end
   crow.input[2].mode("change",2,0.1,"rising")
-  crow.input[2].change = buff_freeze
+  crow.input[2].change = _ca.buff_freeze
 end
 
 local function process_stream_1(v)
@@ -861,7 +801,7 @@ function set_crow_input(id,type)
     end
   elseif type == 2 then
     crow.input[id].mode("change",2,0.1,"rising")
-    crow.input[id].change = buff_freeze
+    crow.input[id].change = _ca.buff_freeze
   elseif type == 4 then
     crow.input[id].mode("change",2,0.1,"rising")
     crow.input[id].change = transport.crow_toggle
@@ -895,7 +835,7 @@ function init()
     amp_in[i].callback = function(val)
       if val > params:get("one_shot_threshold")/10000 then
         if rec[rec.focus].state == 0 then
-          toggle_buffer(rec.focus)
+          _ca.toggle_buffer(rec.focus)
         end
         amp_in[i]:stop()
       end
@@ -1206,6 +1146,7 @@ function init()
   grid_page_64 = 0
   bank_64 = 1
   
+  _ca.init()
   _lfos.init()
   main_menu.init()
   del.init()
@@ -2273,9 +2214,9 @@ function random_rec_clock()
       local random_rec_comp = math.random(0,100)
       if random_rec_comp < random_rec_prob then
         if params:get("rec_loop_"..rec.focus) == 1 then
-          toggle_buffer(rec.focus,true)
+          _ca.toggle_buffer(rec.focus,true)
         elseif params:get("rec_loop_"..rec.focus) == 2 and rec[rec.focus].end_point < poll_position_new[1] +0.015 then
-          toggle_buffer(rec.focus,true)
+          _ca.toggle_buffer(rec.focus,true)
         end
       end
     end
@@ -3021,7 +2962,7 @@ function cheat(b,i)
   -- _p.process_cheat(b,i)
   _lfos.process_cheat(b,i,"pan_lfo")
   -- _lfos.process_cheat(b,i,"level_lfo")
-  update_delays()
+  del.update_delays()
   if slew_counter[b] ~= nil then
     slew_counter[b].prev_tilt = pad.tilt
     slew_counter[b].prev_q = pad.q
@@ -3305,239 +3246,6 @@ function try_tilt_process(b,i,t,rq)
   softcut.post_filter_rq(b+1,rq)
 end
 
-function buff_freeze()
-  softcut.recpre_slew_time(1,0.05)
-  softcut.level_slew_time(1,0.05)
-  softcut.fade_time(1,0.01)
-  rec[rec.focus].state = (rec[rec.focus].state + 1)%2
-  softcut.rec_level(1,rec[rec.focus].state)
-  if rec[rec.focus].state == 1 then
-    softcut.pre_level(1,params:get("live_rec_feedback_"..rec.focus))
-  else
-    softcut.pre_level(1,1)
-  end
-end
-
-function buff_flush()
-  softcut.buffer_clear_region_channel(1,rec[rec.focus].start_point, rec[rec.focus].end_point-rec[rec.focus].start_point)
-  rec[rec.focus].state = 0
-  rec[rec.focus].clear = 1
-  softcut.rec_level(1,0)
-  if key1_hold then
-    update_waveform(1,rec[rec.focus].start_point, rec[rec.focus].end_point,128)
-  else
-    local points = {{1,9},{9,17},{17,25}}
-    update_waveform(1,points[rec.focus][1],points[rec.focus][2],128)
-  end
-  grid_dirty = true
-end
-
-function buff_pause()
-  rec[rec.focus].pause = not rec[rec.focus].pause
-  softcut.rate(1,rec[rec.focus].pause and 0 or 1) -- TODO make this dynamic to include rec rate offsets
-end
-
-function threshold_rec_handler()
-  if rec[rec.focus].queued then
-    amp_in[1]:stop()
-    amp_in[2]:stop()
-    rec[rec.focus].queued = false
-  elseif not rec[rec.focus].queued and rec[rec.focus].state == 0 then
-    amp_in[1]:start()
-    amp_in[2]:start()
-    rec[rec.focus].queued = true
-    for i = 1,3 do
-      if i~=rec.focus and rec[i].state == 1 then
-        softcut.rec_level(1,0)
-        softcut.pre_level(1,params:get("live_rec_feedback_"..i))
-      end
-    end
-  elseif not rec[rec.focus].queued and rec[rec.focus].state == 1 then
-    rec[rec.focus].end_point = poll_position_new[1]
-    update_waveform(1,key1_hold and rec[rec.focus].start_point or live[rec.focus].min,key1_hold and rec[rec.focus].end_point or live[rec.focus].max,128)
-  end
-end
-
-function toggle_buffer(i,untrue_alt)
-
-  grid_dirty = true
-  
-  local old_clip = rec.focus
-
-  for j = 1,3 do
-    if j ~= i then
-      rec[j].state = 0
-    end
-  end
-
-  rec.focus = i
-
-  if rec[rec.focus].loop == 0 and params:string("one_shot_clock_div") == "threshold" and rec[rec.focus].queued then
-    softcut.level_slew_time(1,0)
-    softcut.fade_time(1,0)
-    one_shot_clock()
-  else
-    softcut.level_slew_time(1,0.05)
-    softcut.fade_time(1,0.01)
-    if rec[rec.focus].loop == 0 and not grid_alt then
-      if rec[rec.focus].state == 0 then
-        run_one_shot_rec_clock() -- this runs only if not recording
-      elseif rec[rec.focus].state == 1 and rec_state_watcher.is_running then -- can have both conditions, right?
-        cancel_one_shot_rec_clock()
-      end
-    elseif rec[rec.focus].loop == 0 and (grid_alt and untrue_alt ~= nil) then
-      -- buff_flush()
-    elseif rec[rec.focus].loop == 1 and not grid_alt then
-      if one_shot_rec_clock ~= nil then
-        cancel_one_shot_rec_clock()
-      end
-      softcut.loop_start(1,rec[rec.focus].start_point)
-      softcut.loop_end(1,rec[rec.focus].end_point-0.01)
-    end
-  end
-  
-  rec.play_segment = rec.focus
-  softcut.loop(1,rec[rec.focus].loop)
-  if rec.stopped == true then
-    rec.stopped = false
-    if rec[rec.focus].loop == 1 then
-      softcut.position(1,rec[rec.focus].start_point)
-    end
-  end
-  if rec[rec.focus].loop == 1 then
-    if old_clip ~= rec.focus then rec[rec.focus].state = 0 end
-    buff_freeze()
-    if rec[rec.focus].clear == 1 then
-      rec[rec.focus].clear = 0
-    end
-  end
-  -- end
-  grid_dirty = true
-  update_waveform(1,key1_hold and rec[rec.focus].start_point or live[rec.focus].min,key1_hold and rec[rec.focus].end_point or live[rec.focus].max,128)
-end
-
-function SOS.toggle(i)
-  local current_state = params:get("SOS_enabled_"..i)
-  params:set("SOS_enabled_"..i, current_state == 1 and 0 or 1)
-  -- SOS_recording[i] = not SOS_recording[i]
-  SOS.voice_overwrite(bank[i][bank[i].id],params:get("SOS_enabled_"..i) == 1 and true or false)
-  force_waveform_redraw()
-end
-
-function SOS.erase(i)
-  local target = bank[i][bank[i].id].mode
-  local fade = params:get("SOS_erase_fade_"..i)
-  local preserve = 1 - params:get("SOS_erase_strength_"..i)
-  softcut.buffer_clear_region_channel(target,bank[i][bank[i].id].start_point, (bank[i][bank[i].id].end_point-bank[i][bank[i].id].start_point)+0.01,fade,preserve)
-  if key1_hold and menu == 2 then
-    update_waveform(target,bank[i][bank[i].id].start_point, bank[i][bank[i].id].end_point,128)
-  else
-    local points;
-    local cl = bank[i][bank[i].id].clip
-    if target == 1 then
-      points = {live[cl].min,live[cl].max}
-    else
-      points = {clip[cl].min,clip[cl].max}
-    end
-    update_waveform(target,points[1],points[2],128)
-  end
-  grid_dirty = true
-end
-
-function update_delays()
-  for i = 1,2 do
-    if delay[i].mode == "clocked" then
-      local delay_rate_to_time = clock.get_beat_sec() * delay[i].clocked_length * delay[i].modifier
-      local delay_time = delay_rate_to_time + (41 + (30*(i-1)))
-      delay[i].end_point = delay_time
-      softcut.loop_end(i+4,delay[i].end_point)
-    else
-      softcut.loop_end(i+4,delay[i].free_end_point)
-    end
-  end
-end
-
-function sample_callback(path,i)
-  if path ~= "cancel" and path ~= "" then
-    load_sample(path,i)
-  end
-  _norns.key(1,1)
-  _norns.key(1,0)
-  key1_hold = false
-end
-
-function load_sample(file,sample)
-  local old_min = clip[sample].min
-  local old_max = clip[sample].max
-  if file ~= "-" then
-    local ch, len = audio.file_info(file)
-    if len/48000 < 32 then
-      clip[sample].sample_length = len/48000
-    else
-      clip[sample].sample_length = 32
-    end
-    softcut.buffer_clear_region_channel(2,1+(32*(sample-1)),32)
-    softcut.buffer_read_mono(file, 0, 1+(32*(sample-1)),clip[sample].sample_length + 0.05, 1, 2)
-    -- softcut.buffer_read_mono(file, 0, 1+(32*(sample-1)),clip[sample].sample_length, 1, 2)
-    clip_table()
-    for p = 1,16 do
-      for b = 1,3 do
-        if bank[b][p].mode == 2 and bank[b][p].clip == sample and pre_cc2_sample[b] == false then
-          scale_loop_points(bank[b][p], old_min, old_max, clip[sample].min, clip[sample].max)
-        end
-      end
-    end
-  end
-  for i = 1,3 do
-    pre_cc2_sample[i] = false
-  end
-  update_waveform(2,clip[sample].min,clip[sample].max,128)
-  clip[sample].waveform_samples = waveform_samples
-  if params:get("clip "..sample.." sample") ~= file then
-    params:set("clip "..sample.." sample", file, 1)
-  end
-  -- for i = 1,3 do
-  --   if bank[i][bank[i].id].mode == 2 and bank[i][bank[i].id].clip == sample then
-  --     softcut.position(i+1,bank[i][bank[i].id].start_point)
-  --   end
-  -- end
-end
-
-function save_sample(i)
-  local dirname = _path.dust.."audio/cc2_saved_samples/"
-  if os.rename(dirname, dirname) == nil then
-    os.execute("mkdir " .. dirname)
-  end
-  local name = "cc2_"..os.date("%y%m%d_%X-buff")..i..".wav"
-  local save_pos = i - 1
-  softcut.buffer_write_mono(_path.dust.."/audio/cc2_saved_samples/"..name,1+(8*save_pos),8,1)
-end
-
-function collect_samples(i,collection) -- this works!!!
-  local dirname = _path.dust.."audio/cc2_live-audio/"
-  if os.rename(dirname, dirname) == nil then
-    os.execute("mkdir " .. dirname)
-  end
-  local dirname = _path.dust.."audio/cc2_live-audio/"..collection.."/"
-  if os.rename(dirname, dirname) == nil then
-    os.execute("mkdir " .. dirname)
-  end
-  local name = "cc2_"..collection.."-"..i..".wav"
-  local save_pos = i - 1
-  softcut.buffer_write_mono(_path.dust.."audio/cc2_live-audio/"..collection.."/"..name,1+(8*save_pos),8,1)
-end
-
-function reload_collected_samples(file,sample)
-  if rec[rec.focus].state == 1 then
-    buff_freeze()
-  end
-  if file ~= "-" then
-    print(file)
-    softcut.buffer_read_mono(file, 0, 1+(8 * (sample-1)), 8, 1, 1)
-    print("reloaded previous session's audio")
-  end
-end
-
 function adjust_key1_timing()
   if menu == 1 then
     metro[31].time = 0.25
@@ -3650,9 +3358,9 @@ function key(n,z)
             end
           elseif page.loops.sel == 4 then
             if rec[rec.focus].loop == 0 and params:string("one_shot_clock_div") == "threshold" and not grid_alt then
-              threshold_rec_handler()
+              _ca.threshold_rec_handler()
             else
-              toggle_buffer(rec.focus)
+              _ca.toggle_buffer(rec.focus)
             end
           elseif page.loops.sel == 5 then
             if page.loops.meta_sel < 4 then
@@ -3671,7 +3379,7 @@ function key(n,z)
                   rec[rec.focus].queued = true
                 end
               else
-                toggle_buffer(rec.focus)
+                _ca.toggle_buffer(rec.focus)
               end
             end
           end
@@ -3704,7 +3412,7 @@ function key(n,z)
               if bank[id][bank[id].id].mode == 2 then
                 _norns.key(1,1)
                 _norns.key(1,0)
-                fileselect.enter(_path.audio,function(n) sample_callback(n,bank[id][bank[id].id].clip) end)
+                fileselect.enter(_path.audio,function(n) _ca.sample_callback(n,bank[id][bank[id].id].clip) end)
               end
             end
           elseif page.loops.sel == 4 and page.loops.frame == 2 then
@@ -3921,7 +3629,7 @@ function key(n,z)
       elseif menu == 2 then
         if page.loops.frame == 2 and key1_hold then
           if page.loops.sel == 4 then
-            buff_flush()
+            _ca.buff_flush()
             -- print("press")
           elseif page.loops.sel < 4 then
             sync_clock_to_loop(bank[page.loops.sel][bank[page.loops.sel].id],"audio")
@@ -3988,7 +3696,7 @@ function key(n,z)
       elseif menu == 2 then
         if page.loops.frame == 2 and key1_hold then
           if page.loops.sel == 4 then
-            -- buff_flush()
+            -- _ca.buff_flush()
             -- print("release???")
           elseif page.loops.sel < 4 then
             sync_clock_to_loop(bank[page.loops.sel][bank[page.loops.sel].id],"audio")
@@ -4047,7 +3755,7 @@ function key(n,z)
         elseif menu == 2 and page.loops.sel < 4 and page.loops.frame == 2 and key2_hold then
           if bank[page.loops.sel][bank[page.loops.sel].id].mode == 2 then
             _norns.key(1,0)
-            fileselect.enter(_path.audio,function(n) sample_callback(n,bank[page.loops.sel][bank[page.loops.sel].id].clip) end)
+            fileselect.enter(_path.audio,function(n) _ca.sample_callback(n,bank[page.loops.sel][bank[page.loops.sel].id].clip) end)
             if key2_hold then key2_hold = false end
           end
         elseif menu == 2 and page.loops.sel == 4 and page.loops.frame == 2 then
@@ -4197,121 +3905,6 @@ end
 
 g.key = function(x,y,z)
   grid_actions.init(x,y,z)
-end
-
-function jump_live(i,s,y,z)
-
-  local pad = bank[i][s]
-
-  local old_duration = pad.mode == 1 and 8 or clip[pad.clip].sample_length
-  local old_clip = pad.clip
-  local old_min = (1+(old_duration*(old_clip-1)))
-  local old_max = ((old_duration+1)+(old_duration*(old_clip-1)))
-  local old_range = old_min - old_max
-  pad.clip = math.abs(y-5)
-  local new_duration = pad.mode == 1 and 8 or clip[pad.clip].sample_length
-  local new_clip = pad.clip
-  --local new_min = (1+(new_duration*(pad.clip-1)))
-  if pad.mode == 1 then
-    local new_min = (1+(new_duration*(pad.clip-1)))
-    local new_max = ((new_duration+1)+(new_duration*(pad.clip-1)))
-    local new_range = new_max - new_min
-    local current_difference = (pad.end_point - pad.start_point) -- is this where it gets weird?
-    pad.start_point = (((pad.start_point - old_min) * new_range) / old_range) + new_min
-    pad.end_point = pad.start_point + current_difference
-  end
-
-
---[[
-  for go = 1,2 do
-    local old_min = (1+(duration*(bank[i][s].clip-1)))
-    local old_max = ((duration+1)+(duration*(bank[i][s].clip-1)))
-    local old_range = old_min - old_max
-    bank[i][s].clip = math.abs(y-5)
-    local new_min = (1+(duration*(bank[i][s].clip-1)))
-    local new_max = ((duration+1)+(duration*(bank[i][s].clip-1)))
-    local new_range = new_max - new_min
-    local current_difference = (bank[i][s].end_point - bank[i][s].start_point)
-    bank[i][s].start_point = (((bank[i][s].start_point - old_min) * new_range) / old_range) + new_min
-    bank[i][s].end_point = bank[i][s].start_point + current_difference
-    if menu == 11 then
-      which_bank = i
-      help_menu = "buffer jump"
-    end
-  end
-  --]]
-
-  if menu == 11 then
-    which_bank = i
-    help_menu = "buffer jump"
-  end
-end
-
-function clip_table()
-  clip[1].min = 1
-  clip[1].max = clip[1].min + clip[1].sample_length
-  --clip[2].min = clip[1].max
-  clip[2].min = 33
-  clip[2].max = clip[2].min + clip[2].sample_length
-  --clip[3].min = clip[2].max
-  clip[3].min = 65
-  clip[3].max = clip[3].min + clip[3].sample_length
-end
-
--- length mods
-
-function scale_loop_points(pad,old_min,old_max,new_min,new_max)
-  --local pad = bank[b][p]
-  local duration = pad.end_point - pad.start_point
-  pad.start_point = util.linlin(old_min,old_max,new_min,new_max,pad.start_point)
-  --pad.end_point = util.linlin(old_min,old_max,new_min,new_max,pad.end_point)
-  if pad.start_point + duration > new_max then
-    pad.end_point = new_max
-  else
-    pad.end_point = pad.start_point + duration
-  end
-end
-
-function change_mode(target,old_mode)
-  local live_min = live[target.clip].min
-  local live_max = live[target.clip].max
-  local clip_min = clip[target.clip].min
-  local clip_max = clip[target.clip].max
-  local duration = target.end_point - target.start_point
-  if old_mode == 1 then
-    target.start_point = util.linlin(live_min,live_max,clip_min,clip_max,target.start_point)
-  elseif old_mode == 2 then
-    target.start_point = util.linlin(clip_min,clip_max,live_min,live_max,target.start_point)
-  end
-  if target.start_point + duration > (old_mode == 1 and clip[target.clip].max or live[target.clip].max) then
-    target.end_point = (old_mode == 1 and clip[target.clip].max or live[target.clip].max)
-  else
-    target.end_point = target.start_point + duration
-  end
-end
-
-function jump_clip(bank_id,pad_id,new_clip)
-  local pad = bank[bank_id][pad_id]
-  local current_difference = (pad.end_point - pad.start_point)
-  if pad.mode == 2 then
-    local old_clip = pad.clip
-    pad.clip = new_clip
-    pad.start_point = util.linlin(clip[old_clip].min,clip[old_clip].max,clip[pad.clip].min,clip[pad.clip].max,pad.start_point)
-    if pad.start_point + current_difference > clip[pad.clip].max then
-      pad.end_point = clip[pad.clip].max
-    else
-      pad.end_point = pad.start_point + current_difference
-    end
-  else
-    local old_clip = pad.clip
-    pad.clip = new_clip
-    pad.start_point = util.linlin(live[old_clip].min,live[old_clip].max,live[pad.clip].min,live[pad.clip].max,pad.start_point)
-    if pad.start_point + current_difference > live[pad.clip].max then
-      pad.end_point = live[pad.clip].max
-    else
-      pad.end_point = pad.start_point + current_difference
-    end
-  end
 end
 
 --/ length mods
@@ -4788,9 +4381,9 @@ function named_savestate(text)
     tab.save(arp[i],_path.data .. "cheat_codes_2/collection-"..collection.."/arps/"..i..".data")
     tab.save(rytm.track[i],_path.data .. "cheat_codes_2/collection-"..collection.."/euclid/euclid"..i..".data")
     tab.save(rnd[i],_path.data .. "cheat_codes_2/collection-"..collection.."/rnd/"..i..".data")
-    collect_samples(i,collection)
+    _ca.collect_samples(i,collection)
     -- if params:get("collect_live") == 2 then
-    --   collect_samples(i,collection)
+    --   _ca.collect_samples(i,collection)
     -- end
   end
 
@@ -4997,10 +4590,10 @@ function named_loadstate(path)
       end
 
       -- if params:get("collect_live") == 2 then
-      --   reload_collected_samples(_path.dust.."audio/cc2_live-audio/"..collection.."/".."cc2_"..collection.."-"..i..".wav",i)
+      --   _ca.reload_collected_samples(_path.dust.."audio/cc2_live-audio/"..collection.."/".."cc2_"..collection.."-"..i..".wav",i)
       -- end
       if util.file_exists(_path.dust.."audio/cc2_live-audio/"..collection.."/".."cc2_"..collection.."-"..i..".wav") then
-        reload_collected_samples(_path.dust.."audio/cc2_live-audio/"..collection.."/".."cc2_"..collection.."-"..i..".wav",i)
+        _ca.reload_collected_samples(_path.dust.."audio/cc2_live-audio/"..collection.."/".."cc2_"..collection.."-"..i..".wav",i)
       else
         print("don't worry, but no file: ".._path.dust.."audio/cc2_live-audio/"..collection.."/".."cc2_"..collection.."-"..i..".wav")
         print("^ just a heads up, in case you were expecting a live recording to pre-load :)")
