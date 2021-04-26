@@ -758,6 +758,8 @@ key2_hold_counter.event = function()
   key2_hold = true
   if menu == 2 then
     _loops.key2_activate()
+  elseif menu == "MIDI_config" then
+    screen_dirty = true
   end
 end
 

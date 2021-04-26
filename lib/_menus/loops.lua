@@ -7,7 +7,7 @@ local _loops_;
 
 function _loops.init()
   page.loops = {}
-  page.loops.layer = "global" -- "global" or "clip"
+  page.loops.layer = "global" -- "global" or "clip" or "record"
   page.loops.bank_controls = {"cheat_pad","start_point","end_point","rate","semitone","glide","buffer","loop_state","auto_chop"}
   page.loops.selected_bank_control = "cheat_pad"
   page.loops.live_controls = {"segment","start_point","end_point","record","feedback","mode","duration","erase","random_rec"}
@@ -22,10 +22,18 @@ end
 
 function _loops.process_key(n,z)
   local pad = bank[util.clamp(page.loops.sel,1,3)][page.loops.meta_pad[util.clamp(1,3,page.loops.sel)]]
-  if n == 2 and z == 1 then
+  if n == 1 then
+    key1_hold = z == 1 and true or false
+  elseif n == 2 and z == 1 and key1_hold then
+    if page.loops.sel < 4 then
+      if #arc_pat[page.loops.sel][1].event > 0 then
+        arc_pat[page.loops.sel][1]:clear()
+      end
+    end
+  elseif n == 2 and z == 1 and not key1_hold then
     key2_hold_counter:start()
     key2_hold_and_modify = false
-  elseif n == 2 and z == 0 then
+  elseif n == 2 and z == 0 and not key1_hold then
     if key2_hold == false and not key1_hold then
       key2_hold_counter:stop()
       if page.loops.layer == "global" then
@@ -51,7 +59,7 @@ function _loops.process_key(n,z)
       }
     page.loops.zoomed_mode = false
     update_waveform(mode,min[mode],max[mode],128)
-  elseif n == 3 and z == 1 then
+  elseif n == 3 and z == 1 and not key1_hold then
     if page.loops.sel < 4 then
       if page.loops.selected_bank_control == "cheat_pad"
       or page.loops.selected_bank_control == "start_point"
@@ -79,6 +87,25 @@ function _loops.process_key(n,z)
         else
           _ca.toggle_buffer(rec.focus)
         end
+      elseif page.loops.selected_live_control == "erase" then
+        _ca.buff_flush()
+      end
+    end
+  elseif n == 3 and z == 1 and key1_hold then
+    if page.loops.sel < 4 then
+      if arc_pat[page.loops.sel][1].rec == 0 then
+        if #arc_pat[page.loops.sel][1].event == 0 then
+          arc_pat[page.loops.sel][1]:rec_start()
+        else
+          if arc_pat[page.loops.sel][1].play == 1 then
+            arc_pat[page.loops.sel][1]:stop()
+          else
+            arc_pat[page.loops.sel][1]:start()
+          end
+        end
+      else
+        arc_pat[page.loops.sel][1]:rec_stop()
+        arc_pat[page.loops.sel][1]:start()
       end
     end
   end
@@ -115,7 +142,7 @@ function _loops.process_encoder(n,d)
         page.loops[sel_ctrl[page.loops.sel]] = page.loops[ctrls[page.loops.sel]][current_region]
       end
     elseif n == 3 then
-      if page.loops.sel < 4 then
+      if page.loops.sel < 4 and not key1_hold then
         local pad = bank[page.loops.sel][page.loops.meta_pad[page.loops.sel]]
         local resolution = loop_enc_resolution[page.loops.sel]
         if page.loops.selected_bank_control == "cheat_pad" then
@@ -196,6 +223,20 @@ function _loops.process_encoder(n,d)
           end
           grid_dirty = true
         end
+      elseif page.loops.sel < 4 and key1_hold then
+        arc_pat[page.loops.sel][1].time_factor = util.clamp(arc_pat[page.loops.sel][1].time_factor + d/10,0.1,10)
+      elseif page.loops.sel == 4 then
+        if page.loops.selected_live_control == "segment" then
+          encoder_actions.change_buffer(rec[rec.focus],d)
+        elseif page.loops.selected_live_control == "feedback" then
+          params:delta("live_rec_feedback_"..rec.focus,d)
+        elseif page.loops.selected_live_control == "mode" then
+          params:delta("rec_loop_"..rec.focus,d)
+        elseif page.loops.selected_live_control == "duration" then
+          params:delta("live_buff_rate",d)
+        elseif page.loops.selected_live_control == "random_rec" then
+          params:delta("random_rec_clock_prob_"..rec.focus,d)
+        end
       end
     end
   elseif not page.loops.alt_view and page.loops.zoomed_mode then
@@ -215,6 +256,12 @@ function _loops.move_loop_points(pad,d,resolution,style)
   encoder_actions[style](pad,d/resolution)
   if bank[page.loops.sel].id == pad.pad_id then
     encoder_actions.sc[style](page.loops.sel)
+  end
+  if style == "move_play_window"
+  or style == "move_start"
+  or style == "move_end"
+  and arc_pat[pad.bank_id][1].rec == 1 then
+    arc_actions.record(pad.bank_id)
   end
 end
 
@@ -246,7 +293,7 @@ function _loops.draw_menu()
   screen.text_right("_")
 
   if page.loops.layer == "global" then
-    if page.loops.sel < 4 then
+    if page.loops.sel < 4 and not key1_hold then
 
       local sel = page.loops.selected_bank_control
 
@@ -390,6 +437,30 @@ function _loops.draw_menu()
         screen.text_right("CHOP")
         --//new
       end
+    elseif page.loops.sel < 4 and key1_hold then
+      local textline_1;
+      local textline_2;
+      local textline_3;
+      if arc_pat[page.loops.sel][1].rec == 0 then
+        if #arc_pat[page.loops.sel][1].event == 0 then
+          textline_1 = "K3: RECORD LOOP MOVEMENT"
+        elseif #arc_pat[page.loops.sel][1].event > 0 then
+          textline_1 = "K3: "..(arc_pat[page.loops.sel][1].play == 1 and "STOP" or "START").." LOOP MOVEMENT"
+          textline_2 = "K2: ERASE LOOP MOVEMENT"
+          textline_3 = "E3: PLAYBACK SPEED "..string.format("%.1f",arc_pat[page.loops.sel][1].time_factor).."x"
+        end
+      else
+        textline_1 = "RECORDING"
+        textline_2 = "K3: STOP RECORDING"
+      end
+      screen.level(15)
+      screen.move(64,30)
+      screen.text_center(textline_1 ~= nil and textline_1 or "")
+      screen.move(64,40)
+      screen.text_center(textline_2 ~= nil and textline_2 or "")
+      screen.move(64,50)
+      screen.text_center(textline_3 ~= nil and textline_3 or "")
+        
     elseif page.loops.sel == 4 then
       local sel = page.loops.selected_live_control
       screen.move(0,31)

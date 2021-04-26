@@ -42,7 +42,7 @@ function main_menu.init()
     page.delay[i].menu = 1
     page.delay[i].menu_sel = {1,1,1}
   end
-  page.delay.nav = 1
+  page.delay.nav = 2
     
   page.time_sel = 1
   page.time_page = {}

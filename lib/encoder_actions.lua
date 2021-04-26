@@ -3,6 +3,8 @@ local encoder_actions = {}
 local ea = encoder_actions
 ea.sc = {}
 
+local pad; -- TODO, does this fuck things up?? it was global...
+
 function adjust_loops(d,func)
 
   if page.loops.frame == 2 then
