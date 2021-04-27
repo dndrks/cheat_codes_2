@@ -1500,12 +1500,12 @@ function init()
                     end
                     midi_pattern_watch(i, d.note-(params:get("bank_"..i.."_pad_midi_base")-1))
                     if menu == 9 then
-                      page.arp_page_sel = i
+                      page.arps.sel = i
                       arps.momentary(i, bank[i].id, "on")
                     end
                   elseif d.type == "note_off" then
                     if menu == 9 then
-                      if not arp[i].hold and page.arp_page_sel == i  then
+                      if not arp[i].hold and page.arps.sel == i  then
                         local targeted_pad = d.note-(params:get("bank_"..i.."_pad_midi_base")-1)
                         arps.momentary(i, targeted_pad, "off")
                       end
@@ -3569,8 +3569,8 @@ function key(n,z)
         end
 
       elseif menu == 9 then
-        -- arp[page.arp_page_sel].hold = not arp[page.arp_page_sel].hold
-        local id = page.arp_page_sel
+        -- arp[page.arps.sel].hold = not arp[page.arps.sel].hold
+        local id = page.arps.sel
         if not arp[id].hold then
           if not arp[id].enabled then
             arp[id].enabled = true
@@ -3598,8 +3598,8 @@ function key(n,z)
         grid_dirty = true
 
 
-        -- if not arp[page.arp_page_sel].hold then
-        --   arps.clear(page.arp_page_sel)
+        -- if not arp[page.arps.sel].hold then
+        --   arps.clear(page.arps.sel)
         -- end
       elseif menu == 10 then
         if key1_hold then
@@ -3738,7 +3738,7 @@ function key(n,z)
         key1_hold = true
       elseif menu == 9 then
         key1_hold = true
-        page.arp_alt[page.arp_page_sel] = not page.arp_alt[page.arp_page_sel]
+        page.arps.alt[page.arps.sel] = not page.arps.alt[page.arps.sel]
       else
         key1_hold = true
         if menu == 2 and page.loops.sel < 4 and page.loops.frame == 2 and not key2_hold then
@@ -4771,6 +4771,7 @@ function test_load(slot,destination)
       if arp[destination].mode == "pend" then
         arp_direction[destination] = "negative"
       end
+      
     end
   end
 end

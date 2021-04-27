@@ -6,6 +6,7 @@ _r = include 'lib/_menus/rnd'
 _f = include 'lib/_menus/filters'
 _d = include 'lib/_menus/delays'
 _loops = include 'lib/_menus/loops'
+_arps = include 'lib/_menus/arps'
 
 local dots = "."
 
@@ -30,6 +31,7 @@ function main_menu.init()
   -- page.filters.sel = 0
   _f.init()
   _loops.init()
+  _arps.init()
   -- page.filtering_sel = 0
   page.arc_sel = 0
   page.delay_sel = 0
@@ -64,13 +66,6 @@ function main_menu.init()
   page.track_param_sel = {}
   for i = 1,3 do
     page.track_param_sel[i] = 1
-  end
-  page.arp_page_sel = 1
-  page.arp_param = {1,1,1}
-  page.arp_alt = {false,false,false}
-  page.arp_param_group = {}
-  for i = 1,3 do
-    page.arp_param_group[i] = 1
   end
   page.rnd_page = 1
   page.rnd_page_section = 1
@@ -403,61 +398,7 @@ function main_menu.draw()
     end
 
   elseif menu == 9 then
-    local focus_arp = arp[page.arp_page_sel]
-    screen.move(0,10)
-    screen.level(3)
-    screen.text("arp")
-    local header = {"a","b","c"}
-    for i = 1,3 do
-      screen.level(page.arp_page_sel == i and 15 or 3)
-      screen.move(75+(i*15),10)
-      screen.text(header[i])
-    end
-    screen.level(page.arp_page_sel == page.arp_page_sel and 15 or 3)
-    screen.move(75+(page.arp_page_sel*15),13)
-    screen.text("_")
-    screen.move(100,10)
-    screen.move(0,60)
-    screen.font_size(15)
-    screen.level(15)
-    screen.text((focus_arp.hold and focus_arp.playing) and "hold" or ((focus_arp.hold and not focus_arp.playing) and "pause" or ""))
-    
-    screen.font_size(40)
-    screen.move(50,50)
-    screen.text(#focus_arp.notes > 0 and focus_arp.notes[focus_arp.step] or "...")
-
-    screen.font_size(8)
-    local deci_to_frac =
-    { ["0.125"] = "1/32"
-    , ["0.1667"] = "1/16t"
-    , ["0.25"] = "1/16"
-    , ["0.3333"] = "1/8t"
-    , ["0.5"] = "1/8"
-    , ["0.6667"] = "1/4t"
-    , ["1.0"] = "1/4"
-    , ["1.3333"] = "1/2t"
-    , ["2.0"] = "1/2"
-    , ["2.6667"] = "1t"
-    , ["4.0"] = "1"
-    }
-    screen.move(125,20)
-    screen.level(page.arp_param[page.arp_page_sel] == 1 and 15 or 3)
-    local banks = {"a","b","c"}
-    local pad = tostring(banks[page.arp_page_sel]..bank[page.arp_page_sel].id)
-    -- screen.text_right((page.arp_alt[page.arp_page_sel] and (pad..": ") or "")..deci_to_frac[tostring(util.round(focus_arp.time, 0.0001))])
-    screen.text_right((page.arp_alt[page.arp_page_sel] and (pad..": ") or "")..deci_to_frac[tostring(util.round(bank[page.arp_page_sel][bank[page.arp_page_sel].id].arp_time, 0.0001))])
-    screen.move(125,30)
-    screen.level(page.arp_param[page.arp_page_sel] == 2 and 15 or 3)
-    screen.text_right(focus_arp.mode)
-    screen.move(125,40)
-    screen.level(page.arp_param[page.arp_page_sel] == 3 and 15 or 3)
-    screen.text_right("s: "..focus_arp.start_point)
-    screen.move(125,50)
-    screen.level(page.arp_param[page.arp_page_sel] == 4 and 15 or 3)
-    screen.text_right("e: "..(focus_arp.end_point > 0 and focus_arp.end_point or "1"))
-    screen.move(125,60)
-    screen.level(page.arp_param[page.arp_page_sel] == 5 and 15 or 3)
-    screen.text_right("retrig: "..(tostring(focus_arp.retrigger) == "true" and "y" or "n"))
+    _arps.draw_menu()
 
   elseif menu == 10 then
     _r.draw_menu()
@@ -759,7 +700,8 @@ function main_menu.process_encoder(target,n,d)
     ["levels"] = _l.process_encoder,
     ["rnd"] = _r.process_encoder,
     ["filters"] = _f.process_encoder,
-    ["loops"] = _loops.process_encoder
+    ["loops"] = _loops.process_encoder,
+    ["arps"] = _arps.process_encoder
   }
   target_to_destination[target](n,d)
 end

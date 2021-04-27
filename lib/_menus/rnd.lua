@@ -2,7 +2,6 @@ local rnd_menu = {}
 
 local _r = rnd_menu
 
-
 function _r.draw_menu()
   screen.move(0,10)
   screen.level(3)

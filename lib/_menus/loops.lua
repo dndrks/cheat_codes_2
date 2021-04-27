@@ -603,10 +603,8 @@ function _loops.draw_menu()
         screen.move(0,20+(i*10))
         local text_to_display = params:get("clip "..i.." sample") == "-"
         and "press K3 to load"
-        or (string.gsub(params:get("clip "..i.." sample"),_path.audio,""):match("^.+/(.+)$")):match("(.+)%..+$")
-        -- this fails for non-nested items...
+        or params:get("clip "..i.." sample"):match("^.+/(.+)$")
         screen.text("CLIP "..i..": "..text_to_display)
-        -- screen.text()
       end
     end
   end

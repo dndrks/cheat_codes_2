@@ -932,7 +932,7 @@ function grid_actions.init(x,y,z)
         elseif menu == 8 then
           rytm.track_edit = x
         elseif menu == 9 then
-          page.arp_page_sel = x
+          page.arps.sel = x
         elseif menu == 10 then
           page.rnd_page = x
         elseif menu == "MIDI_config" then
@@ -1427,7 +1427,7 @@ function grid_actions.init(x,y,z)
         elseif menu == 8 then
           rytm.track_edit = x
         elseif menu == 9 then
-          page.arp_page_sel = x
+          page.arps.sel = x
         elseif menu == 10 then
           page.rnd_page = x
         elseif menu == "MIDI_config" then
@@ -1589,37 +1589,24 @@ function grid_actions.arp_handler(i)
   else
     if #arp[i].notes > 0 then
       if arp[i].playing == true then
-        -- arp[i].pause = true
-        -- arp[i].playing = false
         arps.toggle("stop",i)
       else
         arps.toggle("start",i)
-        -- local arp_start =
-        -- {
-        --   ["fwd"] = arp[i].start_point - 1
-        -- , ["bkwd"] = arp[i].end_point + 1
-        -- , ["pend"] = arp[i].start_point
-        -- , ["rnd"] = arp[i].start_point - 1
-        -- }
-        -- arp[i].step = arp_start[arp[i].mode]
-        -- arp[i].pause = false
-        -- arp[i].playing = true
-        -- if arp[i].mode == "pend" then
-        --   arp_direction[i] = "negative"
-        -- end
       end
     end
+  screen_dirty = true
   end
 end
 
 function grid_actions.kill_arp(i)
-  page.arp_page_sel = i
+  page.arps.sel = i
   arp[i].hold = false
   if not arp[i].hold then
     arps.clear(i)
   end
   arp[i].down = 0
   arp[i].enabled = false
+  screen_dirty = true
 end
 
 function grid_actions.toggle_pad_loop(i)

@@ -22,12 +22,12 @@ local sd = {}
 -- end
 
 -- ARP
--- page.arp_page_sel = 1
--- page.arp_param = {1,1,1}
--- page.arp_alt = {false,false,false}
--- page.arp_param_group = {}
+-- page.arps.sel = 1
+-- page.arps.param = {1,1,1}
+-- page.arps.alt = {false,false,false}
+-- page.arps.param_group = {}
 -- for i = 1,3 do
---   page.arp_param_group[i] = 1
+--   page.arps.param_group[i] = 1
 -- end
 
 -- RND

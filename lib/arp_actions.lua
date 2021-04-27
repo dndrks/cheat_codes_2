@@ -41,39 +41,7 @@ function arp_actions.init(target)
     arp[target].retrigger = true
     arp_clock[target] = clock.run(arp_actions.arpeggiate,target)
 
-    -- arp_timers[target] = {}
-    -- arp_timers[target].divisions = {2,3,4,6,8,12,16,24,32,48,64}
-    -- for _,division in ipairs(arp_timers[target].divisions) do
-    --   arp_timers[target][division]={}
-    --   arp_timers[target][division].lattice=arp_lattice:new_pattern{
-    --     action=function(t)
-    --       arp_actions.iterate(target,division,t)
-    --     end,
-    --   division=1/(division/2)}
-    -- end
-    -- arp[target].active_division = 8
-
 end
-
--- function arp_actions.iterate(target,div,step)
---   -- if div == arp[target].active_division then
---   if div == deci_to_whole[tostring(util.round(bank[target][bank[target].id].arp_time, 0.0001))] then
---     if target == 1 then print(target,bank[target].id,clock.get_beats()) end
---     arp_actions.alt_arpeggiate(target)
---   end
--- end
-
--- function arp_actions.toggle_arp(target,enable)
---   if enable then
---     clock.run(function()
---       arp[target].lattice.phase = 0
---       clock.sync(arp[target].time)
---       arp[target].lattice:start()
---     end)
---   else
---     arp[target].lattice:stop()
---   end
--- end
 
 function arp_actions.find_index(tab,el)
     local rev = {}
@@ -95,11 +63,9 @@ function arp_actions.momentary(target, value, state)
     arp[target].end_point = #arp[target].notes
 end
 
-function arp_actions.add(target, value)
-    if arp[target].hold then
-        table.insert(arp[target].notes, value)
-        arp[target].end_point = #arp[target].notes
-    end
+function arp_actions.add(target, position, value)
+    arp[target].notes[position] = value
+    arp[target].end_point = position
 end
 
 function arp_actions.toggle(state,target)
@@ -123,33 +89,6 @@ function arp_actions.toggle(state,target)
     arp[i].playing = false
   end
 end
-
--- function arp_actions.alt_arpeggiate(target)
---   if transport.is_running then
---     if #arp[target].notes > 0 then
---       if arp[target].pause == false then
---         -- if arp[target].step == 1 then print("arp "..target, clock.get_beats()) end
---         if menu ~= 1 then screen_dirty = true end
---         if arp[target].mode == "fwd" then
---           arp_actions.forward(target)
---         elseif arp[target].mode == "bkwd" then
---           arp_actions.backward(target)
---         elseif arp[target].mode == "pend" then
---           arp_actions.pendulum(target)
---         elseif arp[target].mode == "rnd" then
---           arp_actions.random(target)
---         end
---         arp[target].playing = true
---         arp_actions.cheat(target,arp[target].step)
---         grid_dirty = true
---       else
---         arp[target].playing = false
---       end
---     else
---       arp[target].playing = false
---     end
---   end
--- end
 
 function arp_actions.arpeggiate(target)
   while true do
