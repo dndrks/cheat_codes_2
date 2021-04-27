@@ -12,6 +12,7 @@ function _loops.init()
   page.loops.selected_bank_control = "cheat_pad"
   page.loops.live_controls = {"segment","start_point","end_point","record","feedback","mode","duration","erase","random_rec"}
   page.loops.selected_live_control = "segment"
+  page.loops.selected_clip_control = 1
   page.loops.sel = 1
   page.loops.alt_view = false
   page.loops.alt_view_sel = 1
@@ -48,17 +49,19 @@ function _loops.process_key(n,z)
       key2_hold = false
       key2_hold_and_modify = false
     end
-    local mode = pad.mode
-    local min =
-      { live[pad.clip].min
-      , clip[pad.clip].min
-      }
-    local max =
-      { live[pad.clip].max
-      , clip[pad.clip].max
-      }
-    page.loops.zoomed_mode = false
-    update_waveform(mode,min[mode],max[mode],128)
+    if page.loops.sel < 5 then
+      local mode = pad.mode
+      local min =
+        { live[pad.clip].min
+        , clip[pad.clip].min
+        }
+      local max =
+        { live[pad.clip].max
+        , clip[pad.clip].max
+        }
+      page.loops.zoomed_mode = false
+      update_waveform(mode,min[mode],max[mode],128)
+    end
   elseif n == 3 and z == 1 and not key1_hold then
     if page.loops.sel < 4 then
       if page.loops.selected_bank_control == "cheat_pad"
@@ -90,6 +93,11 @@ function _loops.process_key(n,z)
       elseif page.loops.selected_live_control == "erase" then
         _ca.buff_flush()
       end
+    elseif page.loops.sel == 5 then
+      _norns.key(1,1)
+      _norns.key(1,0)
+      fileselect.enter(_path.audio,function(n) _ca.sample_callback(n,page.loops.selected_clip_control) end)
+      if key2_hold then key2_hold = false end
     end
   elseif n == 3 and z == 1 and key1_hold then
     if page.loops.sel < 4 then
@@ -132,7 +140,7 @@ end
 function _loops.process_encoder(n,d)
   if not page.loops.alt_view and not page.loops.zoomed_mode then
     if n == 1 then
-      page.loops.sel = util.clamp(page.loops.sel+d,1,5)
+      page.loops.sel = util.clamp(page.loops.sel+d,1,6)
     elseif n == 2 then
       if page.loops.sel < 5 then
         local ctrls={"bank_controls","bank_controls","bank_controls","live_controls"}
@@ -140,6 +148,8 @@ function _loops.process_encoder(n,d)
         local current_region = tab.key(page.loops[ctrls[page.loops.sel]], page.loops[sel_ctrl[page.loops.sel]])
         current_region = util.clamp(current_region+d,1,#page.loops[ctrls[page.loops.sel]])
         page.loops[sel_ctrl[page.loops.sel]] = page.loops[ctrls[page.loops.sel]][current_region]
+      elseif page.loops.sel == 5 then
+        page.loops.selected_clip_control = util.clamp(page.loops.selected_clip_control+d,1,3)
       end
     elseif n == 3 then
       if page.loops.sel < 4 and not key1_hold then
@@ -282,14 +292,14 @@ function _loops.draw_menu()
     metronome(28,10,15,3)
   end
 
-  local header = {"a","b","c","L","#"}
+  local header = {"a","b","c","L","C","#"}
   for i = 1,#header do
     screen.level(page.loops.sel == i and 15 or 3)
-    screen.move(50+(i*15),10)
+    screen.move(35+(i*15),10)
     screen.text_right(header[i])
   end
   screen.level(page.loops.sel == page.loops.sel and 15 or 3)
-  screen.move(50+(page.loops.sel*15),13)
+  screen.move(35+(page.loops.sel*15),13)
   screen.text_right("_")
 
   if page.loops.layer == "global" then
@@ -587,6 +597,17 @@ function _loops.draw_menu()
       screen.move(128,64)
       screen.text_right("RND: "..params:get("random_rec_clock_prob_"..rec.focus).."%")
       
+    elseif page.loops.sel == 5 then
+      for i = 1,3 do
+        screen.level(page.loops.selected_clip_control == i and 15 or 3)
+        screen.move(0,20+(i*10))
+        local text_to_display = params:get("clip "..i.." sample") == "-"
+        and "press K3 to load"
+        or (string.gsub(params:get("clip "..i.." sample"),_path.audio,""):match("^.+/(.+)$")):match("(.+)%..+$")
+        -- this fails for non-nested items...
+        screen.text("CLIP "..i..": "..text_to_display)
+        -- screen.text()
+      end
     end
   end
 

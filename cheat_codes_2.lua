@@ -1258,7 +1258,7 @@ function init()
   end
 
   function draw_waveform()
-    if menu == 2 then
+    if menu == 2 and page.loops.sel ~= 5 then
       local rec_on = 0;
       for i = 1,3 do
         if rec[i].state == 1 then
@@ -2358,7 +2358,7 @@ function globally_clocked()
       if menu ~= 1 then screen_dirty = true end
     end
     -- TODO CONFIRM THIS SHOULD HAPPEN:
-    if menu == 2 then
+    if menu == 2 and page.loops.sel ~= 5 then
       screen_dirty = true
     end
     -- update_tempo()
