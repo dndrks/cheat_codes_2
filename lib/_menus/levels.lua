@@ -59,6 +59,9 @@ function _l.draw_header()
 end
 
 function _l.draw_alt_view()
+  screen.level(15)
+  screen.move(128,6)
+  screen.text_right("PER-PAD VALUES")
   local f = _l_.meta_pad[_l_.bank]
   screen.level(_l_.alt_view_sel == 1 and 15 or 3)
   screen.move(26,20)

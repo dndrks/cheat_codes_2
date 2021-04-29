@@ -58,7 +58,7 @@ function _f.draw_header()
   screen.text("filters")
   if _f_.alt_view then
     screen.move(128,6)
-    screen.text_right("LFO UTILITIES")
+    screen.text_right("PER-PAD VALUES")
   end
 end
 

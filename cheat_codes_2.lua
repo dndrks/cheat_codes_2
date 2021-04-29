@@ -3329,6 +3329,8 @@ function key(n,z)
     main_menu.process_key("pans",n,z)
   elseif menu == 5 then
     main_menu.process_key("filters",n,z)
+  elseif menu == 9 then
+    main_menu.process_key("arps",n,z)
   else
     if n == 3 and z == 1 then
       if menu == 1 then
@@ -3569,38 +3571,7 @@ function key(n,z)
         end
 
       elseif menu == 9 then
-        -- arp[page.arps.sel].hold = not arp[page.arps.sel].hold
-        local id = page.arps.sel
-        if not arp[id].hold then
-          if not arp[id].enabled then
-            arp[id].enabled = true
-          end
-          if #arp[id].notes > 0 then
-            arp[id].hold = true
-          else
-            arp[id].enabled = false
-          end
-        else
-          if #arp[id].notes > 0 then
-            if arp[id].playing == true then
-              arp[id].hold = not arp[id].hold
-              if not arp[id].hold then
-                arps.clear(id)
-              end
-              arp[id].enabled = false
-            -- else
-            --   arp[id].step = arp[id].start_point-1
-            --   arp[id].pause = false
-            --   arp[id].playing = true
-            end
-          end
-        end
-        grid_dirty = true
 
-
-        -- if not arp[page.arps.sel].hold then
-        --   arps.clear(page.arps.sel)
-        -- end
       elseif menu == 10 then
         if key1_hold then
           local rnd_bank = page.rnd_page
@@ -3737,8 +3708,8 @@ function key(n,z)
       elseif menu == 8 then
         key1_hold = true
       elseif menu == 9 then
-        key1_hold = true
-        page.arps.alt[page.arps.sel] = not page.arps.alt[page.arps.sel]
+        -- key1_hold = true
+        -- page.arps.alt[page.arps.sel] = not page.arps.alt[page.arps.sel]
       else
         key1_hold = true
         if menu == 2 and page.loops.sel < 4 and page.loops.frame == 2 and not key2_hold then

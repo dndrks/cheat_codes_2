@@ -58,7 +58,7 @@ function _p.draw_header()
   screen.text("pans")
   if _p_.alt_view then
     screen.move(128,6)
-    screen.text_right("LFO UTILITIES")
+    screen.text_right("PER-PAD VALUES")
   end
 end
 

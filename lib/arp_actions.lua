@@ -92,7 +92,8 @@ end
 
 function arp_actions.arpeggiate(target)
   while true do
-    clock.sync(bank[target][bank[target].id].arp_time)
+    -- clock.sync(bank[target][bank[target].id].arp_time)
+    clock.sync(arp[target].time)
     if transport.is_running then
       if #arp[target].notes > 0 then
         if arp[target].pause == false then
@@ -128,14 +129,11 @@ function arp_actions.forward(target)
 end
 
 function arp_actions.backward(target)
-    arp[target].step = arp[target].step - 1
-    if arp[target].step == 0 then
-        arp[target].step = arp[target].end_point
-    end
+    arp[target].step = util.wrap(arp[target].step - 1,arp[target].start_point,arp[target].end_point)
 end
 
 function arp_actions.random(target)	
-  arp[target].step = math.random(arp[target].end_point)	
+  arp[target].step = math.random(arp[target].start_point,arp[target].end_point)	
 end
 
 arp_direction = {}

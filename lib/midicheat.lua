@@ -776,21 +776,22 @@ function mc.midi_note_from_pad(b,p)
 end
 
 function mc.midi_note_from_pad_off(b,p)
-  -- clock.sleep(bank[b][p].arp_time-(bank[b][p].arp_time/100))
-  clock.sleep((bank[b][p].arp_time-(bank[b][p].arp_time/100))*clock.get_beat_sec())
+  -- clock.sleep((bank[b][p].arp_time-(bank[b][p].arp_time/100))*clock.get_beat_sec())
+  clock.sleep((arp[b].time-(arp[b].time/100))*clock.get_beat_sec())
   mc.all_midi_notes_off(b)
   midi_off[b] = nil
 end
 
 function mc.mx_note_from_pad_off(b,p)
-  -- clock.sleep(bank[b][p].arp_time-(bank[b][p].arp_time/50))
-  clock.sleep((bank[b][p].arp_time-(bank[b][p].arp_time/50))*clock.get_beat_sec())
+  -- clock.sleep((bank[b][p].arp_time-(bank[b][p].arp_time/50))*clock.get_beat_sec())
+  clock.sleep((arp[b].time-(arp[b].time/50))*clock.get_beat_sec())
   mc.this_mx_note_off(b,p)
   -- mx_off[b] = nil
 end
 
 function mc.jf_note_from_pad_off(b,p,channel,note)
-  clock.sleep((bank[b][p].arp_time-(bank[b][p].arp_time/10))*clock.get_beat_sec())
+  -- clock.sleep((bank[b][p].arp_time-(bank[b][p].arp_time/10))*clock.get_beat_sec())
+  clock.sleep((arp[b].time-(arp[b].time/10))*clock.get_beat_sec())
   -- mc.all_mx_notes_off(b)
   crow.ii.jf.play_voice(channel,note,0)
   active_jf_notes[b] = nil

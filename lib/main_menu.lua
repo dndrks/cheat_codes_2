@@ -111,7 +111,7 @@ function main_menu.draw()
         , " delays"
         , " timing"
         , " euclid"
-        , " arp"
+        , " arps"
         , " rnd"
         , " "
         }
@@ -712,7 +712,8 @@ function main_menu.process_key(target,n,z)
     ["pans"] = _p.process_key,
     ["levels"] = _l.process_key,
     ["filters"] = _f.process_key,
-    ["loops"] = _loops.process_key
+    ["loops"] = _loops.process_key,
+    ["arps"] = _arps.process_key
   }
   target_to_destination[target](n,z)
 end

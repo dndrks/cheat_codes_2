@@ -83,7 +83,7 @@ function grid_actions.init(x,y,z)
                       table.remove(arp[i].notes,j)
                     end
                   end
-                  arp[i].time = bank[i][bank[i].id].arp_time
+                  -- arp[i].time = bank[i][bank[i].id].arp_time
                   arps.momentary(i, bank[i].id, "on")
                   arp[i].down = arp[i].down + 1
                 else
@@ -801,7 +801,7 @@ function grid_actions.init(x,y,z)
                   table.remove(arp[id].notes,i)
                 end
               end
-              arp[id].time = bank[id][bank[id].id].arp_time
+              -- arp[id].time = bank[id][bank[id].id].arp_time
               arps.momentary(id, bank[id].id, "on")
               arp[id].down = arp[id].down + 1
             else
@@ -1021,7 +1021,7 @@ function grid_actions.init(x,y,z)
                     table.remove(arp[bank_64].notes,j)
                   end
                 end
-                arp[bank_64].time = b[b.id].arp_time
+                -- arp[bank_64].time = b[b.id].arp_time
                 arps.momentary(bank_64, b.id, "on")
                 arp[bank_64].down = arp[bank_64].down + 1
               else
