@@ -1581,13 +1581,15 @@ function grid_actions.arp_handler(i)
   if not arp[i].enabled then
     arp[i].enabled = true
   elseif not arp[i].hold then
-    if #arp[i].notes > 0 then
+    -- if #arp[i].notes > 0 then
+    if tab.count(arp[i].notes) > 0 then
       arp[i].hold = true
     else
       arp[i].enabled = false
     end
   else
-    if #arp[i].notes > 0 then
+    -- if #arp[i].notes > 0 then
+    if tab.count(arp[i].notes) > 0 then
       if arp[i].playing == true then
         arps.toggle("stop",i)
       else

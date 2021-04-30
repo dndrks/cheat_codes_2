@@ -27,13 +27,13 @@ function _arps.draw_menu()
     screen.move(75+(i*15),10)
     screen.text(header[i])
   end
+  screen.level(_arps_.sel == _arps_.sel and 15 or 3)
+  screen.move(75+(_arps_.sel*15),13)
+  screen.text("_")
   screen.level(_arps_.focus == "seq" and 8 or 0)
   local e_pos = _arps_.seq_position[_arps_.sel]
   screen.rect(2+(_arps.index_to_grid_pos(e_pos,8)[1]-1)*12,6+(10*_arps.index_to_grid_pos(e_pos,8)[2]),7,7)
   screen.fill()
-  screen.level(_arps_.sel == _arps_.sel and 15 or 3)
-  screen.move(75+(_arps_.sel*15),13)
-  screen.text("_")
   local min_max = {{1,32},{33,64},{65,96},{97,128}}
   local lvl = 5
   for i = min_max[_arps_.seq_page[_arps_.sel]][1], min_max[_arps_.seq_page[_arps_.sel]][2] do
@@ -63,53 +63,64 @@ function _arps.draw_menu()
     screen.move(5+(_arps.index_to_grid_pos(i,8)[1]-1)*12,12+(10*_arps.index_to_grid_pos(i,8)[2]))
     screen.text_center(arp[_arps_.sel].notes[i] ~= nil and arp[_arps_.sel].notes[i] or "-")
   end
-  screen.move(5,62)
+  screen.move(0,62)
   screen.level(3)
-  if math.ceil(arp[_arps_.sel].end_point/32) > 1 then
-    screen.text_center(_arps_.seq_page[_arps_.sel]..":"..math.ceil(arp[_arps_.sel].end_point/32))
-  end
+  screen.text("p. ".._arps_.seq_page[_arps_.sel])
+  if not key2_hold then
+    local deci_to_frac =
+    { ["0.125"] = "1/32"
+    , ["0.1667"] = "1/16t"
+    , ["0.25"] = "1/16"
+    , ["0.3333"] = "1/8t"
+    , ["0.5"] = "1/8"
+    , ["0.6667"] = "1/4t"
+    , ["1.0"] = "1/4"
+    , ["1.3333"] = "1/2t"
+    , ["2.0"] = "1/2"
+    , ["2.6667"] = "1t"
+    , ["4.0"] = "1"
+    }
+    screen.move(125,22)
+    screen.level(_arps_.focus == "params" and
+    (_arps_.param[_arps_.sel] == 1 and 15 or 3)
+    or 3)
+    local banks = {"a","b","c"}
+    local pad = tostring(banks[_arps_.sel]..bank[_arps_.sel].id)
+    -- screen.text_right((_arps_.alt[_arps_.sel] and (pad..": ") or "")..deci_to_frac[tostring(util.round(focus_arp.time, 0.0001))])
+    screen.text_right((_arps_.alt[_arps_.sel] and (pad..": ") or "")..deci_to_frac[tostring(util.round(arp[_arps_.sel].time, 0.0001))])
+    screen.move(125,32)
+    screen.level(_arps_.focus == "params" and
+    (_arps_.param[_arps_.sel] == 2 and 15 or 3)
+    or 3)
+    screen.text_right(focus_arp.mode)
+    screen.move(125,42)
+    screen.level(_arps_.focus == "params" and
+    (_arps_.param[_arps_.sel] == 3 and 15 or 3)
+    or 3)
+    screen.text_right("s: "..focus_arp.start_point)
+    screen.move(125,52)
+    screen.level(_arps_.focus == "params" and
+    (_arps_.param[_arps_.sel] == 4 and 15 or 3)
+    or 3)
+    screen.text_right("e: "..(focus_arp.end_point > 0 and focus_arp.end_point or "1"))
+    screen.move(125,62)
+    screen.level(_arps_.focus == "params" and
+    (_arps_.param[_arps_.sel] == 5 and 15 or 3)
+    or 3)
+    screen.text_right("retrig: "..(tostring(focus_arp.retrigger) == "true" and "y" or "n"))
 
-  local deci_to_frac =
-  { ["0.125"] = "1/32"
-  , ["0.1667"] = "1/16t"
-  , ["0.25"] = "1/16"
-  , ["0.3333"] = "1/8t"
-  , ["0.5"] = "1/8"
-  , ["0.6667"] = "1/4t"
-  , ["1.0"] = "1/4"
-  , ["1.3333"] = "1/2t"
-  , ["2.0"] = "1/2"
-  , ["2.6667"] = "1t"
-  , ["4.0"] = "1"
-  }
-  screen.move(125,22)
-  screen.level(_arps_.focus == "params" and
-  (_arps_.param[_arps_.sel] == 1 and 15 or 3)
-  or 3)
-  local banks = {"a","b","c"}
-  local pad = tostring(banks[_arps_.sel]..bank[_arps_.sel].id)
-  -- screen.text_right((_arps_.alt[_arps_.sel] and (pad..": ") or "")..deci_to_frac[tostring(util.round(focus_arp.time, 0.0001))])
-  screen.text_right((_arps_.alt[_arps_.sel] and (pad..": ") or "")..deci_to_frac[tostring(util.round(arp[_arps_.sel].time, 0.0001))])
-  screen.move(125,32)
-  screen.level(_arps_.focus == "params" and
-  (_arps_.param[_arps_.sel] == 2 and 15 or 3)
-  or 3)
-  screen.text_right(focus_arp.mode)
-  screen.move(125,42)
-  screen.level(_arps_.focus == "params" and
-  (_arps_.param[_arps_.sel] == 3 and 15 or 3)
-  or 3)
-  screen.text_right("s: "..focus_arp.start_point)
-  screen.move(125,52)
-  screen.level(_arps_.focus == "params" and
-  (_arps_.param[_arps_.sel] == 4 and 15 or 3)
-  or 3)
-  screen.text_right("e: "..(focus_arp.end_point > 0 and focus_arp.end_point or "1"))
-  screen.move(125,62)
-  screen.level(_arps_.focus == "params" and
-  (_arps_.param[_arps_.sel] == 5 and 15 or 3)
-  or 3)
-  screen.text_right("retrig: "..(tostring(focus_arp.retrigger) == "true" and "y" or "n"))
+  elseif key2_hold then
+    screen.move(100,22)
+    screen.level(15)
+    screen.text("K3:")
+    screen.font_size(15)
+    local letters = {{"P","L","A","Y"},{"S","T","O","P"},{"N","O","N","E"}}
+    for i = 1,4 do
+      screen.move(114,16+(i*10))
+      screen.text(tab.count(arp[_arps_.sel].notes) > 0 and (arp[_arps_.sel].playing and letters[2][i] or letters[1][i]) or letters[3][i])
+    end
+    screen.font_size(8)
+  end
 end
 
 function _arps.process_key(n,z)
@@ -131,8 +142,10 @@ function _arps.process_key(n,z)
       key2_hold = false
       key2_hold_and_modify = false
     end
-  elseif n == 3 and z == 1 and not key1_hold then
+  elseif n == 3 and z == 1 and not key1_hold and not key2_hold then
     _arps_.focus = _arps_.focus == "params" and "seq" or "params"
+  elseif n == 3 and z == 1 and key2_hold and not key1_hold then
+    arps.toggle(arp[_arps_.sel].playing and "stop" or "start",_arps_.sel)
     -- if page.arps.focus == "params" then
       -- local id = page.arps.sel
       -- if not arp[id].hold then
@@ -276,6 +289,15 @@ local snake_styles =
 function _arps.fill(style)
   for i = arp[_arps_.sel].start_point,arp[_arps_.sel].end_point do
     arp[_arps_.sel].notes[i] = snakes[style][util.wrap(i,1,16)]
+  end
+  if not arp[_arps_.sel].playing
+  and not arp[_arps_.sel].pause
+  and not arp[_arps_.sel].enabled
+  then
+    arp[_arps_.sel].enabled = true
+    arp[_arps_.sel].pause = true
+    arp[_arps_.sel].hold = true
+    grid_dirty = true
   end
   screen_dirty = true
 end

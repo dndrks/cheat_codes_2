@@ -34,6 +34,10 @@ function arp_actions.init(target)
     arp[target].time = 1/4
     arp[target].step = 1
     arp[target].notes = {}
+    arp[target].prob = {}
+    for i = 1,128 do
+      arp[target].prob[i] = 100
+    end
     arp[target].mode = "fwd"
     arp[target].start_point = 1
     arp[target].end_point = 1
@@ -95,7 +99,8 @@ function arp_actions.arpeggiate(target)
     -- clock.sync(bank[target][bank[target].id].arp_time)
     clock.sync(arp[target].time)
     if transport.is_running then
-      if #arp[target].notes > 0 then
+      -- if #arp[target].notes > 0 then
+      if tab.count(arp[target].notes) > 0 then
         if arp[target].pause == false then
           -- if arp[target].step == 1 then print("arp "..target, clock.get_beats()) end
           if menu ~= 1 then screen_dirty = true end
@@ -161,23 +166,33 @@ function arp_actions.pendulum(target)
     end
 end
 
+function arp_actions.check_prob(target,step)
+  if arp[target].prob[step] >= math.random(0,100) then
+    return true
+  else
+    return false
+  end
+end
+
 function arp_actions.cheat(target,step)
-    if arp[target].notes[step] ~= nil then
-        bank[target].id = arp[target].notes[step]
-        selected[target].x = (5*(target-1)+1)+(math.ceil(bank[target].id/4)-1)
-        if (bank[target].id % 4) ~= 0 then
-            selected[target].y = 9-(bank[target].id % 4)
-        else
-            selected[target].y = 5
+  if arp[target].notes[step] ~= nil then
+    if arp_actions.check_prob(target,step) then
+      bank[target].id = arp[target].notes[step]
+      selected[target].x = (5*(target-1)+1)+(math.ceil(bank[target].id/4)-1)
+      if (bank[target].id % 4) ~= 0 then
+        selected[target].y = 9-(bank[target].id % 4)
+      else
+        selected[target].y = 5
+      end
+      if arp[target].retrigger then
+        cheat(target,bank[target].id)
+      else
+        if arp[target].notes[step] ~= arp[target].notes[step-1] then
+          cheat(target,bank[target].id)
         end
-        if arp[target].retrigger then
-            cheat(target,bank[target].id)
-        else
-            if arp[target].notes[step] ~= arp[target].notes[step-1] then
-                cheat(target,bank[target].id)
-            end
-        end
+      end
     end
+  end
 end
 
 function arp_actions.clear(target)

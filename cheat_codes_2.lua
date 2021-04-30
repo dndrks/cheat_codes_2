@@ -758,6 +758,8 @@ key2_hold_counter.event = function()
   key2_hold = true
   if menu == 2 then
     _loops.key2_activate()
+  elseif menu == 9 then
+    screen_dirty = true
   elseif menu == "MIDI_config" then
     screen_dirty = true
   end
@@ -4671,7 +4673,8 @@ function test_save(i)
         pattern_saver[i].load_slot = pattern_saver[i].save_slot
         g:led(math.floor((i-1)*5)+1,9-pattern_saver[i].save_slot,15)
         -- g:refresh()
-      elseif #arp[i].notes > 0 then
+      -- elseif #arp[i].notes > 0 then
+      elseif tab.count(arp[i].notes > 0) then
         -- save_pattern(i,pattern_saver[i].save_slot+8*(i-1),"arp")
         redux_save_pattern(i,pattern_saver[i].save_slot+8*(i-1),"arp")
         pattern_saver[i].saved[pattern_saver[i].save_slot] = 1
@@ -4728,7 +4731,8 @@ function test_load(slot,destination)
     if grid_pat[destination].count > 0 then
       -- print("5091", destination)
       start_pattern(grid_pat[destination],"jumpstart")
-    elseif #arp[destination].notes > 0 then
+    -- elseif #arp[destination].notes > 0 then
+    elseif tab.count(arp[destination].notes) > 0 then
       local arp_start =
       {
         ["fwd"] = arp[destination].start_point - 1
