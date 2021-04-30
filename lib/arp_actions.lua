@@ -38,6 +38,7 @@ function arp_actions.init(target)
     for i = 1,128 do
       arp[target].prob[i] = 100
     end
+    arp[target].swing = 50
     arp[target].mode = "fwd"
     arp[target].start_point = 1
     arp[target].end_point = 1
@@ -103,18 +104,37 @@ function arp_actions.arpeggiate(target)
       if tab.count(arp[target].notes) > 0 then
         if arp[target].pause == false then
           -- if arp[target].step == 1 then print("arp "..target, clock.get_beats()) end
-          if menu ~= 1 then screen_dirty = true end
-          if arp[target].mode == "fwd" then
-            arp_actions.forward(target)
-          elseif arp[target].mode == "bkwd" then
-            arp_actions.backward(target)
-          elseif arp[target].mode == "pend" then
-            arp_actions.pendulum(target)
-          elseif arp[target].mode == "rnd" then
-            arp_actions.random(target)
+          if arp[target].swing > 50 and arp[target].step % 2 == 1 then
+            local base_time = (clock.get_beat_sec() * arp[target].time)
+            local swung_time =  base_time*util.linlin(50,100,0,1,arp[target].swing)
+            clock.run(function()
+              clock.sleep(swung_time)
+              if arp[target].mode == "fwd" then
+                arp_actions.forward(target)
+              elseif arp[target].mode == "bkwd" then
+                arp_actions.backward(target)
+              elseif arp[target].mode == "pend" then
+                arp_actions.pendulum(target)
+              elseif arp[target].mode == "rnd" then
+                arp_actions.random(target)
+              end
+              if menu ~= 1 then screen_dirty = true end
+              arp_actions.cheat(target,arp[target].step)
+            end)
+          else
+            if arp[target].mode == "fwd" then
+              arp_actions.forward(target)
+            elseif arp[target].mode == "bkwd" then
+              arp_actions.backward(target)
+            elseif arp[target].mode == "pend" then
+              arp_actions.pendulum(target)
+            elseif arp[target].mode == "rnd" then
+              arp_actions.random(target)
+            end
+            if menu ~= 1 then screen_dirty = true end
+            arp_actions.cheat(target,arp[target].step)
           end
           arp[target].playing = true
-          arp_actions.cheat(target,arp[target].step)
           grid_dirty = true
         else
           arp[target].playing = false
