@@ -1601,14 +1601,20 @@ function grid_actions.arp_handler(i)
 end
 
 function grid_actions.kill_arp(i)
-  page.arps.sel = i
-  arp[i].hold = false
-  if not arp[i].hold then
+  if params:string("arp_"..i.."_hold_style") ~= "sequencer" then
+    page.arps.sel = i
+    arp[i].hold = false
+    if not arp[i].hold then
+      arps.clear(i)
+    end
+    arp[i].down = 0
+    arp[i].enabled = false
+    screen_dirty = true
+  elseif params:string("arp_"..i.."_hold_style") == "sequencer" then
+    page.arps.sel = i
     arps.clear(i)
+    screen_dirty = true
   end
-  arp[i].down = 0
-  arp[i].enabled = false
-  screen_dirty = true
 end
 
 function grid_actions.toggle_pad_loop(i)

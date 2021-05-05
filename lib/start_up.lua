@@ -309,7 +309,7 @@ function start_up.init()
 
   params:add_separator("arps (grid only)")
   for i = 1,3 do
-    params:add_option("arp_"..i.."_hold_style", "arp "..i.." hold style", {"last pressed","additive"},1)
+    params:add_option("arp_"..i.."_hold_style", "arp "..i.." hold style", {"last pressed","additive","sequencer"},1)
   end
 
   params:add_trigger("arp_panic","arp reset (K3)")

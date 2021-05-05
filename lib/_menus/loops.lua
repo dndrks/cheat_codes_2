@@ -19,6 +19,7 @@ function _loops.init()
   page.loops.meta_pad = {1,1,1}
   page.loops.zoomed_mode = false
   page.loops.frame = 1
+  page.loops.meta_control = false
   page.loops.meta_sel = 1
   _loops_ = page.loops
 end
@@ -100,9 +101,12 @@ function _loops.process_key(n,z)
       _norns.key(1,0)
       fileselect.enter(_path.audio,function(n) _ca.sample_callback(n,page.loops.selected_clip_control) end)
       if key2_hold then key2_hold = false end
+    elseif page.loops.sel == 6 then
+      page.loops.meta_control = not page.loops.meta_control
     end
   elseif n == 3 and z == 1 and key1_hold then
-    if page.loops.sel < 4 then
+    local sel = page.loops.selected_bank_control
+    if page.loops.sel < 4 and tab.key(page.loops.bank_controls,sel) < 4 then
       if arc_pat[page.loops.sel][1].rec == 0 then
         if #arc_pat[page.loops.sel][1].event == 0 then
           arc_pat[page.loops.sel][1]:rec_start()
@@ -116,6 +120,12 @@ function _loops.process_key(n,z)
       else
         arc_pat[page.loops.sel][1]:rec_stop()
         arc_pat[page.loops.sel][1]:start()
+      end
+    elseif page.loops.sel < 4 and tab.key(page.loops.bank_controls,sel) > 3 then
+      if sel == "rate" then
+
+      elseif sel == "auto_chop" then
+        sync_clock_to_loop(pad,"audio")
       end
     end
   end
@@ -139,8 +149,56 @@ function _loops.zoomed_draw()
   end
 end
 
+function _loops.inherit_rate()
+  local pad = bank[page.loops.sel][page.loops.meta_pad[page.loops.sel]]
+  for i = 1,16 do
+    if i ~= pad.pad_id then
+      bank[page.loops.sel][i].rate = pad.rate
+    end
+    if bank[page.loops.sel][i].pause == false and bank[page.loops.sel].id == i then
+      softcut.rate(page.loops.sel+1, bank[page.loops.sel][i].rate*bank[page.loops.sel][i].offset)
+    end
+  end
+end
+
+function _loops.inherit_offset()
+  local pad = bank[page.loops.sel][page.loops.meta_pad[page.loops.sel]]
+  for i = 1,16 do
+    if i ~= pad.pad_id then
+      bank[page.loops.sel][i].offset = pad.offset
+    end
+    if bank[page.loops.sel].id == i then
+      softcut.rate(page.loops.sel+1, bank[page.loops.sel][i].rate*bank[page.loops.sel][i].offset)
+    end
+  end
+end
+
+function _loops.inherit_slew()
+  local pad = bank[page.loops.sel][page.loops.meta_pad[page.loops.sel]]
+  for i = 1,16 do
+    if i ~= pad.pad_id then
+      bank[page.loops.sel][i].rate_slew = pad.rate_slew
+    end
+    if bank[page.loops.sel].id == i then
+      softcut.rate_slew_time(page.loops.sel+1,bank[page.loops.sel][i].rate_slew)
+    end
+  end
+end
+
+function _loops.inherit_loop()
+  local pad = bank[page.loops.sel][page.loops.meta_pad[page.loops.sel]]
+  for i = 1,16 do
+    if i ~= pad.pad_id then
+      bank[page.loops.sel][i].loop = pad.loop
+    end
+    if bank[page.loops.sel].id == i then
+      softcut.loop(page.loops.sel+1,bank[page.loops.sel][i].loop == true and 1 or 0)
+    end
+  end
+end
+
 function _loops.process_encoder(n,d)
-  if not page.loops.alt_view and not page.loops.zoomed_mode then
+  if not page.loops.meta_control and not page.loops.zoomed_mode then
     if n == 1 then
       page.loops.sel = util.clamp(page.loops.sel+d,1,6)
     elseif n == 2 then
@@ -154,14 +212,14 @@ function _loops.process_encoder(n,d)
         page.loops.selected_clip_control = util.clamp(page.loops.selected_clip_control+d,1,3)
       end
     elseif n == 3 then
-      if page.loops.sel < 4 and not key1_hold then
+      if page.loops.sel < 4 then
         local pad = bank[page.loops.sel][page.loops.meta_pad[page.loops.sel]]
         local resolution = loop_enc_resolution[page.loops.sel]
-        if page.loops.selected_bank_control == "cheat_pad" then
+        if page.loops.selected_bank_control == "cheat_pad" and not key1_hold then
           _loops.change_pad(page.loops.sel,d)
-        elseif page.loops.selected_bank_control == "start_point" then
+        elseif page.loops.selected_bank_control == "start_point" and not key1_hold then
           _loops.move_loop_points(pad,d,resolution,"move_start")
-        elseif page.loops.selected_bank_control == "end_point" then
+        elseif page.loops.selected_bank_control == "end_point" and not key1_hold then
           _loops.move_loop_points(pad,d,resolution,"move_end")
         elseif page.loops.selected_bank_control == "rate" then
           local rates ={-4,-2,-1,-0.5,-0.25,-0.125,0,0.125,0.25,0.5,1,2,4}
@@ -172,6 +230,9 @@ function _loops.process_encoder(n,d)
             pad.rate = 1
           end
           pad.rate = rates[util.clamp(tab.key(rates,pad.rate)+d,1,#rates)]
+          if key1_hold then
+            _loops.inherit_rate()
+          end
           if pad.pause == false and bank[page.loops.sel].id == pad.pad_id then
             softcut.rate(page.loops.sel+1, pad.rate*pad.offset)
           end
@@ -182,6 +243,9 @@ function _loops.process_encoder(n,d)
             current_offset = 0
           end
           pad.offset = math.pow(0.5, -current_offset / 12)
+          if key1_hold then
+            _loops.inherit_offset()
+          end
           if bank[page.loops.sel].id == pad.pad_id then
             softcut.rate(page.loops.sel+1, pad.rate*pad.offset)
           end
@@ -190,50 +254,57 @@ function _loops.process_encoder(n,d)
           if bank[page.loops.sel].id == pad.pad_id then
             softcut.rate_slew_time(page.loops.sel+1,pad.rate_slew)
           end
+          if key1_hold then
+            _loops.inherit_slew()
+          end
         elseif page.loops.selected_bank_control == "buffer" then
-          if pad.mode == 1 and pad.clip + d > 3 then
-            pad.mode = 2
-            _ca.change_mode(pad,1)
-            -- pad.clip = 1
-            _ca.jump_clip(page.loops.sel,pad.pad_id,1)
-          elseif pad.mode == 2 and pad.clip + d < 1 then
-            pad.mode = 1
-            _ca.change_mode(pad,2)
-            -- pad.clip = 3
-            _ca.jump_clip(page.loops.sel,pad.pad_id,3)
-          else
-            local tryit = util.clamp(pad.clip+d,1,3)
-            _ca.jump_clip(page.loops.sel,pad.pad_id,tryit)
-          end
-          for i = 1,16 do
-            if i ~= pad.pad_id then
-              if pad.mode ~= bank[page.loops.sel][i].mode then
-                local old_mode = bank[page.loops.sel][i].mode
-                bank[page.loops.sel][i].mode = bank[page.loops.sel][pad.pad_id].mode
-                _ca.change_mode(bank[page.loops.sel][i],old_mode)
+          if not key1_hold then
+            if pad.mode == 1 and pad.clip + d > 3 then
+              pad.mode = 2
+              _ca.change_mode(pad,1)
+              -- pad.clip = 1
+              _ca.jump_clip(page.loops.sel,pad.pad_id,1)
+            elseif pad.mode == 2 and pad.clip + d < 1 then
+              pad.mode = 1
+              _ca.change_mode(pad,2)
+              -- pad.clip = 3
+              _ca.jump_clip(page.loops.sel,pad.pad_id,3)
+            else
+              local tryit = util.clamp(pad.clip+d,1,3)
+              _ca.jump_clip(page.loops.sel,pad.pad_id,tryit)
+            end
+            for i = 1,16 do
+              if i ~= pad.pad_id then
+                if pad.mode ~= bank[page.loops.sel][i].mode then
+                  local old_mode = bank[page.loops.sel][i].mode
+                  bank[page.loops.sel][i].mode = bank[page.loops.sel][pad.pad_id].mode
+                  _ca.change_mode(bank[page.loops.sel][i],old_mode)
+                end
+                _ca.jump_clip(page.loops.sel,i,bank[page.loops.sel][pad.pad_id].clip)
               end
-              _ca.jump_clip(page.loops.sel,i,bank[page.loops.sel][pad.pad_id].clip)
             end
-          end
-          if bank[page.loops.sel].id == pad.pad_id then
-            if pad.loop then
-              cheat(page.loops.sel,pad.pad_id)
+            if bank[page.loops.sel].id == pad.pad_id then
+              if pad.loop then
+                cheat(page.loops.sel,pad.pad_id)
+              end
             end
+          elseif key1_hold then
+            _ca.SOS_toggle(page.loops.sel)
           end
           grid_dirty = true
         elseif page.loops.selected_bank_control == "loop_state" then
           if d > 0 and not pad.loop then
             pad.loop = true
-            if bank[page.loops.sel].id == pad.pad_id then
-              softcut.loop(page.loops.sel+1,1)
-            end
           elseif d < 0 and pad.loop then
             pad.loop = false
-            if bank[page.loops.sel].id == pad.pad_id then
-              softcut.loop(page.loops.sel+1,0)
-            end
           end
           grid_dirty = true
+          if key1_hold then
+            _loops.inherit_loop()
+          end
+          if bank[page.loops.sel].id == pad.pad_id then
+            softcut.loop(page.loops.sel+1,pad.loop == true and 1 or 0)
+          end
         end
       elseif page.loops.sel < 4 and key1_hold then
         arc_pat[page.loops.sel][1].time_factor = util.clamp(arc_pat[page.loops.sel][1].time_factor + d/10,0.1,10)
@@ -251,7 +322,7 @@ function _loops.process_encoder(n,d)
         end
       end
     end
-  elseif not page.loops.alt_view and page.loops.zoomed_mode then
+  elseif not page.loops.meta_control and page.loops.zoomed_mode then
     local resolution = loop_enc_resolution[page.loops.sel] * 10
     local pad = bank[page.loops.sel][page.loops.meta_pad[page.loops.sel]]
     if n == 1 then
@@ -260,6 +331,25 @@ function _loops.process_encoder(n,d)
       _loops.move_loop_points(pad,d,resolution,"move_start")
     elseif n == 3 then
       _loops.move_loop_points(pad,d,resolution,"move_end")
+    end
+  elseif page.loops.meta_control then
+    if n == 1 then
+      if key1_hold and not key2_hold then
+        if page.loops.meta_sel < 4 then
+          encoder_actions.change_pad(page.loops.meta_sel,d)
+        elseif page.loops.meta_sel == 4 then
+          rec.focus = util.clamp(rec.focus + d,1,3)
+        end
+        grid_dirty = true
+      elseif not key1_hold and not key2_hold then
+        page.loops.meta_sel = util.clamp(page.loops.meta_sel + d,1,4)
+      elseif key2_hold and not key1_hold then
+        meta_adjust_loops(d,"move_play_window")
+      end
+    elseif n == 2 then
+      meta_adjust_loops(d,"move_start")
+    elseif n == 3 then
+      meta_adjust_loops(d,"move_end")
     end
   end
 end
@@ -305,130 +395,136 @@ function _loops.draw_menu()
   screen.text_right("_")
 
   if page.loops.layer == "global" then
-    if page.loops.sel < 4 and not key1_hold then
+    if page.loops.sel < 4 then
 
       local sel = page.loops.selected_bank_control
 
       local pad = bank[page.loops.sel][page.loops.meta_pad[page.loops.sel]]
-      
-      local loops_to_screen_options = {"a", "b", "c"}
-      screen.move(0,31)
-      screen.level(sel == "cheat_pad" and 15 or 3)
-      screen.text(loops_to_screen_options[page.loops.sel]..""..page.loops.meta_pad[page.loops.sel])
 
-      local modes =
-        {
-          rec[pad.clip]
-        , clip[pad.clip]
-        }
-      
-      local start_point =
-        {
-          live[pad.clip].min
-        , clip[pad.clip].min
-        }
+      if (key1_hold and tab.key(page.loops.bank_controls,sel) < 4) or not key1_hold then
 
-      local end_point =
-        {
-          live[pad.clip].max
-        , clip[pad.clip].max
-        }
+        local loops_to_screen_options = {"a", "b", "c"}
+        screen.move(0,31)
+        screen.level(sel == "cheat_pad" and 15 or 3)
+        screen.text(loops_to_screen_options[page.loops.sel]..""..page.loops.meta_pad[page.loops.sel])
+        screen.move(0,41)
+        screen.level(3)
+        screen.text(":"..bank[page.loops.sel].id)
 
-      local waves = modes[pad.mode].waveform_samples
-      
-      local x_pos;
+        local modes =
+          {
+            rec[pad.clip]
+          , clip[pad.clip]
+          }
+        
+        local start_point =
+          {
+            live[pad.clip].min
+          , clip[pad.clip].min
+          }
 
-      local min = page.loops.zoomed_mode and pad.start_point or start_point[pad.mode]
-      local max = page.loops.zoomed_mode and pad.end_point or end_point[pad.mode]
-      local s_p = util.round(pad.start_point,0.01)
-      local e_p = math.modf(pad.end_point*100)/100
-      local sp_to_screen = util.linlin(min,max,16,125,s_p)
-      local ep_to_screen = util.linlin(min,max,16,125,e_p)
+        local end_point =
+          {
+            live[pad.clip].max
+          , clip[pad.clip].max
+          }
 
-      if #waves > 0  and math.max(table.unpack(waves)) > 0 then
-        x_pos = 0
-        screen.level(4)
-      
-        for i,s in ipairs(waves) do
-          local height = util.round(math.abs(s) * bank_waveform_scale)
-          screen.move(util.linlin(0,128,17,125,x_pos), 28 - height)
-          screen.line_rel(0, 2 * height)
-          x_pos = x_pos + 1
-        end
+        local waves = modes[pad.mode].waveform_samples
+        
+        local x_pos;
 
-        screen.stroke()
+        local min = page.loops.zoomed_mode and pad.start_point or start_point[pad.mode]
+        local max = page.loops.zoomed_mode and pad.end_point or end_point[pad.mode]
+        local s_p = util.round(pad.start_point,0.01)
+        local e_p = math.modf(pad.end_point*100)/100
+        local sp_to_screen = util.linlin(min,max,16,125,s_p)
+        local ep_to_screen = util.linlin(min,max,16,125,e_p)
 
-        x_pos = 0
-
-        screen.level(1)
-        for i,s in ipairs(waves) do
-          if util.linlin(0,128,17,125,x_pos) < sp_to_screen or util.linlin(0,128,17,125,x_pos) > ep_to_screen then
+        if #waves > 0  and math.max(table.unpack(waves)) > 0 then
+          x_pos = 0
+          screen.level(4)
+        
+          for i,s in ipairs(waves) do
             local height = util.round(math.abs(s) * bank_waveform_scale)
             screen.move(util.linlin(0,128,17,125,x_pos), 28 - height)
             screen.line_rel(0, 2 * height)
+            x_pos = x_pos + 1
           end
-          x_pos = x_pos + 1
-        end
-        
-        screen.stroke()
-        
-      end
 
-      if (bank[page.loops.sel].focus_hold == false or bank[page.loops.sel].id == bank[page.loops.sel].focus_pad)
-        and not playhead_at_endpoint[page.loops.sel]
-        then
-        local pad_min = page.loops.zoomed_mode and pad.start_point or start_point[pad.mode]
-        local pad_max = page.loops.zoomed_mode and pad.end_point or end_point[pad.mode]
-        local current_to_screen = util.linlin(pad_min,pad_max,16,125,poll_position_new[page.loops.sel+1])
-        if current_to_screen > sp_to_screen and current_to_screen < ep_to_screen then
-          screen.level(5)
-        else
-          screen.level(0)
-        end
-        screen.move(current_to_screen,19)
-        screen.line_rel(0,19)
-        screen.stroke()
-      end
+          screen.stroke()
 
-      screen.level((sel == "start_point" or sel == "window" or page.loops.zoomed_mode) and (#waves > 0 and 3 or 5) or 2)
-      screen.move(sp_to_screen,17)
-      screen.line_rel(0,23)
-      screen.stroke()
-      if sel == "start_point" or sel == "window" or page.loops.zoomed_mode then
-        screen.level(15)
-        screen.pixel(sp_to_screen,16)
-        screen.pixel(sp_to_screen+1,15)
-        screen.pixel(sp_to_screen+2,14)
-        screen.pixel(sp_to_screen,40)
-        screen.pixel(sp_to_screen+1,41)
-        screen.pixel(sp_to_screen+2,42)
-        screen.fill()
-      end
-      screen.level((sel == "end_point" or sel == "window" or page.loops.zoomed_mode)  and (#waves > 0 and 3 or 5) or 2)
-      screen.move(ep_to_screen,17)
-      screen.line_rel(0,23)
-      screen.stroke()
-      if sel == "end_point" or sel == "window" or page.loops.zoomed_mode then
-        screen.level(15)
-        screen.pixel(ep_to_screen-1,16)
-        screen.pixel(ep_to_screen-2,15)
-        screen.pixel(ep_to_screen-3,14)
-        screen.pixel(ep_to_screen-1,40)
-        screen.pixel(ep_to_screen-2,41)
-        screen.pixel(ep_to_screen-3,42)
-        screen.fill()
+          x_pos = 0
+
+          screen.level(1)
+          for i,s in ipairs(waves) do
+            if util.linlin(0,128,17,125,x_pos) < sp_to_screen or util.linlin(0,128,17,125,x_pos) > ep_to_screen then
+              local height = util.round(math.abs(s) * bank_waveform_scale)
+              screen.move(util.linlin(0,128,17,125,x_pos), 28 - height)
+              screen.line_rel(0, 2 * height)
+            end
+            x_pos = x_pos + 1
+          end
+          
+          screen.stroke()
+          
+        end
+
+        if (bank[page.loops.sel].focus_hold == false or bank[page.loops.sel].id == bank[page.loops.sel].focus_pad)
+          and not playhead_at_endpoint[page.loops.sel]
+          then
+          local pad_min = page.loops.zoomed_mode and pad.start_point or start_point[pad.mode]
+          local pad_max = page.loops.zoomed_mode and pad.end_point or end_point[pad.mode]
+          local current_to_screen = util.linlin(pad_min,pad_max,16,125,poll_position_new[page.loops.sel+1])
+          if current_to_screen > sp_to_screen and current_to_screen < ep_to_screen then
+            screen.level(5)
+          else
+            screen.level(0)
+          end
+          screen.move(current_to_screen,19)
+          screen.line_rel(0,19)
+          screen.stroke()
+        end
+
+        screen.level((sel == "start_point" or sel == "window" or page.loops.zoomed_mode) and (#waves > 0 and 3 or 5) or 2)
+        screen.move(sp_to_screen,17)
+        screen.line_rel(0,23)
+        screen.stroke()
+        if sel == "start_point" or sel == "window" or page.loops.zoomed_mode then
+          screen.level(15)
+          screen.pixel(sp_to_screen,16)
+          screen.pixel(sp_to_screen+1,15)
+          screen.pixel(sp_to_screen+2,14)
+          screen.pixel(sp_to_screen,40)
+          screen.pixel(sp_to_screen+1,41)
+          screen.pixel(sp_to_screen+2,42)
+          screen.fill()
+        end
+        screen.level((sel == "end_point" or sel == "window" or page.loops.zoomed_mode)  and (#waves > 0 and 3 or 5) or 2)
+        screen.move(ep_to_screen,17)
+        screen.line_rel(0,23)
+        screen.stroke()
+        if sel == "end_point" or sel == "window" or page.loops.zoomed_mode then
+          screen.level(15)
+          screen.pixel(ep_to_screen-1,16)
+          screen.pixel(ep_to_screen-2,15)
+          screen.pixel(ep_to_screen-3,14)
+          screen.pixel(ep_to_screen-1,40)
+          screen.pixel(ep_to_screen-2,41)
+          screen.pixel(ep_to_screen-3,42)
+          screen.fill()
+        end
       end
       
       screen.level(15)
+      screen.move(0,46)
+      screen.line(128,46)
+      screen.stroke()
+
       if page.loops.zoomed_mode then
         screen.move(64,54)
-        screen.text_center("K3: toggle looping, all pads")
-      else
-        screen.level(15)
-        screen.move(0,46)
-        screen.line(128,46)
-        screen.stroke()
+        -- screen.text_center("K3: toggle looping, all pads")
         --new//
+      elseif not key1_hold or (key1_hold and tab.key(page.loops.bank_controls,sel) > 3) then
         screen.level(sel == "rate" and 15 or 3)
         screen.move(0,54)
         screen.text(string.format("%.4g",pad.rate).."x")
@@ -447,31 +543,50 @@ function _loops.draw_menu()
         screen.level(sel == "auto_chop" and 15 or 3)
         screen.move(128,64)
         screen.text_right("CHOP")
-        --//new
-      end
-    elseif page.loops.sel < 4 and key1_hold then
-      local textline_1;
-      local textline_2;
-      local textline_3;
-      if arc_pat[page.loops.sel][1].rec == 0 then
-        if #arc_pat[page.loops.sel][1].event == 0 then
-          textline_1 = "K3: RECORD LOOP MOVEMENT"
-        elseif #arc_pat[page.loops.sel][1].event > 0 then
-          textline_1 = "K3: "..(arc_pat[page.loops.sel][1].play == 1 and "STOP" or "START").." LOOP MOVEMENT"
-          textline_2 = "K2: ERASE LOOP MOVEMENT"
-          textline_3 = "E3: PLAYBACK SPEED "..string.format("%.1f",arc_pat[page.loops.sel][1].time_factor).."x"
+        if key1_hold and tab.key(page.loops.bank_controls,sel) > 3 then
+          screen.level(15)
+          screen.move(64,25)
+          screen.text_center((sel ~= "buffer" and sel ~= "auto_chop") and "K3/E3:" or "K3:")
+          local texts =
+          {
+            ["rate"] = "set all pads to "..string.format("%.4g",pad.rate).."x"
+          , ["semitone"] = "offset all pads to "..(string.format("%.2f",((math.log(pad.offset)/math.log(0.5))*-12))).." st"
+          , ["glide"] = "set all pitch slews to "..string.format("%.1f",pad.rate_slew).."s"
+          , ["buffer"] = (params:get("SOS_enabled_"..page.loops.sel) == 1 and "turn SOS off" or "turn SOS on")
+          , ["loop_state"] = "set all pad loops to "..(pad.loop == false and "1-SHOT" or "∞")
+          , ["auto_chop"] = "set bpm from pad "..pad.pad_id
+          }
+          screen.level(15)
+          screen.move(64,35)
+          if texts[sel] ~= nil then
+            screen.text_center(texts[sel])
+          end
         end
-      else
-        textline_1 = "RECORDING"
-        textline_2 = "K3: STOP RECORDING"
+        --//new
+      elseif key1_hold and tab.key(page.loops.bank_controls,sel) < 4 then
+        local textline_1;
+        local textline_2;
+        local textline_3;
+        if arc_pat[page.loops.sel][1].rec == 0 then
+          if #arc_pat[page.loops.sel][1].event == 0 then
+            textline_1 = "K3: RECORD LOOP MOVEMENT"
+          elseif #arc_pat[page.loops.sel][1].event > 0 then
+            textline_1 = "K3: "..(arc_pat[page.loops.sel][1].play == 1 and "STOP" or "START").." LOOP MOVEMENT"
+            textline_2 = "K2: ERASE MOVEMENT"
+            textline_3 = "E3: "..string.format("%.1f",arc_pat[page.loops.sel][1].time_factor).."x"
+          end
+        else
+          textline_1 = "K3: STOP RECORDING"
+          -- textline_2 = "K3: STOP RECORDING"
+        end
+        screen.level(15)
+        screen.move(64,54)
+        screen.text_center(textline_1 ~= nil and textline_1 or "")
+        screen.move(0,64)
+        screen.text(textline_2 ~= nil and textline_2 or "")
+        screen.move(128,64)
+        screen.text_right(textline_3 ~= nil and textline_3 or "")
       end
-      screen.level(15)
-      screen.move(64,30)
-      screen.text_center(textline_1 ~= nil and textline_1 or "")
-      screen.move(64,40)
-      screen.text_center(textline_2 ~= nil and textline_2 or "")
-      screen.move(64,50)
-      screen.text_center(textline_3 ~= nil and textline_3 or "")
         
     elseif page.loops.sel == 4 then
       local sel = page.loops.selected_live_control
@@ -616,9 +731,9 @@ function _loops.draw_menu()
         if i < 4 then
           if bank[i].focus_hold then
             id = bank[i].focus_pad
-          elseif page.loops.frame == 1 then
+          elseif not page.loops.meta_control then
             id = bank[i].id
-          elseif page.loops.frame == 2 then
+          elseif page.loops.meta_control then
             if grid_pat[i].play == 0 and midi_pat[i].play == 0 and not arp[i].playing and rytm.track[i].k == 0 then
               id = bank[i].id
             else
@@ -634,7 +749,7 @@ function _loops.draw_menu()
           local display_end = bank[i][id].mode == 1 and (bank[i][id].end_point == 8.99 and 9 or bank[i][id].end_point) or bank[i][id].end_point
 
 
-          screen.level(page.loops.frame == 2 and (page.loops.meta_sel == i and 15 or 3) or 3)
+          screen.level(page.loops.meta_control and (page.loops.meta_sel == i and 15 or 3) or 3)
           screen.move(15,8+(i*14))
           screen.line(115,8+(i*14))
           screen.close()
@@ -666,7 +781,7 @@ function _loops.draw_menu()
           local e_p = math.modf(rec[rec.focus].end_point*100)/100
           local sp_to_screen = util.linlin(min,max,15,115,s_p)
           local ep_to_screen = util.linlin(min,max,15,115,e_p)
-          screen.level(page.loops.frame == 2 and (page.loops.meta_sel == i and 15 or 3) or 3)
+          screen.level(page.loops.meta_control and (page.loops.meta_sel == i and 15 or 3) or 3)
           screen.move(sp_to_screen,64)
           screen.text("|")
           screen.move(ep_to_screen,64)
@@ -675,7 +790,7 @@ function _loops.draw_menu()
 
           if poll_position_new[1] >= rec[rec.focus].start_point and poll_position_new[1] <= rec[rec.focus].end_point then
             local current_to_screen = util.linlin(min,max,15,115,poll_position_new[1])
-            screen.level(page.loops.frame == 2 and (page.loops.meta_sel == i and 15 or 3) or 3)
+            screen.level(page.loops.meta_control and (page.loops.meta_sel == i and 15 or 3) or 3)
             screen.move(current_to_screen,64)
             screen.text(rec[rec.focus].state == 1 and ">" or "||")
             screen.stroke()
@@ -683,12 +798,12 @@ function _loops.draw_menu()
         end
 
         screen.move(0,8+(i*14))
-        screen.level(page.loops.frame == 2 and (page.loops.meta_sel == i and 15 or 3) or 3)
+        screen.level(page.loops.meta_control and (page.loops.meta_sel == i and 15 or 3) or 3)
         local loops_to_screen_options = {"a", "b", "c", "L"}
         screen.text(loops_to_screen_options[i]..""..id)
 
         if i < 4 then
-          if (bank[i].focus_hold) or (page.loops.frame == 2 and key1_hold and page.loops.meta_sel == i and (grid_pat[i].play == 1 or midi_pat[i].play == 1 or arp[i].playing or rytm.track[i].k ~= 0)) then
+          if (bank[i].focus_hold) or (page.loops.meta_control and key1_hold and page.loops.meta_sel == i and (grid_pat[i].play == 1 or midi_pat[i].play == 1 or arp[i].playing or rytm.track[i].k ~= 0)) then
             -- draw lock
             screen.level(page.loops.meta_sel == i and 15 or 3)
             for j = 120,125 do

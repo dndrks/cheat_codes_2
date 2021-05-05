@@ -5,9 +5,9 @@ ea.sc = {}
 
 local pad; -- TODO, does this fuck things up?? it was global...
 
-function adjust_loops(d,func)
+function meta_adjust_loops(d,func)
 
-  if page.loops.frame == 2 then
+  if page.loops.meta_control then
     if page.loops.meta_sel ~= 4 then
       local i = page.loops.meta_sel
       local resolution = key1_hold and 100 or 10
@@ -31,7 +31,7 @@ function adjust_loops(d,func)
 
 end
 
-local function returns_target(i)
+function returns_target(i)
   if bank[i].focus_hold then
     return bank[i].focus_pad
   elseif page.loops.frame == 1 then

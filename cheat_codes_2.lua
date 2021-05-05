@@ -158,7 +158,7 @@ function on_render(ch, start, i, s)
 end
 
 function update_waveform(buffer,winstart,winend,samples)
-  softcut.render_buffer(buffer, winstart, winend - winstart, 128)
+  softcut.render_buffer(buffer, winstart+variable_fade_time, (winend - winstart)-variable_fade_time, 128)
 end
 
 --/ waveform stuff
@@ -2642,6 +2642,7 @@ function step_sequence(i)
           if grid_pat[i].rec == 0 and step_seq[i][current].assigned_to ~= 0 then
             pattern_saver[i].load_slot = step_seq[i][current].assigned_to
             test_load(step_seq[i][current].assigned_to+((i-1)*8),i)
+            -- print(clock.get_beats().." <~~~ from pattern player")
             grid_pat[i].loop = step_seq[i][current].loop_pattern
           end
         end
@@ -2943,7 +2944,7 @@ function cheat(b,i)
       softcut.position(b+1,pad.start_point+variable_fade_time)
   elseif pad.rate < 0 then
       -- softcut.position(b+1,pad.end_point-variable_fade_time-0.05)
-      softcut.position(b+1,pad.end_point-variable_fade_time)
+      softcut.position(b+1,pad.end_point-variable_fade_time-0.01)
   end
   if slew_counter[b] ~= nil then
     slew_counter[b].next_tilt = pad.tilt
@@ -4532,7 +4533,14 @@ function named_loadstate(path)
         step_seq[i] = tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/step-seq/"..i..".data")
       end
       if tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/arps/"..i..".data") ~= nil then
+        local pre_open = deep_copy(arp[i])
         arp[i] = tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/arps/"..i..".data")
+        for k,v in pairs(pre_open) do
+          if arp[i][k] == nil then
+            -- print(v)
+            arp[i][k] = deep_copy(v)
+          end
+        end
       end
       for j = 1,#rnd[i] do
         rnd[i][j].lattice:destroy()
@@ -4674,7 +4682,7 @@ function test_save(i)
         g:led(math.floor((i-1)*5)+1,9-pattern_saver[i].save_slot,15)
         -- g:refresh()
       -- elseif #arp[i].notes > 0 then
-      elseif tab.count(arp[i].notes > 0) then
+      elseif tab.count(arp[i].notes) > 0 then
         -- save_pattern(i,pattern_saver[i].save_slot+8*(i-1),"arp")
         redux_save_pattern(i,pattern_saver[i].save_slot+8*(i-1),"arp")
         pattern_saver[i].saved[pattern_saver[i].save_slot] = 1
@@ -4746,7 +4754,7 @@ function test_load(slot,destination)
       if arp[destination].mode == "pend" then
         arp_direction[destination] = "negative"
       end
-      
+      arps.tick(destination,"test_load")
     end
   end
 end

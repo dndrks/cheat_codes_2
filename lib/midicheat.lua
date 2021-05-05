@@ -663,7 +663,7 @@ function mc.build_scale(target)
   mc.inherit_notes(target)
 end
 
-local midi_off = {nil,nil,nil}
+midi_off = {nil,nil,nil}
 local mx_off = {nil,nil,nil}
 
 function mc.inherit_notes(target)
@@ -673,17 +673,6 @@ function mc.inherit_notes(target)
     end
   end
 end
-
--- function what()
---   for i=1,10 do
---     if i == 3 then
---       goto different
---     end
---     print("do this for "..i)
---   end
---   ::different::
---   print("this is 3")
--- end
 
 function mc.midi_note_from_pad(b,p)
   if bank[b][p].send_pad_note then
@@ -699,6 +688,7 @@ function mc.midi_note_from_pad(b,p)
         midi_dev[dest]:note_on(note_num,vel,ch)
         table.insert(active_midi_notes[b], note_num)
         if midi_off[b] ~= nil then clock.cancel(midi_off[b]) end
+        -- if midi_off[b] ~= nil then print("before her time "..b) end
         midi_off[b] = clock.run(mc.midi_note_from_pad_off,b,p)
       end
     end
@@ -777,14 +767,14 @@ end
 
 function mc.midi_note_from_pad_off(b,p)
   -- clock.sleep((bank[b][p].arp_time-(bank[b][p].arp_time/100))*clock.get_beat_sec())
-  clock.sleep((arp[b].time-(arp[b].time/100))*clock.get_beat_sec())
+  clock.sleep((arp[b].time-(arp[b].time/10))*clock.get_beat_sec())
   mc.all_midi_notes_off(b)
   midi_off[b] = nil
 end
 
 function mc.mx_note_from_pad_off(b,p)
   -- clock.sleep((bank[b][p].arp_time-(bank[b][p].arp_time/50))*clock.get_beat_sec())
-  clock.sleep((arp[b].time-(arp[b].time/50))*clock.get_beat_sec())
+  clock.sleep((arp[b].time-(arp[b].time/10))*clock.get_beat_sec())
   mc.this_mx_note_off(b,p)
   -- mx_off[b] = nil
 end
