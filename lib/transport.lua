@@ -95,8 +95,8 @@ function tp.start()
   tp.is_running = true
   transport.status_icon.status = 4
   for i = 1,3 do
-    -- if #arp[i].notes > 0 and params:string("start_arp_"..i.."_at_launch") == "yes" then
-    if tab.count(arp[i].notes) > 0 and params:string("start_arp_"..i.."_at_launch") == "yes" then
+    -- if tab.count(arp[i].notes) > 0 and params:string("start_arp_"..i.."_at_launch") == "yes" then
+    if params:string("start_arp_"..i.."_at_launch") == "yes" then
       arps.toggle("start",i)
     end
     if #grid_pat[i].event > 0 and params:string("start_pat_"..i.."_at_launch") == "yes" then
@@ -186,9 +186,9 @@ function tp.stop()
   -- print("stopping at "..clock.get_beats())
   for i = 1,3 do
     -- if #arp[i].notes > 0 then
-    if tab.count(arp[i].notes) > 0 then
+    -- if tab.count(arp[i].notes) > 0 then
       arps.toggle("stop",i)
-    end
+    -- end
     if #grid_pat[i].event > 0 then
       grid_pat[i]:stop()
       if grid_pat[i].clock ~= nil then

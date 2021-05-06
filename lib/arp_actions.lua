@@ -115,6 +115,7 @@ function arp_actions.toggle(state,target)
   elseif state == "stop" then
     arp[i].pause = true
     arp[i].playing = false
+    arp[i].step = arp[i].start_point
     arp[i].conditional.cycle = 0
   end
 end
