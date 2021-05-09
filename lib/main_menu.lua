@@ -86,6 +86,24 @@ function main_menu.init()
   page.transport.focus = "TRANSPORT"
 end
 
+function main_menu.metro_icon(x,y)
+  screen.level(15)
+  screen.move(x+2,y+5)
+  screen.line(x+7,y)
+  screen.line(x+12,y+5)
+  screen.line(x+3,y+5)
+  screen.stroke()
+  screen.move(x+7,y+3)
+  local pos =
+  transport.is_running
+  and (util.round(clock.get_beats()%1) == 0
+  and (x+10)
+  or (x+4))
+  or (x+4)
+  screen.line(pos,y)
+  screen.stroke()
+end
+
 function main_menu.draw()
   if menu == 1 then
     screen.move(0,10)
@@ -116,6 +134,7 @@ function main_menu.draw()
         , " "
         }
         screen.text(page.main_sel == i and (">"..options[i]) or options[i])
+        main_menu.metro_icon(0,58)
       end
       screen.move(128,selected_coll ~= 0 and 20 or 10)
       screen.level(3)

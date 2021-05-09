@@ -252,15 +252,24 @@ function _gleds.grid_redraw()
           elseif focused.loop == true then
             g:led(3+(5*(i-1)),4,led_maps["loop_on"][edition])
           end
-          if not arp[i].enabled then
-            g:led(3+(5*(i-1)),3,led_maps["off"][edition])
-          else
-            if arp[i].playing and arp[i].hold then
-              g:led(3+(5*(i-1)),3,led_maps["arp_play"][edition])
-            elseif arp[i].hold then
-              g:led(3+(5*(i-1)),3,led_maps["arp_pause"][edition])
+
+          if params:string("arp_"..i.."_hold_style") ~= "sequencer" then
+            if not arp[i].enabled then
+              g:led(3+(5*(i-1)),3,led_maps["off"][edition])
             else
-              g:led(3+(5*(i-1)),3,led_maps["arp_on"][edition])
+              if arp[i].playing and arp[i].hold then
+                g:led(3+(5*(i-1)),3,led_maps["arp_play"][edition])
+              elseif arp[i].hold then
+                g:led(3+(5*(i-1)),3,led_maps["arp_pause"][edition])
+              else
+                g:led(3+(5*(i-1)),3,led_maps["arp_on"][edition])
+              end
+            end
+          else
+            if arp[i].playing then
+              g:led(3+(5*(i-1)),3,led_maps["arp_play"][edition])
+            else
+              g:led(3+(5*(i-1)),3,led_maps["off"][edition])
             end
           end
 
@@ -521,15 +530,23 @@ function _gleds.grid_redraw()
         end
 
         --arp button
-        if not arp[delay_grid.bank].enabled then
-          g:led(12,2,led_maps["off"][edition])
-        else
-          if arp[delay_grid.bank].playing and arp[delay_grid.bank].hold then
-            g:led(12,2,led_maps["arp_play"][edition])
-          elseif arp[delay_grid.bank].hold then
-            g:led(12,2,led_maps["arp_pause"][edition])
+        if params:string("arp_"..i.."_hold_style") ~= "sequencer" then
+          if not arp[delay_grid.bank].enabled then
+            g:led(12,2,led_maps["off"][edition])
           else
-            g:led(12,2,led_maps["arp_on"][edition])
+            if arp[delay_grid.bank].playing and arp[delay_grid.bank].hold then
+              g:led(12,2,led_maps["arp_play"][edition])
+            elseif arp[delay_grid.bank].hold then
+              g:led(12,2,led_maps["arp_pause"][edition])
+            else
+              g:led(12,2,led_maps["arp_on"][edition])
+            end
+          end
+        else
+          if arp[delay_grid.bank].playing then
+            g:led(12,2,led_maps["arp_play"][edition])
+          else
+            g:led(12,2,led_maps["off"][edition])
           end
         end
 
@@ -705,15 +722,33 @@ function _gleds.grid_redraw()
         elseif focused.loop == true then
           g:led(5,6,led_maps["loop_on"][edition])
         end
-        if not arp[bank_64].enabled then
-          g:led(6,6,led_maps["off"][edition])
-        else
-          if arp[bank_64].playing and arp[bank_64].hold then
-            g:led(6,6,led_maps["arp_play"][edition])
-          elseif arp[bank_64].hold then
-            g:led(6,6,led_maps["arp_pause"][edition])
+        
+        --arps
+        if params:string("arp_"..bank_64.."_hold_style") ~= "sequencer" then
+          if not arp[bank_64].enabled then
+            g:led(6,6,led_maps["off"][edition])
           else
-            g:led(6,6,led_maps["arp_on"][edition])
+            if arp[bank_64].playing and arp[bank_64].hold then
+              g:led(6,6,led_maps["arp_play"][edition])
+            elseif arp[bank_64].hold then
+              g:led(6,6,led_maps["arp_pause"][edition])
+            else
+              g:led(6,6,led_maps["arp_on"][edition])
+            end
+          end
+        else
+          if arp[bank_64].playing then
+            g:led(6,6,led_maps["arp_play"][edition])
+            if arp[bank_64].enabled then
+              g:led(3,8,led_maps["arp_play"][edition])
+            else
+              g:led(3,8,led_maps["arp_on"][edition])
+            end
+          else
+            g:led(6,6,led_maps["off"][edition])
+            if tab.count(arp[bank_64].notes) > 0 then
+              g:led(3,8,led_maps["arp_pause"][edition])
+            end
           end
         end
         

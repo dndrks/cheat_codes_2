@@ -44,6 +44,9 @@ function arp_actions.init(target)
       arp[target].conditional.A[i] = 1
       arp[target].conditional.B[i] = 1
     end
+    arp[target].gate = {}
+    arp[target].gate.active = false
+    arp[target].gate.prob = 0
     arp[target].swing = 50
     arp[target].mode = "fwd"
     arp[target].start_point = 1
@@ -62,30 +65,32 @@ function arp_actions.find_index(tab,el)
 end
 
 function arp_actions.momentary(target, value, state)
-  if state == "on" then
-    if params:string("arp_"..target.."_hold_style") ~= "sequencer" then
-      table.insert(arp[target].notes, value)
-      arp[target].end_point = #arp[target].notes
-    else
-      if arp[target].notes[arp[target].step] ~= nil then
-        if arp[target].step == #arp[target].notes then
-          table.insert(arp[target].notes, arp[target].step, value)
+  -- if not arp[target].gate.active then
+    if state == "on" then
+      if params:string("arp_"..target.."_hold_style") ~= "sequencer" then
+        table.insert(arp[target].notes, value)
+        arp[target].end_point = #arp[target].notes
+      else
+        if arp[target].notes[arp[target].step] ~= nil then
+          if arp[target].step == #arp[target].notes then
+            table.insert(arp[target].notes, arp[target].step, value)
+          else
+            arp[target].notes[arp[target].step] = value
+            cheat(target,value)
+          end
         else
           arp[target].notes[arp[target].step] = value
           cheat(target,value)
         end
-      else
-        arp[target].notes[arp[target].step] = value
-        cheat(target,value)
       end
+    elseif state == "off" then
+      local removed_note = arp_actions.find_index(arp[target].notes,value)
+      if removed_note ~= nil then
+          table.remove(arp[target].notes, removed_note)
+      end
+      arp[target].end_point = #arp[target].notes
     end
-  elseif state == "off" then
-    local removed_note = arp_actions.find_index(arp[target].notes,value)
-    if removed_note ~= nil then
-        table.remove(arp[target].notes, removed_note)
-    end
-    arp[target].end_point = #arp[target].notes
-  end
+  -- end
 end
 
 function arp_actions.add(target, position, value)
@@ -111,6 +116,9 @@ function arp_actions.toggle(state,target)
     end
     if not transport.is_running then
       transport.toggle_transport()
+    end
+    if params:string("arp_"..i.."_hold_style") == "sequencer" then
+      if arp[i].enabled then arp[i].enabled = false end
     end
   elseif state == "stop" then
     arp[i].pause = true
@@ -249,7 +257,9 @@ function arp_actions.pendulum(target)
 end
 
 function arp_actions.check_prob(target,step)
-  if arp[target].prob[step] >= math.random(0,100) then
+  if arp[target].prob[step] == 0 then
+    return false
+  elseif arp[target].prob[step] >= math.random(1,100) then
     return true
   else
     return false
@@ -277,22 +287,36 @@ function arp_actions.cheat(target,step,source)
   end
 end
 
+function arp_actions.check_gate_prob(target)
+  if  arp[target].gate.prob == 0 then
+    return false
+  elseif arp[target].gate.prob >= math.random(1,100) then
+    return true
+  else
+    return false
+  end
+end
+
 function arp_actions.execute_step(target,step,source)
-  bank[target].id = arp[target].notes[step]
-  selected[target].x = (5*(target-1)+1)+(math.ceil(bank[target].id/4)-1)
-  if (bank[target].id % 4) ~= 0 then
-    selected[target].y = 9-(bank[target].id % 4)
-  else
-    selected[target].y = 5
-  end
-  if arp[target].retrigger then
-    cheat(target,bank[target].id)
-  else
-    if arp[target].notes[step] ~= arp[target].notes[step-1] then
-      cheat(target,bank[target].id)
+  if not arp[target].gate.active
+  or (arp[target].gate.active and arp_actions.check_gate_prob(target))
+  then
+    bank[target].id = arp[target].notes[step]
+    selected[target].x = (5*(target-1)+1)+(math.ceil(bank[target].id/4)-1)
+    if (bank[target].id % 4) ~= 0 then
+      selected[target].y = 9-(bank[target].id % 4)
+    else
+      selected[target].y = 5
     end
+    if arp[target].retrigger then
+      cheat(target,bank[target].id)
+    else
+      if arp[target].notes[step] ~= arp[target].notes[step-1] then
+        cheat(target,bank[target].id)
+      end
+    end
+      -- print(clock.get_beats()..": "..(source == nil and "" or source))
   end
-  print(clock.get_beats()..": "..(source == nil and "" or source))
 end
 
 function arp_actions.clear(target)

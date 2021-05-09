@@ -50,6 +50,8 @@ if util.file_exists(_path.code.."mx.samples") then
   -- tab.print(mxcc:list_instruments())
 end
 
+-- engine.name = "StoneSoup"
+
 local pattern_time = include 'lib/cc_pattern_time'
 MU = require "musicutil"
 UI = require "ui"
@@ -2356,8 +2358,14 @@ end
 function globally_clocked()
   while true do
     clock.sync(1/4)
-    if menu == 7 or menu == "transport_config" then
-      if menu ~= 1 then screen_dirty = true end
+    -- if menu == 7 or menu == "transport_config" then
+    --   if menu ~= 1 then screen_dirty = true end
+    -- end
+    if menu == 7 or menu == "transport_config" or (menu == 1 and transport.is_running) then
+      screen_dirty = true
+    end
+    if norns.cpu_avg > 40 then
+      print("norns CPU above 40: "..norns.cpu_avg)
     end
     -- TODO CONFIRM THIS SHOULD HAPPEN:
     if menu == 2 and page.loops.sel ~= 5 then

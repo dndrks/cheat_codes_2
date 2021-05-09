@@ -127,7 +127,9 @@ function grid_actions.init(x,y,z)
               softcut.rate(i+1,0)
             end
             if (arp[i].enabled and not arp[i].hold) or (menu == 9 and not arp[i].hold) then
-              arps.momentary(i, released_pad, "off")
+              if params:string("arp_"..i.."_hold_style") ~= "sequencer" then
+                arps.momentary(i, released_pad, "off")
+              end
               arp[i].down = arp[i].down - 1
             elseif (arp[i].enabled and arp[i].hold and not arp[i].pause) or (menu == 9 and arp[i].hold and not arp[i].pause) then
               arp[i].down = arp[i].down - 1
@@ -1015,7 +1017,10 @@ function grid_actions.init(x,y,z)
             which_bank = bank_64
             pad_clipboard = nil
             if b.quantize_press == 0 then
-              if arp[bank_64].enabled and grid_pat[bank_64].rec == 0 and not arp[bank_64].pause then
+              if arp[bank_64].enabled and grid_pat[bank_64].rec == 0
+              and not arp[bank_64].pause
+              and not arp[bank_64].gate.active
+              then
                 if arp[bank_64].down == 0 and params:string("arp_"..bank_64.."_hold_style") == "last pressed" then
                   for j = #arp[bank_64].notes,1,-1 do
                     table.remove(arp[bank_64].notes,j)
@@ -1035,7 +1040,7 @@ function grid_actions.init(x,y,z)
             end
           else
             local released_pad = (4*(y-4))+x
-            arps.momentary(i, released_pad, "off")
+            arps.momentary(bank_64, released_pad, "off")
           end
         else
           if not grid_alt then
@@ -1064,11 +1069,18 @@ function grid_actions.init(x,y,z)
           if b[released_pad].play_mode == "momentary" then
             softcut.rate(bank_64+1,0)
           end
-          if (arp[bank_64].enabled and not arp[bank_64].hold) or (menu == 9 and not arp[bank_64].hold) then
-            arps.momentary(bank_64, released_pad, "off")
-            arp[bank_64].down = arp[bank_64].down - 1
-          elseif (arp[bank_64].enabled and arp[bank_64].hold and not arp[bank_64].pause) or (menu == 9 and arp[bank_64].hold and not arp[bank_64].pause) then
-            arp[bank_64].down = arp[bank_64].down - 1
+          if arp[bank_64].enabled and grid_pat[bank_64].rec == 0
+          and not arp[bank_64].pause
+          and not arp[bank_64].gate.active
+          then
+            if (arp[bank_64].enabled and not arp[bank_64].hold) or (menu == 9 and not arp[bank_64].hold) then
+              if params:string("arp_"..bank_64.."_hold_style") ~= "sequencer" then
+                arps.momentary(bank_64, released_pad, "off")
+              end
+              arp[bank_64].down = arp[bank_64].down - 1
+            elseif (arp[bank_64].enabled and arp[bank_64].hold and not arp[bank_64].pause) or (menu == 9 and arp[bank_64].hold and not arp[bank_64].pause) then
+              arp[bank_64].down = arp[bank_64].down - 1
+            end
           end
         end
       end
@@ -1293,6 +1305,18 @@ function grid_actions.init(x,y,z)
         else
           grid_actions.kill_arp(bank_64)
         end
+      end
+
+      if x == 3 and y == 8 and z == 1 then
+        if not bank[bank_64].alt_lock and not grid_alt then
+          grid_actions.arp_toggle_write(bank_64)
+        else
+          grid_actions.clear_arp_sequencer(bank_64)
+        end
+      end
+
+      if x == 2 and y == 8 then
+        arp[bank_64].gate.active = z == 1 and true or false
       end
 
       if y == 7 and x == 5 and z == 1 then
@@ -1578,25 +1602,47 @@ function grid_actions.init(x,y,z)
 end
 
 function grid_actions.arp_handler(i)
-  if not arp[i].enabled then
-    arp[i].enabled = true
-  elseif not arp[i].hold then
-    -- if #arp[i].notes > 0 then
-    if tab.count(arp[i].notes) > 0 then
-      arp[i].hold = true
-    else
-      arp[i].enabled = false
-    end
-  else
-    -- if #arp[i].notes > 0 then
-    if tab.count(arp[i].notes) > 0 then
-      if arp[i].playing == true then
-        arps.toggle("stop",i)
+  if params:string("arp_"..i.."_hold_style") ~= "sequencer" then
+    if not arp[i].enabled then
+      arp[i].enabled = true
+    elseif not arp[i].hold then
+      -- if #arp[i].notes > 0 then
+      if tab.count(arp[i].notes) > 0 then
+        arp[i].hold = true
       else
-        arps.toggle("start",i)
+        arp[i].enabled = false
+      end
+    else
+      -- if #arp[i].notes > 0 then
+      if tab.count(arp[i].notes) > 0 then
+        if arp[i].playing == true then
+          arps.toggle("stop",i)
+        else
+          arps.toggle("start",i)
+        end
       end
     end
+  else
+    if arp[i].playing == true then
+      arps.toggle("stop",i)
+    else
+      arps.toggle("start",i)
+    end
+  end
   screen_dirty = true
+end
+
+function grid_actions.arp_toggle_write(i)
+  if params:string("arp_"..i.."_hold_style") == "sequencer" then
+    if arp[i].playing then
+      arp[i].enabled = not arp[i].enabled
+    end
+  end
+end
+
+function grid_actions.clear_arp_sequencer(i)
+  if params:string("arp_"..i.."_hold_style") == "sequencer" then
+    arps.clear(i)
   end
 end
 
