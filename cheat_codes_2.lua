@@ -79,6 +79,8 @@ speed_dial = include 'lib/speed_dial'
 _gleds = include 'lib/grid_leds'
 math.randomseed(os.time())
 variable_fade_time = 0.01
+--with positive playback rates, the buffer is actually read from / written to up to (loop end + fade time).
+-- with negative rates, up to (loop start - fade time).
 splash_done = true
 
 macro = {}
@@ -2939,8 +2941,10 @@ function cheat(b,i)
     softcut.rate(b+1,0)
   end
   softcut.fade_time(b+1,variable_fade_time)
-  softcut.loop_start(b+1,pad.start_point+variable_fade_time)
-  softcut.loop_end(b+1,pad.end_point-variable_fade_time)
+  -- softcut.loop_start(b+1,pad.start_point+variable_fade_time)
+  -- softcut.loop_end(b+1,pad.end_point-variable_fade_time)
+  softcut.loop_start(b+1,pad.start_point)
+  softcut.loop_end(b+1,pad.end_point)
   softcut.buffer(b+1,pad.mode)
   if pad.loop == false then
     softcut.loop(b+1,0)

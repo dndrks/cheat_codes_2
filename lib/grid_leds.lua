@@ -254,22 +254,33 @@ function _gleds.grid_redraw()
           end
 
           if params:string("arp_"..i.."_hold_style") ~= "sequencer" then
+            local arp_button = 3+(5*(i-1))
             if not arp[i].enabled then
-              g:led(3+(5*(i-1)),3,led_maps["off"][edition])
+              g:led(arp_button,3,led_maps["off"][edition])
             else
               if arp[i].playing and arp[i].hold then
-                g:led(3+(5*(i-1)),3,led_maps["arp_play"][edition])
+                g:led(arp_button,3,led_maps["arp_play"][edition])
               elseif arp[i].hold then
-                g:led(3+(5*(i-1)),3,led_maps["arp_pause"][edition])
+                g:led(arp_button,3,led_maps["arp_pause"][edition])
               else
-                g:led(3+(5*(i-1)),3,led_maps["arp_on"][edition])
+                g:led(arp_button,3,led_maps["arp_on"][edition])
               end
             end
           else
+            local arp_button = 3+(5*(i-1))
+            local arp_writer = 5*i
             if arp[i].playing then
-              g:led(3+(5*(i-1)),3,led_maps["arp_play"][edition])
+              g:led(arp_button,3,led_maps["arp_play"][edition])
+              if arp[i].enabled then
+                g:led(arp_writer,6,led_maps["arp_play"][edition])
+              else
+                g:led(arp_writer,6,led_maps["arp_on"][edition])
+              end
             else
-              g:led(3+(5*(i-1)),3,led_maps["off"][edition])
+              g:led(arp_button,3,led_maps["off"][edition])
+              if tab.count(arp[i].notes) > 0 then
+                g:led(arp_writer,6,led_maps["arp_pause"][edition])
+              end
             end
           end
 
@@ -530,7 +541,7 @@ function _gleds.grid_redraw()
         end
 
         --arp button
-        if params:string("arp_"..i.."_hold_style") ~= "sequencer" then
+        if params:string("arp_"..delay_grid.bank.."_hold_style") ~= "sequencer" then
           if not arp[delay_grid.bank].enabled then
             g:led(12,2,led_maps["off"][edition])
           else

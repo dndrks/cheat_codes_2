@@ -153,8 +153,8 @@ function zilchmos.start_end_default( pad )
 end
 
 function zilchmos.end_sixteenths( pad )
-  local duration = pad.mode == 1 and 8 or clip[pad.clip].sample_length
-  local s_p = pad.mode == 1 and live[pad.clip].min or clip[pad.clip].min
+  -- local duration = pad.mode == 1 and 8 or clip[pad.clip].sample_length
+  -- local s_p = pad.mode == 1 and live[pad.clip].min or clip[pad.clip].min
   pad.end_point   = pad.start_point + (clock.get_beat_sec()/4)
 end
 

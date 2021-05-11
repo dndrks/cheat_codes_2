@@ -77,13 +77,15 @@ function grid_actions.init(x,y,z)
               end
               pad_clipboard = nil
               if bank[i].quantize_press == 0 then
-                if arp[i].enabled and grid_pat[i].rec == 0 and not arp[i].pause then
+                if arp[i].enabled and grid_pat[i].rec == 0
+                and not arp[i].pause
+                and not arp[i].gate.active
+                then
                   if arp[i].down == 0 and params:string("arp_"..i.."_hold_style") == "last pressed" then
                     for j = #arp[i].notes,1,-1 do
                       table.remove(arp[i].notes,j)
                     end
                   end
-                  -- arp[i].time = bank[i][bank[i].id].arp_time
                   arps.momentary(i, bank[i].id, "on")
                   arp[i].down = arp[i].down + 1
                 else
@@ -415,70 +417,31 @@ function grid_actions.init(x,y,z)
           end
         end
       end
-      
 
-      if (x == 5 or x == 10 or x == 15) and y == 8 and z == 1 then
-        if not grid_alt then
-          _ca.SOS_toggle(util.round(x/5))
-        else
-          _ca.SOS_erase(util.round(x/5))
-        end
-      end
-
-      -- for i = 8,6,-1 do
-      --   if x == 5 or x == 10 or x == 15 then
-      --     if y == i then
-      --       if not grid_alt then
-      --         if z == 1 then
-      --           table.insert(arc_switcher[x/5],y)
-      --           held_query[x/5] = #arc_switcher[x/5]
-      --         elseif z == 0 then
-      --           held_query[x/5] = held_query[x/5] - 1
-      --           if held_query[x/5] == 0 then
-      --             if #arc_switcher[x/5] == 1 then
-      --               if arc_switcher[x/5][1] == 8 then
-      --                 arc_param[x/5] = 1
-      --               elseif arc_switcher[x/5][1] == 7 then
-      --                 arc_param[x/5] = 2
-      --               elseif arc_switcher[x/5][1] == 6 then
-      --                 arc_param[x/5] = 3
-      --               end
-      --             elseif #arc_switcher[x/5] == 2 then
-      --               total = arc_switcher[x/5][1] + arc_switcher[x/5][2]
-      --               if total == 15 then
-      --                 arc_param[x/5] = 5
-      --               elseif total == 13 then
-      --                 arc_param[x/5] = 6
-      --               end
-      --             elseif #arc_switcher[x/5] == 3 then
-      --               arc_param[x/5] = 4
-      --             elseif #arc_switcher[x/5] > 3 then
-      --               arc_switcher[x/5] = {}
-      --             end
-      --             arc_switcher[x/5] = {}
-      --           end
-      --         end
-      --       elseif grid_alt then
-      --         if y == 8 then
-      --           -- sixteen_slices(x/5)
-      --         elseif y == 7 then
-      --           -- rec_to_pad(x/5)
-      --         elseif y == 6 then
-      --           -- pad_to_rec(x/5)
-      --         end
-      --       end
-      --     end
-      --   end
-      -- end
-      
-      if y == 5 then
-        if x == 5 or x == 10 or x == 15 then
+      -- sub-4x4 modifiers
+      if (x == 5 or x == 10 or x == 15) then
+        local b = util.round(x/5)
+        if y == 5 then
           if not grid_alt then
-            bank[x/5].alt_lock = z == 1 and true or false
+            bank[b].alt_lock = z == 1 and true or false
           else
             if z == 1 then
-              bank[x/5].alt_lock = not bank[x/5].alt_lock
+              bank[b].alt_lock = not bank[b].alt_lock
             end
+          end
+        elseif y == 6 and z == 1 then 
+          if not bank[b].alt_lock and not grid_alt then -- TODO verify if it shouldn't just be grid_alt
+            grid_actions.arp_toggle_write(b)
+          else
+            grid_actions.clear_arp_sequencer(b)
+          end
+        elseif y == 7 then
+          arp[b].gate.active = z == 1 and true or false
+        elseif y == 8 and z == 1 then
+          if not grid_alt then
+            _ca.SOS_toggle(b)
+          else
+            _ca.SOS_erase(b)
           end
         end
       end
