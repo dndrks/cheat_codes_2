@@ -957,7 +957,7 @@ params:add_separator("ALT key")
     params:set_action("delay "..sides[i-3]..": filter lfo shape", function(x)
       delay[i-3].filter_lfo.waveform = lfo_types[x]
     end)
-    params:add_number("delay "..sides[i-3]..": filter lfo depth", "delay "..sides[i-3]..": filter lfo depth",1,200,100)
+    params:add_number("delay "..sides[i-3]..": filter lfo depth", "delay "..sides[i-3]..": filter lfo depth",1,200,20)
     params:set_action("delay "..sides[i-3]..": filter lfo depth", function(x)
       delay[i-3].filter_lfo.depth = x
     end)

@@ -89,8 +89,11 @@ function grid_actions.init(x,y,z)
                   arps.momentary(i, bank[i].id, "on")
                   arp[i].down = arp[i].down + 1
                 else
-                  if rytm.track[i].k == 0 then
-                    cheat(i, bank[i].id)
+                  if rytm.track[i].k == 0 then -- this needs touched up
+                    if not arp[i].playing
+                    or arp[i].playing and arp[i].gate.active then
+                      cheat(i, bank[i].id)
+                    end
                   end
                   grid_pattern_watch(i)
                 end
@@ -128,13 +131,18 @@ function grid_actions.init(x,y,z)
             if bank[i][released_pad].play_mode == "momentary" then
               softcut.rate(i+1,0)
             end
-            if (arp[i].enabled and not arp[i].hold) or (menu == 9 and not arp[i].hold) then
-              if params:string("arp_"..i.."_hold_style") ~= "sequencer" then
-                arps.momentary(i, released_pad, "off")
+            if arp[i].enabled and grid_pat[i].rec == 0
+            and not arp[i].pause
+            and not arp[i].gate.active
+            then
+              if (arp[i].enabled and not arp[i].hold) or (menu == 9 and not arp[i].hold) then
+                if params:string("arp_"..i.."_hold_style") ~= "sequencer" then
+                  arps.momentary(i, released_pad, "off")
+                end
+                arp[i].down = arp[i].down - 1
+              elseif (arp[i].enabled and arp[i].hold and not arp[i].pause) or (menu == 9 and arp[i].hold and not arp[i].pause) then
+                arp[i].down = arp[i].down - 1
               end
-              arp[i].down = arp[i].down - 1
-            elseif (arp[i].enabled and arp[i].hold and not arp[i].pause) or (menu == 9 and arp[i].hold and not arp[i].pause) then
-              arp[i].down = arp[i].down - 1
             end
           end
         end
@@ -771,7 +779,10 @@ function grid_actions.init(x,y,z)
               arp[id].down = arp[id].down + 1
             else
               if rytm.track[id].k == 0 then
-                cheat(id, bank[id].id)
+                if not arp[id].playing
+                or arp[id].playing and arp[id].gate.active then
+                  cheat(id, bank[id].id)
+                end
               end
               grid_pattern_watch(id)
             end
@@ -994,7 +1005,10 @@ function grid_actions.init(x,y,z)
                 arp[bank_64].down = arp[bank_64].down + 1
               else
                 if rytm.track[bank_64].k == 0 then
-                  cheat(bank_64, b.id)
+                  if not arp[bank_64].playing
+                  or arp[bank_64].playing and arp[bank_64].gate.active then
+                    cheat(bank_64, b.id)
+                  end
                 end
                 grid_pattern_watch(bank_64)
               end
@@ -1573,7 +1587,7 @@ function grid_actions.arp_handler(i)
       if tab.count(arp[i].notes) > 0 then
         arp[i].hold = true
       else
-        arp[i].enabled = false
+        -- arp[i].enabled = false
       end
     else
       -- if #arp[i].notes > 0 then

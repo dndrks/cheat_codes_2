@@ -215,12 +215,24 @@ function _loops.process_encoder(n,d)
       if page.loops.sel < 4 then
         local pad = bank[page.loops.sel][page.loops.meta_pad[page.loops.sel]]
         local resolution = loop_enc_resolution[page.loops.sel]
-        if page.loops.selected_bank_control == "cheat_pad" and not key1_hold then
-          _loops.change_pad(page.loops.sel,d)
-        elseif page.loops.selected_bank_control == "start_point" and not key1_hold then
-          _loops.move_loop_points(pad,d,resolution,"move_start")
-        elseif page.loops.selected_bank_control == "end_point" and not key1_hold then
-          _loops.move_loop_points(pad,d,resolution,"move_end")
+        if page.loops.selected_bank_control == "cheat_pad" then
+          if not key1_hold or (key1_hold and arc_pat[page.loops.sel][1].rec == 1) then
+            _loops.change_pad(page.loops.sel,d)
+          elseif key1_hold and arc_pat[page.loops.sel][1].rec == 0 and #arc_pat[page.loops.sel][1].event > 0 then
+            arc_pat[page.loops.sel][1].time_factor = util.clamp(arc_pat[page.loops.sel][1].time_factor + d/10,0.1,10)
+          end
+        elseif page.loops.selected_bank_control == "start_point" then
+          if not key1_hold or (key1_hold and arc_pat[page.loops.sel][1].rec == 1) then
+            _loops.move_loop_points(pad,d,resolution,"move_start")
+          elseif key1_hold and arc_pat[page.loops.sel][1].rec == 0 and #arc_pat[page.loops.sel][1].event > 0 then
+            arc_pat[page.loops.sel][1].time_factor = util.clamp(arc_pat[page.loops.sel][1].time_factor + d/10,0.1,10)
+          end
+        elseif page.loops.selected_bank_control == "end_point" then
+          if not key1_hold or (key1_hold and arc_pat[page.loops.sel][1].rec == 1) then
+            _loops.move_loop_points(pad,d,resolution,"move_end")
+          elseif key1_hold and arc_pat[page.loops.sel][1].rec == 0 and #arc_pat[page.loops.sel][1].event > 0 then
+            arc_pat[page.loops.sel][1].time_factor = util.clamp(arc_pat[page.loops.sel][1].time_factor + d/10,0.1,10)
+          end
         elseif page.loops.selected_bank_control == "rate" then
           local rates ={-4,-2,-1,-0.5,-0.25,-0.125,0,0.125,0.25,0.5,1,2,4}
           if pad.fifth then
@@ -306,8 +318,6 @@ function _loops.process_encoder(n,d)
             softcut.loop(page.loops.sel+1,pad.loop == true and 1 or 0)
           end
         end
-      elseif page.loops.sel < 4 and key1_hold then
-        arc_pat[page.loops.sel][1].time_factor = util.clamp(arc_pat[page.loops.sel][1].time_factor + d/10,0.1,10)
       elseif page.loops.sel == 4 then
         if page.loops.selected_live_control == "segment" then
           encoder_actions.change_buffer(rec[rec.focus],d)
@@ -521,7 +531,12 @@ function _loops.draw_menu()
       screen.stroke()
 
       if page.loops.zoomed_mode then
-        screen.move(64,54)
+        screen.move(0,54)
+        screen.text("start: "..pad.start_point)
+        screen.move(128,54)
+        screen.text_right("end: "..pad.end_point)
+        screen.move(64,64)
+        screen.text_center("duration: "..(pad.end_point-pad.start_point).."s")
         -- screen.text_center("K3: toggle looping, all pads")
         --new//
       elseif not key1_hold or (key1_hold and tab.key(page.loops.bank_controls,sel) > 3) then

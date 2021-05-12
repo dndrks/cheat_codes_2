@@ -449,13 +449,6 @@ function delays.lfo_process(id,prm,movement)
   local modified_freq = nil
   modified_freq = easingFunctions[params:string("delay "..sides[id]..": curve")](val/12000,10,11990,1)
   softcut.post_filter_fc(id+4,modified_freq)
-  -- if util.round(delay[id].filter_lfo.prev_slope,0.03) ~= util.round(delay[id].filter_lfo.slope,0.03) then
-  --   local val = util.linlin(-1,1,10,12000,movement)
-  --   local sides = {"L","R"}
-  --   local modified_freq = nil
-  --   modified_freq = easingFunctions[params:string("delay "..sides[id]..": curve")](val/12000,10,11990,1)
-  --   softcut.post_filter_fc(id+4,modified_freq)
-  -- end
 end
 
 return delays

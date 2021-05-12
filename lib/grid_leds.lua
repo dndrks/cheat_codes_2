@@ -255,17 +255,41 @@ function _gleds.grid_redraw()
 
           if params:string("arp_"..i.."_hold_style") ~= "sequencer" then
             local arp_button = 3+(5*(i-1))
-            if not arp[i].enabled then
-              g:led(arp_button,3,led_maps["off"][edition])
-            else
-              if arp[i].playing and arp[i].hold then
+            local arp_writer = 5*i
+            if arp[i].enabled and tab.count(arp[i].notes) == 0 then
+              g:led(arp_button,3,led_maps["arp_on"][edition])
+            elseif arp[i].playing then
+              if arp[i].hold then
                 g:led(arp_button,3,led_maps["arp_play"][edition])
-              elseif arp[i].hold then
-                g:led(arp_button,3,led_maps["arp_pause"][edition])
               else
-                g:led(arp_button,3,led_maps["arp_on"][edition])
+                if not arp[i].pause then
+                  g:led(arp_button,3,(led_maps["arp_play"][edition])-3)
+                end
+              end
+              if arp[i].enabled then
+                g:led(arp_writer,6,led_maps["arp_play"][edition])
+              else
+                g:led(arp_writer,6,led_maps["arp_on"][edition])
+              end
+            else
+              if arp[i].hold then
+                -- g:led(arp_button,3,led_maps["arp_pause"][edition])
+              end
+              if tab.count(arp[i].notes) > 0 then
+                g:led(arp_button,3,led_maps["arp_pause"][edition])
               end
             end
+            -- if not arp[i].enabled then
+            --   g:led(arp_button,3,led_maps["off"][edition])
+            -- else
+            --   if arp[i].playing and arp[i].hold then
+            --     g:led(arp_button,3,led_maps["arp_play"][edition])
+            --   elseif arp[i].hold then
+            --     g:led(arp_button,3,led_maps["arp_pause"][edition])
+            --   else
+            --     g:led(arp_button,3,led_maps["arp_on"][edition])
+            --   end
+            -- end
           else
             local arp_button = 3+(5*(i-1))
             local arp_writer = 5*i
@@ -279,7 +303,7 @@ function _gleds.grid_redraw()
             else
               g:led(arp_button,3,led_maps["off"][edition])
               if tab.count(arp[i].notes) > 0 then
-                g:led(arp_writer,6,led_maps["arp_pause"][edition])
+                g:led(arp_button,3,led_maps["arp_pause"][edition])
               end
             end
           end

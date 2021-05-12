@@ -87,7 +87,7 @@ function main_menu.init()
 end
 
 function main_menu.metro_icon(x,y)
-  screen.level(15)
+  screen.level(transport.is_running and 15 or 3)
   screen.move(x+2,y+5)
   screen.line(x+7,y)
   screen.line(x+12,y+5)
@@ -102,6 +102,10 @@ function main_menu.metro_icon(x,y)
   or (x+4)
   screen.line(pos,y)
   screen.stroke()
+  if transport.pending then
+    screen.move(x+18,63)
+    screen.text_center("...")
+  end
 end
 
 function main_menu.draw()

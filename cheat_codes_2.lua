@@ -77,6 +77,7 @@ macros = include 'lib/macros'
 transport = include 'lib/transport'
 speed_dial = include 'lib/speed_dial'
 _gleds = include 'lib/grid_leds'
+p_gate = include 'lib/p_gate'
 math.randomseed(os.time())
 variable_fade_time = 0.01
 --with positive playback rates, the buffer is actually read from / written to up to (loop end + fade time).
@@ -87,6 +88,8 @@ macro = {}
 for i = 1,8 do
   macro[i] = macros.new_macro()
 end
+
+p_gate.init()
 
 function rec_ended_callback()
   -- for i = 1,3 do
@@ -2370,7 +2373,7 @@ function globally_clocked()
       print("norns CPU above 40: "..norns.cpu_avg)
     end
     -- TODO CONFIRM THIS SHOULD HAPPEN:
-    if menu == 2 and page.loops.sel ~= 5 then
+    if menu == 2 then
       screen_dirty = true
     end
     -- update_tempo()
@@ -3903,59 +3906,62 @@ end
 function grid_pattern_execute(entry)
   if entry ~= nil then
     if entry ~= "pause" then
-      -- print(clock.get_beats().."<<<<<<<")
-      local i = entry.i
-      local a_p; -- this will index the arc encoder recorders
-        if arc_param[i] == 1 or arc_param[i] == 2 or arc_param[i] == 3 then
-          a_p = 1
-        else
-          a_p = arc_param[i] - 2
-        end
-      if entry.action == "pads" then
-        if params:get("zilchmo_patterning") == 2 then
-          bank[i][entry.id].rate = entry.rate
-        end
-        selected[i].id = entry.id
-        selected[i].x = entry.x
-        selected[i].y = entry.y
-        bank[i].id = selected[i].id
-        if params:get("zilchmo_patterning") == 2 then
-          bank[i][bank[i].id].mode = entry.mode
-          bank[i][bank[i].id].clip = entry.clip
-        end
-        if arc_param[i] ~= 4 and #arc_pat[i][a_p].event == 0 then -- TODO what is this?
+      local i = entry.i  
+        -- print(clock.get_beats().."<<<<<<<")
+      if not arp[i].playing
+      or arp[i].playing and arp[i].gate.active then
+        local a_p; -- this will index the arc encoder recorders
+          if arc_param[i] == 1 or arc_param[i] == 2 or arc_param[i] == 3 then
+            a_p = 1
+          else
+            a_p = arc_param[i] - 2
+          end
+        if entry.action == "pads" then
           if params:get("zilchmo_patterning") == 2 then
-            bank[i][bank[i].id].start_point = entry.start_point
-            bank[i][bank[i].id].end_point = entry.end_point
+            bank[i][entry.id].rate = entry.rate
           end
-        end
-        if rytm.track[i].k == 0 then
-          cheat(i,bank[i].id)
-        end
-      elseif string.match(entry.action, "zilchmo") then
-        if params:get("zilchmo_patterning") == 2 then
-          bank[i][entry.id].rate = entry.rate
-          rightangleslice.init(entry.row,entry.bank,entry.con)
-
-          local depth = {'(%d)','(%d)(%d)','(%d)(%d)(%d)','(%d)(%d)(%d)(%d)'}
-          local y1,y2,y3,y4 = entry.con:match(depth[#entry.con])
-          
-          zilch_leds[4][entry.bank][y1 ~= nil and 5-tonumber(y1)] = 1
-          zilch_leds[4][entry.bank][y2 ~= nil and 5-tonumber(y2)] = 1
-          zilch_leds[4][entry.bank][y3 ~= nil and 5-tonumber(y3)] = 1
-          zilch_leds[4][entry.bank][y4 ~= nil and 5-tonumber(y4)] = 1
-
-          clock.run(recorded_zilch_zero,entry.bank)
+          selected[i].id = entry.id
+          selected[i].x = entry.x
+          selected[i].y = entry.y
+          bank[i].id = selected[i].id
+          if params:get("zilchmo_patterning") == 2 then
+            bank[i][bank[i].id].mode = entry.mode
+            bank[i][bank[i].id].clip = entry.clip
+          end
           if arc_param[i] ~= 4 and #arc_pat[i][a_p].event == 0 then -- TODO what is this?
-            bank[i][bank[i].id].start_point = entry.start_point
-            bank[i][bank[i].id].end_point = entry.end_point
-            softcut.loop_start(i+1,bank[i][bank[i].id].start_point)
-            softcut.loop_end(i+1,bank[i][bank[i].id].end_point)
+            if params:get("zilchmo_patterning") == 2 then
+              bank[i][bank[i].id].start_point = entry.start_point
+              bank[i][bank[i].id].end_point = entry.end_point
+            end
+          end
+          if rytm.track[i].k == 0 then
+            cheat(i,bank[i].id)
+          end
+        elseif string.match(entry.action, "zilchmo") then
+          if params:get("zilchmo_patterning") == 2 then
+            bank[i][entry.id].rate = entry.rate
+            rightangleslice.init(entry.row,entry.bank,entry.con)
+
+            local depth = {'(%d)','(%d)(%d)','(%d)(%d)(%d)','(%d)(%d)(%d)(%d)'}
+            local y1,y2,y3,y4 = entry.con:match(depth[#entry.con])
+            
+            zilch_leds[4][entry.bank][y1 ~= nil and 5-tonumber(y1)] = 1
+            zilch_leds[4][entry.bank][y2 ~= nil and 5-tonumber(y2)] = 1
+            zilch_leds[4][entry.bank][y3 ~= nil and 5-tonumber(y3)] = 1
+            zilch_leds[4][entry.bank][y4 ~= nil and 5-tonumber(y4)] = 1
+
+            clock.run(recorded_zilch_zero,entry.bank)
+            if arc_param[i] ~= 4 and #arc_pat[i][a_p].event == 0 then -- TODO what is this?
+              bank[i][bank[i].id].start_point = entry.start_point
+              bank[i][bank[i].id].end_point = entry.end_point
+              softcut.loop_start(i+1,bank[i][bank[i].id].start_point)
+              softcut.loop_end(i+1,bank[i][bank[i].id].end_point)
+            end
           end
         end
+        grid_dirty = true
+        if menu ~= 1 then screen_dirty = true end
       end
-      grid_dirty = true
-      if menu ~= 1 then screen_dirty = true end
     end
   end
 end
@@ -4333,6 +4339,9 @@ function pre_save(text)
 end
 
 function named_savestate(text)
+
+  -- ok, so if working with mkdir, i want the dirname to include ' '
+  -- if working with util.file_exists, i want the dirname to not include ' '
   
   local collection = text
   local dirname = _path.data.."cheat_codes_2/"

@@ -303,6 +303,7 @@ function clock.transport.start()
     if tp.start_clock == nil then
       tp.start_clock = clock.run(tp.start)
       tp.pending = true
+      screen_dirty = true
     end
   end
   tp.cycle = tp.cycle + 1
@@ -340,6 +341,7 @@ function tp.toggle_transport()
       clock.transport.start()
     end
     tp.pending = true
+    screen_dirty = true
   end
 end
 
