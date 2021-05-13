@@ -977,12 +977,13 @@ function init()
   end)
   params:add_option("collect_live","collect Live buffers?",{"no","yes"},2)
   params:hide("collect_live")
+
   params:add_trigger("save", "save new collection")
   params:set_action("save", function(x)
     if Namesizer ~= nil then
-      textentry.enter(pre_save,Namesizer.phonic_nonsense().."_"..Namesizer.phonic_nonsense())
+      textentry.enter(pre_save,Namesizer.phonic_nonsense().."_"..Namesizer.phonic_nonsense(),'alphanumeric and - _ only')
     else
-      textentry.enter(pre_save)
+      textentry.enter(pre_save,'alphanumeric and - _ only')
     end
   end)
   params:add_separator("danger zone!")
@@ -3909,7 +3910,8 @@ function grid_pattern_execute(entry)
       local i = entry.i  
         -- print(clock.get_beats().."<<<<<<<")
       if not arp[i].playing
-      or arp[i].playing and arp[i].gate.active then
+      -- or arp[i].playing and arp[i].gate.active then
+      or arp[i].playing and pattern_gate[i][1].active then
         local a_p; -- this will index the arc encoder recorders
           if arc_param[i] == 1 or arc_param[i] == 2 or arc_param[i] == 3 then
             a_p = 1
@@ -3934,7 +3936,9 @@ function grid_pattern_execute(entry)
               bank[i][bank[i].id].end_point = entry.end_point
             end
           end
-          if rytm.track[i].k == 0 then
+          if not arp[i].playing
+          or arp[i].playing and pattern_gate[i][1].active then
+          -- if rytm.track[i].k == 0 then
             cheat(i,bank[i].id)
           end
         elseif string.match(entry.action, "zilchmo") then

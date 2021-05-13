@@ -298,8 +298,9 @@ function arp_actions.check_gate_prob(target)
 end
 
 function arp_actions.execute_step(target,step,source)
-  if not arp[target].gate.active
-  or (arp[target].gate.active and arp_actions.check_gate_prob(target))
+  -- if not arp[target].gate.active
+  -- or (arp[target].gate.active and arp_actions.check_gate_prob(target))
+  if not pattern_gate[target][1].active and not pattern_gate[target][2].active
   then
     bank[target].id = arp[target].notes[step]
     selected[target].x = (5*(target-1)+1)+(math.ceil(bank[target].id/4)-1)

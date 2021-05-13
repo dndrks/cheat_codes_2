@@ -366,7 +366,8 @@ function main_menu.draw()
         screen.text(track_edit_to_banks[rytm.track_edit].." mode: "..rytm.track[rytm.track_edit].mode)
         screen.move(40,20)
         local divs_to_frac =
-        { ["0.25"] = "1/16"
+        { ["0.125"] = "1/32"
+        , ["0.25"] = "1/16"
         , ["0.5"] = "1/8"
         , ["1"] = "1/4"
         , ["2"] = "1/2"

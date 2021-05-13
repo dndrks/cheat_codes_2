@@ -646,7 +646,7 @@ function encoder_actions.init(n,d)
         end
       elseif key1_hold then
         if rytm.screen_focus == "left" then
-          local deci = {"0.25","0.5","1","2","4"}
+          local deci = {"0.125","0.25","0.5","1","2","4"}
           local lookup = string.format("%.4g",rytm.track[rytm.track_edit].clock_div)
           local current = (tab.key(deci, lookup))
           local new_value = util.clamp(current+d,1,#deci)

@@ -123,7 +123,13 @@ function _loops.process_key(n,z)
       end
     elseif page.loops.sel < 4 and tab.key(page.loops.bank_controls,sel) > 3 then
       if sel == "rate" then
-
+        _loops.inherit_rate()
+      elseif sel == "semitone" then
+        _loops.inherit_offset()
+      elseif sel == "glide" then
+        _loops.inherit_slew()
+      elseif sel == "loop_state" then
+        _loops.inherit_loop()
       elseif sel == "auto_chop" then
         sync_clock_to_loop(pad,"audio")
       end

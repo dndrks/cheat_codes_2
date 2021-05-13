@@ -11,22 +11,30 @@ function euclid.reer(i)
 end
 
 function euclid.trig(target)
-  if euclid.track[target].s[euclid.track[target].pos] then
-    if euclid.track[target].mode == "single" then
-      cheat(target,euclid.rotate_pads(bank[target].id + euclid.track[target].pad_offset))
-      if menu ~= 1 then screen_dirty = true end
-    elseif euclid.track[target].mode == "span" then
-      bank[target].id = euclid.rotate_pads(euclid.track[target].pos + euclid.track[target].pad_offset)
-      selected[target].x = (5*(target-1)+1)+(math.ceil(bank[target].id/4)-1)
-      if (bank[target].id % 4) ~= 0 then
-        selected[target].y = 9-(bank[target].id % 4)
-      else
-        selected[target].y = 5
-      end
-      cheat(target,euclid.rotate_pads(euclid.track[target].pos + euclid.track[target].pad_offset))
-      if menu ~= 1 then screen_dirty = true end
-    end
+  if rytm.grid.ui[target] then
     grid_dirty = true
+  end
+  if euclid.track[target].s[euclid.track[target].pos] then
+    if not arp[target].playing
+    or arp[target].playing and pattern_gate[target][2].active then
+      if euclid.track[target].mode == "single" then
+        cheat(target,euclid.rotate_pads(bank[target].id + euclid.track[target].pad_offset))
+        if menu ~= 1 then screen_dirty = true end
+      elseif euclid.track[target].mode == "span" then
+        bank[target].id = euclid.rotate_pads(euclid.track[target].pos + euclid.track[target].pad_offset)
+        selected[target].x = (5*(target-1)+1)+(math.ceil(bank[target].id/4)-1)
+        if (bank[target].id % 4) ~= 0 then
+          selected[target].y = 9-(bank[target].id % 4)
+        else
+          selected[target].y = 5
+        end
+        cheat(target,euclid.rotate_pads(euclid.track[target].pos + euclid.track[target].pad_offset))
+        if menu ~= 1 then screen_dirty = true end
+      end
+    end
+    if not rytm.grid.ui[target] then
+      grid_dirty = true
+    end
     -- if menu ~= 1 then screen_dirty = true end
   end
 end
@@ -42,6 +50,7 @@ function euclid.init()
   euclid.screen_focus = "left"
 
   euclid.track = {}
+  euclid.grid = {["ui"] = {},["page"] = {}}
   for i = 1,3 do
     euclid.track[i] = {
       k = 0,
@@ -55,8 +64,11 @@ function euclid.init()
       auto_pad_offset = 0,
       mode = "single",
       clock_div = 1/2,
-      runner = 0
+      runner = 0,
+      mute = false
     }
+    euclid.grid.ui[i] = false
+    euclid.grid.page[i] = 1
   end
 
   -- euclid.clock = clock.run(euclid.super_clock)

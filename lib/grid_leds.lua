@@ -117,7 +117,9 @@ function _gleds.grid_redraw()
           for k = 1,4 do
             k = k+(5*j)
             for i = 8,5,-1 do
-              g:led(k,i,led_maps["square_off"][edition])
+              if not rytm.grid.ui[j+1] then
+                g:led(k,i,led_maps["square_off"][edition])
+              end
             end
           end
         end
@@ -125,31 +127,37 @@ function _gleds.grid_redraw()
         for i = 0,1 do
           for x = 4+i,14+i,5 do
             for j = 1,3+i do
-              g:led(x,j,zilch_leds[i == 0 and 3 or 4][util.round(x/5)][j] == 1 and led_maps["zilchmo_on"][edition] or led_maps["zilchmo_off"][edition])
+              if not rytm.grid.ui[util.round(x/5)] then
+                g:led(x,j,zilch_leds[i == 0 and 3 or 4][util.round(x/5)][j] == 1 and led_maps["zilchmo_on"][edition] or led_maps["zilchmo_off"][edition])
+              end
             end
           end
         end
 
         for x = 3,13,5 do
           for j = 1,2 do
-            g:led(x,j,zilch_leds[2][util.round(x/5)][j] == 1 and led_maps["zilchmo_on"][edition] or led_maps["zilchmo_off"][edition])
+            if not rytm.grid.ui[util.round(x/5)] then
+              g:led(x,j,zilch_leds[2][util.round(x/5)][j] == 1 and led_maps["zilchmo_on"][edition] or led_maps["zilchmo_off"][edition])
+            end
           end
         end
         
         for i = 1,3 do
-          local target = grid_pat[i]
-          if target.rec == 1 then
-            g:led(2+(5*(i-1)),1,(9*target.led))
-          elseif (target.quantize == 0 and target.play == 1) or (target.quantize == 1 and target.tightened_start == 1) then
-            if target.overdub == 0 then
-              g:led(2+(5*(i-1)),1,9)
+          if not rytm.grid.ui[i] then
+            local target = grid_pat[i]
+            if target.rec == 1 then
+              g:led(2+(5*(i-1)),1,(9*target.led))
+            elseif (target.quantize == 0 and target.play == 1) or (target.quantize == 1 and target.tightened_start == 1) then
+              if target.overdub == 0 then
+                g:led(2+(5*(i-1)),1,9)
+              else
+                g:led(2+(5*(i-1)),1,15)
+              end
+            elseif target.count > 0 then
+              g:led(2+(5*(i-1)),1,5)
             else
-              g:led(2+(5*(i-1)),1,15)
+              g:led(2+(5*(i-1)),1,3)
             end
-          elseif target.count > 0 then
-            g:led(2+(5*(i-1)),1,5)
-          else
-            g:led(2+(5*(i-1)),1,3)
           end
         end
         
@@ -197,123 +205,180 @@ function _gleds.grid_redraw()
         end
         
         for i = 1,3 do
-          if bank[i].focus_hold == false then
-            g:led(selected[i].x, selected[i].y, led_maps["square_selected"][edition])
-            if i == nil then print("2339") end
-            if bank[i].id == nil then print("2340", i) end
-            if bank[i][bank[i].id].pause == nil then print("2341") end
-            if bank[i][bank[i].id].pause == true then
-              g:led(3+(5*(i-1)),1,led_maps["pad_pause"][edition])
-              g:led(3+(5*(i-1)),2,led_maps["pad_pause"][edition])
+          if not rytm.grid.ui[i] then
+            if bank[i].focus_hold == false then
+              g:led(selected[i].x, selected[i].y, led_maps["square_selected"][edition])
+              if i == nil then print("2339") end
+              if bank[i].id == nil then print("2340", i) end
+              if bank[i][bank[i].id].pause == nil then print("2341") end
+              if bank[i][bank[i].id].pause == true then
+                g:led(3+(5*(i-1)),1,led_maps["pad_pause"][edition])
+                g:led(3+(5*(i-1)),2,led_maps["pad_pause"][edition])
+              else
+                -- g:led(3+(5*(i-1)),1,led_maps["pad_play"][edition])
+                -- g:led(3+(5*(i-1)),2,led_maps["pad_play"][edition])
+                g:led(3+(5*(i-1)),1,zilch_leds[2][i][1] == 1 and led_maps["zilchmo_on"][edition] or led_maps["zilchmo_off"][edition])
+                g:led(3+(5*(i-1)),2,zilch_leds[2][i][2] == 1 and led_maps["zilchmo_on"][edition] or led_maps["zilchmo_off"][edition])
+              end
             else
-              -- g:led(3+(5*(i-1)),1,led_maps["pad_play"][edition])
-              -- g:led(3+(5*(i-1)),2,led_maps["pad_play"][edition])
-              g:led(3+(5*(i-1)),1,zilch_leds[2][i][1] == 1 and led_maps["zilchmo_on"][edition] or led_maps["zilchmo_off"][edition])
-              g:led(3+(5*(i-1)),2,zilch_leds[2][i][2] == 1 and led_maps["zilchmo_on"][edition] or led_maps["zilchmo_off"][edition])
-            end
-          else
-            local focus_x = (math.ceil(bank[i].focus_pad/4)+(5*(i-1)))
-            local focus_y = 8-((bank[i].focus_pad-1)%4)
-            g:led(selected[i].x, selected[i].y, led_maps["square_dim"][edition])
-            g:led(focus_x, focus_y, led_maps["square_selected"][edition])
-            if bank[i][bank[i].focus_pad].pause == true then
-              g:led(3+(5*(i-1)),1,led_maps["square_selected"][edition])
-              g:led(3+(5*(i-1)),2,led_maps["square_selected"][edition])
-            else
-              g:led(3+(5*(i-1)),1,led_maps["square_off"][edition])
-              g:led(3+(5*(i-1)),2,led_maps["square_off"][edition])
+              local focus_x = (math.ceil(bank[i].focus_pad/4)+(5*(i-1)))
+              local focus_y = 8-((bank[i].focus_pad-1)%4)
+              g:led(selected[i].x, selected[i].y, led_maps["square_dim"][edition])
+              g:led(focus_x, focus_y, led_maps["square_selected"][edition])
+              if bank[i][bank[i].focus_pad].pause == true then
+                g:led(3+(5*(i-1)),1,led_maps["square_selected"][edition])
+                g:led(3+(5*(i-1)),2,led_maps["square_selected"][edition])
+              else
+                g:led(3+(5*(i-1)),1,led_maps["square_off"][edition])
+                g:led(3+(5*(i-1)),2,led_maps["square_off"][edition])
+              end
             end
           end
         end
         
         for i = 1,3 do
-          if bank[i].focus_hold then
-            g:led(4+(5*(i-1)),4,(10*(bank[i][bank[i].focus_pad].send_pad_note and 1 or 0))+5)
+          if not rytm.grid.ui[i] then
+            if bank[i].focus_hold then
+              g:led(4+(5*(i-1)),4,(10*(bank[i][bank[i].focus_pad].send_pad_note and 1 or 0))+5)
+            end
           end
           local alt = bank[i].alt_lock and 1 or 0
           g:led(5*i,5,15*alt)
         end
         
         for i,e in pairs(lit) do
-          g:led(e.x, e.y,led_maps["zilchmo_on"][edition])
+          if not rytm.grid.ui[e.id] then
+            g:led(e.x, e.y,led_maps["zilchmo_on"][edition])
+          end
         end
         
         g:led(16,8,(grid_alt and led_maps["alt_on"][edition] or led_maps["alt_off"][edition]))
         
         for i = 1,3 do
+          if not rytm.grid.ui[i] then
           
-          local focused = bank[i].focus_hold == false and bank[i][bank[i].id] or bank[i][bank[i].focus_pad]
+            local focused = bank[i].focus_hold == false and bank[i][bank[i].id] or bank[i][bank[i].focus_pad]
 
-          g:led(1 + (5*(i-1)), math.abs(focused.clip-5),led_maps["clip"][edition])
-          g:led(2 + (5*(i-1)), math.abs(focused.mode-5),led_maps["mode"][edition])
-          g:led(1+(5*(i-1)),1,bank[i].focus_hold == false and led_maps["off"][edition] or led_maps["focus_on"][edition])
-          if focused.loop == false then
-            g:led(3+(5*(i-1)),4,led_maps["loop_off"][edition])
-          elseif focused.loop == true then
-            g:led(3+(5*(i-1)),4,led_maps["loop_on"][edition])
-          end
+            g:led(1 + (5*(i-1)), math.abs(focused.clip-5),led_maps["clip"][edition])
+            g:led(2 + (5*(i-1)), math.abs(focused.mode-5),led_maps["mode"][edition])
+            g:led(1+(5*(i-1)),1,bank[i].focus_hold == false and led_maps["off"][edition] or led_maps["focus_on"][edition])
+            if focused.loop == false then
+              g:led(3+(5*(i-1)),4,led_maps["loop_off"][edition])
+            elseif focused.loop == true then
+              g:led(3+(5*(i-1)),4,led_maps["loop_on"][edition])
+            end
 
-          if params:string("arp_"..i.."_hold_style") ~= "sequencer" then
-            local arp_button = 3+(5*(i-1))
-            local arp_writer = 5*i
-            if arp[i].enabled and tab.count(arp[i].notes) == 0 then
-              g:led(arp_button,3,led_maps["arp_on"][edition])
-            elseif arp[i].playing then
-              if arp[i].hold then
-                g:led(arp_button,3,led_maps["arp_play"][edition])
+            if params:string("arp_"..i.."_hold_style") ~= "sequencer" then
+              local arp_button = 3+(5*(i-1))
+              local arp_writer = 4+(5*(i-1))
+              if arp[i].enabled and tab.count(arp[i].notes) == 0 then
+                g:led(arp_button,3,led_maps["arp_on"][edition])
+              elseif arp[i].playing then
+                if arp[i].hold then
+                  g:led(arp_button,3,led_maps["arp_play"][edition])
+                else
+                  if not arp[i].pause then
+                    g:led(arp_button,3,led_maps["arp_pause"][edition]) -- i know, i know...
+                  end
+                end
+                if arp[i].enabled then
+                  g:led(arp_writer,4,led_maps["arp_play"][edition])
+                else
+                  g:led(arp_writer,4,led_maps["arp_on"][edition])
+                end
               else
-                if not arp[i].pause then
-                  g:led(arp_button,3,(led_maps["arp_play"][edition])-3)
+                if arp[i].hold then
+                  -- g:led(arp_button,3,led_maps["arp_pause"][edition])
+                end
+                if tab.count(arp[i].notes) > 0 then
+                  g:led(arp_button,3,led_maps["arp_pause"][edition])
                 end
               end
-              if arp[i].enabled then
-                g:led(arp_writer,6,led_maps["arp_play"][edition])
-              else
-                g:led(arp_writer,6,led_maps["arp_on"][edition])
-              end
+              -- if not arp[i].enabled then
+              --   g:led(arp_button,3,led_maps["off"][edition])
+              -- else
+              --   if arp[i].playing and arp[i].hold then
+              --     g:led(arp_button,3,led_maps["arp_play"][edition])
+              --   elseif arp[i].hold then
+              --     g:led(arp_button,3,led_maps["arp_pause"][edition])
+              --   else
+              --     g:led(arp_button,3,led_maps["arp_on"][edition])
+              --   end
+              -- end
             else
-              if arp[i].hold then
-                -- g:led(arp_button,3,led_maps["arp_pause"][edition])
-              end
-              if tab.count(arp[i].notes) > 0 then
-                g:led(arp_button,3,led_maps["arp_pause"][edition])
+              local arp_button = 3+(5*(i-1))
+              local arp_writer = 4+(5*(i-1))
+              if arp[i].playing then
+                g:led(arp_button,3,led_maps["arp_play"][edition])
+                if arp[i].enabled then
+                  g:led(arp_writer,4,led_maps["arp_play"][edition])
+                else
+                  g:led(arp_writer,4,led_maps["arp_on"][edition])
+                end
+              else
+                g:led(arp_button,3,led_maps["off"][edition])
+                if tab.count(arp[i].notes) > 0 then
+                  g:led(arp_button,3,led_maps["arp_pause"][edition])
+                end
               end
             end
-            -- if not arp[i].enabled then
-            --   g:led(arp_button,3,led_maps["off"][edition])
-            -- else
-            --   if arp[i].playing and arp[i].hold then
-            --     g:led(arp_button,3,led_maps["arp_play"][edition])
-            --   elseif arp[i].hold then
-            --     g:led(arp_button,3,led_maps["arp_pause"][edition])
-            --   else
-            --     g:led(arp_button,3,led_maps["arp_on"][edition])
-            --   end
-            -- end
-          else
-            local arp_button = 3+(5*(i-1))
-            local arp_writer = 5*i
-            if arp[i].playing then
-              g:led(arp_button,3,led_maps["arp_play"][edition])
-              if arp[i].enabled then
-                g:led(arp_writer,6,led_maps["arp_play"][edition])
-              else
-                g:led(arp_writer,6,led_maps["arp_on"][edition])
-              end
-            else
-              g:led(arp_button,3,led_maps["off"][edition])
-              if tab.count(arp[i].notes) > 0 then
-                g:led(arp_button,3,led_maps["arp_pause"][edition])
-              end
-            end
-          end
 
+          end
         end
         
         if rec[rec.focus].clear == 0 then
           g:led(16,8-rec.focus,rec[rec.focus].state == 1 and led_maps["live_rec"][edition] or (rec[rec.focus].queued and 15 or led_maps["live_pause"][edition]))
         elseif rec[rec.focus].clear == 1 then
           g:led(16,8-rec.focus,rec[rec.focus].queued and 9 or led_maps["live_empty"][edition])
+        end
+
+        --euclid draw
+
+        local function get_xpos(i,p)
+          return p+(5*(i-1))
+        end
+        for i = 1,3 do
+          if rytm.grid.ui[i] then
+            for j = 1,8 do
+              if rytm.track[i].n >= j then
+                g:led(get_xpos(i,1),9-j,rytm.track[i].s[j]
+                and (rytm.track[i].pos == j and 15 or 8)
+                or (rytm.track[i].pos == j and 5 or 3))
+              end
+            end
+            for j = 9,16 do
+              if rytm.track[i].n >= j then
+                g:led(get_xpos(i,2),17-j,rytm.track[i].s[j]
+                and (rytm.track[i].pos == j and 15 or 8)
+                or (rytm.track[i].pos == j and 5 or 3))
+              end
+            end
+            local which_param = {"k","n","rotation"}
+            local r_p = rytm.grid.page[i]
+            for j = 1,8 do
+              if rytm.track[i][which_param[r_p]] >= j then
+                g:led(get_xpos(i,3),9-j,5)
+              end
+            end
+            for j = 9,16 do
+              if rytm.track[i][which_param[r_p]] >= j then
+                g:led(get_xpos(i,4),17-j,5)
+              end
+            end
+            for j = 1,3 do
+              if rytm.grid.page[i] == j then
+                g:led(get_xpos(i,5),4-j,12)
+              else
+                g:led(get_xpos(i,5),4-j,4)
+              end
+            end
+            g:led(get_xpos(i,5),8,8)
+          end
+        end
+
+        for i = 1,3 do
+          g:led(5+(5*(i-1)),7,pattern_gate[i][1].active == true and 8 or 0)
+          g:led(5+(5*(i-1)),6,pattern_gate[i][2].active == true and 8 or 0)
         end
       
       elseif grid_page == 1 then
