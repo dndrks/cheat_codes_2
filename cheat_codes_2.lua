@@ -78,6 +78,7 @@ transport = include 'lib/transport'
 speed_dial = include 'lib/speed_dial'
 _gleds = include 'lib/grid_leds'
 p_gate = include 'lib/p_gate'
+_dough = include 'lib/doughstretch'
 math.randomseed(os.time())
 variable_fade_time = 0.01
 --with positive playback rates, the buffer is actually read from / written to up to (loop end + fade time).
@@ -1824,6 +1825,7 @@ function init()
 
   rytm.init()
   transport.init()
+  _dough.init()
 
   if g then grid_dirty = true end
   
@@ -2781,6 +2783,7 @@ function reset_all_banks( banks )
         -- TODO these are both identical to zilchmos.start_end_default()
       pad.start_point       = 1+((8/16) * (pad.pad_id-1))
       pad.end_point         = 1+((8/16) *  pad.pad_id)
+      pad.start_offset      = 0
       pad.sample_end        = 8
       pad.rate              = 1.0
       pad.left_delay_time   = 0.5 -- [delay] controls these
@@ -2948,6 +2951,9 @@ function cheat(b,i)
   -- softcut.loop_start(b+1,pad.start_point+variable_fade_time)
   -- softcut.loop_end(b+1,pad.end_point-variable_fade_time)
   softcut.loop_start(b+1,pad.start_point)
+  if dough_stretch~=nil then
+    dough_stretch[b].pos = pad.start_point
+  end
   softcut.loop_end(b+1,pad.end_point)
   softcut.buffer(b+1,pad.mode)
   if pad.loop == false then
