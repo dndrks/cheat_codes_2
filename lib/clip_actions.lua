@@ -253,12 +253,16 @@ function ca.load_sample(file,sample)
   local old_min = clip[sample].min
   local old_max = clip[sample].max
   if file ~= "-" then
-    local ch, len = audio.file_info(file)
+    local ch, len, rate = audio.file_info(file)
+    if rate ~= 48000 then print("sample rate needs to be 48khz!") end
     if len/48000 < 32 then
       clip[sample].sample_length = len/48000
     else
       clip[sample].sample_length = 32
     end
+    clip[sample].original_length = len/48000
+    clip[sample].original_bpm = _dough.derive_bpm(clip[sample])
+    clip[sample].original_samplerate = rate/1000
     softcut.buffer_clear_region_channel(2,1+(32*(sample-1)),32)
     softcut.buffer_read_mono(file, 0, 1+(32*(sample-1)),clip[sample].sample_length + 0.05, 1, 2)
     -- softcut.buffer_read_mono(file, 0, 1+(32*(sample-1)),clip[sample].sample_length, 1, 2)

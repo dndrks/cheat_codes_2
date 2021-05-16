@@ -79,7 +79,7 @@ function start_up.init()
   
   --params:add_separator()
   
-  params:add_group("loops + buffers", 45)
+  params:add_group("loops + buffers", 55)
 
   params:add_separator("clips")
   
@@ -209,6 +209,8 @@ function start_up.init()
   for i = 1,3 do
     params:add{type = "trigger", id = "SOS_save_clip"..i, name = "save clip "..i.." [K3]", action = function() _ca.SOS_save_clip(i) end}	
   end
+
+  _dough.init_params()
 
   params:add_separator("global")
 

@@ -1910,6 +1910,8 @@ function sync_clock_to_loop(source,style)
         dur = dur + source.time[i]
       end
     end
+  elseif style == "imported_sample" then
+    dur = source.sample_length
   end
   if dur > 0 then
     local quarter = dur/4
@@ -2633,6 +2635,7 @@ function update_tempo()
     env_counter[i].time = (bank[i][bank[i].id].envelope_time/(bank[i][bank[i].id].level/0.05))
     del.sync_lfos()
     macros.sync_lfos()
+    _dough.scale_sample_to_main(i)
     --quantizer[i].time = interval
     --grid_pat_quantizer[i].time = interval_pats
   end

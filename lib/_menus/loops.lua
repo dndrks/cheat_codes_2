@@ -21,6 +21,9 @@ function _loops.init()
   page.loops.frame = 1
   page.loops.meta_control = false
   page.loops.meta_sel = 1
+  page.loops.dough_stretch = {}
+  page.loops.dough_stretch.controls = {"mode","step","dur","fade"}
+  page.loops.dough_stretch.selected_control = "mode"
   _loops_ = page.loops
 end
 
@@ -209,22 +212,22 @@ function _loops.process_encoder(n,d)
         local pad = bank[page.loops.sel][page.loops.meta_pad[page.loops.sel]]
         local resolution = loop_enc_resolution[page.loops.sel]
         if page.loops.selected_bank_control == "cheat_pad" then
-          if not key1_hold or (key1_hold and arc_pat[page.loops.sel][1].rec == 1) then
+          if not key1_hold then
             _loops.change_pad(page.loops.sel,d)
-          elseif key1_hold and arc_pat[page.loops.sel][1].rec == 0 and #arc_pat[page.loops.sel][1].event > 0 then
-            arc_pat[page.loops.sel][1].time_factor = util.clamp(arc_pat[page.loops.sel][1].time_factor + d/10,0.1,10)
+          elseif key1_hold then
+            _dough.change(page.loops.sel,"time",d)
           end
         elseif page.loops.selected_bank_control == "start_point" then
-          if not key1_hold or (key1_hold and arc_pat[page.loops.sel][1].rec == 1) then
+          if not key1_hold then
             _loops.move_loop_points(pad,d,resolution,"move_start")
-          elseif key1_hold and arc_pat[page.loops.sel][1].rec == 0 and #arc_pat[page.loops.sel][1].event > 0 then
-            arc_pat[page.loops.sel][1].time_factor = util.clamp(arc_pat[page.loops.sel][1].time_factor + d/10,0.1,10)
+          elseif key1_hold then
+            _dough.change(page.loops.sel,"time",d)
           end
         elseif page.loops.selected_bank_control == "end_point" then
-          if not key1_hold or (key1_hold and arc_pat[page.loops.sel][1].rec == 1) then
+          if not key1_hold then
             _loops.move_loop_points(pad,d,resolution,"move_end")
-          elseif key1_hold and arc_pat[page.loops.sel][1].rec == 0 and #arc_pat[page.loops.sel][1].event > 0 then
-            arc_pat[page.loops.sel][1].time_factor = util.clamp(arc_pat[page.loops.sel][1].time_factor + d/10,0.1,10)
+          elseif key1_hold then
+            _dough.change(page.loops.sel,"time",d)
           end
         elseif page.loops.selected_bank_control == "rate" then
           local rates ={-4,-2,-1,-0.5,-0.25,-0.125,0,0.125,0.25,0.5,1,2,4}
@@ -572,10 +575,12 @@ function _loops.draw_menu()
         end
         --//new
       elseif key1_hold and tab.key(page.loops.bank_controls,sel) < 4 then
-        local textline_1 = "DOUGHSTRETCH"
-        local textline_2 = "+K3: "..(dough_stretch[page.loops.sel].enabled == true and "TURN OFF" or "TURN ON")
-        local textline_3 = "(E2) STEP: "..dough_stretch[page.loops.sel].inc
-        local textline_4 = "(E3) DUR: "..dough_stretch[page.loops.sel].time
+        local textline_1 = "STRETCH: "..(dough_stretch[page.loops.sel].enabled == true and dough_stretch[page.loops.sel].mode or "OFF")
+        local textline_2 = 
+        dough_stretch[page.loops.sel].mode == "chi" and "FADE: 1/"..dough_stretch[page.loops.sel].fade_time
+        or ""
+        local textline_3 = "STEP: 1/"..dough_stretch[page.loops.sel].inc
+        local textline_4 = "DUR: 1/"..dough_stretch[page.loops.sel].time
         
         screen.level(15)
         screen.move(0,54)
@@ -722,6 +727,17 @@ function _loops.draw_menu()
         and "press K3 to load"
         or params:get("clip "..i.." sample"):match("^.+/(.+)$")
         screen.text("CLIP "..i..": "..text_to_display)
+      end
+      if key1_hold and params:get("clip "..page.loops.selected_clip_control.." sample") ~= "-" then
+        screen.level(10)
+        screen.move(0,60)
+        screen.text("SR: "..
+        string.format("%.4g",clip[page.loops.selected_clip_control].original_samplerate)
+        .."khz"
+        ..(clip[page.loops.selected_clip_control].original_samplerate ~= 48 and " :(" or "")
+        )
+        screen.move(128,60)
+        screen.text_right("BPM: "..clip[page.loops.selected_clip_control].original_bpm)
       end
     elseif page.loops.sel == 6 then
       for i = 1,4 do
