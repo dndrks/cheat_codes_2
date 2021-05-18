@@ -102,7 +102,7 @@ function _loops.process_key(n,z)
     elseif page.loops.sel == 5 then
       _norns.key(1,1)
       _norns.key(1,0)
-      fileselect.enter(_path.audio,function(n) _ca.sample_callback(n,page.loops.selected_clip_control) end)
+      fileselect.enter(_path.audio,function(x) _ca.sample_callback(x,page.loops.selected_clip_control) end)
       if key2_hold then key2_hold = false end
     elseif page.loops.sel == 6 then
       page.loops.meta_control = not page.loops.meta_control
@@ -122,6 +122,10 @@ function _loops.process_key(n,z)
         _loops.inherit_loop()
       elseif sel == "auto_chop" then
         sync_clock_to_loop(pad,"audio")
+      end
+    elseif page.loops.sel == 5 then
+      if clip[page.loops.selected_clip_control].original_samplerate == 48 then
+        sync_clock_to_loop(clip[page.loops.selected_clip_control],"imported_sample")
       end
     end
   end
@@ -729,15 +733,26 @@ function _loops.draw_menu()
         screen.text("CLIP "..i..": "..text_to_display)
       end
       if key1_hold and params:get("clip "..page.loops.selected_clip_control.." sample") ~= "-" then
-        screen.level(10)
-        screen.move(0,60)
+        screen.level(8)
+        screen.rect(0,14,128,7)
+        screen.fill()
+        screen.level(0)
+        screen.move(5,20)
         screen.text("SR: "..
         string.format("%.4g",clip[page.loops.selected_clip_control].original_samplerate)
         .."khz"
         ..(clip[page.loops.selected_clip_control].original_samplerate ~= 48 and " :(" or "")
         )
-        screen.move(128,60)
+        screen.move(123,20)
         screen.text_right("BPM: "..clip[page.loops.selected_clip_control].original_bpm)
+        if clip[page.loops.selected_clip_control].original_samplerate == 48 then
+          screen.level(8)
+          screen.rect(0,54,128,7)
+          screen.fill()
+          screen.level(0)
+          screen.move(64,60)
+          screen.text_center("K3: set project BPM to "..clip[page.loops.selected_clip_control].original_bpm)
+        end
       end
     elseif page.loops.sel == 6 then
       for i = 1,4 do

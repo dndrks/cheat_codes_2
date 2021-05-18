@@ -5,7 +5,7 @@ function dough.init()
   for i = 1,3 do
     dough_stretch[i] = {}
     dough_stretch[i].enabled = false
-    dough_stretch[i].modes = {"off","neo","nyc","chi"} -- neo: pitch constant, nyc: time stretching, chi: granular
+    dough_stretch[i].modes = {"off","neo","nyc","chi","pgh"} -- neo: pitch constant, nyc: time stretching, chi: granular
     dough_stretch[i].mode = "off"
     dough_stretch[i].inc = 12
     dough_stretch[i].time = 12
@@ -23,8 +23,9 @@ end
 function dough.init_params()
   dough.init()
   params:add_separator("doughstretch")
+  local bank_names = {"[a]","[b]","[c]"}
   for i = 1,3 do
-    params:add_option("doughstretch_mode_"..i,"doughstretch mode "..i,{"off","neo","nyc","chi"},1)
+    params:add_option("doughstretch_mode_"..i,"doughstretch mode "..bank_names[i],{"off","neo","nyc","chi","pgh"},1)
     params:set_action("doughstretch_mode_"..i,function(x)
       if x == 1 then
         if dough_stretch[i].clock ~= nil then
@@ -40,29 +41,40 @@ function dough.init_params()
         end
       end
       if x == 2 then
-        softcut.fade_time(i+1,dough_stretch[i].fade_time/100)
         dough_stretch[i].pos = poll_position_new[i+1]
         params:set("doughstretch_step_"..i,12)
         params:set("doughstretch_duration_"..i,12)
+        params:set("doughstretch_fade_"..i,1)
+        print("should set neo")
       elseif x == 3 then
-        softcut.fade_time(i+1,dough_stretch[i].fade_time/100)
         dough_stretch[i].pos = poll_position_new[i+1]
         params:set("doughstretch_step_"..i,100)
+        params:set("doughstretch_fade_"..i,6)
         dough.scale_sample_to_main(i)
+      elseif x == 4 then
+        dough_stretch[i].pos = poll_position_new[i+1]
+        params:set("doughstretch_fade_"..i,30)
+        params:set("doughstretch_step_"..i,100)
+        params:set("doughstretch_duration_"..i,8)
+      elseif x == 5 then
+        dough_stretch[i].pos = poll_position_new[i+1]
+        params:set("doughstretch_fade_"..i,math.random(40,300))
+        params:set("doughstretch_step_"..i,math.random(3,60))
+        params:set("doughstretch_duration_"..i,math.random(6,105))
       end
     end)
-    params:add_number("doughstretch_step_"..i,"doughstep step "..i,1,300,12)
+    params:add_number("doughstretch_step_"..i,"    step time",1,300,12)
     params:set_action("doughstretch_step_"..i, function(x)
       dough_stretch[i].inc = x
     end)
-    params:add_number("doughstretch_duration_"..i,"doughstep duration "..i,1,300,12)
+    params:add_number("doughstretch_duration_"..i,"    duration",1,300,12)
     params:set_action("doughstretch_duration_"..i, function(x)
       dough_stretch[i].time = x
     end)
-    params:add_number("doughstretch_fade_"..i,"doughstep fade "..i,0,300,1)
+    params:add_number("doughstretch_fade_"..i,"    fade",0,300,1)
     params:set_action("doughstretch_fade_"..i, function(x)
       dough_stretch[i].fade_time = x
-      softcut.fadetime(i+1,x/100)
+      softcut.fade_time(i+1,x/100)
     end)
   end
 end
@@ -79,8 +91,34 @@ function dough.stretch(i)
         dough.toggle(i) -- not ideal...
       end
     end
-    dough_stretch[i].pos = dough_stretch[i].pos + ((1/dough_stretch[i].inc)*clock.get_beat_sec())
+    if params:get("doughstretch_mode_"..i) == 5 then
+      local next_pos = math.random(0,1)
+      next_pos = next_pos == 0 and -1 or 1
+      dough_stretch[i].pos = util.clamp(
+        dough_stretch[i].pos + ((next_pos/dough_stretch[i].inc)*clock.get_beat_sec()),
+        bank[i][bank[i].id].start_point,
+        bank[i][bank[i].id].end_point)
+      dough.pgh_set("doughstretch_fade_",i)
+      dough.pgh_set("doughstretch_step_",i)
+      dough.pgh_set("doughstretch_duration_",i)
+    else
+      dough_stretch[i].pos = dough_stretch[i].pos + ((1/dough_stretch[i].inc)*clock.get_beat_sec())
+    end
   end
+end
+
+function dough.pgh_set(param,i)
+  local bounds =
+  {
+    ["doughstretch_fade_"] = {["min"]=1,["max"]=200},
+    ["doughstretch_step_"] = {["min"]=3,["max"]=60},
+    ["doughstretch_duration_"] = {["min"]=3,["max"]=105}
+  }
+  local current = params:get(param..i)
+  local next_move = math.random(0,1)
+  next_move = next_move == 0 and -1 or 1
+  local next_step = util.wrap(current+next_move,bounds[param].min,bounds[param].max)
+  params:set(param..i,next_step)
 end
 
 function dough.toggle(i) -- this shouldn't call/cancel clock, it should gate it...
@@ -131,7 +169,7 @@ function dough.scale_sample_to_main(i)
     local scale = util.round(sample_tempo/proj_tempo * 100,0.01)
     dough_stretch[i].time = 100
     dough_stretch[i].inc = scale
-    dough_stretch[i].fade_time = 6
+    dough_stretch[i].fade_time = params:get("doughstretch_fade_"..i)
     softcut.fade_time(i+1,dough_stretch[i].fade_time/100)
   end
 end

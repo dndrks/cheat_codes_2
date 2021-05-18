@@ -79,7 +79,7 @@ function start_up.init()
   
   --params:add_separator()
   
-  params:add_group("loops + buffers", 55)
+  params:add_group("loops + buffers", 58)
 
   params:add_separator("clips")
   

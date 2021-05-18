@@ -1899,36 +1899,40 @@ function ping_midi_devices()
 end
 
 function sync_clock_to_loop(source,style)
-  local dur = 0
-  local pattern_id;
-  if style == "audio" then
-    dur = source.end_point-source.start_point
-  elseif style == "pattern" then
-    pattern_id = string.match(source.name,"%d+")
-    if params:string("sync_clock_to_pattern_"..pattern_id) == "yes" then
-      for i = source.start_point,source.end_point do
-        dur = dur + source.time[i]
+  if style ~= "imported_sample" then
+    local dur = 0
+    local pattern_id;
+    if style == "audio" then
+      dur = source.end_point-source.start_point
+    elseif style == "pattern" then
+      pattern_id = string.match(source.name,"%d+")
+      if params:string("sync_clock_to_pattern_"..pattern_id) == "yes" then
+        for i = source.start_point,source.end_point do
+          dur = dur + source.time[i]
+        end
+      end
+    elseif style == "imported_sample" then
+      dur = source.sample_length
+    end
+    if dur > 0 then
+      local quarter = dur/4
+      local derived_bpm = 60/quarter
+      while derived_bpm < 70 do
+        derived_bpm = derived_bpm * 2
+        if derived_bpm > 160 then break end
+      end
+      while derived_bpm > 160 do
+        derived_bpm = derived_bpm/2
+        if derived_bpm <= 70 then break end
+      end
+      if params:get("clock_midi_out") ~= 1 then
+        params:set("clock_tempo",util.round(derived_bpm))
+      else
+        params:set("clock_tempo",util.round(derived_bpm,0.01))
       end
     end
   elseif style == "imported_sample" then
-    dur = source.sample_length
-  end
-  if dur > 0 then
-    local quarter = dur/4
-    local derived_bpm = 60/quarter
-    while derived_bpm < 70 do
-      derived_bpm = derived_bpm * 2
-      if derived_bpm > 160 then break end
-    end
-    while derived_bpm > 160 do
-      derived_bpm = derived_bpm/2
-      if derived_bpm <= 70 then break end
-    end
-    if params:get("clock_midi_out") ~= 1 then
-      params:set("clock_tempo",util.round(derived_bpm))
-    else
-      params:set("clock_tempo",util.round(derived_bpm,0.01))
-    end
+    params:set("clock_tempo", source.original_bpm)
   end
 end
 
