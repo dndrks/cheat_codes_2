@@ -83,26 +83,29 @@ function dough.stretch(i)
   while true do
     -- clock.sleep((1/dough_stretch[i].time)*clock.get_beat_sec())
     clock.sync(1/dough_stretch[i].time)
-    softcut.position(i+1, dough_stretch[i].pos)
-    if dough_stretch[i].pos + ((1/dough_stretch[i].inc)*clock.get_beat_sec()) > (bank[i][bank[i].id].end_point - (dough_stretch[i].fade_time/100))then
-      if bank[i][bank[i].id].loop then
-        dough_stretch[i].pos = bank[i][bank[i].id].start_point - ((1/dough_stretch[i].inc)*clock.get_beat_sec())
-      else
-        dough.toggle(i) -- not ideal...
+    if dough_stretch[i].enabled then
+      softcut.position(i+1, dough_stretch[i].pos)
+      if dough_stretch[i].pos + ((1/dough_stretch[i].inc)*clock.get_beat_sec()) > (bank[i][bank[i].id].end_point - (dough_stretch[i].fade_time/100))then
+        if bank[i][bank[i].id].loop then
+          dough_stretch[i].pos = bank[i][bank[i].id].start_point - ((1/dough_stretch[i].inc)*clock.get_beat_sec())
+        else
+          dough_stretch[i].enabled = false
+          -- dough.toggle(i) -- not ideal...
+        end
       end
-    end
-    if params:get("doughstretch_mode_"..i) == 5 then
-      local next_pos = math.random(0,1)
-      next_pos = next_pos == 0 and -1 or 1
-      dough_stretch[i].pos = util.clamp(
-        dough_stretch[i].pos + ((next_pos/dough_stretch[i].inc)*clock.get_beat_sec()),
-        bank[i][bank[i].id].start_point,
-        bank[i][bank[i].id].end_point)
-      dough.pgh_set("doughstretch_fade_",i)
-      dough.pgh_set("doughstretch_step_",i)
-      dough.pgh_set("doughstretch_duration_",i)
-    else
-      dough_stretch[i].pos = dough_stretch[i].pos + ((1/dough_stretch[i].inc)*clock.get_beat_sec())
+      if params:get("doughstretch_mode_"..i) == 5 then
+        local next_pos = math.random(0,1)
+        next_pos = next_pos == 0 and -1 or 1
+        dough_stretch[i].pos = util.clamp(
+          dough_stretch[i].pos + ((next_pos/dough_stretch[i].inc)*clock.get_beat_sec()),
+          bank[i][bank[i].id].start_point,
+          bank[i][bank[i].id].end_point)
+        dough.pgh_set("doughstretch_fade_",i)
+        dough.pgh_set("doughstretch_step_",i)
+        dough.pgh_set("doughstretch_duration_",i)
+      else
+        dough_stretch[i].pos = dough_stretch[i].pos + ((1/dough_stretch[i].inc)*clock.get_beat_sec())
+      end
     end
   end
 end
@@ -171,6 +174,26 @@ function dough.scale_sample_to_main(i)
     dough_stretch[i].inc = scale
     dough_stretch[i].fade_time = params:get("doughstretch_fade_"..i)
     softcut.fade_time(i+1,dough_stretch[i].fade_time/100)
+  end
+end
+
+function dough.cheat(i)
+  local pad = bank[i][bank[i].id]
+  if not dough_stretch[i].enabled then
+    softcut.fade_time(i+1,variable_fade_time)
+    if pad.rate > 0 then
+      -- softcut.position(b+1,pad.start_point+0.05)
+      softcut.position(i+1,pad.start_point+variable_fade_time)
+    elseif pad.rate < 0 then
+        -- softcut.position(b+1,pad.end_point-variable_fade_time-0.05)
+      softcut.position(i+1,pad.end_point-variable_fade_time-0.01)
+    end
+  else
+    if pad.rate > 0 then
+      dough_stretch[i].pos = util.wrap(pad.start_point+dough_stretch[i].fade_time,pad.start_point,pad.end_point)
+    elseif pad.rate < 0 then
+      dough_stretch[i].pos = util.wrap(pad.end_point-dough_stretch[i].fade_time-0.01,pad.start_point,pad.end_point)
+    end
   end
 end
 

@@ -2859,6 +2859,8 @@ function reset_all_banks( banks )
       pad.right_delay_thru  = false
       pad.rate_slew         = 0
       pad.arp_time          = 1/4
+
+      pad.dough_stretch     = true
     end
     cross_filter[i]         = {}
     cross_filter[i].fc      = 12000
@@ -2879,6 +2881,8 @@ end
 
 function cheat(b,i)
   local pad = bank[b][i]
+  b = util.round(b)
+  i = util.round(i)
   if all_loaded then
     mc.midi_note_from_pad(util.round(b),util.round(i))
     mc.route_midi_mod(b,i)
@@ -2954,12 +2958,15 @@ function cheat(b,i)
   else
     softcut.rate(b+1,0)
   end
-  softcut.fade_time(b+1,variable_fade_time)
-  -- softcut.loop_start(b+1,pad.start_point+variable_fade_time)
-  -- softcut.loop_end(b+1,pad.end_point-variable_fade_time)
+  if params:string("doughstretch_mode_"..b) == "off" then
+    -- softcut.fade_time(b+1,variable_fade_time) -- doesn't need to be defined every cheat
+  end
   softcut.loop_start(b+1,pad.start_point)
   if dough_stretch~=nil then
-    dough_stretch[b].pos = pad.start_point
+    if params:string("doughstretch_mode_"..b) ~= "off" then
+      dough_stretch[b].pos = pad.start_point
+      dough_stretch[b].enabled = pad.dough_stretch
+    end
   end
   softcut.loop_end(b+1,pad.end_point)
   softcut.buffer(b+1,pad.mode)

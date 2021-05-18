@@ -531,10 +531,12 @@ function _loops.draw_menu()
       screen.stroke()
 
       if page.loops.zoomed_mode then
+        local off = pad.mode == 1 and (((pad.clip-1)*8)+1) or clip[pad.clip].min
+        local display_end = pad.mode == 1 and (pad.end_point == 8.99 and 9 or pad.end_point) or pad.end_point
         screen.move(0,54)
-        screen.text("start: "..string.format("%.2f",pad.start_point))
+        screen.text("start: "..string.format("%.4g",(util.round(pad.start_point,0.0001))-off).."s")
         screen.move(128,54)
-        screen.text_right("end: "..string.format("%.2f",pad.end_point))
+        screen.text_right("end: "..string.format("%.4g",(display_end)-off).."s")
         screen.move(64,64)
         screen.text_center("duration: "..string.format("%.2f",pad.end_point-pad.start_point).."s")
         -- screen.text_center("K3: toggle looping, all pads")
