@@ -660,6 +660,72 @@ params:add_separator("ALT key")
     slew_filter(i,slew_counter[i].prev_tilt,bank[i][bank[i].id].tilt,bank[i][bank[i].id].q,bank[i][bank[i].id].q,bank[i][bank[i].id].tilt_ease_time)
     end)
   end
+
+  -- _lfos.params_init()
+
+  params:add_group("bank lfos",26)
+  local bnks = {"a","b","c"}
+  params:add_separator("levels")
+  for i = 1,3 do
+    params:add_option("level_lfo_active_"..i, "["..bnks[i].."] lfo active" ,{"no","yes"},1)
+    params:set_action("level_lfo_active_"..i, function(x)
+      if x == 1 then
+        bank[i].level_lfo.active = false
+      else
+        bank[i].level_lfo.active = true
+      end
+    end)
+    params:add_option("level_lfo_waveform_"..i, "["..bnks[i].."] lfo waveform",lfo_types,1)
+    params:set_action("level_lfo_waveform_"..i, function(x)
+      bank[i].level_lfo.waveform = lfo_types[x]
+    end)
+    params:add_option("level_lfo_rate_"..i, "["..bnks[i].."] lfo rate",lfo_rates.names,15)
+    params:set_action("level_lfo_rate_"..i, function(x)
+      bank[i].level_lfo.freq = 1/((clock.get_beat_sec()*4) * lfo_rates.values[x])
+      bank[i].level_lfo.rate_index = x
+    end)
+    params:add_number("level_lfo_depth_"..i, "["..bnks[i].."] lfo depth",1,200,100)
+    params:set_action("level_lfo_depth_"..i, function(x)
+      bank[i].level_lfo.depth = x
+    end)
+  end
+  params:add_separator("pans")
+  for i = 1,3 do
+    params:add_option("pan_lfo_active_"..i, "["..bnks[i].."] lfo active" ,{"no","yes"},1)
+    params:set_action("pan_lfo_active_"..i, function(x)
+      if x == 1 then
+        bank[i].pan_lfo.active = false
+      else
+        bank[i].pan_lfo.active = true
+      end
+      for j = 1,16 do
+        bank[i][j].pan_lfo.active = bank[i].pan_lfo.active
+      end
+    end)
+    params:add_option("pan_lfo_waveform_"..i, "["..bnks[i].."] lfo waveform",lfo_types,1)
+    params:set_action("pan_lfo_waveform_"..i, function(x)
+      bank[i].pan_lfo.waveform = lfo_types[x]
+      for j = 1,16 do
+        bank[i][j].pan_lfo.waveform = bank[i].pan_lfo.waveform
+      end
+    end)
+    params:add_option("pan_lfo_rate_"..i, "["..bnks[i].."] lfo rate",lfo_rates.names,15)
+    params:set_action("pan_lfo_rate_"..i, function(x)
+      bank[i].pan_lfo.freq = 1/((clock.get_beat_sec()*4) * lfo_rates.values[x])
+      bank[i].pan_lfo.rate_index = x
+      for j = 1,16 do
+        bank[i][j].pan_lfo.freq = bank[i].pan_lfo.freq
+        bank[i][j].pan_lfo.rate_index = bank[i].pan_lfo.rate_index
+      end
+    end)
+    params:add_number("pan_lfo_depth_"..i, "["..bnks[i].."] lfo depth",1,200,100)
+    params:set_action("pan_lfo_depth_"..i, function(x)
+      bank[i].pan_lfo.depth = x
+      for j = 1,16 do
+        bank[i][j].pan_lfo.depth = bank[i].pan_lfo.depth
+      end
+    end)
+  end
   
   params:add_group("delays",73)
 

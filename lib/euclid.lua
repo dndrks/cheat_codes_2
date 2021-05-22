@@ -15,8 +15,8 @@ function euclid.trig(target)
     grid_dirty = true
   end
   if euclid.track[target].s[euclid.track[target].pos] then
-    if not arp[target].playing
-    or arp[target].playing and pattern_gate[target][2].active then
+    if (not arp[target].playing and not grid_pat[target].playing and not midi_pat[target].playing)
+    or (arp[target].playing or grid_pat[target].playing or midi_pat[target].playing) and pattern_gate[target][2].active then
       if euclid.track[target].mode == "single" then
         cheat(target,euclid.rotate_pads(bank[target].id + euclid.track[target].pad_offset))
         if menu ~= 1 then screen_dirty = true end

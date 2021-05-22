@@ -330,6 +330,9 @@ function _loops.process_encoder(n,d)
         elseif page.loops.selected_live_control == "random_rec" then
           params:delta("random_rec_clock_prob_"..rec.focus,d)
         end
+      elseif page.loops.sel == 5 then
+        clip[page.loops.selected_clip_control].channel =
+          util.clamp(clip[page.loops.selected_clip_control].channel+d,1,2)
       end
     end
   elseif not page.loops.meta_control and page.loops.zoomed_mode then
@@ -729,8 +732,9 @@ function _loops.draw_menu()
       for i = 1,3 do
         screen.level(page.loops.selected_clip_control == i and 15 or 3)
         screen.move(0,20+(i*10))
+        local sides = {"[LEFT CH]","[RIGHT CH]"}
         local text_to_display = params:get("clip "..i.." sample") == "-"
-        and "press K3 to load"
+        and ("K3: load, E3: "..sides[clip[i].channel])
         or params:get("clip "..i.." sample"):match("^.+/(.+)$")
         screen.text("CLIP "..i..": "..text_to_display)
       end
@@ -739,13 +743,15 @@ function _loops.draw_menu()
         screen.rect(0,14,128,7)
         screen.fill()
         screen.level(0)
-        screen.move(5,20)
+        screen.move(2,20)
         screen.text("SR: "..
         string.format("%.4g",clip[page.loops.selected_clip_control].original_samplerate)
         .."khz"
-        ..(clip[page.loops.selected_clip_control].original_samplerate ~= 48 and " :(" or "")
         )
-        screen.move(123,20)
+        local chs = {"L","R"}
+        screen.move(64,20)
+        screen.text_center("CH: "..chs[clip[page.loops.selected_clip_control].channel])
+        screen.move(126,20)
         screen.text_right("BPM: "..clip[page.loops.selected_clip_control].original_bpm)
         if clip[page.loops.selected_clip_control].original_samplerate == 48 then
           screen.level(8)
@@ -754,6 +760,13 @@ function _loops.draw_menu()
           screen.level(0)
           screen.move(64,60)
           screen.text_center("K3: set project BPM to "..clip[page.loops.selected_clip_control].original_bpm)
+        else
+          screen.level(8)
+          screen.rect(0,54,128,7)
+          screen.fill()
+          screen.level(0)
+          screen.move(64,60)
+          screen.text_center("sample rate is not 48khz :(")
         end
       end
     elseif page.loops.sel == 6 then

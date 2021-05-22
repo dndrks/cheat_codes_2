@@ -42,25 +42,65 @@ function dough.init_params()
       end
       if x == 2 then
         dough_stretch[i].pos = poll_position_new[i+1]
-        params:set("doughstretch_step_"..i,12)
-        params:set("doughstretch_duration_"..i,12)
-        params:set("doughstretch_fade_"..i,1)
-        print("should set neo")
+        local p_t =
+        {
+          {"doughstretch_step_",12},
+          {"doughstretch_duration_",12},
+          {"doughstretch_fade_",1}
+        }
+        for j = 1,#p_t do
+          params:set(p_t[j][1]..i,p_t[j][2])
+          local id = params.lookup[p_t[j][1]..i]
+          if all_loaded then
+            params.params[id]:bang()
+          end
+        end
       elseif x == 3 then
         dough_stretch[i].pos = poll_position_new[i+1]
-        params:set("doughstretch_step_"..i,100)
-        params:set("doughstretch_fade_"..i,6)
+        local p_t =
+        {
+          {"doughstretch_step_",100},
+          -- {"doughstretch_duration_",12},
+          {"doughstretch_fade_",6}
+        }
+        for j = 1,#p_t do
+          params:set(p_t[j][1]..i,p_t[j][2])
+          local id = params.lookup[p_t[j][1]..i]
+          if all_loaded then
+            params.params[id]:bang()
+          end
+        end
         dough.scale_sample_to_main(i)
       elseif x == 4 then
         dough_stretch[i].pos = poll_position_new[i+1]
-        params:set("doughstretch_fade_"..i,30)
-        params:set("doughstretch_step_"..i,100)
-        params:set("doughstretch_duration_"..i,8)
+        local p_t =
+        {
+          {"doughstretch_step_",100},
+          {"doughstretch_duration_",8},
+          {"doughstretch_fade_",30}
+        }
+        for j = 1,#p_t do
+          params:set(p_t[j][1]..i,p_t[j][2])
+          local id = params.lookup[p_t[j][1]..i]
+          if all_loaded then
+            params.params[id]:bang()
+          end
+        end
       elseif x == 5 then
         dough_stretch[i].pos = poll_position_new[i+1]
-        params:set("doughstretch_fade_"..i,math.random(40,300))
-        params:set("doughstretch_step_"..i,math.random(3,60))
-        params:set("doughstretch_duration_"..i,math.random(6,105))
+        local p_t =
+        {
+          {"doughstretch_step_",math.random(3,60)},
+          {"doughstretch_duration_",math.random(6,105)},
+          {"doughstretch_fade_",math.random(40,300)}
+        }
+        for j = 1,#p_t do
+          params:set(p_t[j][1]..i,p_t[j][2])
+          local id = params.lookup[p_t[j][1]..i]
+          if all_loaded then
+            params.params[id]:bang()
+          end
+        end
       end
     end)
     params:add_number("doughstretch_step_"..i,"    step time",1,300,12)

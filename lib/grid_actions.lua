@@ -466,7 +466,7 @@ function grid_actions.init(x,y,z)
           if bank[b].alt_lock and z == 1 then
             pattern_gate[b][2].active = not pattern_gate[b][2].active
           elseif not bank[b].alt_lock then
-            pattern_gate[b][2].active = z == 1 and true or false
+            pattern_gate[b][2].active = not pattern_gate[b][2].active
           end
         elseif y == 7 then
           if bank[b].alt_lock and z == 1 then
@@ -1618,6 +1618,10 @@ function grid_actions.arp_handler(i)
   if params:string("arp_"..i.."_hold_style") ~= "sequencer" then
     if not arp[i].enabled and tab.count(arp[i].notes) == 0 then
       arp[i].enabled = true
+      if not transport.is_running then
+        print("should start transport...")
+        transport.toggle_transport()
+      end
     elseif arp[i].enabled and tab.count(arp[i].notes) == 0 then
       arp[i].enabled = false
     elseif not arp[i].hold then

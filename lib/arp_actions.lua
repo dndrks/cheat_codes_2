@@ -100,6 +100,7 @@ end
 
 function arp_actions.toggle(state,target)
   local i = target
+  print(state,target)
   if state == "start" then
     local arp_start =
     {
@@ -115,6 +116,7 @@ function arp_actions.toggle(state,target)
       arp_direction[i] = "negative"
     end
     if not transport.is_running then
+      print("should start transport...")
       transport.toggle_transport()
     end
     if params:string("arp_"..i.."_hold_style") == "sequencer" then

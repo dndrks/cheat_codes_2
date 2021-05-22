@@ -263,9 +263,9 @@ function ca.load_sample(file,sample)
     clip[sample].original_length = len/48000
     clip[sample].original_bpm = _dough.derive_bpm(clip[sample])
     clip[sample].original_samplerate = rate/1000
+    local im_ch = ch == 2 and clip[sample].channel or 1
     softcut.buffer_clear_region_channel(2,1+(32*(sample-1)),32)
-    softcut.buffer_read_mono(file, 0, 1+(32*(sample-1)),clip[sample].sample_length + 0.05, 1, 2)
-    -- softcut.buffer_read_mono(file, 0, 1+(32*(sample-1)),clip[sample].sample_length, 1, 2)
+    softcut.buffer_read_mono(file, 0, 1+(32*(sample-1)),clip[sample].sample_length + 0.05, im_ch, 2)
     ca.clip_table()
     for p = 1,16 do
       for b = 1,3 do

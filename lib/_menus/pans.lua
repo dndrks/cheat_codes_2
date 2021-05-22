@@ -302,15 +302,13 @@ function _p.meta_actions(id)
       bank[_p_.bank][i].pan_lfo.freq = 1/((clock.get_beat_sec()*4) * lfo_rates.values[bank[_p_.bank][i].pan_lfo.rate_index])
     end
   end
-  _p.seed_change("LFO")
-  _p.seed_change("SHP")
-  _p.seed_change("DPTH")
-  _p.seed_change("RATE")
+  _p.seed_change("LFO",bank[_p_.bank],focused_pad[_p_.bank])
+  _p.seed_change("SHP",bank[_p_.bank],focused_pad[_p_.bank])
+  _p.seed_change("DPTH",bank[_p_.bank],focused_pad[_p_.bank])
+  _p.seed_change("RATE",bank[_p_.bank],focused_pad[_p_.bank])
 end
 
-function _p.seed_change(parameter)
-  local b = bank[_p_.bank]
-  local f = focused_pad[_p_.bank]
+function _p.seed_change(parameter,b,f)
   if parameter == "LFO" then
     if b.id == f then
       b.pan_lfo.active = b[f].pan_lfo.active

@@ -50,8 +50,6 @@ if util.file_exists(_path.code.."mx.samples") then
   -- tab.print(mxcc:list_instruments())
 end
 
--- engine.name = "StoneSoup"
-
 local pattern_time = include 'lib/cc_pattern_time'
 MU = require "musicutil"
 UI = require "ui"
@@ -201,6 +199,7 @@ for i = 1,3 do
   clip[i].mode = 1
   clip[i].waveform_samples = {}
   clip[i].waveform_rendered = false
+  clip[i].channel = 1
 end
 
 pre_cc2_sample = { false, false, false }

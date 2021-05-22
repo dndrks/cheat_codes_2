@@ -91,7 +91,7 @@ end
 
 function tp.start()
   -- set stuff to 1 and start them
-  clock.sync(4)
+  -- clock.sync(4)
   tp.is_running = true
   transport.status_icon.status = 4
   for i = 1,3 do
@@ -296,13 +296,15 @@ end
 -- if the clock source is midi, it'll automatically try to do clock.transport.start() and ...stop()
 
 function clock.transport.start()
+  -- print(clock.get_beats())
   -- print("starting clock...", tp.cycle)
   if all_loaded and params:string("clock_source") ~= "midi" then
   -- if (all_loaded and tp.cycle > 0) or (all_loaded and (params:string("clock_source") == "internal" or params:string("clock_source") == "link")) then
     -- print("for real..")
     if tp.start_clock == nil then
-      tp.start_clock = clock.run(tp.start)
+      -- tp.start_clock = clock.run(tp.start)
       tp.pending = true
+      tp.start()
       screen_dirty = true
     end
   end
@@ -335,7 +337,6 @@ function tp.toggle_transport()
   else
     if params:string("clock_source") == "internal" then
       clock.internal.start(-0.1)
-      -- clock.internal.start()
     else
       tp.cycle = 1
       clock.transport.start()

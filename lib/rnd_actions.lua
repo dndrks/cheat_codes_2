@@ -67,7 +67,7 @@ function rnd.transport(t,i,state)
 end
 
 function rnd.lattice_advance(t,i)
-  if rnd[t][i].playing then
+  if rnd[t][i].playing and transport.is_running then
     -- print(t,i, clock.get_beats())
     if rnd[t][i].param == "rate slew" then
         rnd.rate_slew(t,i)

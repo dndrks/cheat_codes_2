@@ -78,6 +78,7 @@ end
 
 
 function lfo.init()
+
   local lfo_metro = clock.run(function()
     while true do
       clock.sleep(0.01)
