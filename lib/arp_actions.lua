@@ -100,7 +100,6 @@ end
 
 function arp_actions.toggle(state,target)
   local i = target
-  print(state,target)
   if state == "start" then
     local arp_start =
     {

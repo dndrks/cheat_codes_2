@@ -324,25 +324,26 @@ end
 --]]
 
 function cheat_clock_synced(i)
-  if #quantize_events[i] > 0 then
-    for k,e in pairs(quantize_events[i]) do
-      cheat(i,e)
-      grid_p[i] = {}
-      grid_p[i].action = "pads"
-      grid_p[i].i = i
-      grid_p[i].id = selected[i].id
-      grid_p[i].x = selected[i].x
-      grid_p[i].y = selected[i].y
-      grid_p[i].rate = bank[i][bank[i].id].rate
-      grid_p[i].pause = bank[i][bank[i].id].pause
-      grid_p[i].start_point = bank[i][bank[i].id].start_point
-      grid_p[i].end_point = bank[i][bank[i].id].end_point
-      grid_p[i].rate_adjusted = false
-      grid_p[i].loop = bank[i][bank[i].id].loop
-      grid_p[i].mode = bank[i][bank[i].id].mode
-      grid_p[i].clip = bank[i][bank[i].id].clip
-      grid_pat[i]:watch(grid_p[i])
-    end
+  if tab.count(quantize_events[i]) > 0 then
+    cheat(quantize_events[i].bank,quantize_events[i].pad)
+    -- for k,e in pairs(quantize_events[i]) do
+    --   cheat(i,e)
+    --   grid_p[i] = {}
+    --   grid_p[i].action = "pads"
+    --   grid_p[i].i = i
+    --   grid_p[i].id = selected[i].id
+    --   grid_p[i].x = selected[i].x
+    --   grid_p[i].y = selected[i].y
+    --   grid_p[i].rate = bank[i][bank[i].id].rate
+    --   grid_p[i].pause = bank[i][bank[i].id].pause
+    --   grid_p[i].start_point = bank[i][bank[i].id].start_point
+    --   grid_p[i].end_point = bank[i][bank[i].id].end_point
+    --   grid_p[i].rate_adjusted = false
+    --   grid_p[i].loop = bank[i][bank[i].id].loop
+    --   grid_p[i].mode = bank[i][bank[i].id].mode
+    --   grid_p[i].clip = bank[i][bank[i].id].clip
+    --   grid_pat[i]:watch(grid_p[i])
+    -- end
     quantize_events[i] = {}
   end
 end
@@ -1413,6 +1414,7 @@ function init()
   crow_init()
   
   task_id = clock.run(globally_clocked)
+  -- pad_press_quant_triplets = clock.run(pad_clock_triplets)
   pad_press_quant = clock.run(pad_clock)
   random_rec = clock.run(random_rec_clock)
 
@@ -2212,9 +2214,18 @@ end
 
 ---
 
+function pad_clock_triplets()
+  while true do
+    clock.sync(1/6)
+    for i = 1,3 do
+      cheat_clock_synced(i)
+    end
+  end
+end
+
 function pad_clock()
   while true do
-    clock.sync(1)
+    clock.sync(1/4)
     for i = 1,3 do
       cheat_clock_synced(i)
     end
@@ -2735,8 +2746,10 @@ function reset_all_banks( banks )
     b.random_mode = 3
     b.crow_execute = 1
     b.snap_to_bars = 1
-    b.quantize_press = 0
-    b.quantize_press_div = 1
+    b.quantize_press = 0 -- not real, just keeping for continuity...
+    b.quantize_press_div = 1 -- not real, just keeping for continuity...
+    b.quantized_press = false
+    b.quantized_press_div = 1
     b.alt_lock = false
     b.global_level = 1.0
 
@@ -3958,7 +3971,11 @@ function grid_pattern_execute(entry)
           if not arp[i].playing
           or arp[i].playing and pattern_gate[i][1].active then
           -- if rytm.track[i].k == 0 then
-            cheat(i,bank[i].id)
+            if not bank[i].quantized_press then
+              cheat(i, bank[i].id)
+            else
+              quantize_events[i] = {["bank"] = i, ["pad"] = bank[i].id}
+            end
           end
         elseif string.match(entry.action, "zilchmo") then
           if params:get("zilchmo_patterning") == 2 then
@@ -4285,7 +4302,7 @@ function persistent_state_restore()
       clock.sleep(1)
       -- if (params:string("start_transport_at_launch") == "yes" and params:string("clock_source") == "internal") then
       if params:string("clock_source") == "internal" then
-        clock.transport.start()
+        -- clock.transport.start()
       end
     end
   )
