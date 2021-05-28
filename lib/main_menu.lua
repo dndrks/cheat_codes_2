@@ -239,7 +239,7 @@ function main_menu.draw()
         screen.font_size(8)
       else
         local state_option = pattern.play == 1 and "current step" or "rec mode"
-        local p_options = {state_option, "shuffle pat","P"..page_line.." sets bpm?","rand pat [K3]", "pat start", "pat end", "crow pulse"}
+        local p_options = {state_option, "shuffle pat","P"..page_line.." sets bpm?","rand pat [K3]", "pat start", "pat end", "quantization","crow pulse"}
         local p_options_rand = {"low rates", "mid rates", "hi rates", "full range", "keep rates"}
 
         if page.time_scroll[page_line] == 1 then
@@ -263,15 +263,16 @@ function main_menu.draw()
             screen.text(fine_options[j-3])
           end
         elseif page.time_scroll[page_line] == 3 then
-          for j = 7,7 do
+          for j = 7,8 do
             screen.level(time_page[page_line] == j and 15 or 3)
             screen.move(10,40+(10*(j-7)))
             screen.text(p_options[j])
             screen.move(80,40+(10*(j-7)))
-            screen.text(bank[page_line].crow_execute == 1 and "pads" or "clk")
+            local fine_options = {params:string("pattern_"..page_line.."_quantization"),bank[page_line].crow_execute == 1 and "pads" or "clk"}
+            screen.text(fine_options[j-6])
             if bank[page_line].crow_execute ~= 1 then
-              screen.move(97,40)
-              screen.level(time_page[page_line] == 8 and 15 or 3)
+              screen.move(97,50)
+              screen.level(time_page[page_line] == 9 and 15 or 3)
               screen.text("(/"..crow.count_execute[page_line]..")")
             end
           end

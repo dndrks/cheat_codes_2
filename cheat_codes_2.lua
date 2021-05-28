@@ -787,10 +787,10 @@ local function crow_flush()
 end
 
 local function crow_init()
-  for i = 1,4 do
-    crow.output[i].action = "{to(5,0),to(0,0.05)}"
-    print("output["..i.."] initialized")
-  end
+  -- for i = 1,4 do
+  --   crow.output[i].action = "{to(5,0),to(0,0.05)}"
+  --   print("output["..i.."] initialized")
+  -- end
   crow.input[2].mode("change",2,0.1,"rising")
   crow.input[2].change = _ca.buff_freeze
 end
@@ -1007,9 +1007,9 @@ function init()
   
   -- menu = 1
   
-  for i = 1,4 do
-    crow.output[i].action = "{to(5,0),to(0,0.05)}"
-  end
+  -- for i = 1,4 do
+  --   crow.output[i].action = "{to(5,0),to(0,0.05)}"
+  -- end
   crow.count = {}
   crow.count_execute = {}
   for i = 1,3 do
@@ -2048,6 +2048,10 @@ function stop_pattern(target)
 end
 
 function start_pattern(target,state)
+  if not transport.is_running then
+    print("should start transport...")
+    transport.toggle_transport()
+  end
   if transport.is_running then
     -- print("new start")
     if target.playmode == 2 then
@@ -3023,7 +3027,7 @@ function cheat(b,i)
   previous_pad = bank[b].id
   if bank[b].crow_execute == 1 then
     if pad.send_pad_note then
-      crow.output[b]()
+      -- crow.output[b]()
     end
   end
   --dangerous??

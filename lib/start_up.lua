@@ -270,13 +270,15 @@ function start_up.init()
   for i = 1,3 do
     params:add_option("sync_clock_to_pattern_"..i, "sync bpm to free pat "..i.."?", { "no", "yes" })
   end
-  params:add_separator("pattern quantization")
+  params:add_separator("quantization")
+  local bnks = {"a","b","c"}
   for i = 1,3 do
-    params:add_option("pattern_"..i.."_quantization", "quantize pat "..i.."?", {"no", "yes"})
+    params:add_option("pattern_"..i.."_quantization", "bank ["..bnks[i].."] quantization", {"off", "on"})
     params:set_action("pattern_"..i.."_quantization", function(x)
-      grid_pat[i]:quant(x == 1 and 0 or 1)
-      if midi_pat ~= nil then -- TODO FIXME
-        midi_pat[i]:quant(x == 1 and 0 or 1)
+      if x == 1 then
+        bank[i].quantized_press = false
+      else
+        bank[i].quantized_press = true
       end
     end
     )

@@ -285,7 +285,7 @@ function encoder_actions.init(n,d)
       local pattern_page = page.time_sel
 
       if pattern_page < 4 then
-        page_line[pattern_page] = util.clamp(page_line[pattern_page]+d,1,bank[pattern_page].crow_execute ~= 1 and 8 or 7)
+        page_line[pattern_page] = util.clamp(page_line[pattern_page]+d,1,bank[pattern_page].crow_execute ~= 1 and 9 or 8)
         if page_line[pattern_page] < 4 then
           page.time_scroll[pattern_page] = 1
         elseif page_line[pattern_page] < 7 then
@@ -571,18 +571,12 @@ function encoder_actions.init(n,d)
       local pattern = get_grid_connected() and grid_pat[pattern_page] or midi_pat[pattern_page]
       
       if pattern_page < 4 then
-        if page_line[pattern_page] == 7 then
+        if page_line[pattern_page] == 8 then
           bank[pattern_page].crow_execute = util.clamp(bank[pattern_page].crow_execute+d,0,1)
         elseif page_line[pattern_page] == 1 then
           if pattern.rec ~= 1 then
             if not key1_hold then
               if pattern.play == 1 then -- actually, we won't want to allow change...
-                -- local pre_adjust_mode = pattern.playmode
-                -- pattern.playmode = util.clamp(pattern.playmode+d,1,2)
-                -- if pattern.playmode ~= pre_adjust_mode then
-                --   stop_pattern(pattern)
-                --   start_pattern(pattern)
-                -- end
               else
                 pattern.playmode = util.clamp(pattern.playmode+d,1,2)
                 params:set("grid_pat_"..pattern_page.."_playmode",pattern.playmode,true)
@@ -593,7 +587,7 @@ function encoder_actions.init(n,d)
               params:set("grid_pat_"..pattern_page.."_rec_clock_time",pattern.rec_clock_time,true)
             end
           end
-        elseif page_line[pattern_page] == 8 and bank[pattern_page].crow_execute ~= 1 then
+        elseif page_line[pattern_page] == 9 and bank[pattern_page].crow_execute ~= 1 then
           crow.count_execute[pattern_page] = util.clamp(crow.count_execute[pattern_page]+d,1,16)
         elseif page_line[pattern_page] == 3 then
           params:delta("sync_clock_to_pattern_"..pattern_page,d)
@@ -617,6 +611,8 @@ function encoder_actions.init(n,d)
               quantized_grid_pat[pattern_page].sub_step = 1
             end
           end
+        elseif page_line[pattern_page] == 7 then
+          params:delta("pattern_"..pattern_page.."_quantization",d)
         end
       else
         if not key1_hold then

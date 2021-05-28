@@ -277,6 +277,10 @@ function grid_actions.init(x,y,z)
                     grid_pat[i].loop = 1
                   elseif grid_pat[i].count == 0 then
                     if grid_pat[i].playmode ~= 2 then
+                      if not transport.is_running then
+                        print("starting transport...")
+                        transport.toggle_transport()
+                      end
                       grid_pat[i]:rec_start()
                     --new!
                     else
