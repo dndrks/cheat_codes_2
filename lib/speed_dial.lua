@@ -68,21 +68,6 @@ function sd:init()
   end
 end
 
-function deep_copy(orig)
-  local orig_type = type(orig)
-  local copy;
-  if orig_type == "table" then
-    copy = {}
-    for orig_key, orig_value in next, orig, nil do
-      copy[deep_copy(orig_key)] = deep_copy(orig_value)
-    end
-    setmetatable(copy, deep_copy(getmetatable(orig)))
-  else -- number, string, boolean, etc
-    copy = orig
-  end
-  return copy
-end
-
 function sd:store(slot,menu)
   self.stored[slot] = deep_copy(menu)
 end
@@ -146,7 +131,7 @@ function sd:try_restore(slot)
   elseif self.stored[slot].menu == 6 then
     print("this happening?")
     -- self:deep_translate_data(self.stored[slot],page.delay)
-    page.delay = deep_copy(speed_dial.stored[slot])
+    -- page.delay = deep_copy(speed_dial.stored[slot])
   end
 
 end

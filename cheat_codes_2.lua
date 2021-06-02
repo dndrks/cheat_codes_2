@@ -50,6 +50,21 @@ if util.file_exists(_path.code.."mx.samples") then
   -- tab.print(mxcc:list_instruments())
 end
 
+function deep_copy(orig)
+  local orig_type = type(orig)
+  local copy;
+  if orig_type == "table" then
+    copy = {}
+    for orig_key, orig_value in next, orig, nil do
+      copy[deep_copy(orig_key)] = deep_copy(orig_value)
+    end
+    setmetatable(copy, deep_copy(getmetatable(orig)))
+  else -- number, string, boolean, etc
+    copy = orig
+  end
+  return copy
+end
+
 local pattern_time = include 'lib/cc_pattern_time'
 MU = require "musicutil"
 UI = require "ui"
@@ -73,7 +88,7 @@ mc = include 'lib/midicheat'
 -- sharer = include 'lib/sharer'
 macros = include 'lib/macros'
 transport = include 'lib/transport'
-speed_dial = include 'lib/speed_dial'
+speed_dial = include 'lib/_menus/speed_dial'
 _gleds = include 'lib/grid_leds'
 p_gate = include 'lib/p_gate'
 _dough = include 'lib/doughstretch'
@@ -362,7 +377,7 @@ end
 
 function better_grid_pat_q_clock(i)
   if grid_pat[i].rec == 1 then
-    grid_pat[i]:rec_stop()
+    grid_actions.rec_stop(i)
     midi_clock_linearize(i)
     grid_pat[i].loop = 1
     if grid_pat[i].count > 0 then
@@ -476,7 +491,7 @@ function random_grid_pat(which,mode)
     -- local count = auto_pat == 1 and math.random(2,24) or 16
     local count = auto_pat == 1 and (pattern.rec_clock_time * 4) or 16
     if pattern.count > 0 or pattern.rec == 1 then
-      pattern:rec_stop()
+      grid_actions.rec_stop(which)
       stop_pattern(pattern)
       pattern.tightened_start = 0
       pattern:clear()
@@ -716,24 +731,25 @@ function unpack_quantized_table(target)
 end
 
 function midi_clock_linearize(bank)
-  quantized_grid_pat[bank].event = {}
-  for i = 1,grid_pat[bank].count do
-    quantized_grid_pat[bank].clicks[i] = math.floor((grid_pat[bank].time[i] / (clock.get_beat_sec()/4))+0.5)
-    quantized_grid_pat[bank].event[i] = {} -- critical
-    if grid_pat[bank].time[i] == 0 or quantized_grid_pat[bank].clicks[i] == 0 then
-      quantized_grid_pat[bank].event[i][1] = "nothing"
-    else
-      for j = 1,quantized_grid_pat[bank].clicks[i] do
-        if j == 1 then
-          quantized_grid_pat[bank].event[i][1] = "something"
-        else
-          quantized_grid_pat[bank].event[i][j] = "nothing"
-        end
-      end
-    end
-  end
-  quantized_grid_pat[bank].current_step = grid_pat[bank].start_point
-  quantized_grid_pat[bank].sub_step = 1
+  -- quantized_grid_pat[bank].event = {}
+  -- for i = 1,grid_pat[bank].count do
+  --   quantized_grid_pat[bank].clicks[i] = math.floor((grid_pat[bank].time[i] / (clock.get_beat_sec()/4))+0.5)
+  --   quantized_grid_pat[bank].event[i] = {} -- critical
+  --   if grid_pat[bank].time[i] == 0 or quantized_grid_pat[bank].clicks[i] == 0 then
+  --     quantized_grid_pat[bank].event[i][1] = "nothing"
+  --   else
+  --     for j = 1,quantized_grid_pat[bank].clicks[i] do
+  --       if j == 1 then
+  --         quantized_grid_pat[bank].event[i][1] = "something"
+  --       else
+  --         quantized_grid_pat[bank].event[i][j] = "nothing"
+  --       end
+  --     end
+  --   end
+  -- end
+  -- quantized_grid_pat[bank].current_step = grid_pat[bank].start_point
+  -- quantized_grid_pat[bank].sub_step = 1
+  print("see line 737 -- midi_clock_linearize")
 end
 
 function midi_clock_linearize_overdub(bank)
@@ -1827,6 +1843,7 @@ function init()
   rytm.init()
   transport.init()
   _dough.init()
+  speed_dial.init()
 
   if g then grid_dirty = true end
   
@@ -1864,8 +1881,6 @@ function init()
     end)
     -- named_loadstate("/home/we/dust/data/cheat_codes_2/names/DEFAULT.cc2")
   end
-
-  speed_dial:init()
 
 end
 
@@ -1948,8 +1963,8 @@ function midi_pattern_watch(target,note)
   end
 end
 
-function grid_pattern_watch(target,pad)
-  if pad ~= "pause" then
+function grid_pattern_watch(target,style,rel_pad)
+  if style == nil then
     grid_p[target] = {}
     grid_p[target].action = "pads"
     grid_p[target].i = target
@@ -1965,8 +1980,14 @@ function grid_pattern_watch(target,pad)
     grid_p[target].mode = bank[target][bank[target].id].mode
     grid_p[target].clip = bank[target][bank[target].id].clip
     grid_pat[target]:watch(grid_p[target])
-  else
+  elseif style == "pause" then
     grid_pat[target]:watch("pause")
+  elseif style == "release" then
+    grid_p[target] = {}
+    grid_p[target].action = "pads-release"
+    grid_p[target].i = target
+    grid_p[target].id = rel_pad
+    grid_pat[target]:watch(grid_p[target])
   end
 end
 
@@ -2076,23 +2097,17 @@ function synced_record_start(target,i)
   elseif target == grid_pat[i] then
     grid_pattern_watch(i, "pause")
   end
-  clock.run(synced_pattern_record,target)
+  clock.run(synced_pattern_record,target,i)
 end
 
-function synced_pattern_record(target)
+function synced_pattern_record(target,i)
   clock.sleep(clock.get_beat_sec()*target.rec_clock_time)
   if target.rec_clock ~= nil then
-    target:rec_stop()
-    -- if target is a grid pat, should do all the grid pat thing:
-    --[[
-      midi_clock_linearize(i)
-      if grid_pat[i].auto_snap == 1 then
-        print("auto-snap")
-        snap_to_bars(i,how_many_bars(i))
-      end
-      grid_pat[i]:start()
-      grid_pat[i].loop = 1
-    --]]
+    if target == midi_pat[i] then
+      target:rec_stop()
+    else
+      grid_actions.rec_stop(i)
+    end
     pattern_length_to_bars(target, "destructive")
     if target.time[1] ~= nil and target.time[1] < clock.get_beat_sec()/4 and target.event[1] == "pause" then
       print("we could lose the first event..."..target.count, target.end_point)
@@ -2458,7 +2473,7 @@ osc_in = function(path, args, from)
         bank[i][j].end_point = bank[i][j].start_point + (math.random(10,60)/10)
         bank[i][j].pan = math.random(-100,100)/100
       end
-      grid_pat[i]:rec_stop()
+      grid_actions.rec_stop(i)
       grid_pat[i]:stop()
       grid_pat[i].tightened_start = 0
 
@@ -3267,13 +3282,20 @@ function try_tilt_process(b,i,t,rq)
     end
     bank[b][i].cf_fc = util.linexp(0,1,16000,10,bank[b][i].cf_lp)
     params:set("filter "..b.." cutoff",bank[b][i].cf_fc)
-    params:set("filter "..b.." lp", math.abs(bank[b][i].cf_exp_dry-1))
-    params:set("filter "..b.." dry", bank[b][i].cf_exp_dry)
-    if params:get("filter "..b.." hp") ~= 0 then
+    if bank[b][i].filter_type == 4 then
+      params:set("filter "..b.." lp", math.abs(bank[b][i].cf_exp_dry-1))
+      params:set("filter "..b.." dry", bank[b][i].cf_exp_dry)
+      if params:get("filter "..b.." hp") ~= 0 then
+        params:set("filter "..b.." hp", 0)
+      end
+      if bank[b][i].cf_hp ~= 0 then
+        bank[b][i].cf_hp = 0
+      end
+    else
+      params:set("filter "..b.." lp", 0)
       params:set("filter "..b.." hp", 0)
-    end
-    if bank[b][i].cf_hp ~= 0 then
-      bank[b][i].cf_hp = 0
+      params:set("filter "..b.." dry", 0)
+      params:set("filter "..b.." bp", 1)
     end
   elseif util.round(t*100) > 0 then
     bank[b][i].cf_hp = math.abs(t)
@@ -3281,13 +3303,20 @@ function try_tilt_process(b,i,t,rq)
     bank[b][i].cf_dry = 1-t
     bank[b][i].cf_exp_dry = (util.linexp(0,1,1,101,bank[b][i].cf_dry)-1)/100
     params:set("filter "..b.." cutoff",bank[b][i].cf_fc)
-    params:set("filter "..b.." hp", math.abs(bank[b][i].cf_exp_dry-1))
-    params:set("filter "..b.." dry", bank[b][i].cf_exp_dry)
-    if params:get("filter "..b.." lp") ~= 0 then
+    if bank[b][i].filter_type == 4 then
+      params:set("filter "..b.." hp", math.abs(bank[b][i].cf_exp_dry-1))
+      params:set("filter "..b.." dry", bank[b][i].cf_exp_dry)
+      if params:get("filter "..b.." lp") ~= 0 then
+        params:set("filter "..b.." lp", 0)
+      end
+      if bank[b][i].cf_lp ~= 0 then
+        bank[b][i].cf_lp = 0
+      end
+    else
       params:set("filter "..b.." lp", 0)
-    end
-    if bank[b][i].cf_lp ~= 0 then
-      bank[b][i].cf_lp = 0
+      params:set("filter "..b.." hp", 0)
+      params:set("filter "..b.." dry", 0)
+      params:set("filter "..b.." bp", 1)
     end
   elseif util.round(t*100) == 0 then
     bank[b][i].cf_fc = 12000
@@ -3295,10 +3324,12 @@ function try_tilt_process(b,i,t,rq)
     bank[b][i].cf_hp = 0
     bank[b][i].cf_dry = 1
     bank[b][i].cf_exp_dry = 1
-    params:set("filter "..b.." cutoff",12000)
-    params:set("filter "..b.." lp", 0)
-    params:set("filter "..b.." hp", 0)
-    params:set("filter "..b.." dry", 1)
+    if bank[b][i].filter_type == 4 then
+      params:set("filter "..b.." cutoff",12000)
+      params:set("filter "..b.." lp", 0)
+      params:set("filter "..b.." hp", 0)
+      params:set("filter "..b.." dry", 1)
+    end
   end
   softcut.post_filter_rq(b+1,rq)
 end
@@ -3568,7 +3599,7 @@ function key(n,z)
             end
             if key1_hold then
               if grid_pat[id].count > 0 then
-                grid_pat[id]:rec_stop()
+                grid_actions.rec_stop(id)
                 grid_pat[id]:stop()
                 grid_pat[id].tightened_start = 0
                 grid_pat[id]:clear()
@@ -3945,16 +3976,16 @@ function grid_pattern_execute(entry)
     if entry ~= "pause" then
       local i = entry.i  
         -- print(clock.get_beats().."<<<<<<<")
-      if not arp[i].playing
-      -- or arp[i].playing and arp[i].gate.active then
-      or arp[i].playing and pattern_gate[i][1].active then
-        local a_p; -- this will index the arc encoder recorders
+      if entry.action == "pads" then
+        if (not arp[i].enabled and not arp[i].playing) 
+        or ((arp[i].enabled or arp[i].playing) and not pattern_gate[i][1].active and pattern_gate[i][2].active) then
+          print("3966")
+          local a_p; -- this will index the arc encoder recorders
           if arc_param[i] == 1 or arc_param[i] == 2 or arc_param[i] == 3 then
             a_p = 1
           else
             a_p = arc_param[i] - 2
           end
-        if entry.action == "pads" then
           if params:get("zilchmo_patterning") == 2 then
             bank[i][entry.id].rate = entry.rate
           end
@@ -3972,40 +4003,81 @@ function grid_pattern_execute(entry)
               bank[i][bank[i].id].end_point = entry.end_point
             end
           end
-          if not arp[i].playing
-          or arp[i].playing and pattern_gate[i][1].active then
-          -- if rytm.track[i].k == 0 then
-            if not bank[i].quantized_press then
-              cheat(i, bank[i].id)
-            else
-              quantize_events[i] = {["bank"] = i, ["pad"] = bank[i].id}
+          if not bank[i].quantized_press then
+            cheat(i, bank[i].id)
+          else
+            quantize_events[i] = {["bank"] = i, ["pad"] = bank[i].id}
+          end
+        
+
+        elseif arp[i].enabled
+        and not arp[i].pause
+        -- and not arp[i].gate.active
+        and pattern_gate[i][1].active and pattern_gate[i][2].active
+        then
+          print("4002 add:",entry.id)
+          if arp[i].down == 0 and params:string("arp_"..i.."_hold_style") == "last pressed" then
+            for j = #arp[i].notes,1,-1 do
+              table.remove(arp[i].notes,j)
             end
           end
-        elseif string.match(entry.action, "zilchmo") then
-          if params:get("zilchmo_patterning") == 2 then
-            bank[i][entry.id].rate = entry.rate
-            rightangleslice.init(entry.row,entry.bank,entry.con)
+          arps.momentary(i, entry.id, "on")
+          arp[i].down = arp[i].down + 1
+        end
+      elseif string.match(entry.action, "zilchmo") then
+        local a_p; -- this will index the arc encoder recorders
+        if arc_param[i] == 1 or arc_param[i] == 2 or arc_param[i] == 3 then
+          a_p = 1
+        else
+          a_p = arc_param[i] - 2
+        end
+        if params:get("zilchmo_patterning") == 2 then
+          bank[i][entry.id].rate = entry.rate
+          rightangleslice.init(entry.row,entry.bank,entry.con)
 
-            local depth = {'(%d)','(%d)(%d)','(%d)(%d)(%d)','(%d)(%d)(%d)(%d)'}
-            local y1,y2,y3,y4 = entry.con:match(depth[#entry.con])
-            
-            zilch_leds[4][entry.bank][y1 ~= nil and 5-tonumber(y1)] = 1
-            zilch_leds[4][entry.bank][y2 ~= nil and 5-tonumber(y2)] = 1
-            zilch_leds[4][entry.bank][y3 ~= nil and 5-tonumber(y3)] = 1
-            zilch_leds[4][entry.bank][y4 ~= nil and 5-tonumber(y4)] = 1
+          local depth = {'(%d)','(%d)(%d)','(%d)(%d)(%d)','(%d)(%d)(%d)(%d)'}
+          local y1,y2,y3,y4 = entry.con:match(depth[#entry.con])
+          
+          zilch_leds[4][entry.bank][y1 ~= nil and 5-tonumber(y1)] = 1
+          zilch_leds[4][entry.bank][y2 ~= nil and 5-tonumber(y2)] = 1
+          zilch_leds[4][entry.bank][y3 ~= nil and 5-tonumber(y3)] = 1
+          zilch_leds[4][entry.bank][y4 ~= nil and 5-tonumber(y4)] = 1
 
-            clock.run(recorded_zilch_zero,entry.bank)
-            if arc_param[i] ~= 4 and #arc_pat[i][a_p].event == 0 then -- TODO what is this?
-              bank[i][bank[i].id].start_point = entry.start_point
-              bank[i][bank[i].id].end_point = entry.end_point
-              softcut.loop_start(i+1,bank[i][bank[i].id].start_point)
-              softcut.loop_end(i+1,bank[i][bank[i].id].end_point)
-            end
+          clock.run(recorded_zilch_zero,entry.bank)
+          if arc_param[i] ~= 4 and #arc_pat[i][a_p].event == 0 then -- TODO what is this?
+            bank[i][bank[i].id].start_point = entry.start_point
+            bank[i][bank[i].id].end_point = entry.end_point
+            softcut.loop_start(i+1,bank[i][bank[i].id].start_point)
+            softcut.loop_end(i+1,bank[i][bank[i].id].end_point)
           end
         end
-        grid_dirty = true
-        if menu ~= 1 then screen_dirty = true end
+
+      elseif entry.action == "pads-release" then
+        local released_pad = entry.id
+        if bank[i][released_pad].play_mode == "momentary" and released_pad == selected[i].id then
+          softcut.rate(i+1,0)
+          softcut.position(i+1,bank[i][released_pad].start_point)
+          softcut.loop_start(i+1,bank[i][released_pad].start_point)
+          softcut.loop_end(i+1,bank[i][released_pad].end_point)
+        end
+        if arp[i].enabled
+        and not arp[i].pause
+        -- and not arp[i].gate.active
+        and pattern_gate[i][1].active and pattern_gate[i][2].active
+        then
+          print("4052 release:",released_pad)
+          if not arp[i].hold then
+            if params:string("arp_"..i.."_hold_style") ~= "sequencer" then
+              arps.momentary(i, released_pad, "off")
+            end
+            arp[i].down = arp[i].down - 1
+          elseif arp[i].hold and not arp[i].pause then
+            arp[i].down = arp[i].down - 1
+          end
+        end
       end
+      grid_dirty = true
+      if menu ~= 1 then screen_dirty = true end
     end
   end
 end
@@ -5095,7 +5167,7 @@ function one_point_two()
     end
   end
   for i = 1,3 do
-    grid_pat[i]:rec_stop()
+    grid_actions.rec_stop(i)
     grid_pat[i]:stop()
     grid_pat[i].tightened_start = 0
     grid_pat[i]:clear()

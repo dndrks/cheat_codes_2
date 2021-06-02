@@ -342,8 +342,9 @@ function tp.toggle_transport()
       clock.transport.start()
     end
     tp.pending = true
-    screen_dirty = true
   end
+  grid_dirty = true
+  screen_dirty = true
 end
 
 function tp.enc(n,d)
