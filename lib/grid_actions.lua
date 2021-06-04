@@ -1803,6 +1803,7 @@ function grid_actions.rec_stop(i)
     print("1769")
     if #held_keys[i] > 0 then
       for j = 1,#held_keys[i] do
+        print(held_keys[i][j].." is still held")
         grid_p[i] = {}
         grid_p[i].action = "pads-release"
         grid_p[i].i = i

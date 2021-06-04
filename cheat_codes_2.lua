@@ -2031,12 +2031,25 @@ function synced_loop(target, state)
   end
 end
 
+function clear_arps_from_pattern_restart(i)
+  if i~= nil then
+    if arp[i].enabled
+    and not arp[i].pause
+    -- and not arp[i].gate.active
+    and pattern_gate[i][1].active and pattern_gate[i][2].active
+    then
+      arps.clear(i)
+    end
+  end
+end
+
 function alt_synced_loop(target,state)
   if transport.is_running then
     if state == "restart" then
       clock.sync(params:get("launch_quantization") == 1 and 1 or 4)
       print("restarting")
     end
+    clear_arps_from_pattern_restart(target.event[target.count].i)
     target:start()
     target.synced_loop_runner = 1
     -- print("alt_synced",clock.get_beats(),target)
@@ -2050,6 +2063,7 @@ function alt_synced_loop(target,state)
           target.overdub = 1
         end
         if target.loop == 1 then
+          clear_arps_from_pattern_restart(target.event[target.count].i)
           target:start()
         end
         target.synced_loop_runner = 1
@@ -3974,55 +3988,58 @@ end
 function grid_pattern_execute(entry)
   if entry ~= nil then
     if entry ~= "pause" then
-      local i = entry.i  
+      local i = entry.i
+      local should_happen = pattern_gate[i][2].active and p_gate.check_prob(pattern_gate[i][2])
         -- print(clock.get_beats().."<<<<<<<")
       if entry.action == "pads" then
         if (not arp[i].enabled and not arp[i].playing) 
         or ((arp[i].enabled or arp[i].playing) and not pattern_gate[i][1].active and pattern_gate[i][2].active) then
-          print("3966")
-          local a_p; -- this will index the arc encoder recorders
-          if arc_param[i] == 1 or arc_param[i] == 2 or arc_param[i] == 3 then
-            a_p = 1
-          else
-            a_p = arc_param[i] - 2
-          end
-          if params:get("zilchmo_patterning") == 2 then
-            bank[i][entry.id].rate = entry.rate
-          end
-          selected[i].id = entry.id
-          selected[i].x = entry.x
-          selected[i].y = entry.y
-          bank[i].id = selected[i].id
-          if params:get("zilchmo_patterning") == 2 then
-            bank[i][bank[i].id].mode = entry.mode
-            bank[i][bank[i].id].clip = entry.clip
-          end
-          if arc_param[i] ~= 4 and #arc_pat[i][a_p].event == 0 then -- TODO what is this?
+          if should_happen or not pattern_gate[i][2].active then
+            local a_p; -- this will index the arc encoder recorders
+            if arc_param[i] == 1 or arc_param[i] == 2 or arc_param[i] == 3 then
+              a_p = 1
+            else
+              a_p = arc_param[i] - 2
+            end
             if params:get("zilchmo_patterning") == 2 then
-              bank[i][bank[i].id].start_point = entry.start_point
-              bank[i][bank[i].id].end_point = entry.end_point
+              bank[i][entry.id].rate = entry.rate
+            end
+            selected[i].id = entry.id
+            selected[i].x = entry.x
+            selected[i].y = entry.y
+            bank[i].id = selected[i].id
+            if params:get("zilchmo_patterning") == 2 then
+              bank[i][bank[i].id].mode = entry.mode
+              bank[i][bank[i].id].clip = entry.clip
+            end
+            if arc_param[i] ~= 4 and #arc_pat[i][a_p].event == 0 then -- TODO what is this?
+              if params:get("zilchmo_patterning") == 2 then
+                bank[i][bank[i].id].start_point = entry.start_point
+                bank[i][bank[i].id].end_point = entry.end_point
+              end
+            end
+            if not bank[i].quantized_press then
+              cheat(i, bank[i].id)
+            else
+              quantize_events[i] = {["bank"] = i, ["pad"] = bank[i].id}
             end
           end
-          if not bank[i].quantized_press then
-            cheat(i, bank[i].id)
-          else
-            quantize_events[i] = {["bank"] = i, ["pad"] = bank[i].id}
-          end
-        
 
         elseif arp[i].enabled
         and not arp[i].pause
         -- and not arp[i].gate.active
         and pattern_gate[i][1].active and pattern_gate[i][2].active
         then
-          print("4002 add:",entry.id)
-          if arp[i].down == 0 and params:string("arp_"..i.."_hold_style") == "last pressed" then
-            for j = #arp[i].notes,1,-1 do
-              table.remove(arp[i].notes,j)
+          if should_happen or not pattern_gate[i][2].active then
+            print("4002 add:",entry.id)
+            if arp[i].down == 0 and params:string("arp_"..i.."_hold_style") == "last pressed" then
+              for j = #arp[i].notes,1,-1 do
+                table.remove(arp[i].notes,j)
+              end
             end
+            arps.momentary(i, entry.id, "on")
+            arp[i].down = arp[i].down + 1
           end
-          arps.momentary(i, entry.id, "on")
-          arp[i].down = arp[i].down + 1
         end
       elseif string.match(entry.action, "zilchmo") then
         local a_p; -- this will index the arc encoder recorders
@@ -4032,47 +4049,51 @@ function grid_pattern_execute(entry)
           a_p = arc_param[i] - 2
         end
         if params:get("zilchmo_patterning") == 2 then
-          bank[i][entry.id].rate = entry.rate
-          rightangleslice.init(entry.row,entry.bank,entry.con)
+          if should_happen or not pattern_gate[i][2].active then
+            bank[i][entry.id].rate = entry.rate
+            rightangleslice.init(entry.row,entry.bank,entry.con)
 
-          local depth = {'(%d)','(%d)(%d)','(%d)(%d)(%d)','(%d)(%d)(%d)(%d)'}
-          local y1,y2,y3,y4 = entry.con:match(depth[#entry.con])
-          
-          zilch_leds[4][entry.bank][y1 ~= nil and 5-tonumber(y1)] = 1
-          zilch_leds[4][entry.bank][y2 ~= nil and 5-tonumber(y2)] = 1
-          zilch_leds[4][entry.bank][y3 ~= nil and 5-tonumber(y3)] = 1
-          zilch_leds[4][entry.bank][y4 ~= nil and 5-tonumber(y4)] = 1
+            local depth = {'(%d)','(%d)(%d)','(%d)(%d)(%d)','(%d)(%d)(%d)(%d)'}
+            local y1,y2,y3,y4 = entry.con:match(depth[#entry.con])
+            
+            zilch_leds[4][entry.bank][y1 ~= nil and 5-tonumber(y1)] = 1
+            zilch_leds[4][entry.bank][y2 ~= nil and 5-tonumber(y2)] = 1
+            zilch_leds[4][entry.bank][y3 ~= nil and 5-tonumber(y3)] = 1
+            zilch_leds[4][entry.bank][y4 ~= nil and 5-tonumber(y4)] = 1
 
-          clock.run(recorded_zilch_zero,entry.bank)
-          if arc_param[i] ~= 4 and #arc_pat[i][a_p].event == 0 then -- TODO what is this?
-            bank[i][bank[i].id].start_point = entry.start_point
-            bank[i][bank[i].id].end_point = entry.end_point
-            softcut.loop_start(i+1,bank[i][bank[i].id].start_point)
-            softcut.loop_end(i+1,bank[i][bank[i].id].end_point)
+            clock.run(recorded_zilch_zero,entry.bank)
+            if arc_param[i] ~= 4 and #arc_pat[i][a_p].event == 0 then -- TODO what is this?
+              bank[i][bank[i].id].start_point = entry.start_point
+              bank[i][bank[i].id].end_point = entry.end_point
+              softcut.loop_start(i+1,bank[i][bank[i].id].start_point)
+              softcut.loop_end(i+1,bank[i][bank[i].id].end_point)
+            end
           end
         end
 
       elseif entry.action == "pads-release" then
-        local released_pad = entry.id
-        if bank[i][released_pad].play_mode == "momentary" and released_pad == selected[i].id then
-          softcut.rate(i+1,0)
-          softcut.position(i+1,bank[i][released_pad].start_point)
-          softcut.loop_start(i+1,bank[i][released_pad].start_point)
-          softcut.loop_end(i+1,bank[i][released_pad].end_point)
-        end
-        if arp[i].enabled
-        and not arp[i].pause
-        -- and not arp[i].gate.active
-        and pattern_gate[i][1].active and pattern_gate[i][2].active
-        then
-          print("4052 release:",released_pad)
-          if not arp[i].hold then
-            if params:string("arp_"..i.."_hold_style") ~= "sequencer" then
-              arps.momentary(i, released_pad, "off")
+        if should_happen or not pattern_gate[i][2].active then
+          local released_pad = entry.id
+          if bank[i][released_pad].play_mode == "momentary" and released_pad == selected[i].id then
+            softcut.rate(i+1,0)
+            softcut.position(i+1,bank[i][released_pad].start_point)
+            softcut.loop_start(i+1,bank[i][released_pad].start_point)
+            softcut.loop_end(i+1,bank[i][released_pad].end_point)
+          end
+          if arp[i].enabled
+          and not arp[i].pause
+          -- and not arp[i].gate.active
+          and pattern_gate[i][1].active and pattern_gate[i][2].active
+          then
+            print("4052 release:",released_pad)
+            if not arp[i].hold then
+              if params:string("arp_"..i.."_hold_style") ~= "sequencer" then
+                arps.momentary(i, released_pad, "off")
+              end
+              arp[i].down = arp[i].down - 1
+            elseif arp[i].hold and not arp[i].pause then
+              arp[i].down = arp[i].down - 1
             end
-            arp[i].down = arp[i].down - 1
-          elseif arp[i].hold and not arp[i].pause then
-            arp[i].down = arp[i].down - 1
           end
         end
       end
