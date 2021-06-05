@@ -92,6 +92,7 @@ speed_dial = include 'lib/_menus/speed_dial'
 _gleds = include 'lib/grid_leds'
 p_gate = include 'lib/p_gate'
 _dough = include 'lib/doughstretch'
+_ps = include 'lib/pattern_saver'
 math.randomseed(os.time())
 variable_fade_time = 0.01
 --with positive playback rates, the buffer is actually read from / written to up to (loop end + fade time).
@@ -104,6 +105,7 @@ for i = 1,8 do
 end
 
 p_gate.init()
+_ps.init()
 
 function rec_ended_callback()
   -- for i = 1,3 do
@@ -341,24 +343,6 @@ end
 function cheat_clock_synced(i)
   if tab.count(quantize_events[i]) > 0 then
     cheat(quantize_events[i].bank,quantize_events[i].pad)
-    -- for k,e in pairs(quantize_events[i]) do
-    --   cheat(i,e)
-    --   grid_p[i] = {}
-    --   grid_p[i].action = "pads"
-    --   grid_p[i].i = i
-    --   grid_p[i].id = selected[i].id
-    --   grid_p[i].x = selected[i].x
-    --   grid_p[i].y = selected[i].y
-    --   grid_p[i].rate = bank[i][bank[i].id].rate
-    --   grid_p[i].pause = bank[i][bank[i].id].pause
-    --   grid_p[i].start_point = bank[i][bank[i].id].start_point
-    --   grid_p[i].end_point = bank[i][bank[i].id].end_point
-    --   grid_p[i].rate_adjusted = false
-    --   grid_p[i].loop = bank[i][bank[i].id].loop
-    --   grid_p[i].mode = bank[i][bank[i].id].mode
-    --   grid_p[i].clip = bank[i][bank[i].id].clip
-    --   grid_pat[i]:watch(grid_p[i])
-    -- end
     quantize_events[i] = {}
   end
 end
@@ -5043,111 +5027,6 @@ function disk_save_patterns(coll)
       end
       -- need to delete unused patterns
     end
-  end
-end
-
-function save_pattern(source,slot,style)
-
-  local dirname = _path.data.."cheat_codes_2/collection-"..selected_coll.."/"
-  if os.rename(dirname, dirname) == nil then
-    os.execute("mkdir " .. dirname)
-  end
-  local dirname = _path.data.."cheat_codes_2/collection-"..selected_coll.."/patterns/"
-  if os.rename(dirname, dirname) == nil then
-    os.execute("mkdir " .. dirname)
-  end
-
-  local file = io.open(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/patterns/"..slot..".data", "w+")
-  -- local file = io.open(_path.data .. "cheat_codes_2/pattern"..selected_coll.."_"..slot..".data", "w+")
-  io.output(file)
-  if style == "pattern" then
-    io.write("stored pad pattern: collection "..selected_coll.." + slot "..slot.."\n")
-    io.write(original_pattern[source].count .. "\n")
-    for i = 1,original_pattern[source].count do
-      io.write(original_pattern[source].time[i] .. "\n")
-
-      -- new stuff
-      if original_pattern[source].event[i] ~= "pause" then
-        io.write(original_pattern[source].event[i].id .. "\n")
-        io.write(original_pattern[source].event[i].rate .. "\n")
-        io.write(tostring(original_pattern[source].event[i].loop) .. "\n")
-        if original_pattern[source].event[i].mode ~= nil then
-          io.write(original_pattern[source].event[i].mode .. "\n")
-        else
-          io.write("nil" .. "\n")
-        end
-        io.write(tostring(original_pattern[source].event[i].pause) .. "\n")
-        io.write(original_pattern[source].event[i].start_point .. "\n")
-        if original_pattern[source].event[i].clip ~= nil then
-          io.write(original_pattern[source].event[i].clip .. "\n")
-        else
-          io.write("nil" .. "\n")
-        end
-        io.write(original_pattern[source].event[i].end_point .. "\n")
-        if original_pattern[source].event[i].rate_adjusted ~= nil then
-          io.write(tostring(original_pattern[source].event[i].rate_adjusted) .. "\n")
-        else
-          io.write("nil" .. "\n")
-        end
-        io.write(original_pattern[source].event[i].y .. "\n")
-        io.write(original_pattern[source].event[i].x .. "\n")
-        io.write(tostring(original_pattern[source].event[i].action) .. "\n")
-        io.write(original_pattern[source].event[i].i .. "\n")
-        if original_pattern[source].event[i].previous_rate ~= nil then
-          io.write(original_pattern[source].event[i].previous_rate .. "\n")
-        else
-          io.write("nil" .. "\n")
-        end
-        if original_pattern[source].event[i].row ~=nil then
-          io.write(original_pattern[source].event[i].row .. "\n")
-        else
-          io.write("nil" .. "\n")
-        end
-        if original_pattern[source].event[i].con ~= nil then
-          io.write(original_pattern[source].event[i].con .. "\n")
-        else
-          io.write("nil" .. "\n")
-        end
-        if original_pattern[source].event[i].bank ~= nil and #original_pattern[source].event > 0 then
-          io.write(original_pattern[source].event[i].bank .. "\n")
-        else
-          io.write("nil" .. "\n")
-        end
-      else
-        io.write("pause" .. "\n")
-      end
-    end
-    --/new stuff!
-
-    io.write(original_pattern[source].metro.props.time .. "\n")
-    io.write(original_pattern[source].prev_time .. "\n")
-    io.write("which playmode?" .. "\n")
-    io.write(original_pattern[source].playmode .. "\n")
-    io.write("start point" .. "\n")
-    io.write(original_pattern[source].start_point .. "\n")
-    io.write("end point" .. "\n")
-    io.write(original_pattern[source].end_point .. "\n")
-
-    --new stuff, quantum and time_beats!
-    io.write("cheat codes 2.0" .. "\n")
-    for i = 1,original_pattern[source].count do
-      io.write(original_pattern[source].quantum[i] .. "\n")
-      io.write(original_pattern[source].time_beats[i] .. "\n")
-    end
-    --/new stuff, quantum and time_beats!
-
-    -- new stuff, quant or unquant + rec_clock_time
-    io.write(original_pattern[source].mode.."\n")
-    io.write(original_pattern[source].rec_clock_time.."\n")
-
-    io.close(file)
-    --GIRAFFE
-    --save_external_timing(source,slot)
-    --/GIRAFFE
-    print("saved pattern "..source.." to slot "..slot)
-  elseif style == "arp" then
-    tab.save(arp[source],_path.data .. "cheat_codes_2/collection-"..selected_coll.."/patterns/"..slot..".data")
-    print("saved arp "..source.." to slot "..slot)
   end
 end
 
