@@ -1,5 +1,7 @@
 local sd_arp = {}
 
+sd_arp.keys_held = {}
+
 function sd_arp.draw_grid()
   local _c = speed_dial.translate
   local _arps_ = page.arps
@@ -40,12 +42,18 @@ function sd_arp.parse_press(x,y,z)
   local _arps_ = page.arps
   local nx = _c(x,y)[1]
   local ny = _c(x,y)[2]
-  if ny >=2 and ny <=5 and z == 1 then
+  if ny >=2 and ny <=5 then
     local current_batch = _arps_.seq_page[_arps_.sel]
-    _arps_.seq_position[_arps_.sel] = nx+(8*(ny-2))+(32*(current_batch-1))
-  elseif ny == 6 and nx >= 1 and nx <= 4 then
+    if z == 1 then
+      _arps_.seq_position[_arps_.sel] = nx+(8*(ny-2))+(32*(current_batch-1))
+      table.insert(sd_arp.keys_held,nx+(8*(ny-2))+(32*(current_batch-1)))
+    elseif z == 0 then
+      local removed = tab.key(sd_arp.keys_held,nx+(8*(ny-2))+(32*(current_batch-1)))
+      table.remove(sd_arp.keys_held,removed)
+    end
+  elseif ny == 6 and nx >= 1 and nx <= 4 and z == 1 then
     _arps_.seq_page[_arps_.sel] = nx
-  elseif ny == 1 and nx >=6 and nx<=8 then
+  elseif ny == 1 and nx >=6 and nx<=8 and z == 1 then
     _arps_.sel = nx-5
   end
 end
