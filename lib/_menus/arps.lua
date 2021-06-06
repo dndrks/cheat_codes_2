@@ -322,6 +322,7 @@ function _arps.process_encoder(n,d)
       end
     end
   end
+  grid_dirty = true
 end
 
 function _arps.cycle_conditional(target,step,d)

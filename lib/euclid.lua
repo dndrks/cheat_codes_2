@@ -244,18 +244,18 @@ end
 
 function euclid.savestate()
   local collection = params:get("collection")
-  local dirname = _path.data.."cheat_codes_2/rytm/"
+  local dirname = _path.data.."cheat_codes_yellow/rytm/"
   if os.rename(dirname, dirname) == nil then
     os.execute("mkdir " .. dirname)
   end
   
-  local dirname = _path.data.."cheat_codes_2/rytm/collection-"..collection.."/"
+  local dirname = _path.data.."cheat_codes_yellow/rytm/collection-"..collection.."/"
   if os.rename(dirname, dirname) == nil then
     os.execute("mkdir " .. dirname)
   end
 
   for i = 1,3 do
-    tab.save(euclid.track[i],_path.data .. "cheat_codes_2/rytm/collection-"..collection.."/"..i..".data")
+    tab.save(euclid.track[i],_path.data .. "cheat_codes_yellow/rytm/collection-"..collection.."/"..i..".data")
   end
 end
 

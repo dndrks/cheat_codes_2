@@ -123,4 +123,42 @@ function ps.handle_euclid_pat(i,slot,command)
   end
 end
 
+function ps.disk_save_patterns(coll)
+  local dirname = _path.data.."cheat_codes_yellow/collection-"..coll.."/"
+  if os.rename(dirname, dirname) == nil then
+    os.execute("mkdir " .. dirname)
+  end
+  local dirname = _path.data.."cheat_codes_yellow/collection-"..coll.."/patterns/"
+  if os.rename(dirname, dirname) == nil then
+    os.execute("mkdir " .. dirname)
+  end
+
+  for i = 1,24 do
+    local file = io.open(_path.data .. "cheat_codes_yellow/collection-"..coll.."/patterns/"..i..".data", "w+")
+    if file then
+      os.remove(_path.data .. "cheat_codes_yellow/collection-"..coll.."/patterns/"..i..".data")
+      io.close(file)
+    end
+  end
+
+  for i = 1,3 do
+    if meta_grid_pattern ~= nil and meta_grid_pattern[i] ~= nil then
+      for k,v in pairs(meta_grid_pattern[i]) do
+        if #meta_grid_pattern[i][k] == 0 then
+          tab.save(meta_grid_pattern[i][k],_path.data .. "cheat_codes_yellow/collection-"..coll.."/patterns/"..k..".data")
+        else
+          local file = io.open(_path.data .. "cheat_codes_yellow/collection-"..coll.."/patterns/"..k..".data", "w+")
+          io.output(file)
+          meta_grid_pattern[i][k][1] = "stored pad pattern: collection "..coll.." + slot "..k
+          for key,val in ipairs(meta_grid_pattern[i][k]) do
+            io.write(val.."\n")
+          end
+          io.close(file)
+        end
+      end
+      -- need to delete unused patterns
+    end
+  end
+end
+
 return pattern_saver

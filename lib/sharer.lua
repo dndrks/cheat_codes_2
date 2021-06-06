@@ -1,6 +1,6 @@
 local sharer={}
 
-local CCDATA_DIR=_path.data.."cheat_codes_2/"
+local CCDATA_DIR=_path.data.."cheat_codes_yellow/"
 
 function sharer.setup(script_name)
   -- only continue if norns.online exists

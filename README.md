@@ -16,7 +16,7 @@ a sample playground for norns
 - Max for Live ([device](https://llllllll.co/uploads/short-url/cckkpyWjH3ywfaHfYzOmV27GS3m.amxd))
 - crow for pad-to-trigger or Just Friends + w/ note output
 
-### [documentation](https://github.com/dndrks/cheat-codes-docs/raw/main/assets/images/pdf/cheat_codes_2.pdf)
+### [documentation](https://github.com/dndrks/cheat-codes-docs/raw/main/assets/images/pdf/cheat_codes_yellow.pdf)
 
 ### [discussion](https://l.llllllll.co/cheat-codes-2)
 

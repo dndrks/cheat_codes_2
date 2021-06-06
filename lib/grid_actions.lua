@@ -364,15 +364,8 @@ function grid_actions.init(x,y,z)
         end
         
         if x == 16 and y == 8 then
-          if not speed_dial_active then
-            grid_alt = z == 1 and true or false
-            arc_alt = z
-          else
-            if z == 1 then
-              transport.toggle_transport()
-              was_transport_toggled = true
-            end
-          end
+          grid_alt = z == 1 and true or false
+          arc_alt = z
           if menu ~= 1 then screen_dirty = true end
         end
         
@@ -666,14 +659,7 @@ function grid_actions.init(x,y,z)
           end
 
           if x == 16 and y == 8 then
-            if not speed_dial_active then
-              grid_alt = z == 1 and true or false
-            else
-              if z == 1 then
-                transport.toggle_transport()
-                was_transport_toggled = true
-              end
-            end
+            grid_alt = z == 1 and true or false
             if menu ~= 1 then screen_dirty = true end
           end
         
@@ -894,14 +880,7 @@ function grid_actions.init(x,y,z)
         end
 
         if x == 16 and y == 8 then
-          if not speed_dial_active then
-            grid_alt = z == 1 and true or false
-          else
-            if z == 1 then
-              transport.toggle_transport()
-              was_transport_toggled = true
-            end
-          end
+          grid_alt = z == 1 and true or false
           if menu ~= 1 then screen_dirty = true end
         end
 
@@ -911,36 +890,45 @@ function grid_actions.init(x,y,z)
     end
 
     if x == 16 and y == 1 and z == 1 then
-      page_switcher_clock = clock.run(function()
-        clock.sleep(0.25)
-        speed_dial_active = true
-        page_switcher_clock = nil
-        grid_dirty = true
-      end)
+      if not grid_alt then
+        page_switcher_clock = clock.run(function()
+          clock.sleep(0.25)
+          speed_dial_active = true
+          page_switcher_clock = nil
+          grid_dirty = true
+        end)
+      elseif grid_alt then
+        speed_dial_active = not speed_dial_active
+        -- if speed_dial_active == false then
+        --   if grid_alt then grid_alt = false end
+        -- end
+      end
     elseif x == 16 and y == 1 and z == 0 then
-      speed_dial_active = false
-      if page_switcher_clock ~= nil then
-        clock.cancel(page_switcher_clock)
-        page_switcher_clock = nil
+      if not grid_alt then
         speed_dial_active = false
-        if not grid_alt and not was_transport_toggled then
-          if grid_page == 0 then
-            grid_page = 1
-          elseif grid_page == 1 then
-            grid_page = 2
-          elseif grid_page == 2 then  
-            grid_page = 0
-          end
-        elseif grid_alt then
-          if grid_page == 0 then
-            grid_page = 2
-          elseif grid_page == 1 then
-            grid_page = 0
-          elseif grid_page == 2 then  
-            grid_page = 1
-          end
+        if page_switcher_clock ~= nil then
+          clock.cancel(page_switcher_clock)
+          page_switcher_clock = nil
+          speed_dial_active = false
+          -- if not grid_alt and not was_transport_toggled then
+          --   if grid_page == 0 then
+          --     grid_page = 1
+          --   elseif grid_page == 1 then
+          --     grid_page = 2
+          --   elseif grid_page == 2 then  
+          --     grid_page = 0
+          --   end
+          -- elseif grid_alt then
+          --   if grid_page == 0 then
+          --     grid_page = 2
+          --   elseif grid_page == 1 then
+          --     grid_page = 0
+          --   elseif grid_page == 2 then  
+          --     grid_page = 1
+          --   end
+          -- end
+          -- was_transport_toggled = false
         end
-        was_transport_toggled = false
       end
     end
 
@@ -1252,15 +1240,8 @@ function grid_actions.init(x,y,z)
       end
       
       if x == 1 and y == 8 then
-        if not speed_dial_active then
-          grid_alt = z == 1 and true or false
-          arc_alt = z
-        else
-          if z == 1 then
-            transport.toggle_transport()
-            was_transport_toggled = true
-          end
-        end
+        grid_alt = z == 1 and true or false
+        arc_alt = z
         if menu ~= 1 then screen_dirty = true end
       end
       
@@ -1504,14 +1485,7 @@ function grid_actions.init(x,y,z)
       end
 
       if x == 1 and y == 8 then
-        if not speed_dial_active then
-          grid_alt = z == 1 and true or false
-        else
-          if z == 1 then
-            transport.toggle_transport()
-            was_transport_toggled = true
-          end
-        end
+        grid_alt = z == 1 and true or false
         if menu ~= 1 then screen_dirty = true end
       end
 
@@ -1610,14 +1584,7 @@ function grid_actions.init(x,y,z)
         end
         
         if x == 1 and y == 8 then
-          if not speed_dial_active then
-            grid_alt = z == 1 and true or false
-          else
-            if z == 1 then
-              transport.toggle_transport()
-              was_transport_toggled = true
-            end
-          end
+          grid_alt = z == 1 and true or false
           if menu ~= 1 then screen_dirty = true end
         end
       

@@ -240,26 +240,26 @@ end
 
 function rnd.savestate()
   local collection = params:get("collection")
-  local dirname = _path.data.."cheat_codes_2/rnd/"
+  local dirname = _path.data.."cheat_codes_yellow/rnd/"
   if os.rename(dirname, dirname) == nil then
     os.execute("mkdir " .. dirname)
   end
   
-  local dirname = _path.data.."cheat_codes_2/rnd/collection-"..collection.."/"
+  local dirname = _path.data.."cheat_codes_yellow/rnd/collection-"..collection.."/"
   if os.rename(dirname, dirname) == nil then
     os.execute("mkdir " .. dirname)
   end
 
   for i = 1,3 do
-    tab.save(rnd[i],_path.data .. "cheat_codes_2/rnd/collection-"..collection.."/"..i..".data")
+    tab.save(rnd[i],_path.data .. "cheat_codes_yellow/rnd/collection-"..collection.."/"..i..".data")
   end
 end
 
 function rnd.loadstate()
   local collection = params:get("collection")
   for i = 1,3 do
-    if tab.load(_path.data .. "cheat_codes_2/rnd/collection-"..collection.."/"..i..".data") ~= nil then
-      rnd[i] = tab.load(_path.data .. "cheat_codes_2/rnd/collection-"..collection.."/"..i..".data")
+    if tab.load(_path.data .. "cheat_codes_yellow/rnd/collection-"..collection.."/"..i..".data") ~= nil then
+      rnd[i] = tab.load(_path.data .. "cheat_codes_yellow/rnd/collection-"..collection.."/"..i..".data")
       for j = 1,#rnd[i] do
         if rnd[i][j].lattice == nil then
           rnd[i][j].lattice = rnd_lattice:new_pattern{

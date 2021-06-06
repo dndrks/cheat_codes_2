@@ -324,7 +324,7 @@ function mc.deep_copy(orig)
 end
 
 function mc.match_mapping_to_device()
-  -- local old_mapped_devices = tab.load(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/params/mapped-devices.txt")
+  -- local old_mapped_devices = tab.load(_path.data .. "cheat_codes_yellow/collection-"..selected_coll.."/params/mapped-devices.txt")
   -- local switched = {false,false,false,false}
   -- local switched_to = {nil,nil,nil,nil}
   -- local abandoned = {false,false,false,false}
@@ -349,9 +349,9 @@ function mc.match_mapping_to_device()
 end
 
 function mc.save_mappings(collection)
-  -- tab.save(mc.pass_midi_device_mappings(),_path.data.."cheat_codes_2/collection-"..collection.."/params/mappings.txt")
-  -- tab.save(norns.pmap.data,_path.data.."cheat_codes_2/collection-"..collection.."/params/map-data.txt")
-  -- tab.save(mc.pass_midi_devices_present_during_mapping(),_path.data.."cheat_codes_2/collection-"..collection.."/params/mapped-devices.txt")
+  -- tab.save(mc.pass_midi_device_mappings(),_path.data.."cheat_codes_yellow/collection-"..collection.."/params/mappings.txt")
+  -- tab.save(norns.pmap.data,_path.data.."cheat_codes_yellow/collection-"..collection.."/params/map-data.txt")
+  -- tab.save(mc.pass_midi_devices_present_during_mapping(),_path.data.."cheat_codes_yellow/collection-"..collection.."/params/mapped-devices.txt")
 end
 
 local vports = {}
