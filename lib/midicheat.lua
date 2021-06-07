@@ -88,7 +88,7 @@ function mc.adjust_bank_level(target,val)
 end
 
 function mc.redraw(target) -- expects (bank[x][y])
-  local duration = target.mode == 1 and 8 or clip[target.clip].sample_length
+  local duration = target.mode == 1 and 32 or clip[target.clip].sample_length
   local min = target.mode == 1 and live[target.clip].min or clip[target.clip].min
   local max = target.mode == 1 and live[target.clip].max or clip[target.clip].max
   local start_to_cc = util.round(util.linlin(min,max,0,127,target.start_point))
@@ -102,7 +102,7 @@ function mc.redraw(target) -- expects (bank[x][y])
 end
 
 function mc.enc_redraw(target)
-  local duration = target.mode == 1 and 8 or clip[target.clip].sample_length
+  local duration = target.mode == 1 and 32 or clip[target.clip].sample_length
   local min = target.mode == 1 and live[target.clip].min or clip[target.clip].min
   local max = target.mode == 1 and live[target.clip].max or clip[target.clip].max
   local start_to_cc = util.round(util.linlin(min,max,0,127,target.start_point))
@@ -116,7 +116,7 @@ function mc.enc_redraw(target)
 end
 
 function mc.params_redraw(target)
-  local duration = target.mode == 1 and 8 or clip[target.clip].sample_length
+  local duration = target.mode == 1 and 32 or clip[target.clip].sample_length
   local min = target.mode == 1 and live[target.clip].min or clip[target.clip].min
   local max = target.mode == 1 and live[target.clip].max or clip[target.clip].max
   local start_to_cc = util.round(util.linlin(min,max,0,127,target.start_point))
@@ -137,7 +137,7 @@ function mc.mft_redraw(target,parameter)
   -- TODO: these need to redraw on the right target.bank_id CCs...
   -- TODO: when the bank is changed on MFT, redraw these
   if params:string("midi_enc_control_enabled") == "yes" and params:string("midi_enc_echo_enabled") == "yes" and midi_dev[params:get("midi_enc_control_device")].name == "Midi Fighter Twister" then
-    local duration = target.mode == 1 and 8 or clip[target.clip].sample_length
+    local duration = target.mode == 1 and 32 or clip[target.clip].sample_length
     local min = target.mode == 1 and live[target.clip].min or clip[target.clip].min
     local max = target.mode == 1 and live[target.clip].max or clip[target.clip].max
     local start_to_cc = util.round(util.linlin(min,max,0,127,target.start_point))

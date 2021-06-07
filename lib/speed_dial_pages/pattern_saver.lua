@@ -2,6 +2,8 @@ local pattern_saver = {}
 
 local ps = pattern_saver
 
+local all_foci = {"arp","grid","euclid"}
+
 function ps.init()
   pattern_data = {}
   for i = 1,3 do
@@ -68,6 +70,7 @@ function ps.handle_grid_pat(i,slot,command)
       target.metro_props_time = source.metro.props.time
       pattern_data[i].grid.save_slot = slot
       pattern_data[i].grid.load_slot = slot
+      pattern_data[i].grid[slot].dirty = true
     elseif command == "load" then
       target = grid_pat[i]
       source = pattern_data[i].grid[slot].raw
@@ -86,6 +89,8 @@ function ps.handle_grid_pat(i,slot,command)
   else
     pattern_data[i].grid[slot].raw = {}
     pattern_data[i].grid[slot].dirty = false
+    pattern_data[i].grid.save_slot = nil
+    pattern_data[i].grid.load_slot = 0
   end
   grid_dirty = true
 end
@@ -97,6 +102,7 @@ function ps.handle_arp_pat(i,slot,command)
       pattern_data[i].arp[slot].raw = deep_copy(arp[i])
       pattern_data[i].arp.save_slot = slot
       pattern_data[i].arp.load_slot = slot
+      pattern_data[i].arp[slot].dirty = true
     elseif command == "load" then
       arp[i] = deep_copy(pattern_data[i].arp[slot].raw)
       pattern_data[i].arp.load_slot = slot
@@ -104,6 +110,8 @@ function ps.handle_arp_pat(i,slot,command)
   else
     pattern_data[i].arp[slot].raw = {}
     pattern_data[i].arp[slot].dirty = false
+    pattern_data[i].arp.save_slot = nil
+    pattern_data[i].arp.load_slot = 0
   end
   grid_dirty = true
 end
@@ -113,14 +121,17 @@ function ps.handle_euclid_pat(i,slot,command)
     pattern_data[i].euclid[slot].raw = deep_copy(rytm.track[i])
     pattern_data[i].euclid.save_slot = slot
     pattern_data[i].euclid.load_slot = slot
+    pattern_data[i].euclid[slot].dirty = true
   elseif command == "load" then
     rytm.track[i] = deep_copy(pattern_data[i].euclid[slot].raw)
     pattern_data[i].euclid.load_slot = slot
   elseif command == "delete" then
     pattern_data[i].euclid[slot].raw = {}
     pattern_data[i].euclid[slot].dirty = false
+    pattern_data[i].euclid.save_slot = nil
     pattern_data[i].euclid.load_slot = 0
   end
+  grid_dirty = true
 end
 
 function ps.disk_save_patterns(coll)
@@ -160,5 +171,118 @@ function ps.disk_save_patterns(coll)
     end
   end
 end
+
+function ps.draw_grid()
+  local _c = speed_dial.translate
+  local windows = {{1,3},{6,8},{11,13}}
+  for i = 1,3 do
+    for j = windows[i][1],windows[i][2] do
+      for k = 1,8 do
+        local focus = all_foci[j-(5*(i-1))]
+        local level = pattern_data[i][focus][k].dirty == true and 8 or 4
+        g:led(_c(k,j)[1],_c(k,j)[2],level)
+        if k == pattern_data[i][focus].load_slot then
+          g:led(_c(k,j)[1],_c(k,j)[2],15)
+        end
+      end
+    end
+    for j = 5,15,5 do
+      g:led(_c(i,j)[1],_c(i,j)[2],pattern_gate[j/5][i].active and 15 or 0)
+    end
+  end
+  for i = 5,15,5 do
+    g:led(_c(4,i)[1],_c(4,i)[2],bank[i/5].alt_lock and 15 or 0)
+  end
+end
+
+function ps.parse_press(x,y,z)
+  local _c = speed_dial.coordinate
+  local nx = _c(x,y)[1]
+  local ny = _c(x,y)[2]
+
+  local save_bank;
+  local focus;
+  local pgb = ny/5
+
+  if ny == 5 or ny == 10 or ny == 15 then
+    if nx <=3 then
+      if (bank[pgb].alt_lock and z == 1) or not bank[pgb].alt_lock then
+        pattern_gate[pgb][nx].active = not pattern_gate[pgb][nx].active
+      end
+    elseif nx == 4 then
+      if not grid_alt then
+        bank[pgb].alt_lock = z == 1 and true or false
+      else
+        if z == 1 then
+          bank[pgb].alt_lock = not bank[pgb].alt_lock
+        end
+      end
+    end
+  end
+
+  if ny <= 3 then
+    save_bank = 1
+    focus = all_foci[ny]
+  elseif ny >=6 and ny<=8 then
+    save_bank = 2
+    focus = all_foci[ny-5]
+  elseif ny >=11 and ny <=13 then
+    save_bank = 3
+    focus = all_foci[ny-5]
+  end
+
+  if ny <=3 or (ny >=6 and ny<=8) or (ny >=11 and ny <=13) then
+    if z == 1 then
+      if not grid_alt then
+        if not pattern_data[save_bank][focus][nx].dirty then
+          pattern_data[save_bank][focus].save_clock = clock.run(
+            function()
+              clock.sleep(0.25)
+              if focus == "arp" then
+                if tab.count(arp[save_bank].notes) > 0 then
+                  ps.handle_arp_pat(save_bank,nx,"save")
+                end
+              elseif focus == "grid" then
+                if #grid_pat[save_bank].event > 0 then
+                  ps.handle_grid_pat(save_bank,nx,"save")
+                end
+              elseif focus == "euclid" then
+                ps.handle_euclid_pat(save_bank,nx,"save")
+              end
+              pattern_data[save_bank][focus].save_clock = nil
+            end
+          )
+        else
+          if focus == "arp" then
+            ps.handle_arp_pat(save_bank,nx,"load")
+          elseif focus == "grid" then
+            ps.handle_grid_pat(save_bank,nx,"load")
+          elseif focus == "euclid" then
+            ps.handle_euclid_pat(save_bank,nx,"load")
+          end
+        end
+      else
+        if pattern_data[save_bank][focus][nx].dirty then
+          local concat = "handle_"..focus.."_pat"
+          ps[concat](save_bank,nx,"delete")
+        end
+      end
+    elseif z == 0 then
+      if pattern_data[save_bank][focus].save_clock ~= nil then
+        clock.cancel(pattern_data[save_bank][focus].save_clock)
+        pattern_data[save_bank][focus].save_clock = nil
+      end
+    end
+  end
+
+  if nx == 1 and ny == 16 then
+    grid_alt = z == 1 and true or false
+  end
+
+end
+
+-- TODO
+-- - add load + delete gestures
+-- - confirm holding many works
 
 return pattern_saver

@@ -716,7 +716,7 @@ function encoder_actions.init(n,d)
 end
 
 function ea.move_play_window(target,delta)
-  local duration = target.mode == 1 and 8 or clip[target.clip].sample_length
+  local duration = target.mode == 1 and 32 or clip[target.clip].sample_length
   local current_difference = (target.end_point - target.start_point)
   local s_p = target.mode == 1 and live[target.clip].min or clip[target.clip].min
   local current_clip = duration*(target.clip-1)
@@ -758,16 +758,16 @@ end
 
 function ea.move_rec_window(target,delta)
   local current_difference = (target.end_point - target.start_point)
-  local current_clip = 8*(rec.focus-1)
+  local current_clip = 32*(rec.focus-1)
   if delta >=0 then
     -- MBUTZ
-    if util.round(target.end_point + current_difference,0.01) <= (9+current_clip) then
-      target.start_point = util.clamp(target.start_point + (current_difference * (delta > 0 and 1 or -1)), (1+current_clip),(9+current_clip))
+    if util.round(target.end_point + current_difference,0.01) <= (33+current_clip) then
+      target.start_point = util.clamp(target.start_point + (current_difference * (delta > 0 and 1 or -1)), (1+current_clip),(33+current_clip))
       target.end_point = target.start_point + current_difference
     end
   else
     if util.round(target.start_point - current_difference,0.01) >= (1+current_clip) then
-      target.end_point = util.clamp(target.end_point + current_difference * (delta>0 and 1 or -1), (1+current_clip),(9+current_clip))
+      target.end_point = util.clamp(target.end_point + current_difference * (delta>0 and 1 or -1), (1+current_clip),(33+current_clip))
       target.start_point = target.end_point - current_difference
     end
   end
@@ -807,7 +807,7 @@ function ea.change_buffer(target,delta)
   else
     rec.focus = util.clamp(rec.focus+delta,1,3)
   end
-  target.start_point = target.start_point - ((pre_adjust - target.clip)*8)
+  target.start_point = target.start_point - ((pre_adjust - target.clip)*32)
   target.end_point = target.start_point + current_difference
   grid_dirty = true
 end
@@ -861,7 +861,7 @@ function ea.change_pad_clip(target,delta)
 end
 
 function ea.move_start(target,delta)
-  local duration = target.mode == 1 and 8 or clip[target.clip].sample_length
+  local duration = target.mode == 1 and 32 or clip[target.clip].sample_length
   local s_p = target.mode == 1 and live[target.clip].min or clip[target.clip].min
   if target.start_point+delta < (target.end_point - 0.04) then
     target.start_point = util.clamp(target.start_point+delta,s_p,s_p+duration)
@@ -880,9 +880,9 @@ function ea.move_rec_start(d)
     res = d/rec_loop_enc_resolution
   end
   if d >= 0 and util.round(rec[rec.focus].start_point + ((res)/lbr[params:get("live_buff_rate")]),0.01) < util.round(rec[rec.focus].end_point,0.01) then
-    rec[rec.focus].start_point = util.clamp(rec[rec.focus].start_point+((res)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.focus-1))),(8.9+(8*(rec.focus-1))))
+    rec[rec.focus].start_point = util.clamp(rec[rec.focus].start_point+((res)/lbr[params:get("live_buff_rate")]),(1+(32*(rec.focus-1))),(32.9+(32*(rec.focus-1))))
   elseif d < 0 then
-    rec[rec.focus].start_point = util.clamp(rec[rec.focus].start_point+((res)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.focus-1))),(8.9+(8*(rec.focus-1))))
+    rec[rec.focus].start_point = util.clamp(rec[rec.focus].start_point+((res)/lbr[params:get("live_buff_rate")]),(1+(32*(rec.focus-1))),(32.9+(32*(rec.focus-1))))
   end
   if rec.play_segment == rec.focus then
     softcut.loop_start(1, rec[rec.focus].start_point)
@@ -916,13 +916,13 @@ function ea.move_rec_end(d)
     res = d/rec_loop_enc_resolution
   end
   if d <= 0 and util.round(rec[rec.focus].start_point,0.01) < util.round(rec[rec.focus].end_point + ((res)/lbr[params:get("live_buff_rate")]),0.01) then
-    rec[rec.focus].end_point = util.clamp(rec[rec.focus].end_point+((res)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.focus-1))),(9+(8*(rec.focus-1))))
+    rec[rec.focus].end_point = util.clamp(rec[rec.focus].end_point+((res)/lbr[params:get("live_buff_rate")]),(1+(32*(rec.focus-1))),(33+(32*(rec.focus-1))))
   elseif d > 0 then
-    if rec[rec.focus].end_point+((res)/lbr[params:get("live_buff_rate")]) <= 9+(8*(rec.focus-1)) then -- FIXME: weak point?
-      rec[rec.focus].end_point = util.clamp(rec[rec.focus].end_point+((res)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.focus-1))),(9+(8*(rec.focus-1))))
+    if rec[rec.focus].end_point+((res)/lbr[params:get("live_buff_rate")]) <= 33+(32*(rec.focus-1)) then -- FIXME: weak point?
+      rec[rec.focus].end_point = util.clamp(rec[rec.focus].end_point+((res)/lbr[params:get("live_buff_rate")]),(1+(32*(rec.focus-1))),(33+(32*(rec.focus-1))))
     else
       if params:get("rec_loop_enc_resolution") < 3 then
-        rec[rec.focus].end_point = 9+(8*(rec.focus-1))
+        rec[rec.focus].end_point = 33+(32*(rec.focus-1))
       end
     end
   end

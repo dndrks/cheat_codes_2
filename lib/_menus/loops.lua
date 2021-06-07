@@ -321,6 +321,10 @@ function _loops.process_encoder(n,d)
       elseif page.loops.sel == 4 then
         if page.loops.selected_live_control == "segment" then
           encoder_actions.change_buffer(rec[rec.focus],d)
+        elseif page.loops.selected_live_control == "start_point" then
+          encoder_actions.move_rec_start(d)
+        elseif page.loops.selected_live_control == "end_point" then
+          encoder_actions.move_rec_end(d)
         elseif page.loops.selected_live_control == "feedback" then
           params:delta("live_rec_feedback_"..rec.focus,d)
         elseif page.loops.selected_live_control == "mode" then
@@ -534,7 +538,7 @@ function _loops.draw_menu()
       screen.stroke()
 
       if page.loops.zoomed_mode then
-        local off = pad.mode == 1 and (((pad.clip-1)*8)+1) or clip[pad.clip].min
+        local off = pad.mode == 1 and live[pad.clip].min or clip[pad.clip].min
         local display_end = pad.mode == 1 and (pad.end_point == 8.99 and 9 or pad.end_point) or pad.end_point
         screen.move(0,54)
         screen.text("start: "..string.format("%.4g",(util.round(pad.start_point,0.0001))-off).."s")
@@ -791,7 +795,7 @@ function _loops.draw_menu()
             end
           end
 
-          local off = bank[i][id].mode == 1 and (((bank[i][id].clip-1)*8)+1) or clip[bank[i][id].clip].min
+          local off = bank[i][id].mode == 1 and clip[bank[i][id].clip].min or clip[bank[i][id].clip].min
           local display_end = bank[i][id].mode == 1 and (bank[i][id].end_point == 8.99 and 9 or bank[i][id].end_point) or bank[i][id].end_point
 
 
@@ -800,7 +804,7 @@ function _loops.draw_menu()
           screen.line(115,8+(i*14))
           screen.close()
           screen.stroke()
-          local duration = bank[i][id].mode == 1 and 8 or clip[bank[i][id].clip].sample_length
+          local duration = bank[i][id].mode == 1 and 32 or clip[bank[i][id].clip].sample_length
           local s_p = bank[i][id].mode == 1 and live[bank[i][id].clip].min or clip[bank[i][id].clip].min
           local e_p = bank[i][id].mode == 1 and live[bank[i][id].clip].max or clip[bank[i][id].clip].max
           local start_to_screen = util.linlin(s_p,e_p,15,115,bank[i][id].start_point)
@@ -817,7 +821,7 @@ function _loops.draw_menu()
 
         elseif i == 4 then
           id = rec.focus
-          local off = ((id-1)*8)+1
+          local off = ((id-1)*32)+1
           local mults = {1,2,4}
           local mult = mults[params:get("live_buff_rate")]
           

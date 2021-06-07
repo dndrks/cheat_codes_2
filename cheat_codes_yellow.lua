@@ -92,7 +92,7 @@ speed_dial = include 'lib/_menus/speed_dial'
 _gleds = include 'lib/grid_leds'
 p_gate = include 'lib/p_gate'
 _dough = include 'lib/doughstretch'
-_ps = include 'lib/pattern_saver'
+_ps = include 'lib/speed_dial_pages/pattern_saver'
 math.randomseed(os.time())
 variable_fade_time = 0.01
 --with positive playback rates, the buffer is actually read from / written to up to (loop end + fade time).
@@ -151,8 +151,8 @@ end
 -- waveform stuff
 local interval = 0
 waveform_samples = {}
-bank_waveform_scale = 15
-live_waveform_scale = 10
+bank_waveform_scale = 20
+live_waveform_scale = 20
 waveform_scale = 25
 
 function on_render(ch, start, i, s)
@@ -169,9 +169,9 @@ function on_render(ch, start, i, s)
       clip[3].waveform_samples = s
     end
   elseif ch == 1 then
-    if start < 9 then
+    if start < live[2].min then
       rec[1].waveform_samples = s
-    elseif start < 17 then
+    elseif start < live[3].min then
       rec[2].waveform_samples = s
     else
       rec[3].waveform_samples = s
@@ -234,11 +234,11 @@ for i = 1,3 do
   live[i].waveform_samples = {}
 end
 live[1].min = 1
-live[1].max = 9
-live[2].min = 9
-live[2].max = 17
-live[3].min = 17
-live[3].max = 25
+live[1].max = 33
+live[2].min = 33
+live[2].max = 65
+live[3].min = 65
+live[3].max = 97
 
 SOS_recording = {}
 for i = 1,3 do
@@ -512,7 +512,7 @@ function random_grid_pat(which,mode)
       constructed.loop = assigning_pad.loop
       constructed.mode = assigning_pad.mode
       constructed.pause = assigning_pad.pause
-      constructed.start_point = (math.random(10,75)/10)+(8*(assigning_pad.clip-1))
+      constructed.start_point = (math.random(10,75)/10)+(32*(assigning_pad.clip-1))
       constructed.clip = assigning_pad.clip
       constructed.end_point = constructed.start_point + (math.random(1,15)/10)
       constructed.rate_adjusted = false
@@ -889,8 +889,8 @@ function init()
     rec[i].state = 0
     rec[i].pause = false
     rec[i].clip = 1
-    rec[i].start_point = 1+(8*(i-1))
-    rec[i].end_point = 9+(8*(i-1))
+    rec[i].start_point = live[i].min
+    rec[i].end_point = live[i].max
     rec[i].loop = 1
     rec[i].clear = 1
     rec[i].rate_offset = 1.0
@@ -2278,7 +2278,8 @@ function cancel_one_shot_rec_clock()
   if one_shot_rec_clock ~= nil then
     clock.cancel(one_shot_rec_clock)
   end
-  rec[rec.focus].state = 0
+  -- rec[rec.focus].state = 0
+  _ca.buff_freeze()
   rec_state_watcher:stop()
   rec.stopped = true
   grid_dirty = true
@@ -2288,6 +2289,9 @@ function cancel_one_shot_rec_clock()
     end
   end
   one_shot_rec_clock = nil
+  rec[rec.focus].end_point = poll_position_new[1]
+  update_waveform(1,key1_hold and rec[rec.focus].start_point or live[rec.focus].min,key1_hold and rec[rec.focus].end_point or live[rec.focus].max,128)
+
 end
 
 function one_shot_clock()
@@ -2467,7 +2471,7 @@ osc_in = function(path, args, from)
     elseif path == "/randomize_this_bank_"..i then
       random_grid_pat(i,3)
       for j = 2,16 do
-        bank[i][j].start_point = (math.random(10,30)/10)+(8*(bank[i][j].clip-1))
+        bank[i][j].start_point = (math.random(10,30)/10)+(32*(bank[i][j].clip-1))
         bank[i][j].end_point = bank[i][j].start_point + (math.random(10,60)/10)
         bank[i][j].pan = math.random(-100,100)/100
       end
@@ -2505,7 +2509,7 @@ osc_in = function(path, args, from)
     elseif path == "/sixteenths_"..i then
       for j = 1,16 do
         local pad = bank[i][j]
-        local duration = pad.mode == 1 and 8 or clip[pad.clip].sample_length
+        local duration = pad.mode == 1 and 32 or clip[pad.clip].sample_length
         local s_p = pad.mode == 1 and live[pad.clip].min or clip[pad.clip].min
         pad.end_point = pad.start_point + (clock.get_beat_sec()/4)
       end
@@ -2518,11 +2522,11 @@ osc_in = function(path, args, from)
         if pad.mode == 1 then
           --slice within bounds
           duration = rec[rec.focus].end_point-rec[rec.focus].start_point
-          local s_p = rec[rec.focus].start_point+(8*(pad.clip-1))
+          local s_p = rec[rec.focus].start_point+(32*(pad.clip-1))
           pad.start_point = (s_p+(duration/16) * (pad.pad_id-1))
           pad.end_point = (s_p+((duration/16) * (pad.pad_id)))
         else
-          duration = pad.mode == 1 and 8 or clip[pad.clip].sample_length
+          duration = pad.mode == 1 and 32 or clip[pad.clip].sample_length
           pad.start_point = ((duration/16)*(pad.pad_id-1)) + clip[pad.clip].min
           pad.end_point = pad.start_point + (duration/16)
         end
@@ -2545,7 +2549,7 @@ osc_in = function(path, args, from)
           max_end = math.floor(pad.end_point * 100)
           min_start = math.floor(clip[pad.clip].min * 100)
         else
-          duration = pad.mode == 1 and 8 or math.modf(clip[pad.clip].sample_length)
+          duration = pad.mode == 1 and 32 or math.modf(clip[pad.clip].sample_length)
           max_end = math.floor(pad.end_point * 100)
           min_start = math.floor(((duration*(pad.clip-1))+1) * 100)
         end
@@ -2742,10 +2746,10 @@ end
 
 function pad_to_rec(b)
   local pad = bank[b][bank[b].id]
-  local s_p = pad.start_point-(8*(pad.clip-1))
-  local e_p = pad.end_point-(8*(pad.clip-1))
-  rec[rec.focus].start_point = s_p+(8*(rec.focus-1))
-  rec[rec.focus].end_point = e_p+(8*(rec.focus-1))
+  local s_p = pad.start_point-(32*(pad.clip-1))
+  local e_p = pad.end_point-(32*(pad.clip-1))
+  rec[rec.focus].start_point = s_p+(32*(rec.focus-1))
+  rec[rec.focus].end_point = e_p+(32*(rec.focus-1))
   softcut.loop_start(1,rec[rec.focus].start_point)
   softcut.loop_end(1,rec[rec.focus].end_point-0.01)
   softcut.position(1,rec[rec.focus].start_point)
@@ -3513,7 +3517,7 @@ function key(n,z)
               local src_bank     = bank[src_bank_num]
               local src_pad      = src_bank[src_bank.id]
               -- -- shift start/end by the difference between clips
-              local reasonable_max = bank[id][bank[id].id].mode == 1 and 8 or clip[bank[id][bank[id].id].clip].sample_length
+              local reasonable_max = bank[id][bank[id].id].mode == 1 and 32 or clip[bank[id][bank[id].id].clip].sample_length
               if src_pad.end_point <= reasonable_max then
                 bank[id][bank[id].id].start_point = src_pad.start_point
                 bank[id][bank[id].id].end_point = src_pad.end_point
@@ -3699,7 +3703,7 @@ function key(n,z)
               local src_bank     = bank[src_bank_num]
               local src_pad      = src_bank[src_bank.id]
               -- -- shift start/end by the difference between clips
-              local reasonable_max = bank[id][bank[id].id].mode == 1 and 8 or clip[bank[id][bank[id].id].clip].sample_length
+              local reasonable_max = bank[id][bank[id].id].mode == 1 and 32 or clip[bank[id][bank[id].id].clip].sample_length
               if src_pad.end_point <= reasonable_max then
                 bank[id][bank[id].id].start_point = src_pad.start_point
                 bank[id][bank[id].id].end_point = src_pad.end_point
@@ -4138,11 +4142,11 @@ function new_arc_pattern_execute(entry)
     end
     
     if entry.param == 1 or entry.param == 2 or entry.param == 3 then
-      bank[id][which_pad].start_point = (entry.start_point + (8*(bank[id][which_pad].clip-1)) + arc_offset)
-      bank[id][which_pad].end_point = (entry.end_point + (8*(bank[id][which_pad].clip-1)) + arc_offset)
+      bank[id][which_pad].start_point = (entry.start_point + (32*(bank[id][which_pad].clip-1)) + arc_offset)
+      bank[id][which_pad].end_point = (entry.end_point + (32*(bank[id][which_pad].clip-1)) + arc_offset)
       if bank[id].id == which_pad then
-        softcut.loop_start(id+1, (entry.start_point + (8*(bank[id][which_pad].clip-1))) + arc_offset)
-        softcut.loop_end(id+1, (entry.end_point + (8*(bank[id][which_pad].clip-1))) + arc_offset)
+        softcut.loop_start(id+1, (entry.start_point + (32*(bank[id][which_pad].clip-1))) + arc_offset)
+        softcut.loop_end(id+1, (entry.end_point + (32*(bank[id][which_pad].clip-1))) + arc_offset)
       end
     elseif entry.param == 5 then
       bank[id][which_pad].level = (entry.level + arc_offset)

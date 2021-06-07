@@ -74,8 +74,8 @@ function aa.new_pattern_watch(enc)
   else
     arc_p[enc][a_p].pad = bank[id].focus_pad
   end
-  arc_p[enc][a_p].start_point = bank[id][arc_p[enc][a_p].pad].start_point - (8*(bank[id][arc_p[enc][a_p].pad].clip-1))
-  arc_p[enc][a_p].end_point = bank[id][arc_p[enc][a_p].pad].end_point - (8*(bank[id][arc_p[enc][a_p].pad].clip-1))
+  arc_p[enc][a_p].start_point = bank[id][arc_p[enc][a_p].pad].start_point - (32*(bank[id][arc_p[enc][a_p].pad].clip-1))
+  arc_p[enc][a_p].end_point = bank[id][arc_p[enc][a_p].pad].end_point - (32*(bank[id][arc_p[enc][a_p].pad].clip-1))
   arc_p[enc][a_p].prev_tilt = slew_counter[id].prev_tilt
   arc_p[enc][a_p].tilt = bank[id][bank[id].id].tilt
   --new new!
@@ -109,7 +109,7 @@ end
 
 function aa.move_window(target, delta)
   local force = math.abs(delta) >= 5 and true or false
-  local duration = target.mode == 1 and 8 or clip[target.clip].sample_length
+  local duration = target.mode == 1 and 32 or clip[target.clip].sample_length
   local current_difference = (target.end_point - target.start_point)
   local s_p = target.mode == 1 and live[target.clip].min or clip[target.clip].min
   local reasonable_max = target.mode == 1 and live[target.clip].max or clip[target.clip].max
@@ -134,7 +134,7 @@ function aa.move_start(target, delta)
 
   local force = math.abs(delta) >= 5 and true or false
 
-  local duration = target.mode == 1 and 8 or clip[target.clip].sample_length
+  local duration = target.mode == 1 and 32 or clip[target.clip].sample_length
   local s_p = target.mode == 1 and live[target.clip].min or clip[target.clip].min
   local adjusted_delta = force and (delta/100) or (delta/300)
   if adjusted_delta >= 0 and target.start_point < (target.end_point - 0.055) then
@@ -151,7 +151,7 @@ function aa.move_end(target, delta)
 
   local force = math.abs(delta) >= 5 and true or false
 
-  local duration = target.mode == 1 and 8 or clip[target.clip].sample_length
+  local duration = target.mode == 1 and 32 or clip[target.clip].sample_length
   local s_p = target.mode == 1 and live[target.clip].min or clip[target.clip].min
   local adjusted_delta = force and (delta/100) or (delta/300)
   if adjusted_delta <= 0 and target.start_point < (target.end_point - 0.055) then

@@ -94,7 +94,7 @@ function ca.buff_flush()
   if key1_hold then
     update_waveform(1,rec[rec.focus].start_point, rec[rec.focus].end_point,128)
   else
-    local points = {{1,9},{9,17},{17,25}}
+    local points = {{1,33},{34,66},{67,99}}
     update_waveform(1,points[rec.focus][1],points[rec.focus][2],128)
   end
   grid_dirty = true
@@ -292,7 +292,7 @@ function ca.save_sample(i)
   end
   local name = "cc2_"..os.date("%y%m%d_%X-buff")..i..".wav"
   local save_pos = i - 1
-  softcut.buffer_write_mono(_path.dust.."/audio/cc2_saved_samples/"..name,1+(8*save_pos),8,1)
+  softcut.buffer_write_mono(_path.dust.."/audio/cc2_saved_samples/"..name,1+(32*save_pos),8,1)
 end
 
 function ca.collect_samples(i,collection) -- this works!!!
@@ -306,7 +306,7 @@ function ca.collect_samples(i,collection) -- this works!!!
   end
   local name = "cc2_"..collection.."-"..i..".wav"
   local save_pos = i - 1
-  softcut.buffer_write_mono(_path.dust.."audio/cc2_live-audio/"..collection.."/"..name,1+(8*save_pos),8,1)
+  softcut.buffer_write_mono(_path.dust.."audio/cc2_live-audio/"..collection.."/"..name,1+(32*save_pos),8,1)
 end
 
 function ca.reload_collected_samples(file,sample)

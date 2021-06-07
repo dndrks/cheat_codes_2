@@ -329,31 +329,31 @@ function grid_actions.init(x,y,z)
           end
         end
         
-        for i = 4,2,-1 do
-          if x == 16 and y == i and z == 0 then
-            local current = math.abs(y-5)
-            local a_p; -- this will index the arc encoder recorders
-            if arc_param[current] == 1 or arc_param[current] == 2 or arc_param[current] == 3 then
-              a_p = 1
-            else
-              a_p = arc_param[current] - 2
-            end
-            if grid_alt then
-              arc_pat[current][a_p]:rec_stop()
-              arc_pat[current][a_p]:stop()
-              arc_pat[current][a_p]:clear()
-            elseif arc_pat[current][a_p].rec == 1 then
-              arc_pat[current][a_p]:rec_stop()
-              arc_pat[current][a_p]:start()
-            elseif arc_pat[current][a_p].count == 0 then
-              arc_pat[current][a_p]:rec_start()
-            elseif arc_pat[current][a_p].play == 1 then
-              arc_pat[current][a_p]:stop()
-            else
-              arc_pat[current][a_p]:start()
-            end
-          end
-        end
+        -- for i = 4,2,-1 do
+        --   if x == 16 and y == i and z == 0 then
+        --     local current = math.abs(y-5)
+        --     local a_p; -- this will index the arc encoder recorders
+        --     if arc_param[current] == 1 or arc_param[current] == 2 or arc_param[current] == 3 then
+        --       a_p = 1
+        --     else
+        --       a_p = arc_param[current] - 2
+        --     end
+        --     if grid_alt then
+        --       arc_pat[current][a_p]:rec_stop()
+        --       arc_pat[current][a_p]:stop()
+        --       arc_pat[current][a_p]:clear()
+        --     elseif arc_pat[current][a_p].rec == 1 then
+        --       arc_pat[current][a_p]:rec_stop()
+        --       arc_pat[current][a_p]:start()
+        --     elseif arc_pat[current][a_p].count == 0 then
+        --       arc_pat[current][a_p]:rec_start()
+        --     elseif arc_pat[current][a_p].play == 1 then
+        --       arc_pat[current][a_p]:stop()
+        --     else
+        --       arc_pat[current][a_p]:start()
+        --     end
+        --   end
+        -- end
         
         for i = 1,3 do
           if not rytm.grid.ui[i] then
@@ -542,161 +542,164 @@ function grid_actions.init(x,y,z)
         end
         
       elseif grid_page == 1 then
+
+        _ps.parse_press(x,y,z)
+
         
-        if grid_loop_mod == 0 then
+        -- if grid_loop_mod == 0 then
         
-          for i = 1,11,5 do
-            for j = 1,8 do
-              if x == i and y == j then
-                local current = math.floor(x/5)+1
-                if z == 1 then
-                  if pattern_saver[current].saved[9-y] == 0 then
-                    if step_seq[current].held == 0 then
-                      pattern_saver[current].source = math.floor(x/5)+1
-                      pattern_saver[current].save_slot = 9-y
-                      pattern_saver[current].clock = clock.run(test_save,current)
-                      -- print("starting save "..pattern_saver[current].clock)
-                    else
-                    --if there's a pattern saved there...
-                    end
-                  elseif pattern_saver[current].saved[9-y] == 1 then
-                    if step_seq[current].held == 0 and not grid_alt then
-                      pattern_saver[current].load_slot = 9-y
-                      test_load((9-y)+(8*(current-1)),current)
-                    elseif step_seq[current].held ~= 0 and not grid_alt then
-                      step_seq[current][step_seq[current].held].assigned_to = 9-y
-                    elseif grid_alt then
-                      pattern_deleter[current].clock = clock.run(test_delete,current,9-y)
-                    end
-                  end
-                elseif z == 0 then
-                  if step_seq[current].held == 0 then
-                    if pattern_saver[math.floor(x/5)+1].clock then
-                      clock.cancel(pattern_saver[math.floor(x/5)+1].clock)
-                    end
-                    pattern_saver[math.floor(x/5)+1].active = false
-                  end
-                  if pattern_deleter[math.floor(x/5)+1].clock then
-                    clock.cancel(pattern_deleter[math.floor(x/5)+1].clock)
-                    pattern_deleter[math.floor(x/5)+1].active = false
-                  end
-                end
-              end
-            end
-          end
+        --   for i = 1,11,5 do
+        --     for j = 1,8 do
+        --       if x == i and y == j then
+        --         local current = math.floor(x/5)+1
+        --         if z == 1 then
+        --           if pattern_saver[current].saved[9-y] == 0 then
+        --             if step_seq[current].held == 0 then
+        --               pattern_saver[current].source = math.floor(x/5)+1
+        --               pattern_saver[current].save_slot = 9-y
+        --               pattern_saver[current].clock = clock.run(test_save,current)
+        --               -- print("starting save "..pattern_saver[current].clock)
+        --             else
+        --             --if there's a pattern saved there...
+        --             end
+        --           elseif pattern_saver[current].saved[9-y] == 1 then
+        --             if step_seq[current].held == 0 and not grid_alt then
+        --               pattern_saver[current].load_slot = 9-y
+        --               test_load((9-y)+(8*(current-1)),current)
+        --             elseif step_seq[current].held ~= 0 and not grid_alt then
+        --               step_seq[current][step_seq[current].held].assigned_to = 9-y
+        --             elseif grid_alt then
+        --               pattern_deleter[current].clock = clock.run(test_delete,current,9-y)
+        --             end
+        --           end
+        --         elseif z == 0 then
+        --           if step_seq[current].held == 0 then
+        --             if pattern_saver[math.floor(x/5)+1].clock then
+        --               clock.cancel(pattern_saver[math.floor(x/5)+1].clock)
+        --             end
+        --             pattern_saver[math.floor(x/5)+1].active = false
+        --           end
+        --           if pattern_deleter[math.floor(x/5)+1].clock then
+        --             clock.cancel(pattern_deleter[math.floor(x/5)+1].clock)
+        --             pattern_deleter[math.floor(x/5)+1].active = false
+        --           end
+        --         end
+        --       end
+        --     end
+        --   end
 
 
           
-          for i = 2,12,5 do
-            for j = 1,8 do
-              if z == 1 and x == i and y == j then
-                local current = math.floor(x/5)+1
-                step_seq[current].meta_duration = 9-y
-              end
-            end
-          end
+        --   for i = 2,12,5 do
+        --     for j = 1,8 do
+        --       if z == 1 and x == i and y == j then
+        --         local current = math.floor(x/5)+1
+        --         step_seq[current].meta_duration = 9-y
+        --       end
+        --     end
+        --   end
           
-          for i = 3,13,5 do
-            for j = 1,8 do
-              if z == 1 and x == i and y == j then
-                local current = math.floor(x/5)+1
-                step_seq[current].held = 9-y
-                if grid_alt then
-                  step_seq[current][step_seq[current].held].assigned_to = 0
-                end
-              elseif z == 0 and x == i and y == j then
-                local current = math.floor(x/5)+1
-                step_seq[current].held = 0
-              elseif z == 1 and x == i+1 and y == j then
-                local current = math.floor(x/5)+1
-                step_seq[current].held = (9-y)+8
-                if grid_alt then
-                  step_seq[current][step_seq[current].held].assigned_to = 0
-                end
-              elseif z == 0 and x == i+1 and y == j then
-                local current = math.floor(x/5)+1
-                step_seq[current].held = 0
-              end
-            end
-          end
+        --   for i = 3,13,5 do
+        --     for j = 1,8 do
+        --       if z == 1 and x == i and y == j then
+        --         local current = math.floor(x/5)+1
+        --         step_seq[current].held = 9-y
+        --         if grid_alt then
+        --           step_seq[current][step_seq[current].held].assigned_to = 0
+        --         end
+        --       elseif z == 0 and x == i and y == j then
+        --         local current = math.floor(x/5)+1
+        --         step_seq[current].held = 0
+        --       elseif z == 1 and x == i+1 and y == j then
+        --         local current = math.floor(x/5)+1
+        --         step_seq[current].held = (9-y)+8
+        --         if grid_alt then
+        --           step_seq[current][step_seq[current].held].assigned_to = 0
+        --         end
+        --       elseif z == 0 and x == i+1 and y == j then
+        --         local current = math.floor(x/5)+1
+        --         step_seq[current].held = 0
+        --       end
+        --     end
+        --   end
           
-          for i = 5,15,5 do
-            for j = 1,8 do
-              if z == 1 and x == i and y == j then
-                local current = x/5
-                if step_seq[current].held == 0 then
-                  step_seq[current][step_seq[current].current_step].meta_meta_duration = 9-y
-                else
-                  step_seq[current][step_seq[current].held].meta_meta_duration = 9-y
-                end
-                if grid_alt then
-                  for k = 1,16 do
-                    step_seq[current][k].meta_meta_duration = 9-y
-                  end
-                end
-              end
-            end
-          end
+        --   for i = 5,15,5 do
+        --     for j = 1,8 do
+        --       if z == 1 and x == i and y == j then
+        --         local current = x/5
+        --         if step_seq[current].held == 0 then
+        --           step_seq[current][step_seq[current].current_step].meta_meta_duration = 9-y
+        --         else
+        --           step_seq[current][step_seq[current].held].meta_meta_duration = 9-y
+        --         end
+        --         if grid_alt then
+        --           for k = 1,16 do
+        --             step_seq[current][k].meta_meta_duration = 9-y
+        --           end
+        --         end
+        --       end
+        --     end
+        --   end
           
-          for i = 7,5,-1 do
-            if x == 16 and y == i and z == 1 then
-              if step_seq[8-i].held == 0 then
-                if grid_alt then
-                  clock.run(reset_step_seq,8-y)
-                  -- step_seq[8-i].current_step = step_seq[8-i].start_point
-                  -- step_seq[8-i].meta_step = 1
-                  -- step_seq[8-i].meta_meta_step = 1
-                  -- if step_seq[8-i].active == 1 and step_seq[8-i][step_seq[8-i].current_step].assigned_to ~= 0 then
-                  --   test_load(step_seq[8-i][step_seq[8-i].current_step].assigned_to+(((8-i)-1)*8),8-i)
-                  -- end
-                else
-                  step_seq[8-i].active = (step_seq[8-i].active + 1)%2
-                end
-              else
-                step_seq[8-i][step_seq[8-i].held].loop_pattern = (step_seq[8-i][step_seq[8-i].held].loop_pattern + 1)%2
-              end
-            end
-          end
+        --   for i = 7,5,-1 do
+        --     if x == 16 and y == i and z == 1 then
+        --       if step_seq[8-i].held == 0 then
+        --         if grid_alt then
+        --           clock.run(reset_step_seq,8-y)
+        --           -- step_seq[8-i].current_step = step_seq[8-i].start_point
+        --           -- step_seq[8-i].meta_step = 1
+        --           -- step_seq[8-i].meta_meta_step = 1
+        --           -- if step_seq[8-i].active == 1 and step_seq[8-i][step_seq[8-i].current_step].assigned_to ~= 0 then
+        --           --   test_load(step_seq[8-i][step_seq[8-i].current_step].assigned_to+(((8-i)-1)*8),8-i)
+        --           -- end
+        --         else
+        --           step_seq[8-i].active = (step_seq[8-i].active + 1)%2
+        --         end
+        --       else
+        --         step_seq[8-i][step_seq[8-i].held].loop_pattern = (step_seq[8-i][step_seq[8-i].held].loop_pattern + 1)%2
+        --       end
+        --     end
+        --   end
 
-          if x == 16 and y == 8 then
-            grid_alt = z == 1 and true or false
-            if menu ~= 1 then screen_dirty = true end
-          end
+        --   if x == 16 and y == 8 then
+        --     grid_alt = z == 1 and true or false
+        --     if menu ~= 1 then screen_dirty = true end
+        --   end
         
-        elseif grid_loop_mod == 1 then
-          for i = 3,13,5 do
-            if x == i or x == i+1 then
-              local current = math.floor(x/5)+1
-              if z == 1 then
-                step_seq[current].loop_held = step_seq[current].loop_held + 1
-                if step_seq[current].loop_held == 1 then
-                  if x == i then
-                    step_seq[current].start_point = 9-y
-                  elseif x == i+1 then
-                    step_seq[current].start_point = 17-y
-                  end
-                  if step_seq[current].start_point > step_seq[current].current_step then
-                    step_seq[current].current_step = step_seq[current].start_point
-                  end
-                elseif step_seq[current].loop_held == 2 then
-                  if x == i then
-                    step_seq[current].end_point = 9-y
-                  elseif x == i+1 then
-                    step_seq[current].end_point = 17-y
-                  end
-                end
-              elseif z == 0 then
-                step_seq[current].loop_held = step_seq[current].loop_held - 1
-              end
-            end
-          end
-        end
+        -- elseif grid_loop_mod == 1 then
+        --   for i = 3,13,5 do
+        --     if x == i or x == i+1 then
+        --       local current = math.floor(x/5)+1
+        --       if z == 1 then
+        --         step_seq[current].loop_held = step_seq[current].loop_held + 1
+        --         if step_seq[current].loop_held == 1 then
+        --           if x == i then
+        --             step_seq[current].start_point = 9-y
+        --           elseif x == i+1 then
+        --             step_seq[current].start_point = 17-y
+        --           end
+        --           if step_seq[current].start_point > step_seq[current].current_step then
+        --             step_seq[current].current_step = step_seq[current].start_point
+        --           end
+        --         elseif step_seq[current].loop_held == 2 then
+        --           if x == i then
+        --             step_seq[current].end_point = 9-y
+        --           elseif x == i+1 then
+        --             step_seq[current].end_point = 17-y
+        --           end
+        --         end
+        --       elseif z == 0 then
+        --         step_seq[current].loop_held = step_seq[current].loop_held - 1
+        --       end
+        --     end
+        --   end
+        -- end
         
-        if x == 16 and y == 2 then
-          grid_loop_mod = z
-          if menu ~= 1 then screen_dirty = true end
-          -- grid_redraw()
-        end
+        -- if x == 16 and y == 2 then
+        --   grid_loop_mod = z
+        --   if menu ~= 1 then screen_dirty = true end
+        --   -- grid_redraw()
+        -- end
       
       elseif grid_page == 2 then
         if y == 3 or y == 6 then
@@ -910,25 +913,24 @@ function grid_actions.init(x,y,z)
           clock.cancel(page_switcher_clock)
           page_switcher_clock = nil
           speed_dial_active = false
-          -- if not grid_alt and not was_transport_toggled then
-          --   if grid_page == 0 then
-          --     grid_page = 1
-          --   elseif grid_page == 1 then
-          --     grid_page = 2
-          --   elseif grid_page == 2 then  
-          --     grid_page = 0
-          --   end
-          -- elseif grid_alt then
-          --   if grid_page == 0 then
-          --     grid_page = 2
-          --   elseif grid_page == 1 then
-          --     grid_page = 0
-          --   elseif grid_page == 2 then  
-          --     grid_page = 1
-          --   end
-          -- end
-          -- was_transport_toggled = false
+          if grid_page == 0 then
+            grid_page = 1
+          elseif grid_page == 1 then
+            grid_page = 0
+          elseif grid_page == 2 then
+            grid_page = 1
+          end
         end
+      end
+    end
+
+    if x == 16 and y == 2 and z == 1 then
+      if grid_page == 0 then
+        grid_page = 2
+      elseif grid_page == 2 then
+        grid_page = 0
+      elseif grid_page == 1 then
+        grid_page = 2
       end
     end
 

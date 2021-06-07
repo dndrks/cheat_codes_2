@@ -102,7 +102,7 @@ led_maps =
   , ["rytm_step_inactive"]    =   {3,3,0}
   
   -- misc
-  , ["page_led"]          =   {{0,0,15},{7,8,15},{15,12,15}}
+  , ["page_led"]          =   {{0,0,0},{15,15,15},{15,15,15}}
   , ["off"]               =   {0,0,0}
 }
 
@@ -391,71 +391,73 @@ function _gleds.grid_redraw()
         elseif grid_page == 1 then
           
           -- if we're on page 2...
-          
-          for i = 1,3 do
 
-            for j = step_seq[i].start_point,step_seq[i].end_point do
-              local xval = j < 9 and (i*5)-2 or (i*5)-1
-              local yval = j < 9 and 9 or 17
-
-              g:led(xval,yval-j,led_maps["step_no_data"][edition])
-
-              if grid_loop_mod == 1 then
-                g:led(xval,yval-step_seq[i].start_point,led_maps["step_loops"][edition])
-                g:led(xval,yval-step_seq[i].end_point,led_maps["step_loops"][edition])
-              end
-
-            end
-
-            for j = 1,16 do
-              if step_seq[i][j].assigned_to ~= 0 then
-                local xval = j < 9 and (i*5)-2 or (i*5)-1
-                local yval = j < 9 and 9 or 17
-                g:led(xval,yval-j,led_maps["step_yes_data"][edition])
-              end
-            end
-
-            if step_seq[i].current_step < 9 then
-              g:led((i*5)-2,9-step_seq[i].current_step,led_maps["step_current"][edition])
-            elseif step_seq[i].current_step >=9 then
-              g:led((i*5)-1,9-(step_seq[i].current_step-8),led_maps["step_current"][edition])
-            end
-
-            if step_seq[i].held < 9 then
-              g:led((i*5)-2,9-step_seq[i].held,led_maps["step_held"][edition])
-            elseif step_seq[i].held >= 9 then
-              g:led((i*5)-1,9-(step_seq[i].held-8),led_maps["step_held"][edition])
-            end
-
-            g:led((i*5)-3, 9-step_seq[i].meta_duration,led_maps["meta_duration"][edition])
-            g:led((i*5)-3, 9-step_seq[i].meta_step,led_maps["meta_step_hi"][edition])
-
-            if step_seq[i].held == 0 then
-              g:led((i*5), 9-step_seq[i][step_seq[i].current_step].meta_meta_duration,led_maps["meta_duration"][edition])
-              g:led((i*5), 9-step_seq[i].meta_meta_step,led_maps["meta_step_hi"][edition])
-            else
-              g:led((i*5), 9-step_seq[i].meta_meta_step,led_maps["meta_step_lo"][edition])
-              g:led((i*5), 9-step_seq[i][step_seq[i].held].meta_meta_duration,led_maps["meta_duration"][edition])
-            end
-            if step_seq[i].held == 0 then
-              g:led(16,8-i,edition == 3 and (15*step_seq[i].active) or ((step_seq[i].active*6)+2))
-            else
-              g:led(16,8-i,step_seq[i][step_seq[i].held].loop_pattern*4)
-            end
-
-          end
-          
-          for i = 1,11,5 do
-            for j = 1,8 do
-              local current = math.floor(i/5)+1
-              local show = step_seq[current].held == 0 and pattern_saver[current].load_slot or step_seq[current][step_seq[current].held].assigned_to
-              g:led(i,j,edition == 3 and (15*pattern_saver[current].saved[9-j]) or ((5*pattern_saver[current].saved[9-j])+2))
-              g:led(i,j,j == (9 - show) and 15 or (edition == 3 and (15*pattern_saver[current].saved[9-j]) or ((5*pattern_saver[current].saved[9-j])+2)))
-            end
-          end
-          
+          _ps.draw_grid()
           g:led(16,8,grid_alt and led_maps["alt_on"][edition] or led_maps["alt_off"][edition])
-          g:led(16,2,grid_loop_mod == 1 and led_maps["loop_mod_hi"][edition] or led_maps["loop_mod_lo"][edition])
+          
+          -- for i = 1,3 do
+
+          --   for j = step_seq[i].start_point,step_seq[i].end_point do
+          --     local xval = j < 9 and (i*5)-2 or (i*5)-1
+          --     local yval = j < 9 and 9 or 17
+
+          --     g:led(xval,yval-j,led_maps["step_no_data"][edition])
+
+          --     if grid_loop_mod == 1 then
+          --       g:led(xval,yval-step_seq[i].start_point,led_maps["step_loops"][edition])
+          --       g:led(xval,yval-step_seq[i].end_point,led_maps["step_loops"][edition])
+          --     end
+
+          --   end
+
+          --   for j = 1,16 do
+          --     if step_seq[i][j].assigned_to ~= 0 then
+          --       local xval = j < 9 and (i*5)-2 or (i*5)-1
+          --       local yval = j < 9 and 9 or 17
+          --       g:led(xval,yval-j,led_maps["step_yes_data"][edition])
+          --     end
+          --   end
+
+          --   if step_seq[i].current_step < 9 then
+          --     g:led((i*5)-2,9-step_seq[i].current_step,led_maps["step_current"][edition])
+          --   elseif step_seq[i].current_step >=9 then
+          --     g:led((i*5)-1,9-(step_seq[i].current_step-8),led_maps["step_current"][edition])
+          --   end
+
+          --   if step_seq[i].held < 9 then
+          --     g:led((i*5)-2,9-step_seq[i].held,led_maps["step_held"][edition])
+          --   elseif step_seq[i].held >= 9 then
+          --     g:led((i*5)-1,9-(step_seq[i].held-8),led_maps["step_held"][edition])
+          --   end
+
+          --   g:led((i*5)-3, 9-step_seq[i].meta_duration,led_maps["meta_duration"][edition])
+          --   g:led((i*5)-3, 9-step_seq[i].meta_step,led_maps["meta_step_hi"][edition])
+
+          --   if step_seq[i].held == 0 then
+          --     g:led((i*5), 9-step_seq[i][step_seq[i].current_step].meta_meta_duration,led_maps["meta_duration"][edition])
+          --     g:led((i*5), 9-step_seq[i].meta_meta_step,led_maps["meta_step_hi"][edition])
+          --   else
+          --     g:led((i*5), 9-step_seq[i].meta_meta_step,led_maps["meta_step_lo"][edition])
+          --     g:led((i*5), 9-step_seq[i][step_seq[i].held].meta_meta_duration,led_maps["meta_duration"][edition])
+          --   end
+          --   if step_seq[i].held == 0 then
+          --     g:led(16,8-i,edition == 3 and (15*step_seq[i].active) or ((step_seq[i].active*6)+2))
+          --   else
+          --     g:led(16,8-i,step_seq[i][step_seq[i].held].loop_pattern*4)
+          --   end
+
+          -- end
+          
+          -- for i = 1,11,5 do
+          --   for j = 1,8 do
+          --     local current = math.floor(i/5)+1
+          --     local show = step_seq[current].held == 0 and pattern_saver[current].load_slot or step_seq[current][step_seq[current].held].assigned_to
+          --     g:led(i,j,edition == 3 and (15*pattern_saver[current].saved[9-j]) or ((5*pattern_saver[current].saved[9-j])+2))
+          --     g:led(i,j,j == (9 - show) and 15 or (edition == 3 and (15*pattern_saver[current].saved[9-j]) or ((5*pattern_saver[current].saved[9-j])+2)))
+          --   end
+          -- end
+        
+          -- g:led(16,2,grid_loop_mod == 1 and led_maps["loop_mod_hi"][edition] or led_maps["loop_mod_lo"][edition])
         
         elseif grid_page == 2 then
           -- delay page!
@@ -671,9 +673,12 @@ function _gleds.grid_redraw()
             g:led(15,math.abs(j-7),zilch_leds[4][delay_grid.bank][j] == 1 and led_maps["zilchmo_on"][edition] or led_maps["zilchmo_off"][edition])
           end
         end
-        local page_led = {[0] = 0, [1] = 7, [2] = 15}
         if grid_page ~= nil and grid_page ~= "speed_dial" then
-          g:led(16,1,led_maps["page_led"][grid_page+1][edition])
+          if grid_page ~= 2 then
+            g:led(16,1,led_maps["page_led"][grid_page+1][edition])
+          elseif grid_page == 2 then
+            g:led(16,2,led_maps["page_led"][grid_page+1][edition])
+          end
         end
       else
         speed_dial.draw_grid()

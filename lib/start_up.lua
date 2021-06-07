@@ -15,8 +15,8 @@ function start_up.init()
     softcut.play(i, 1)
     softcut.rate(i, 1)
     softcut.loop_start(i, 1)
-    softcut.loop_end(i, 9)
-    softcut.loop_end(1,8.99)
+    softcut.loop_end(i, 33)
+    softcut.loop_end(1,32.99)
     softcut.loop(i, 1)
     softcut.rec_level(1, 1)
     -- softcut.pre_level(1, 0.25)
@@ -113,6 +113,10 @@ function start_up.init()
               elseif x == 1 then
                 softcut.pre_level(1,params:get("live_rec_feedback_"..rec.focus))
               end
+            else
+              if x == 2 then
+                softcut.position(1,rec[rec.focus].start_point-0.01)
+              end
             end
           end
           grid_dirty = true
@@ -153,13 +157,10 @@ function start_up.init()
     }
     rec_loop_enc_resolution = resolutions[x]
     if x > 2 then
-      -- rec[rec.focus].start_point = 1+(8*(rec.focus-1))
-      -- local lbr = {1,2,4}
-      -- rec[rec.focus].end_point = (1+(8*(rec.focus-1) + (1/rec_loop_enc_resolution))/lbr[params:get("live_buff_rate")])
       local lbr = {1,2,4}
       for i = 1,3 do
-        rec[i].start_point = 1+(8*(i-1))
-        rec[i].end_point = (1+(8*(i-1) + (1/rec_loop_enc_resolution))/lbr[params:get("live_buff_rate")])
+        rec[i].start_point = 1+(32*(i-1))
+        rec[i].end_point = (1+(32*(i-1) + (1/rec_loop_enc_resolution))/lbr[params:get("live_buff_rate")])
       end
       softcut.loop_start(1,rec[rec.focus].start_point)
       softcut.loop_end(1,rec[rec.focus].end_point)

@@ -69,6 +69,7 @@ function z.slew_add( pad ) z.slew( pad, "add" ) end
 
 function zilchmos.level_inc( pad, delta )
   if not bank[which_bank].alt_lock and not grid_alt then
+    if pad.level <=0.5 then delta = delta/4 end
     pad.level = util.clamp( pad.level + delta, 0, 2 )
   else
     if pad.pad_id == 1 then -- only do this once...
@@ -129,7 +130,7 @@ function zilchmos.start_zero( pad )
     duration = rec[rec.focus].end_point-rec[rec.focus].start_point
     pad.start_point = (duration*(pad.clip-1)) + 1
   else
-    duration = pad.mode == 1 and ((8*(pad.clip-1)) + 1) or clip[pad.clip].min
+    duration = pad.mode == 1 and ((32*(pad.clip-1)) + 1) or clip[pad.clip].min
     pad.start_point = duration
   end
 end
@@ -138,23 +139,18 @@ function zilchmos.start_end_default( pad )
   local duration;
   if pad.mode == 1 then
     --slice within bounds
-    -- duration = rec[rec.focus].end_point-rec[rec.focus].start_point
-    -- local s_p = rec[rec.focus].start_point+(8*(pad.clip-1))
     duration = rec[pad.clip].end_point-rec[pad.clip].start_point
-    -- local s_p = rec[pad.clip].start_point+(8*(pad.clip-1))
     local s_p = rec[pad.clip].start_point
     pad.start_point = (s_p+(duration/16) * (pad.pad_id-1))
     pad.end_point = (s_p+((duration/16) * (pad.pad_id)))
   else
-    duration = pad.mode == 1 and 8 or clip[pad.clip].sample_length
+    duration = pad.mode == 1 and 32 or clip[pad.clip].sample_length
     pad.start_point = ((duration/16)*(pad.pad_id-1)) + clip[pad.clip].min
     pad.end_point = pad.start_point + (duration/16)
   end
 end
 
 function zilchmos.end_sixteenths( pad )
-  -- local duration = pad.mode == 1 and 8 or clip[pad.clip].sample_length
-  -- local s_p = pad.mode == 1 and live[pad.clip].min or clip[pad.clip].min
   pad.end_point   = pad.start_point + (clock.get_beat_sec()/4)
 end
 
@@ -164,7 +160,7 @@ function zilchmos.end_at_eight( pad )
     duration = rec[rec.focus].end_point-rec[rec.focus].start_point
     pad.end_point = (duration*pad.clip) + 1
   else
-    duration = pad.mode == 1 and ((8*pad.clip) + 1) or clip[pad.clip].max
+    duration = pad.mode == 1 and ((32*pad.clip) + 1) or clip[pad.clip].max
     pad.end_point = duration
   end
 end
@@ -184,7 +180,7 @@ function zilchmos.start_random( pad )
     min_start = math.floor(clip[pad.clip].min * 100)
   else
     --duration = math.modf(clip[pad.clip].sample_length)
-    duration = pad.mode == 1 and 8 or math.modf(clip[pad.clip].sample_length)
+    duration = pad.mode == 1 and 32 or math.modf(clip[pad.clip].sample_length)
     max_end = math.floor(pad.end_point * 100)
     min_start = math.floor(((duration*(pad.clip-1))+1) * 100)
   end
@@ -261,12 +257,12 @@ function zilchmos.start_end_random( pad )
       pad.end_point = pad.start_point + current_difference
     end
   else
-    case2(pad.mode == 1 and 8 or math.modf(clip[pad.clip].sample_length))
+    case2(pad.mode == 1 and 32 or math.modf(clip[pad.clip].sample_length))
   end
 end
 
 function zilchmos.loop_double( pad )
-  local duration = pad.mode == 1 and 8 or clip[pad.clip].sample_length
+  local duration = pad.mode == 1 and 32 or clip[pad.clip].sample_length
   local double = pad.end_point - pad.start_point
   local maximum_val = duration + (pad.mode == 1 and live[pad.clip].min or clip[pad.clip].min)
   if pad.end_point + double <= maximum_val then
@@ -284,8 +280,8 @@ end
 --   local src_bank     = bank[src_bank_num] -- FIXME global access of bank
 --   local src_pad      = src_bank[src_bank.id]
 --   -- shift start/end by the difference between clips
---   pad.start_point = src_pad.start_point + 8*(pad.clip - src_pad.clip)
---   pad.end_point   = src_pad.end_point   + 8*(pad.clip - src_pad.clip)
+--   pad.start_point = src_pad.start_point + 32*(pad.clip - src_pad.clip)
+--   pad.end_point   = src_pad.end_point   + 32*(pad.clip - src_pad.clip)
 -- end
 
 function zilchmos.slew( pad, dir )
