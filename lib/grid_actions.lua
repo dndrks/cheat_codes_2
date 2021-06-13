@@ -10,6 +10,8 @@ was_transport_toggled = false
 
 local last_grid_page = 0
 
+local grid_level_clocks = {}
+
 zilches = 
 { 
     [2] = {{},{},{}} 
@@ -96,7 +98,7 @@ function grid_actions.init(x,y,z)
                   and not arp[i].pause
                   and (not pattern_gate[i][2].active or (pattern_gate[i][2].active and grid_pat[i].rec == 1) and pattern_gate[i][1].active)
                   then
-                    print("9333")
+                    -- print("9333")
                     if arp[i].down == 0 and params:string("arp_"..i.."_hold_style") == "last pressed" then
                       for j = #arp[i].notes,1,-1 do
                         table.remove(arp[i].notes,j)
@@ -222,6 +224,7 @@ function grid_actions.init(x,y,z)
 
         if x == 3 or x == 8 or x == 13 then
           if y <= 2 then
+            -- need to delay the collation...
             if not rytm.grid.ui[util.round(x/5)] then
               local zilch_id = 2
               local zmap = zilches[zilch_id]
@@ -231,7 +234,44 @@ function grid_actions.init(x,y,z)
                 zmap[k1][k2] = true
                 zmap[k1].held = zmap[k1].held + 1
                 zilch_leds[zilch_id][k1][y] = 1
-                grid_dirty = true
+
+                local coll = {}
+                for j = 1,4 do
+                  if zmap[k1][j] == true then
+                    table.insert(coll,j)
+                  end
+                end
+                coll.con = table.concat(coll)
+                local previous_rate = bank[k1][bank[k1].id].rate
+                if coll.con ~= "12" then
+                  if grid_level_clocks[k1] == nil then
+                    -- print(">>>> starting 248")
+                    rightangleslice.init(2,k1,coll.con)
+                    grid_dirty = true
+                    if menu == 3 then
+                      screen_dirty = true
+                    end
+                    grid_level_clocks[k1] = clock.run(
+                      function()
+                        while true do
+                          clock.sleep(0.1)
+                          rightangleslice.init(2,k1,coll.con)
+                          grid_dirty = true
+                          if menu == 3 then
+                            screen_dirty = true
+                          end
+                        end
+                      end
+                    )
+                  else
+                    print(">>>>"..coll.con)
+                    -- rightangleslice.init(2,k1,coll.con)
+                    -- grid_dirty = true
+                    -- if menu == 3 then
+                    --   screen_dirty = true
+                    -- end
+                  end
+                else print("it's 12") end
               elseif z == 0 then
                 if zmap[k1].held > 0 then
                   local coll = {}
@@ -242,7 +282,12 @@ function grid_actions.init(x,y,z)
                   end
                   coll.con = table.concat(coll)
                   local previous_rate = bank[k1][bank[k1].id].rate
-                  rightangleslice.init(2,k1,coll.con)
+                  -- rightangleslice.init(2,k1,coll.con)
+                  if grid_level_clocks[k1] ~= nil then
+                    clock.cancel(grid_level_clocks[k1])
+                    -- print(">>>> canceling 282")
+                    grid_level_clocks[k1] = nil
+                  end
                   for j = 1,4 do
                     zmap[k1][j] = false
                   end
@@ -1770,6 +1815,8 @@ end
 function grid_actions.rec_stop(i)
   if #grid_pat[i].event > 0 then
     print("1769")
+    if held_keys == nil then held_keys = {} end
+    if held_keys[i] == nil then held_keys[i] = {} end
     if #held_keys[i] > 0 then
       for j = 1,#held_keys[i] do
         print(held_keys[i][j].." is still held")

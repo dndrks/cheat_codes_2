@@ -94,7 +94,8 @@ function ca.buff_flush()
   if key1_hold then
     update_waveform(1,rec[rec.focus].start_point, rec[rec.focus].end_point,128)
   else
-    local points = {{1,33},{34,66},{67,99}}
+    -- local points = {{1,33},{34,66},{67,99}}
+    local points = {{1,33},{33,65},{65,97}}
     update_waveform(1,points[rec.focus][1],points[rec.focus][2],128)
   end
   grid_dirty = true
@@ -156,7 +157,7 @@ function ca.toggle_buffer(i,untrue_alt)
     elseif rec[rec.focus].loop == 0 and (grid_alt and untrue_alt ~= nil) then
       -- ca.buff_flush()
     elseif rec[rec.focus].loop == 1 and not grid_alt then
-      if one_shot_rec_clock ~= nil then
+      if one_shot_rec_clock ~= nil and rec_state_watcher.is_running then
         cancel_one_shot_rec_clock()
       end
       softcut.loop_start(1,rec[rec.focus].start_point)

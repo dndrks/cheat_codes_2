@@ -73,6 +73,7 @@ function zilchmos.level_inc( pad, delta )
     pad.level = util.clamp( pad.level + delta, 0, 2 )
   else
     if pad.pad_id == 1 then -- only do this once...
+      if bank[which_bank].global_level <= 0.5 then delta = delta/4 end
       bank[which_bank].global_level = util.clamp( bank[which_bank].global_level + delta, 0, 2)
     end
   end

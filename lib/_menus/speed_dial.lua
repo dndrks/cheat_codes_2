@@ -1,8 +1,10 @@
 local sd = {}
 
 local sd_arp = include 'lib/speed_dial_pages/arps'
+local sd_loop = include 'lib/speed_dial_pages/loops'
 
 local size;
+sd.menu = 1
 -- local positions;
 
 function sd.init()
@@ -32,12 +34,14 @@ end
 function sd.draw_grid()
   for k,v in pairs(positions) do
     g:led(positions[k][1],positions[k][2],4)
-    if k == menu then
+    if k == sd.menu then
       g:led(positions[k][1],positions[k][2],12)
     end
   end
-  g:led(16,5,menu == 1 and 12 or 4)
-  if menu == 9 then
+  g:led(16,5,sd.menu == 1 and 12 or 4)
+  if sd.menu == 2 then  
+    sd_loop.draw_grid()
+  elseif sd.menu == 9 then
     sd_arp.draw_grid()
   end
   g:led(sd.translate(1,16)[1],sd.translate(1,16)[2],grid_alt == true and 15 or 4)
@@ -46,14 +50,23 @@ end
 function sd.parse_press(x,y,z)
   local nx = sd.coordinate(x,y)[1]
   local ny = sd.coordinate(x,y)[2]
-  -- print(nx,ny,(ny-12)+(nx-5))
-  if nx >=5 and nx<=7 and (ny>=14 and ny<=16) then
+  if nx >=5 and nx<=7 and (ny>=14 and ny<=16) and z == 1 then
     local nx_to_menu = {[5] = nx-5, [6] = nx-3, [7] = nx-1}
-    menu = (ny-12)+(nx_to_menu[nx])
-  elseif nx == 4 and ny == 16 then
-    menu = 1
+    if sd.menu ~= (ny-12)+(nx_to_menu[nx]) then
+      sd.menu = (ny-12)+(nx_to_menu[nx])
+    else
+      menu = (ny-12)+(nx_to_menu[nx])
+    end
+  elseif nx == 4 and ny == 16 and z == 1 then
+    if sd.menu ~= 1 then
+      sd.menu = 1
+    else
+      menu = 1
+    end
   end
-  if menu == 9 then
+  if sd.menu == 2 then
+    sd_loop.parse_press(x,y,z)
+  elseif sd.menu == 9 then
     sd_arp.parse_press(x,y,z)
   end
   if nx == 1 and ny == 16 then

@@ -100,6 +100,7 @@ function ps.handle_arp_pat(i,slot,command)
   if command ~= "delete" then
     if command == "save" then
       pattern_data[i].arp[slot].raw = deep_copy(arp[i])
+      pattern_data[i].arp[slot].raw.step = 0
       pattern_data[i].arp.save_slot = slot
       pattern_data[i].arp.load_slot = slot
       pattern_data[i].arp[slot].dirty = true
@@ -228,7 +229,7 @@ function ps.parse_press(x,y,z)
     focus = all_foci[ny-5]
   elseif ny >=11 and ny <=13 then
     save_bank = 3
-    focus = all_foci[ny-5]
+    focus = all_foci[ny-10]
   end
 
   if ny <=3 or (ny >=6 and ny<=8) or (ny >=11 and ny <=13) then

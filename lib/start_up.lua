@@ -267,10 +267,10 @@ function start_up.init()
   params:add_group("patterns + arps",32)
   params:add_separator("patterns")
   params:add_option("zilchmo_patterning", "grid pat style", { "classic", "rad sauce" })
-  params:add_option("arc_patterning", "arc pat style", { "passive", "active" })
   for i = 1,3 do
     params:add_option("sync_clock_to_pattern_"..i, "sync bpm to free pat "..i.."?", { "no", "yes" })
   end
+  params:add_option("arc_patterning", "arc pat style", { "passive", "active" })
   params:add_separator("quantization")
   local bnks = {"a","b","c"}
   for i = 1,3 do

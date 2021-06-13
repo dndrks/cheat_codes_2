@@ -1285,12 +1285,16 @@ function init()
         end
       end
       if page.loops.sel < 4 then
-        if params:get("SOS_enabled_"..page.loops.sel) == 1 then
+        if (params:get("SOS_enabled_1") == 1 or params:get("SOS_enabled_2") == 1 or params:get("SOS_enabled_3") == 1 ) and not page.loops.zoomed_mode then
           local pad = bank[page.loops.sel][bank[page.loops.sel].id]
           local min = pad.mode == 1 and live[pad.clip].min or clip[pad.clip].min
           local max = pad.mode == 1 and live[pad.clip].max or clip[pad.clip].max
           update_waveform(1,key1_hold and pad.start_point or min,key1_hold and pad.end_point or max,128)
+        elseif (params:get("SOS_enabled_1") == 1 or params:get("SOS_enabled_2") == 1 or params:get("SOS_enabled_3") == 1 ) and page.loops.zoomed_mode then
+          local pad = bank[page.loops.sel][bank[page.loops.sel].id]
+          update_waveform(1,pad.start_point,pad.end_point or max,128)
         end
+      -- need to draw LIVE here...
       end
       screen_dirty = true
     end
@@ -2275,6 +2279,7 @@ function run_one_shot_rec_clock()
 end
 
 function cancel_one_shot_rec_clock()
+  print("cancel_one_shot_rec_clock: executing")
   if one_shot_rec_clock ~= nil then
     clock.cancel(one_shot_rec_clock)
   end
@@ -4019,7 +4024,7 @@ function grid_pattern_execute(entry)
         and pattern_gate[i][1].active and pattern_gate[i][2].active
         then
           if should_happen or not pattern_gate[i][2].active then
-            print("4002 add:",entry.id)
+            -- print("4002 add:",entry.id)
             if arp[i].down == 0 and params:string("arp_"..i.."_hold_style") == "last pressed" then
               for j = #arp[i].notes,1,-1 do
                 table.remove(arp[i].notes,j)
@@ -4073,7 +4078,7 @@ function grid_pattern_execute(entry)
           -- and not arp[i].gate.active
           and pattern_gate[i][1].active and pattern_gate[i][2].active
           then
-            print("4052 release:",released_pad)
+            -- print("4052 release:",released_pad)
             if not arp[i].hold then
               if params:string("arp_"..i.."_hold_style") ~= "sequencer" then
                 arps.momentary(i, released_pad, "off")
