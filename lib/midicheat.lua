@@ -691,7 +691,6 @@ function mc.midi_note_from_pad(b,p)
         midi_dev[dest]:note_on(note_num,vel,ch)
         table.insert(active_midi_notes[b], note_num)
         if midi_off[b] ~= nil then clock.cancel(midi_off[b]) end
-        -- if midi_off[b] ~= nil then print("before her time "..b) end
         midi_off[b] = clock.run(mc.midi_note_from_pad_off,b,p)
       end
     end

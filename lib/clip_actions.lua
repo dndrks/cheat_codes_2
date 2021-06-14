@@ -216,7 +216,6 @@ end
 function ca.SOS_toggle(i)
   local current_state = params:get("SOS_enabled_"..i)
   params:set("SOS_enabled_"..i, current_state == 1 and 0 or 1)
-  -- SOS_recording[i] = not SOS_recording[i]
   ca.SOS_voice_overwrite(bank[i][bank[i].id],params:get("SOS_enabled_"..i) == 1 and true or false)
   force_waveform_redraw()
 end

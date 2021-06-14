@@ -107,6 +107,9 @@ function ps.handle_arp_pat(i,slot,command)
     elseif command == "load" then
       arp[i] = deep_copy(pattern_data[i].arp[slot].raw)
       pattern_data[i].arp.load_slot = slot
+      if not arp[i].playing then
+        arps.toggle("start",i)
+      end
     end
   else
     pattern_data[i].arp[slot].raw = {}
@@ -193,6 +196,10 @@ function ps.draw_grid()
   end
   for i = 5,15,5 do
     g:led(_c(4,i)[1],_c(4,i)[2],bank[i/5].alt_lock and 15 or 0)
+    -- g:led(_c(5,i)[1],_c(5,i)[2],arp[i/5].loop and 4 or 0)
+    -- g:led(_c(6,i)[1],_c(6,i)[2],grid_pat[i/5].loop and 4 or 0)
+    -- g:led(_c(7,i)[1],_c(7,i)[2],rytm.track[i/5].loop and 4 or 0)
+    -- g:led(_c(7,i)[1],_c(7,i)[2],arc_pat[i/5].loop and 4 or 0)
   end
 end
 

@@ -221,29 +221,8 @@ function _gleds.grid_redraw()
                   g:led(3+(5*(i-1)),1,led_maps["pad_pause"][edition])
                   g:led(3+(5*(i-1)),2,led_maps["pad_pause"][edition])
                 else
-                  -- g:led(3+(5*(i-1)),1,led_maps["pad_play"][edition])
-                  -- g:led(3+(5*(i-1)),2,led_maps["pad_play"][edition])
-                  local level_led = {}
-                  if util.round(bank[i][bank[i].id].level,0.125) < 1 and util.round(bank[i][bank[i].id].level,0.125) >= 0.125 then
-                    level_led[1] = util.round(util.linlin(0,1,15,9,bank[i][bank[i].id].level))
-                    level_led[2] = util.round(util.linlin(0.125,1,1,9,bank[i][bank[i].id].level))
-                  elseif util.round(bank[i][bank[i].id].level,0.125) > 1 then
-                    level_led[1] = util.round(util.linlin(1,2,9,0,bank[i][bank[i].id].level))
-                    level_led[2] = util.round(util.linlin(1,2,9,15,bank[i][bank[i].id].level))
-                  elseif util.round(bank[i][bank[i].id].level,0.125) == 1 then
-                    level_led[1] = 0
-                    level_led[2] = 0
-                  elseif util.round(bank[i][bank[i].id].level,0.125) < 0.125 then
-                    level_led[1] = 15
-                    level_led[2] = 0
-                  end
-                  if edition == 1 then
-                    g:led(3+(5*(i-1)),1,level_led[2])
-                    g:led(3+(5*(i-1)),2,level_led[1])
-                  else
-                    g:led(3+(5*(i-1)),1,zilch_leds[2][i][1] == 1 and led_maps["zilchmo_on"][edition] or led_maps["zilchmo_off"][edition])
-                    g:led(3+(5*(i-1)),2,zilch_leds[2][i][2] == 1 and led_maps["zilchmo_on"][edition] or led_maps["zilchmo_off"][edition])
-                  end
+                  g:led(3+(5*(i-1)),1,zilch_leds[2][i][1] == 1 and led_maps["zilchmo_on"][edition] or led_maps["zilchmo_off"][edition])
+                  g:led(3+(5*(i-1)),2,zilch_leds[2][i][2] == 1 and led_maps["zilchmo_on"][edition] or led_maps["zilchmo_off"][edition])
                 end
               else
                 local focus_x = (math.ceil(bank[i].focus_pad/4)+(5*(i-1)))
@@ -319,17 +298,6 @@ function _gleds.grid_redraw()
                     g:led(arp_button,3,led_maps["arp_pause"][edition])
                   end
                 end
-                -- if not arp[i].enabled then
-                --   g:led(arp_button,3,led_maps["off"][edition])
-                -- else
-                --   if arp[i].playing and arp[i].hold then
-                --     g:led(arp_button,3,led_maps["arp_play"][edition])
-                --   elseif arp[i].hold then
-                --     g:led(arp_button,3,led_maps["arp_pause"][edition])
-                --   else
-                --     g:led(arp_button,3,led_maps["arp_on"][edition])
-                --   end
-                -- end
               else
                 local arp_button = 3+(5*(i-1))
                 local arp_writer = 4+(5*(i-1))

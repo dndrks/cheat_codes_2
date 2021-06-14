@@ -52,7 +52,7 @@ function arp_actions.init(target)
     arp[target].start_point = 1
     arp[target].end_point = 16
     arp[target].down = 0
-    arp[target].retrigger = true
+    arp[target].loop = true
     arp_clock[target] = clock.run(arp_actions.arpeggiate,target)
 end
 
@@ -101,37 +101,47 @@ end
 function arp_actions.toggle(state,target)
   local i = target
   if state == "start" then
-    local arp_start =
-    {
-      ["fwd"] = arp[i].start_point - 1
-    , ["bkwd"] = arp[i].end_point + 1
-    , ["pend"] = arp[i].start_point
-    , ["rnd"] = arp[i].start_point - 1
-    }
-    arp[i].step = arp_start[arp[i].mode]
-    arp[i].pause = false
-    arp[i].playing = true
-    if arp[i].mode == "pend" then
-      arp_direction[i] = "negative"
-    end
-    if not transport.is_running then
-      print("should start transport...")
-      transport.toggle_transport()
-    end
-    if params:string("arp_"..i.."_hold_style") == "sequencer" then
-      if arp[i].enabled then arp[i].enabled = false end
-    end
+    arp_actions.start_playback(i)
   elseif state == "stop" then
-    arp[i].pause = true
-    arp[i].playing = false
-    arp[i].step = arp[i].start_point
-    arp[i].conditional.cycle = 0
+    arp_actions.stop_playback(i)
   end
+end
+
+function arp_actions.start_playback(i)
+  local arp_start =
+  {
+    ["fwd"] = arp[i].start_point - 1
+  , ["bkwd"] = arp[i].end_point + 1
+  , ["pend"] = arp[i].start_point
+  , ["rnd"] = arp[i].start_point - 1
+  }
+  arp[i].step = arp_start[arp[i].mode]
+  arp[i].pause = false
+  arp[i].playing = true
+  if arp[i].mode == "pend" then
+    arp_direction[i] = "negative"
+  end
+  if not transport.is_running then
+    print("should start transport...")
+    transport.toggle_transport()
+  end
+  if params:string("arp_"..i.."_hold_style") == "sequencer" then
+    if arp[i].enabled then arp[i].enabled = false end
+  end
+  grid_dirty = true
+end
+
+function arp_actions.stop_playback(i)
+  arp[i].pause = true
+  arp[i].playing = false
+  arp[i].step = arp[i].start_point
+  arp[i].conditional.cycle = 0
+  -- clock.run(function() clock.sleep(0.25) grid_dirty = true end)
+  grid_dirty = true
 end
 
 function arp_actions.arpeggiate(target)
   while true do
-    -- clock.sync(bank[target][bank[target].id].arp_time)
     clock.sync(arp[target].time)
     arp_actions.tick(target)
   end
@@ -139,22 +149,24 @@ end
 
 function arp_actions.tick(target,source)
   if transport.is_running then
-    -- if #arp[target].notes > 0 then
     if tab.count(arp[target].notes) > 0 or params:string("arp_"..target.."_hold_style") == "sequencer" then
       if arp[target].pause == false then
-        -- if arp[target].step == 1 then print("arp "..target, clock.get_beats()) end
-        if arp[target].swing > 50 and arp[target].step % 2 == 1 then
-          local base_time = (clock.get_beat_sec() * arp[target].time)
-          local swung_time =  base_time*util.linlin(50,100,0,1,arp[target].swing)
-          clock.run(function()
-            clock.sleep(swung_time)
-            arp_actions.process(target)
-          end)
+        if arp[target].step == arp[target].end_point and not arp[target].loop then
+          arp_actions.stop_playback(target)
         else
-          arp_actions.process(target,source)
+          if arp[target].swing > 50 and arp[target].step % 2 == 1 then
+            local base_time = (clock.get_beat_sec() * arp[target].time)
+            local swung_time =  base_time*util.linlin(50,100,0,1,arp[target].swing)
+            clock.run(function()
+              clock.sleep(swung_time)
+              arp_actions.process(target)
+            end)
+          else
+            arp_actions.process(target,source)
+          end
+          arp[target].playing = true
+          grid_dirty = true
         end
-        arp[target].playing = true
-        grid_dirty = true
       else
         arp[target].playing = false
       end
@@ -311,14 +323,14 @@ function arp_actions.execute_step(target,step,source)
     else
       selected[target].y = 5
     end
-    if arp[target].retrigger then
-      cheat(target,bank[target].id)
-    else
-      if arp[target].notes[step] ~= arp[target].notes[step-1] then
-        cheat(target,bank[target].id)
-      end
-    end
-      -- print(clock.get_beats()..": "..(source == nil and "" or source))
+    cheat(target,bank[target].id)
+    -- if arp[target].retrigger then
+    --   cheat(target,bank[target].id)
+    -- else
+    --   if arp[target].notes[step] ~= arp[target].notes[step-1] then
+    --     cheat(target,bank[target].id)
+    --   end
+    -- end
   end
 end
 
@@ -331,6 +343,7 @@ function arp_actions.clear(target)
     arp[target].start_point = 1
     arp[target].end_point = 1
     arp[target].step = arp[target].start_point
+    arp[target].loop = true
     clock.cancel(arp_clock[target])
     arp_clock[target] = nil
     arp_clock[target] = clock.run(arp_actions.arpeggiate,target)

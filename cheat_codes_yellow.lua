@@ -1842,10 +1842,12 @@ function init()
 
   hardware_redraw = metro.init(
     function()
-      if all_loaded then draw_grid() end
-      if all_loaded then arc_redraw() end
-      if all_loaded then draw_screen() end
-      if all_loaded then draw_waveform() end
+      if all_loaded then
+        draw_grid()
+        arc_redraw()
+        draw_screen()
+        draw_waveform()
+      end
     end
     , 1/30, -1)
   hardware_redraw:start()

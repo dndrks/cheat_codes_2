@@ -65,7 +65,8 @@ function euclid.init()
       mode = "single",
       clock_div = 1/2,
       runner = 0,
-      mute = false
+      mute = false,
+      loop = true
     }
     euclid.grid.ui[i] = false
     euclid.grid.page[i] = 1
