@@ -259,7 +259,8 @@ function start_up.init()
     end)
   end
 
-  params:add_option("preview_clip_change", "preview clip changes?", {"yes","no"},1)
+  params:add_option("preview_clip_change", "preview clip changes?", {"no","no"},2)
+  params:hide("preview_clip_change")
   params:add_option("visual_metro", "visual metronome?", {"yes","no"},2)
   
   --params:add_option("zilchmo_bind_rand","bind random zilchmo?", {"no","yes"}, 1)
@@ -1050,8 +1051,8 @@ params:add_separator("ALT key")
   
   --params:add_separator()
   
-  params:add_group("ignore",18)
-  params:hide("ignore")
+  params:add_group("cc1.0 filters",18)
+  -- params:hide("old filters")
   
   --params:add{type = "trigger", id = "ignore", name = "ignore, data only:"}
   

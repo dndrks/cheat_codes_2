@@ -104,6 +104,11 @@ for i = 1,8 do
   macro[i] = macros.new_macro()
 end
 
+held_keys = {}
+for i = 1,3 do
+  held_keys[i] = {}
+end
+
 p_gate.init()
 _ps.init()
 
@@ -374,7 +379,8 @@ function better_grid_pat_q_clock(i)
   elseif grid_pat[i].count == 0 then
     grid_pat[i]:rec_start()
   elseif grid_pat[i].play == 1 then
-    grid_pat[i]:stop()
+    -- grid_pat[i]:stop()
+    stop_pattern(grid_pat[i])
   elseif grid_pat[i].tightened_start == 1 then
     grid_pat[i].tightened_start = 0
     grid_pat[i].step = grid_pat[i].start_point
@@ -2012,7 +2018,8 @@ function synced_loop(target, state)
       -- print("syncing to..."..target.clock_time, clock.get_beats())
       clock.sync(target.clock_time)
       local overdub_flag = target.overdub
-      target:stop()
+      -- target:stop()
+      stop_pattern(target)
       if overdub_flag == 1 then
         target.overdub = 1
       end
@@ -2048,7 +2055,8 @@ function alt_synced_loop(target,state)
       if target.synced_loop_runner == target.rec_clock_time * 4 then
         -- print(clock.get_beats(), target.synced_loop_runner)
         local overdub_flag = target.overdub
-        target:stop()
+        -- target:stop()
+        stop_pattern(target)
         if overdub_flag == 1 then
           target.overdub = 1
         end
@@ -2067,9 +2075,24 @@ end
 function stop_pattern(target)
   if target.clock ~= nil then
     clock.cancel(target.clock)
+    target.clock = nil
   end
-  target.clock = nil
+  local function wipe_slate(b)
+    for i = 1,#grid_pat[b].event do
+      if tab.contains(held_keys[b],grid_pat[b].event[i].id) then
+        print(">>>"..grid_pat[b].event[i].id)
+        grid_actions.kill_note(b,grid_pat[b].event[i].id)
+      end
+    end
+  end
   target:stop()
+  if target.name == "grid_pat[1]" then
+    wipe_slate(1)
+  elseif target.name == "grid_pat[2]" then
+    wipe_slate(2)
+  elseif target.name == "grid_pat[3]" then
+    wipe_slate(3)
+  end
 end
 
 function start_pattern(target,state)
@@ -2136,7 +2159,7 @@ function synced_pattern_record(target,i)
       --target:start()
       print("started first run..."..clock.get_beats())
       --target.clock = clock.run(synced_loop, target)
-      if target.clock ~= nil then clock.cancel(target.clock) end
+      if target.clock ~= nil then clock.cancel(target.clock) print("canceled double clock "..clock.get_beats()) end
       target.clock = clock.run(alt_synced_loop, target)
     end
   else
@@ -2483,7 +2506,8 @@ osc_in = function(path, args, from)
         bank[i][j].pan = math.random(-100,100)/100
       end
       grid_actions.rec_stop(i)
-      grid_pat[i]:stop()
+      -- grid_pat[i]:stop()
+      stop_pattern(grid_pat[i])
       grid_pat[i].tightened_start = 0
 
     elseif path == "/pad_rate_"..i then
@@ -2828,8 +2852,8 @@ function reset_all_banks( banks )
       pad.clip              = 1 -- TODO make this a table with length for start/end calculation
       pad.mode              = 1
         -- TODO these are both identical to zilchmos.start_end_default()
-      pad.start_point       = 1+((8/16) * (pad.pad_id-1))
-      pad.end_point         = 1+((8/16) *  pad.pad_id)
+      pad.start_point       = 1+((32/16) * (pad.pad_id-1))
+      pad.end_point         = 1+((32/16) *  pad.pad_id)
       pad.start_offset      = 0
       pad.sample_end        = 8
       pad.rate              = 1.0
@@ -2901,6 +2925,7 @@ function reset_all_banks( banks )
       pad.arp_time          = 1/4
 
       pad.dough_stretch     = true
+      pad.drone             = false
     end
     cross_filter[i]         = {}
     cross_filter[i].fc      = 12000
@@ -3609,7 +3634,8 @@ function key(n,z)
             if key1_hold then
               if grid_pat[id].count > 0 then
                 grid_actions.rec_stop(id)
-                grid_pat[id]:stop()
+                -- grid_pat[id]:stop()
+                stop_pattern(grid_pat[id])
                 grid_pat[id].tightened_start = 0
                 grid_pat[id]:clear()
                 pattern_saver[id].load_slot = 0
@@ -4003,6 +4029,7 @@ function grid_pattern_execute(entry)
             selected[i].x = entry.x
             selected[i].y = entry.y
             bank[i].id = selected[i].id
+            grid_actions.add_held_key(i,selected[i].id)
             if params:get("zilchmo_patterning") == 2 then
               bank[i][bank[i].id].mode = entry.mode
               bank[i][bank[i].id].clip = entry.clip
@@ -4029,7 +4056,7 @@ function grid_pattern_execute(entry)
             -- print("4002 add:",entry.id)
             if arp[i].down == 0 and params:string("arp_"..i.."_hold_style") == "last pressed" then
               for j = #arp[i].notes,1,-1 do
-                table.remove(arp[i].notes,j)
+                arps.remove_momentary(i,j)
               end
             end
             arps.momentary(i, entry.id, "on")
@@ -4074,6 +4101,10 @@ function grid_pattern_execute(entry)
             softcut.position(i+1,bank[i][released_pad].start_point)
             softcut.loop_start(i+1,bank[i][released_pad].start_point)
             softcut.loop_end(i+1,bank[i][released_pad].end_point)
+          end
+          grid_actions.remove_held_key(i,released_pad)
+          if not arp[i].enabled then
+            mc.midi_note_off_from_pad(i,released_pad)
           end
           if arp[i].enabled
           and not arp[i].pause
@@ -5079,7 +5110,8 @@ function one_point_two()
   end
   for i = 1,3 do
     grid_actions.rec_stop(i)
-    grid_pat[i]:stop()
+    stop_pattern(grid_pat[i])
+    -- grid_pat[i]:stop()
     grid_pat[i].tightened_start = 0
     grid_pat[i]:clear()
     pattern_saver[i].load_slot = 0

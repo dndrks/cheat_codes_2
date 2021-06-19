@@ -190,7 +190,8 @@ function tp.stop()
       arps.toggle("stop",i)
     -- end
     if #grid_pat[i].event > 0 then
-      grid_pat[i]:stop()
+      -- grid_pat[i]:stop()
+      stop_pattern(grid_pat[i])
       if grid_pat[i].clock ~= nil then
         clock.cancel(grid_pat[i].clock)
         grid_pat[i].clock = nil
@@ -226,7 +227,8 @@ function tp.stop_from_midi_message()
       arps.toggle("stop",i)
     end
     if #grid_pat[i].event > 0 then
-      grid_pat[i]:stop()
+      -- grid_pat[i]:stop()
+      stop_pattern(grid_pat[i])
       if grid_pat[i].clock ~= nil then
         clock.cancel(grid_pat[i].clock)
         grid_pat[i].clock = nil

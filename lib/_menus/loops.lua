@@ -703,7 +703,7 @@ function _loops.draw_menu()
       
       -- then, loop controls:
 
-      local rate_options = {"8s","16s","32s"}
+      local rate_options = {"32s","64s","128s"}
 
       -- {"segment","start_point","end_point","feedback","duration","random_rec","record","mode"}
       screen.level(sel == "record" and 15 or 3)

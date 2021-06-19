@@ -26,6 +26,7 @@ led_maps =
   -- main page
   ["square_off"]          =   {3,4,15}
   , ["square_selected"]   =   {15,15,0}
+  , ["square_held"]       =   {8,12,0}
   , ["square_dim"]        =   {5,8,0}
   , ["zilchmo_off"]       =   {3,4,15} -- is this right?
   , ["zilchmo_on"]        =   {15,12,0}
@@ -214,6 +215,32 @@ function _gleds.grid_redraw()
             if not rytm.grid.ui[i] then
               if bank[i].focus_hold == false then
                 g:led(selected[i].x, selected[i].y, led_maps["square_selected"][edition])
+                if tab.count(held_keys[i]) > 0 then
+                  for j = 1,#held_keys[i] do
+                    local ghost_x = (5*(i-1)+1)+(math.ceil(held_keys[i][j]/4)-1)
+                    local ghost_y;
+                    if (held_keys[i][j] % 4) ~= 0 then
+                      ghost_y = 9-(held_keys[i][j] % 4)
+                    else
+                      ghost_y = 5
+                    end
+                    g:led(ghost_x,ghost_y,8)
+                    -- print(held_keys[i][j],selected[i].id,ghost_x,ghost_y,selected[i].x,selected[i].y)
+                  end
+                else
+                end
+                for j = 1,16 do
+                  if bank[i][j].drone then
+                    local ghost_x = (5*(i-1)+1)+(math.ceil(j/4)-1)
+                    local ghost_y;
+                    if (j % 4) ~= 0 then
+                      ghost_y = 9-(j % 4)
+                    else
+                      ghost_y = 5
+                    end
+                    g:led(ghost_x,ghost_y,8)
+                  end
+                end
                 if i == nil then print("2339") end
                 if bank[i].id == nil then print("2340", i) end
                 if bank[i][bank[i].id].pause == nil then print("2341") end

@@ -64,6 +64,11 @@ function arp_actions.find_index(tab,el)
     return rev[el]
 end
 
+function arp_actions.remove_momentary(i,j)
+  grid_actions.kill_note(i,arp[i].notes[j])
+  table.remove(arp[i].notes,j)
+end
+
 function arp_actions.momentary(target, value, state)
   -- if not arp[target].gate.active then
     if state == "on" then
@@ -86,7 +91,9 @@ function arp_actions.momentary(target, value, state)
     elseif state == "off" then
       local removed_note = arp_actions.find_index(arp[target].notes,value)
       if removed_note ~= nil then
-          table.remove(arp[target].notes, removed_note)
+        print("turning note off")
+        arp_actions.remove_momentary(target, removed_note)
+        -- grid_actions.kill_note(target,removed_note)-- ?
       end
       arp[target].end_point = #arp[target].notes
     end
@@ -137,6 +144,12 @@ function arp_actions.stop_playback(i)
   arp[i].step = arp[i].start_point
   arp[i].conditional.cycle = 0
   -- clock.run(function() clock.sleep(0.25) grid_dirty = true end)
+  for k,v in pairs(arp[i].notes) do
+    if tab.contains(held_keys[i],v) then
+      -- print("<<<--->>>"..v)
+      grid_actions.kill_note(i,v)
+    end
+  end
   grid_dirty = true
 end
 
@@ -316,6 +329,7 @@ function arp_actions.execute_step(target,step,source)
   if (not pattern_gate[target][2].active and not pattern_gate[target][3].active)
   or (pattern_gate[target][2].active and pattern_gate[target][1].active)
   then
+    local last_pad = bank[target].id
     bank[target].id = arp[target].notes[step]
     selected[target].x = (5*(target-1)+1)+(math.ceil(bank[target].id/4)-1)
     if (bank[target].id % 4) ~= 0 then
@@ -323,18 +337,19 @@ function arp_actions.execute_step(target,step,source)
     else
       selected[target].y = 5
     end
+    grid_actions.kill_note(target,last_pad)
+    grid_actions.add_held_key(target,bank[target].id)
     cheat(target,bank[target].id)
-    -- if arp[target].retrigger then
-    --   cheat(target,bank[target].id)
-    -- else
-    --   if arp[target].notes[step] ~= arp[target].notes[step-1] then
-    --     cheat(target,bank[target].id)
-    --   end
-    -- end
   end
 end
 
 function arp_actions.clear(target)
+  for k,v in pairs(arp[target].notes) do
+    if tab.contains(held_keys[target],v) then
+      -- print("////>"..v)
+      grid_actions.kill_note(target,v)
+    end
+  end
   if params:string("arp_"..target.."_hold_style") ~= "sequencer" then
     arp[target].playing = false
     arp[target].pause = false

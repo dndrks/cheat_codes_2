@@ -2,6 +2,7 @@ local sd = {}
 
 local sd_arp = include 'lib/speed_dial_pages/arps'
 local sd_loop = include 'lib/speed_dial_pages/loops'
+local sd_level = include 'lib/speed_dial_pages/levels'
 
 local size;
 sd.menu = 1
@@ -41,6 +42,8 @@ function sd.draw_grid()
   g:led(16,5,sd.menu == 1 and 12 or 4)
   if sd.menu == 2 then  
     sd_loop.draw_grid()
+  elseif sd.menu == 3 then  
+    sd_level.draw_grid()
   elseif sd.menu == 9 then
     sd_arp.draw_grid()
   end

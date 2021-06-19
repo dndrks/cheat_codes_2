@@ -71,11 +71,12 @@ function ps.handle_grid_pat(i,slot,command)
       pattern_data[i].grid.save_slot = slot
       pattern_data[i].grid.load_slot = slot
       pattern_data[i].grid[slot].dirty = true
-    elseif command == "load" then
+    elseif command == "load" then -- should this start the pattern??
       target = grid_pat[i]
       source = pattern_data[i].grid[slot].raw
       target.metro.props.time = source.metro_props_time
       pattern_data[i].grid.load_slot = slot
+      mc.all_midi_notes_off(i)
     end
     target.count = source.count
     target.time = deep_copy(source.time)

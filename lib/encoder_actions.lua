@@ -841,7 +841,7 @@ function ea.change_pad_clip(target,delta)
   end
  
   if grid_pat[target].play == 0 and grid_pat[target].tightened_start == 0 and not arp[target].playing and midi_pat[target].play == 0 then
-    if params:get("preview_clip_change") == 1 or bank[target][bank[target].id].loop then
+    if params:string("preview_clip_change") == "yes" or bank[target][bank[target].id].loop then
       cheat(target,bank[target].id)
     end
   end

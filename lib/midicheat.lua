@@ -677,21 +677,27 @@ function mc.inherit_notes(target)
   end
 end
 
+function mc.midi_note_off_from_pad(b,p)
+  if mc.get_midi("midi_notes",b,p) ~= "-" and mc.get_midi("midi_notes_velocities",b,p) ~= "-" and mc.get_midi("midi_notes_channels",b,p) ~= "-" then
+    local note_num = mc.get_midi("midi_notes",b,p)
+    local vel = mc.get_midi("midi_notes_velocities",b,p)
+    local ch = params:get(b.."_pad_to_midi_note_channel")
+    local dest = params:get(b.."_pad_to_midi_note_destination")
+    midi_dev[params:get(b.."_pad_to_midi_note_destination")]:note_off(note_num, nil, params:get(b.."_pad_to_midi_note_channel"))
+    table.remove(active_midi_notes[b], tab.key(active_midi_notes[b], note_num))
+  end
+end
+
 function mc.midi_note_from_pad(b,p)
   if bank[b][p].send_pad_note then
     if params:string(b.."_pad_to_midi_note_enabled") == "yes" then
       if mc.get_midi("midi_notes",b,p) ~= "-" and mc.get_midi("midi_notes_velocities",b,p) ~= "-" and mc.get_midi("midi_notes_channels",b,p) ~= "-" then
-        mc.all_midi_notes_off(b)
-        -- local note_num = mc_notes[b][p]
         local note_num = mc.get_midi("midi_notes",b,p)
-        -- local vel = params:get(b.."_pad_to_midi_note_velocity")
         local vel = mc.get_midi("midi_notes_velocities",b,p)
         local ch = params:get(b.."_pad_to_midi_note_channel")
         local dest = params:get(b.."_pad_to_midi_note_destination")
         midi_dev[dest]:note_on(note_num,vel,ch)
         table.insert(active_midi_notes[b], note_num)
-        if midi_off[b] ~= nil then clock.cancel(midi_off[b]) end
-        midi_off[b] = clock.run(mc.midi_note_from_pad_off,b,p)
       end
     end
     if mx_dests[b] ~= "none" then
@@ -799,13 +805,6 @@ function mc.midi_note_from_pad(b,p)
   end
 end
 
-function mc.midi_note_from_pad_off(b,p)
-  -- clock.sleep((bank[b][p].arp_time-(bank[b][p].arp_time/100))*clock.get_beat_sec())
-  clock.sleep((arp[b].time-(arp[b].time/10))*clock.get_beat_sec())
-  mc.all_midi_notes_off(b)
-  midi_off[b] = nil
-end
-
 function mc.mx_note_from_pad_off(b,p)
   -- clock.sleep((bank[b][p].arp_time-(bank[b][p].arp_time/50))*clock.get_beat_sec())
   clock.sleep((arp[b].time-(arp[b].time/10))*clock.get_beat_sec())
@@ -827,6 +826,7 @@ function mc.all_midi_notes_off(b)
     midi_dev[params:get(b.."_pad_to_midi_note_destination")]:note_off(a, nil, params:get(b.."_pad_to_midi_note_channel"))
   end
   active_midi_notes[b] = {}
+  held_keys[b] = {}
 end
 
 function mc.this_mx_note_off(b,p)
