@@ -2057,6 +2057,7 @@ function alt_synced_loop(target,state)
         local overdub_flag = target.overdub
         -- target:stop()
         stop_pattern(target)
+        print("stopping")
         if overdub_flag == 1 then
           target.overdub = 1
         end
@@ -2064,6 +2065,7 @@ function alt_synced_loop(target,state)
           clear_arps_from_pattern_restart(target.event[target.count].i)
           target:start()
         end
+        print("and then start...")
         target.synced_loop_runner = 1
       else
         target.synced_loop_runner =  target.synced_loop_runner + 1
@@ -2083,6 +2085,9 @@ function stop_pattern(target)
         print(">>>"..grid_pat[b].event[i].id)
         grid_actions.kill_note(b,grid_pat[b].event[i].id)
       end
+    end
+    if pattern_gate[b][1] and pattern_gate[b][2] and arp[b].enabled and not arp[b].hold then
+      arp[b].down = 0
     end
   end
   target:stop()
@@ -3997,6 +4002,10 @@ function grid.add(dev)
   grid_dirty = true
 end
 
+function g.add(dev)
+  grid_dirty = true
+end
+
 g.key = function(x,y,z)
   grid_actions.init(x,y,z)
 end
@@ -4014,7 +4023,8 @@ function grid_pattern_execute(entry)
         -- print(clock.get_beats().."<<<<<<<")
       if entry.action == "pads" then
         if (not arp[i].enabled and not arp[i].playing) 
-        or ((arp[i].enabled or arp[i].playing) and not pattern_gate[i][1].active and pattern_gate[i][2].active) then
+        or ((arp[i].enabled or arp[i].playing) and not pattern_gate[i][1].active and pattern_gate[i][2].active)
+        or ((not arp[i].enabled and arp[i].playing) and (pattern_gate[i][1].active and pattern_gate[i][2].active)) then
           if should_happen or not pattern_gate[i][2].active then
             local a_p; -- this will index the arc encoder recorders
             if arc_param[i] == 1 or arc_param[i] == 2 or arc_param[i] == 3 then
@@ -4107,17 +4117,25 @@ function grid_pattern_execute(entry)
             mc.midi_note_off_from_pad(i,released_pad)
           end
           if arp[i].enabled
+          and not pattern_gate[i][1].active
+          and pattern_gate[i][2].active
+          then
+            if not grid_alt then
+              grid_actions.kill_note(i,released_pad)
+            end
+          end
+          if arp[i].enabled
           and not arp[i].pause
           -- and not arp[i].gate.active
           and pattern_gate[i][1].active and pattern_gate[i][2].active
           then
-            -- print("4052 release:",released_pad)
-            if not arp[i].hold then
+            print("4052 release:",released_pad)
+            if (arp[i].enabled and not arp[i].hold) then
               if params:string("arp_"..i.."_hold_style") ~= "sequencer" then
                 arps.momentary(i, released_pad, "off")
               end
               arp[i].down = arp[i].down - 1
-            elseif arp[i].hold and not arp[i].pause then
+            elseif (arp[i].enabled and arp[i].hold and not arp[i].pause) then
               arp[i].down = arp[i].down - 1
             end
           end
@@ -5470,6 +5488,15 @@ function cleanup()
   end
 
   lfo_metro:stop()
+  
+  print("# ending held MIDI notes")
+  for i = 1,128 do
+    for j = 1,3 do
+      for z = 1,16 do
+      midi_dev[params:get(j.."_pad_to_midi_note_destination")]:note_off(i, nil, z)
+      end
+    end
+  end
   -- print("cleaned up")
 end
 

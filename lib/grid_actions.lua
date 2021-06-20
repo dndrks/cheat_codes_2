@@ -91,6 +91,7 @@ function grid_actions.init(x,y,z)
                     end
                   end
                   grid_actions.add_held_key(i,selected[i].id)
+                  -- tab.print(held_keys[i])
                   page.loops.meta_pad[i] = bank[i].id
                   which_bank = i
                   if menu == 11 then
@@ -100,7 +101,8 @@ function grid_actions.init(x,y,z)
                   -- if arp[i].enabled and grid_pat[i].rec == 0
                   if arp[i].enabled
                   and not arp[i].pause
-                  and (not pattern_gate[i][2].active or (pattern_gate[i][2].active and grid_pat[i].rec == 1) and pattern_gate[i][1].active)
+                  -- and (not pattern_gate[i][2].active or (pattern_gate[i][2].active and grid_pat[i].rec == 1) and pattern_gate[i][1].active)
+                  and (not pattern_gate[i][2].active or (pattern_gate[i][2].active and pattern_gate[i][1].active))
                   then
                     -- print("9333")
                     if arp[i].down == 0 and params:string("arp_"..i.."_hold_style") == "last pressed" then
@@ -176,9 +178,21 @@ function grid_actions.init(x,y,z)
                   elseif grid_alt then
                   end
                 end
+
+                if arp[i].enabled
+                and not pattern_gate[i][1].active
+                and pattern_gate[i][2].active
+                then
+                  if not grid_alt then
+                    grid_actions.kill_note(i,released_pad)
+                  end
+                end
+
+
                 if arp[i].enabled
                 and not arp[i].pause
-                and (not pattern_gate[i][2].active or (pattern_gate[i][2].active and grid_pat[i].rec == 1) and pattern_gate[i][1].active)
+                -- and (not pattern_gate[i][2].active or (pattern_gate[i][2].active and grid_pat[i].rec == 1) and pattern_gate[i][1].active)
+                and (not pattern_gate[i][2].active or (pattern_gate[i][2].active and pattern_gate[i][1].active))
                 then
                   if (arp[i].enabled and not arp[i].hold) or (menu == 9 and not arp[i].hold) then
                     if params:string("arp_"..i.."_hold_style") ~= "sequencer" then
@@ -1832,25 +1846,49 @@ function grid_actions.parse_euclid(i,x,y,z)
   end
 end
 
+local function dumb_shit(i,note_in_question)
+  if arp[i].enabled then
+    -- for j = arp[i].start_point,arp[i].end_point do
+    --   if arp[i].notes[j] == note_in_question then
+    --     return false
+    --   else
+    --     return true
+    --   end
+    -- end
+    if arp[i].hold then
+      return false
+    else
+      return true
+    end
+  else
+    return true
+  end
+end
+
 function grid_actions.rec_stop(i)
   if #grid_pat[i].event > 0 then
     print("1769")
     if #held_keys[i] > 0 then
-      for j = 1,#held_keys[i] do
-        if not bank[i][held_keys[i][j]].drone then
-          print(held_keys[i][j].." is still held")
-          grid_p[i] = {}
-          grid_p[i].action = "pads-release"
-          grid_p[i].i = i
-          grid_p[i].id = held_keys[i][j]
-          grid_pat[i]:rec_event(grid_p[i])
-          if arp[i].enabled
-          and not arp[i].pause
-          -- and not arp[i].gate.active
-          and pattern_gate[i][1].active and pattern_gate[i][2].active
-          then
-            print("off...")
-            arps.momentary(i, held_keys[i][j], "off")
+      for j = #held_keys[i],1,-1 do
+        print(#held_keys[i],j,held_keys[i][j])
+        if held_keys[i][j] ~= nil then
+          if not bank[i][held_keys[i][j]].drone then
+            if dumb_shit(i,held_keys[i][j]) then
+              print(held_keys[i][j].." is still held")
+              grid_p[i] = {}
+              grid_p[i].action = "pads-release"
+              grid_p[i].i = i
+              grid_p[i].id = held_keys[i][j]
+              grid_pat[i]:rec_event(grid_p[i])
+              if arp[i].enabled
+              and not arp[i].pause
+              -- and not arp[i].gate.active
+              and pattern_gate[i][1].active and pattern_gate[i][2].active
+              then
+                print("off...")
+                arps.momentary(i, held_keys[i][j], "off")
+              end
+            end
           end
         end
       end

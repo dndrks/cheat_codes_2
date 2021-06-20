@@ -329,7 +329,7 @@ function arp_actions.execute_step(target,step,source)
   if (not pattern_gate[target][2].active and not pattern_gate[target][3].active)
   or (pattern_gate[target][2].active and pattern_gate[target][1].active)
   then
-    local last_pad = bank[target].id
+    local last_pad = arp[target].notes[util.wrap(step-1,arp[target].start_point,arp[target].end_point)]
     bank[target].id = arp[target].notes[step]
     selected[target].x = (5*(target-1)+1)+(math.ceil(bank[target].id/4)-1)
     if (bank[target].id % 4) ~= 0 then
@@ -337,8 +337,9 @@ function arp_actions.execute_step(target,step,source)
     else
       selected[target].y = 5
     end
+    -- print("killing "..last_pad)
     grid_actions.kill_note(target,last_pad)
-    grid_actions.add_held_key(target,bank[target].id)
+    grid_actions.add_held_key(target,arp[target].notes[step])
     cheat(target,bank[target].id)
   end
 end
