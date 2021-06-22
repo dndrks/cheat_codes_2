@@ -265,7 +265,7 @@ function start_up.init()
   
   --params:add_option("zilchmo_bind_rand","bind random zilchmo?", {"no","yes"}, 1)
   
-  params:add_group("patterns + arps",32)
+  params:add_group("patterns + arps",35)
   params:add_separator("patterns")
   params:add_option("zilchmo_patterning", "grid pat style", { "classic", "rad sauce" })
   for i = 1,3 do
@@ -311,6 +311,10 @@ function start_up.init()
 
   for i = 1,3 do
     params:add_option("rand_pattern_"..i.."_note_length", "rand pat "..i.." note length", {"1/16", "1/8", "1/4", "1/2", "1", "rand"},6)
+  end
+  
+  for i = 1,3 do
+    params:add_number("rand_pattern_"..i.."_polyphony", "rand pat "..i.." polyphony", 1,8,2)
   end
 
   params:add_separator("arps (grid only)")

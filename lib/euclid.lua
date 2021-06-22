@@ -18,19 +18,30 @@ function euclid.trig(target)
     if (not arp[target].playing and not grid_pat[target].playing and not midi_pat[target].playing)
     or (arp[target].playing or grid_pat[target].playing or midi_pat[target].playing) and pattern_gate[target][3].active then
       if euclid.track[target].mode == "single" then
-        cheat(target,euclid.rotate_pads(bank[target].id + euclid.track[target].pad_offset))
-        if menu ~= 1 then screen_dirty = true end
+        if euclid.track[target].current_pad ~= euclid.rotate_pads(bank[target].id + euclid.track[target].pad_offset) then
+          grid_actions.kill_note(target,euclid.track[target].current_pad)
+        end
+        euclid.track[target].current_pad = euclid.rotate_pads(bank[target].id + euclid.track[target].pad_offset)
+        grid_actions.kill_note(target,euclid.track[target].current_pad)
+        grid_actions.add_held_key(target,euclid.track[target].current_pad)
+        cheat(target,euclid.track[target].current_pad)
       elseif euclid.track[target].mode == "span" then
-        bank[target].id = euclid.rotate_pads(euclid.track[target].pos + euclid.track[target].pad_offset)
+        if euclid.track[target].current_pad ~= euclid.rotate_pads(euclid.track[target].pos + euclid.track[target].pad_offset) then
+          grid_actions.kill_note(target,euclid.track[target].current_pad)
+        end
+        euclid.track[target].current_pad = euclid.rotate_pads(euclid.track[target].pos + euclid.track[target].pad_offset)
+        bank[target].id = euclid.track[target].current_pad
         selected[target].x = (5*(target-1)+1)+(math.ceil(bank[target].id/4)-1)
         if (bank[target].id % 4) ~= 0 then
           selected[target].y = 9-(bank[target].id % 4)
         else
           selected[target].y = 5
         end
-        cheat(target,euclid.rotate_pads(euclid.track[target].pos + euclid.track[target].pad_offset))
-        if menu ~= 1 then screen_dirty = true end
+        grid_actions.kill_note(target,euclid.track[target].current_pad)
+        grid_actions.add_held_key(target,euclid.track[target].current_pad)
+        cheat(target,euclid.track[target].current_pad)
       end
+      if menu ~= 1 then screen_dirty = true end
     end
     if not rytm.grid.ui[target] then
       grid_dirty = true
@@ -66,7 +77,8 @@ function euclid.init()
       clock_div = 1/2,
       runner = 0,
       mute = false,
-      loop = true
+      loop = true,
+      current_pad = 1
     }
     euclid.grid.ui[i] = false
     euclid.grid.page[i] = 1

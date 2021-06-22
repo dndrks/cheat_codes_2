@@ -348,6 +348,14 @@ end
 function cheat_clock_synced(i)
   if tab.count(quantize_events[i]) > 0 then
     cheat(quantize_events[i].bank,quantize_events[i].pad)
+      local kill_this = quantize_events[i].pad
+      clock.run(function()
+        clock.sync(1/4)
+        if not tab.contains(held_keys[i],kill_this) then
+          grid_actions.kill_note(i,kill_this)
+        end
+      end
+      )
     quantize_events[i] = {}
   end
 end
@@ -479,7 +487,8 @@ function random_grid_pat(which,mode)
     end
     local potential_total = pattern.rec_clock_time*4
     -- local count = auto_pat == 1 and math.random(2,24) or 16
-    local count = auto_pat == 1 and (pattern.rec_clock_time * 4) or 16
+    -- local count = auto_pat == 1 and (pattern.rec_clock_time * 4) or 16
+    local count = auto_pat == 1 and (pattern.rec_clock_time * 8) or 32
     if pattern.count > 0 or pattern.rec == 1 then
       grid_actions.rec_stop(which)
       stop_pattern(pattern)
@@ -487,58 +496,76 @@ function random_grid_pat(which,mode)
       pattern:clear()
       pattern_saver[which].load_slot = 0
     end
+    pattern.rand_generated = true
+    pattern.rand_step_count = 0
     for i = 1,count do
       pattern.event[i] = {}
       local constructed = pattern.event[i]
-      constructed.id = auto_pat == 1 and math.random(1,16) or snakes[auto_pat-1][i]
-      local assigning_pad = bank[which][constructed.id]
-      local new_rates = 
-      { [1] = math.pow(2,math.random(-3,-1))*((math.random(1,2)*2)-3)
-      , [2] = math.pow(2,math.random(-1,1))*((math.random(1,2)*2)-3)
-      , [3] = math.pow(2,math.random(1,2))*((math.random(1,2)*2)-3)
-      , [4] = math.pow(2,math.random(-2,2))*((math.random(1,2)*2)-3)
-      , [5] = assigning_pad.rate
-      }
-      constructed.rate = new_rates[pattern.random_pitch_range]
-      local pre_rate = assigning_pad.rate
-      assigning_pad.rate = constructed.rate
-      local new_levels = 
-      { [0.125] = 1.75
-      , [0.25]  = 1.5
-      , [0.5]   = 1.25
-      , [1.0]   = 1.0
-      , [2.0]   = 0.75
-      , [4.0]   = 0.5
-      }
-      if pre_rate == assigning_pad.rate then
-        assigning_pad.level = assigning_pad.level
+      if i%2 == 1 then
+        constructed.id = auto_pat == 1 and math.random(1,16) or snakes[auto_pat-1][i]
       else
-        assigning_pad.level = assigning_pad.level == 0 and 0 or new_levels[math.abs(constructed.rate)]
+        constructed.id = pattern.event[i-1].id
       end
-      constructed.loop = assigning_pad.loop
-      constructed.mode = assigning_pad.mode
-      constructed.pause = assigning_pad.pause
-      constructed.start_point = (math.random(10,75)/10)+(32*(assigning_pad.clip-1))
-      constructed.clip = assigning_pad.clip
-      constructed.end_point = constructed.start_point + (math.random(1,15)/10)
-      constructed.rate_adjusted = false
-      assigning_pad.fifth = false
-      constructed.x = (5*(which-1)+1)+(math.ceil(constructed.id/4)-1)
-      if (constructed.id % 4) ~= 0 then
-        constructed.y = 9-(constructed.id % 4)
+      if i%2 == 1 then
+        constructed.id = constructed.id
+        local assigning_pad = bank[which][constructed.id]
+        local new_rates = 
+        { [1] = math.pow(2,math.random(-3,-1))*((math.random(1,2)*2)-3)
+        , [2] = math.pow(2,math.random(-1,1))*((math.random(1,2)*2)-3)
+        , [3] = math.pow(2,math.random(1,2))*((math.random(1,2)*2)-3)
+        , [4] = math.pow(2,math.random(-2,2))*((math.random(1,2)*2)-3)
+        , [5] = assigning_pad.rate
+        }
+        constructed.rate = new_rates[pattern.random_pitch_range]
+        local pre_rate = assigning_pad.rate
+        assigning_pad.rate = constructed.rate
+        local new_levels = 
+        { [0.125] = 1.75
+        , [0.25]  = 1.5
+        , [0.5]   = 1.25
+        , [1.0]   = 1.0
+        , [2.0]   = 0.75
+        , [4.0]   = 0.5
+        }
+        if pre_rate == assigning_pad.rate then
+          assigning_pad.level = assigning_pad.level
+        else
+          assigning_pad.level = assigning_pad.level == 0 and 0 or new_levels[math.abs(constructed.rate)]
+        end
+        constructed.loop = assigning_pad.loop
+        constructed.mode = assigning_pad.mode
+        constructed.pause = assigning_pad.pause
+        constructed.start_point = (math.random(10,75)/10)+(32*(assigning_pad.clip-1))
+        constructed.clip = assigning_pad.clip
+        constructed.end_point = constructed.start_point + (math.random(1,15)/10)
+        constructed.rate_adjusted = false
+        assigning_pad.fifth = false
+        constructed.x = (5*(which-1)+1)+(math.ceil(constructed.id/4)-1)
+        if (constructed.id % 4) ~= 0 then
+          constructed.y = 9-(constructed.id % 4)
+        else
+          constructed.y = 5
+        end
+        constructed.action = "pads"
+        constructed.i = which
+
+        local tempo = clock.get_beat_sec()
+        local divisors = { 4,2,1,0.5,0.25,math.pow(2,math.random(-2,2)) }
+        local note_length = (tempo / divisors[params:get("rand_pattern_"..which.."_note_length")])
+        pattern.time[i] = note_length
+        pattern.time_beats[i] = pattern.time[i] / tempo
+        pattern:calculate_quantum(i)
       else
-        constructed.y = 5
+        constructed.id = constructed.id
+        constructed.i = which
+        constructed.action = "pads-release"
+        local tempo = clock.get_beat_sec()
+        local divisors = { 4,2,1,0.5,0.25,math.pow(2,math.random(-2,2)) }
+        local note_length = (tempo / divisors[params:get("rand_pattern_"..which.."_note_length")])
+        pattern.time[i] = 0.01
+        pattern.time_beats[i] = pattern.time[i] / tempo
+        -- pattern:calculate_quantum(i)
       end
-      constructed.action = "pads"
-      constructed.i = which
-
-      local tempo = clock.get_beat_sec()
-      local divisors = { 4,2,1,0.5,0.25,math.pow(2,math.random(-2,2)) }
-      local note_length = (tempo / divisors[params:get("rand_pattern_"..which.."_note_length")])
-      pattern.time[i] = note_length
-      pattern.time_beats[i] = pattern.time[i] / tempo
-      pattern:calculate_quantum(i)
-
     end
     pattern.count = count
     pattern.start_point = 1
@@ -1041,6 +1068,7 @@ function init()
     grid_pat[i].playmode = 1
     grid_pat[i].random_pitch_range = 5
     grid_pat[i].rec_clock_time = 8
+    grid_pat[i].random_notes_held = {}
   end
   
   quantized_grid_pat = {}
@@ -4055,6 +4083,22 @@ function grid_pattern_execute(entry)
             else
               quantize_events[i] = {["bank"] = i, ["pad"] = bank[i].id}
             end
+            -- here, add the clock call for note off...
+            if grid_pat[i].rand_generated then
+              grid_pat[i].rand_step_count = util.wrap(grid_pat[i].rand_step_count+1,grid_pat[i].start_point,grid_pat[i].end_point)
+              table.insert(grid_pat[i].random_notes_held,selected[i].id)
+              -- if grid_pat[i].rand_step_count % (params:get("rand_pattern_"..i.."_polyphony")+1) == 0 then
+              if grid_pat[i].rand_step_count % (params:get("rand_pattern_"..i.."_polyphony")+1) == 0 then
+                print("eeee!")
+                if #grid_pat[i].random_notes_held > 1 then
+                  for j = #grid_pat[i].random_notes_held-1,1,-1 do
+                    print("killing", i,grid_pat[i].random_notes_held[j])
+                    grid_actions.kill_note(i,grid_pat[i].random_notes_held[j])
+                  end
+                  grid_pat[i].random_notes_held = {}
+                end
+              end
+            end
           end
 
         elseif arp[i].enabled
@@ -5475,6 +5519,17 @@ function load_pattern(slot,destination)
   end
 end
 
+function midi_panic()
+  print("# ending held MIDI notes")
+  for i = 1,128 do
+    for j = 1,3 do
+      for z = 1,16 do
+      midi_dev[params:get(j.."_pad_to_midi_note_destination")]:note_off(i, nil, z)
+      end
+    end
+  end
+end
+
 function cleanup()
 
   -- print("cleaning up")
@@ -5488,15 +5543,8 @@ function cleanup()
   end
 
   lfo_metro:stop()
-  
-  print("# ending held MIDI notes")
-  for i = 1,128 do
-    for j = 1,3 do
-      for z = 1,16 do
-      midi_dev[params:get(j.."_pad_to_midi_note_destination")]:note_off(i, nil, z)
-      end
-    end
-  end
+
+  midi_panic()
   -- print("cleaned up")
 end
 

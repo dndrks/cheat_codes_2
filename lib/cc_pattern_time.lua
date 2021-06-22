@@ -29,6 +29,8 @@ function pattern.new(id)
   i.rec_clock = nil
   i.mode = "unquantized"
   i.name = id
+  i.rand_generated = false
+  i.rand_step_count = 0
 
   i.metro = metro.init(function() i:next_event() end,1,1)
 
@@ -67,6 +69,8 @@ function pattern:clear()
   self.clock = nil
   self.clock_time = 4
   self.rec_clock = nil
+  self.rand_generated = false
+  self.rand_step_count = 0
 end
 
 --- adjust the time factor of this pattern.
@@ -354,6 +358,8 @@ function pattern:restore_defaults()
     self.random_pitch_range = 5
     self.rec_clock_time = 8
     self.first_touch = false
+    self.rand_generated = false
+    self.rand_step_count = 0
   end
 end
 

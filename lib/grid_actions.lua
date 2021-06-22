@@ -84,14 +84,13 @@ function grid_actions.init(x,y,z)
                   selected[i].y = y
                   selected[i].id = (math.abs(y-9)+((x-1)*4))-(20*(i-1))
                   bank[i].id = selected[i].id
-                  for k,v in pairs(held_keys[i]) do
-                    if v == selected[i].id then
-                      print("KILLING 2")
-                      grid_actions.remove_held_key(i,selected[i].id)
-                    end
-                  end
-                  grid_actions.add_held_key(i,selected[i].id)
-                  -- tab.print(held_keys[i])
+                  -- for k,v in pairs(held_keys[i]) do
+                  --   if v == selected[i].id then
+                  --     print("KILLING 2")
+                  --     grid_actions.remove_held_key(i,selected[i].id)
+                  --   end
+                  -- end
+                  -- grid_actions.add_held_key(i,selected[i].id)
                   page.loops.meta_pad[i] = bank[i].id
                   which_bank = i
                   if menu == 11 then
@@ -119,8 +118,22 @@ function grid_actions.init(x,y,z)
                       or arp[i].playing and pattern_gate[i][2].active then
                         if not bank[i].quantized_press then
                           cheat(i, bank[i].id)
+                          for k,v in pairs(held_keys[i]) do
+                            if v == selected[i].id then
+                              print("KILLING 2")
+                              grid_actions.remove_held_key(i,selected[i].id)
+                            end
+                          end
+                          grid_actions.add_held_key(i,selected[i].id)
                         else
                           quantize_events[i] = {["bank"] = i, ["pad"] = bank[i].id}
+                          for k,v in pairs(held_keys[i]) do
+                            if v == selected[i].id then
+                              print("KILLING 2")
+                              grid_actions.remove_held_key(i,selected[i].id)
+                            end
+                          end
+                          grid_actions.add_held_key(i,selected[i].id)
                         end
                       end
                     -- end
@@ -158,9 +171,7 @@ function grid_actions.init(x,y,z)
               if not bank[i].focus_hold then
                 local released_pad = (math.abs(y-9)+((x-1)*4))-(20*(i-1))
                 if not grid_alt then
-                  -- print("REMOVING")
                   if not bank[i][released_pad].drone then
-                    -- print("KILLING "..released_pad)
                     grid_actions.remove_held_key(i,released_pad)
                   end
                 elseif grid_alt then
@@ -1914,8 +1925,10 @@ function grid_actions.kill_note(b,p)
 end
 
 function grid_actions.remove_held_key(b,p)
-  table.remove(held_keys[b],tab.key(held_keys[b],p))
-  bank[b][p].drone = false
+  if tab.contains(held_keys[b],p) then
+    table.remove(held_keys[b],tab.key(held_keys[b],p))
+    bank[b][p].drone = false
+  end
 end
 
 function grid_actions.add_held_key(b,p)
