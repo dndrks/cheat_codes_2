@@ -1523,11 +1523,6 @@ function grid_actions.init(x,y,z)
           del.change_rate(x == 4 and 1 or 2, "halve")
         elseif y == 3 then
           del.change_rate(x == 4 and 1 or 2,z == 1 and "wobble" or "restore")
-        -- elseif y == 9 then
-        --   if grid_alt then
-        --     del.quick_action(6-y, "clear")
-        --   end
-        --   del.quick_action(6-y,"feedback_mute",z)
         end
       elseif x == 1 or x == 8 then
 
@@ -1543,13 +1538,6 @@ function grid_actions.init(x,y,z)
         elseif y == 4 and z == 1 then
           params:set("delay "..(x == 2 and "L:" or "R:").." external input", params:get("delay "..(x == 2 and "L:" or "R:").." external input") > 0 and 0 or 1)
         end
-        -- if x >= 10 and x <=14 then
-        --   if z == 1 then
-        --     del.set_value(y == 8 and 1 or 2,x-9,grid_alt == true and "send all" or "send")
-        --   end
-        -- elseif x == 15 then
-        --   del.quick_action(y == 8 and 1 or 2,"send_mute",z)
-        -- end
       end
 
       if x == 1 or x == 8 then

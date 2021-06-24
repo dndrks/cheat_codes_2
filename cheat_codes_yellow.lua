@@ -2031,30 +2031,30 @@ end
 --   end
 -- end
 
-function synced_loop(target, state)
-  print("synced_loop_start")
-  --clock.sleep(clock.get_beat_sec()*target.rec_clock_time)
-  if transport.is_running then
-    clock.sync(1)
-    if state == "restart" then
-      target:start()
-    end
-    --^ would this be problematic?
+-- function synced_loop(target, state)
+--   print("synced_loop_start")
+--   --clock.sleep(clock.get_beat_sec()*target.rec_clock_time)
+--   if transport.is_running then
+--     clock.sync(1)
+--     if state == "restart" then
+--       target:start()
+--     end
+--     --^ would this be problematic?
 
-    --clock.sync(4)
-    while true do
-      -- print("syncing to..."..target.clock_time, clock.get_beats())
-      clock.sync(target.clock_time)
-      local overdub_flag = target.overdub
-      -- target:stop()
-      stop_pattern(target)
-      if overdub_flag == 1 then
-        target.overdub = 1
-      end
-      target:start()
-    end
-  end
-end
+--     --clock.sync(4)
+--     while true do
+--       -- print("syncing to..."..target.clock_time, clock.get_beats())
+--       clock.sync(target.clock_time)
+--       local overdub_flag = target.overdub
+--       -- target:stop()
+--       stop_pattern(target)
+--       if overdub_flag == 1 then
+--         target.overdub = 1
+--       end
+--       target:start()
+--     end
+--   end
+-- end
 
 function clear_arps_from_pattern_restart(i)
   if i~= nil then
@@ -2066,6 +2066,17 @@ function clear_arps_from_pattern_restart(i)
       arps.clear(i)
     end
   end
+end
+
+function dumb_thing_to_try()
+  clock.run(function()
+    while true do
+      clock.sync(grid_pat[1].rec_clock_time)
+      stop_pattern(grid_pat[1])
+      grid_pat[1]:start()
+    end
+  end
+)
 end
 
 function alt_synced_loop(target,state)
@@ -2081,20 +2092,20 @@ function alt_synced_loop(target,state)
     while true do
       clock.sync(1/4)
       if target.synced_loop_runner == target.rec_clock_time * 4 then
+        target.synced_loop_runner = 1
         -- print(clock.get_beats(), target.synced_loop_runner)
         local overdub_flag = target.overdub
         -- target:stop()
-        stop_pattern(target)
-        print("stopping")
+        stop_pattern(target,"no kill")
+        -- print("stopping")
         if overdub_flag == 1 then
           target.overdub = 1
         end
         if target.loop == 1 then
           clear_arps_from_pattern_restart(target.event[target.count].i)
           target:start()
+          -- print("and then start...")
         end
-        print("and then start...")
-        target.synced_loop_runner = 1
       else
         target.synced_loop_runner =  target.synced_loop_runner + 1
       end
@@ -2102,15 +2113,15 @@ function alt_synced_loop(target,state)
   end
 end
 
-function stop_pattern(target)
-  if target.clock ~= nil then
+function stop_pattern(target,style)
+  if target.clock ~= nil and style ~= "no kill" then
     clock.cancel(target.clock)
     target.clock = nil
   end
   local function wipe_slate(b)
     for i = 1,#grid_pat[b].event do
       if tab.contains(held_keys[b],grid_pat[b].event[i].id) then
-        print(">>>"..grid_pat[b].event[i].id)
+        print(">>>"..grid_pat[b].event[i].id, clock.get_beats())
         grid_actions.kill_note(b,grid_pat[b].event[i].id)
       end
     end
@@ -2175,7 +2186,7 @@ function synced_pattern_record(target,i)
       for i = 1,target.count do
         butts = butts + target.time[i]
       end
-      print(butts)
+      -- print(butts)
       target.time[2] = target.time[2] + target.time[1]
       target.time_beats[2] = target.time_beats[2] + target.time_beats[1]
       table.remove(target.event,1)
@@ -2183,16 +2194,12 @@ function synced_pattern_record(target,i)
       table.remove(target.time_beats,1)
       target.count = #target.event
       target.end_point = target.count
-      print(target.count, target.end_point)
-      for i = 1,target.count do
-        target:calculate_quantum(i)
-      end
+      -- print(target.count, target.end_point)
     end
     if target.count > 0 then -- just in case the recording was canceled...
       --target:start()
       print("started first run..."..clock.get_beats())
-      --target.clock = clock.run(synced_loop, target)
-      if target.clock ~= nil then clock.cancel(target.clock) print("canceled double clock "..clock.get_beats()) end
+      if target.clock ~= nil then print("canceled double clock "..clock.get_beats()) clock.cancel(target.clock) end
       target.clock = clock.run(alt_synced_loop, target)
     end
   else

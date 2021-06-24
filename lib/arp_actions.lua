@@ -91,7 +91,7 @@ function arp_actions.momentary(target, value, state)
     elseif state == "off" then
       local removed_note = arp_actions.find_index(arp[target].notes,value)
       if removed_note ~= nil then
-        print("turning note off")
+        -- print("turning note off")
         arp_actions.remove_momentary(target, removed_note)
         -- grid_actions.kill_note(target,removed_note)-- ?
       end
