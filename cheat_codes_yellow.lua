@@ -2441,35 +2441,6 @@ function compare_loop_resolution(target,x)
   if menu ~= 1 then screen_dirty = true end
 end
 
-function step_sequence_super_clock()
-  while true do
-    clock.sync(1/4)
-    for i = 1,3 do
-      step_sequence(i)
-    end
-  end
-end
-
-function toggle_meta(state)
-  -- print(state)
-  if state == "start" then
-    for target = 1,3 do
-      step_seq[target].meta_meta_step = 1
-      step_seq[target].meta_step = 1
-      step_seq[target].current_step = step_seq[target].start_point
-      if step_seq[target].active == 1 and step_seq[target][step_seq[target].current_step].assigned_to ~= 0 then
-        test_load(step_seq[target][step_seq[target].current_step].assigned_to+(((target)-1)*8),target)
-      end
-    end
-    step_sequence_clock = clock.run(step_sequence_super_clock)
-    screen.dirty = true
-  elseif state == "stop" then
-    if step_sequence_clock ~= nil then
-      clock.cancel(step_sequence_clock)
-    end
-  end
-end
-
 function globally_clocked()
   while true do
     clock.sync(1/4)
@@ -2487,9 +2458,7 @@ function globally_clocked()
       screen_dirty = true
     end
     -- update_tempo()
-    -- step_sequence()
     for i = 1,3 do
-      -- step_sequence(i)
       if grid_pat[i].led == nil then
         grid_pat[i].led = 0
         grid_dirty = true
@@ -2549,7 +2518,6 @@ osc_in = function(path, args, from)
       -- grid_pat[i]:stop()
       stop_pattern(grid_pat[i])
       grid_pat[i].tightened_start = 0
-
     elseif path == "/pad_rate_"..i then
       target.rate = args[1]
       softcut.rate(i+1,target.rate)
@@ -2659,48 +2627,6 @@ function osc_redraw(i)
     osc.send(dest, "/pad_start_point_"..i, {target.start_point})
     osc.send(dest, "/pad_end_point_"..i, {target.end_point})
     osc.send(dest, "/pad_rate_"..i, {target.rate})
-    -- local loop_to_osc = nil
-    -- if bank[i][bank[i].id].loop == false then
-    --   loop_to_osc = 0
-    -- else
-    --   loop_to_osc = 1
-    -- end
-    -- osc.send(dest, "/pad_loop_single_"..i, {loop_to_osc})
-    -- osc.send(dest, "/rate_"..i, {params:get("rate "..i)})
-    -- for j = 7,12 do
-    --   osc.send(dest, "/rate_"..i.."_"..j, {0})
-    -- end
-    -- if params:get("rate "..i) > 6 then
-    --   osc.send(dest, "/rate_"..i.."_"..params:get("rate "..i), {1})
-    --   osc.send(dest, "/rate_rev_"..i,{0})
-    -- else
-    --   osc.send(dest, "/rate_"..i.."_"..math.abs(params:get("rate "..i)-13), {1})
-    --   osc.send(dest, "/rate_rev_"..i,{1})
-    -- end
-    -- -- osc.send(dest, "/pad_start_"..i, {(bank[i][bank[i].id].start_point*100)-((8*(bank[i][bank[i].id].clip-1))*100)})
-    -- osc.send(dest, "/pad_start_"..i, {(bank[i][bank[i].id].start_point)})
-    -- -- osc.send(dest, "/pad_start_display_"..i, {tonumber(string.format("%.2f",(bank[i][bank[i].id].start_point) - (8*(bank[i][bank[i].id].clip-1))))})
-    -- -- osc.send(dest, "/pad_end_"..i, {(bank[i][bank[i].id].end_point*100)-((8*(bank[i][bank[i].id].clip-1))*100)})
-    -- osc.send(dest, "/pad_end_"..i, {(bank[i][bank[i].id].end_point)})
-    -- osc.send(dest, "/pad_end_display_"..i, {tonumber(string.format("%.2f",bank[i][bank[i].id].end_point - (8*(bank[i][bank[i].id].clip-1))))})
-    -- for j = 1,16 do
-    --   osc.send(dest, "/pad_sel_"..i.."_"..j, {0})
-    -- end
-    -- osc.send(dest, "/pad_sel_"..i.."_"..bank[i].id, {1})
-    -- local rec_state_to_osc = nil
-    -- if rec[rec.focus].state == 0 then
-    --   rec_state_to_osc = "not recording"
-    -- else
-    --   rec_state_to_osc = "recording"
-    -- end
-    -- osc.send(dest, "/buffer_state", {rec_state_to_osc})
-    -- for j = 1,3 do
-    --   if rec.focus ~= j then
-    --     osc.send(dest, "/buffer_LED_"..j, {0})
-    --   else
-    --     osc.send(dest, "/buffer_LED_"..rec.focus, {1})
-    --   end
-    -- end
   end
 end
 
@@ -2749,35 +2675,6 @@ end
 
 function rec_count()
   rec_time = rec_time + 0.01
-end
-
-function step_sequence(i)
-  if transport.is_running then
-  -- for i = 1,3 do
-    if step_seq[i].active == 1 then
-      step_seq[i].meta_step = step_seq[i].meta_step + 1
-      if step_seq[i].meta_step > step_seq[i].meta_duration then step_seq[i].meta_step = 1 end
-      if step_seq[i].meta_step == 1 then
-        step_seq[i].meta_meta_step = step_seq[i].meta_meta_step + 1
-        if step_seq[i].meta_meta_step > step_seq[i][step_seq[i].current_step].meta_meta_duration then step_seq[i].meta_meta_step = 1 end
-        if step_seq[i].meta_meta_step == 1 then
-          step_seq[i].current_step = step_seq[i].current_step + 1
-          if step_seq[i].current_step > step_seq[i].end_point then step_seq[i].current_step = step_seq[i].start_point end
-          local current = step_seq[i].current_step
-          if grid_pat[i].rec == 0 and step_seq[i][current].assigned_to ~= 0 then
-            pattern_saver[i].load_slot = step_seq[i][current].assigned_to
-            test_load(step_seq[i][current].assigned_to+((i-1)*8),i)
-            -- print(clock.get_beats().." <~~~ from pattern player")
-            grid_pat[i].loop = step_seq[i][current].loop_pattern
-          end
-        end
-      end
-    end
-  -- end
-  end
-  if grid_page == 1 or grid_page_64 == 1 then
-    grid_dirty = true
-  end
 end
 
 function sixteen_slices(x)
@@ -4920,59 +4817,6 @@ function named_loadstate(path)
   all_loaded = true
 end
 
-function test_save(i)
-  pattern_saver[i].active = true
-  clock.sleep(1)
-  -- if pattern_saver[i].active then
-    if not grid_alt then
-      if grid_pat[i].count > 0 and grid_pat[i].rec == 0 then
-        -- copy_entire_pattern(i)
-        -- save_pattern(i,pattern_saver[i].save_slot+8*(i-1),"pattern")
-        redux_save_pattern(i,pattern_saver[i].save_slot+8*(i-1),"pattern")
-        pattern_saver[i].saved[pattern_saver[i].save_slot] = 1
-        pattern_saver[i].load_slot = pattern_saver[i].save_slot
-        g:led(math.floor((i-1)*5)+1,9-pattern_saver[i].save_slot,15)
-        -- g:refresh()
-      -- elseif #arp[i].notes > 0 then
-      elseif tab.count(arp[i].notes) > 0 then
-        -- save_pattern(i,pattern_saver[i].save_slot+8*(i-1),"arp")
-        redux_save_pattern(i,pattern_saver[i].save_slot+8*(i-1),"arp")
-        pattern_saver[i].saved[pattern_saver[i].save_slot] = 1
-        pattern_saver[i].load_slot = pattern_saver[i].save_slot
-        g:led(math.floor((i-1)*5)+1,9-pattern_saver[i].save_slot,15)
-        -- g:refresh()
-      else
-        print("no pattern data to save")
-        g:led(math.floor((i-1)*5)+1,9-pattern_saver[i].save_slot,0)
-        -- g:refresh()
-      end
-      pattern_saver[i].clock = nil
-      grid_dirty = true
-    else
-      print("should delete")
-      if pattern_saver[i].saved[pattern_saver[i].save_slot] == 1 then
-        delete_pattern(i,pattern_saver[i].save_slot+8*(i-1))
-        pattern_saver[i].saved[pattern_saver[i].save_slot] = 0
-        pattern_saver[i].load_slot = 0
-      else
-        print("no pattern data to delete")
-      end
-    end
-  -- end
-  pattern_saver[i].active = false
-end
-
-function test_delete(i,x)
-  pattern_deleter[i].active = true
-  clock.sleep(1)
-  if pattern_saver[i].saved[x] == 1 and pattern_deleter[i].active then
-    delete_pattern(i,x+8*(i-1))
-    pattern_saver[i].saved[x] = 0
-    pattern_saver[i].load_slot = 0
-  end
-  pattern_deleter.active = false
-end
-
 function test_load(slot,destination)
   if pattern_saver[destination].saved[slot-((destination-1)*8)] == 1 then
     if grid_pat[destination].play == 1 then
@@ -5102,40 +4946,29 @@ function redux_save_pattern(source,slot,style)
 end
 
 function disk_save_patterns(coll)
-
-  local dirname = _path.data.."cheat_codes_yellow/collection-"..coll.."/"
-  if os.rename(dirname, dirname) == nil then
-    os.execute("mkdir " .. dirname)
-  end
-  local dirname = _path.data.."cheat_codes_yellow/collection-"..coll.."/patterns/"
-  if os.rename(dirname, dirname) == nil then
-    os.execute("mkdir " .. dirname)
-  end
-
-  for i = 1,24 do
-    local file = io.open(_path.data .. "cheat_codes_yellow/collection-"..coll.."/patterns/"..i..".data", "w+")
-    if file then
-      os.remove(_path.data .. "cheat_codes_yellow/collection-"..coll.."/patterns/"..i..".data")
-      io.close(file)
+  local buckets = {"arp","grid","euclid"}
+  for b = 1,#buckets do
+    local dest = buckets[b]
+    local dirname = _path.data.."cheat_codes_yellow/collection-"..coll.."/"
+    if os.rename(dirname, dirname) == nil then
+      os.execute("mkdir " .. dirname)
     end
-  end
-
-  for i = 1,3 do
-    if meta_grid_pattern ~= nil and meta_grid_pattern[i] ~= nil then
-      for k,v in pairs(meta_grid_pattern[i]) do
-        if #meta_grid_pattern[i][k] == 0 then
-          tab.save(meta_grid_pattern[i][k],_path.data .. "cheat_codes_yellow/collection-"..coll.."/patterns/"..k..".data")
-        else
-          local file = io.open(_path.data .. "cheat_codes_yellow/collection-"..coll.."/patterns/"..k..".data", "w+")
-          io.output(file)
-          meta_grid_pattern[i][k][1] = "stored pad pattern: collection "..coll.." + slot "..k
-          for key,val in ipairs(meta_grid_pattern[i][k]) do
-            io.write(val.."\n")
-          end
-          io.close(file)
-        end
+    local dirname = _path.data.."cheat_codes_yellow/collection-"..coll.."/patterns/"
+    if os.rename(dirname, dirname) == nil then
+      os.execute("mkdir " .. dirname)
+    end
+    local dirname = _path.data.."cheat_codes_yellow/collection-"..coll.."/patterns/"..dest.."/"
+    if os.rename(dirname, dirname) == nil then
+      os.execute("mkdir " .. dirname)
+    end
+    for i = 1,3 do
+      local dirname = _path.data.."cheat_codes_yellow/collection-"..coll.."/patterns/"..dest.."/"..i.."/"
+      if os.rename(dirname, dirname) == nil then
+        os.execute("mkdir " .. dirname)
       end
-      -- need to delete unused patterns
+      for j = 1,#pattern_data[i][dest] do
+        tab.save(pattern_data[i][dest][j],dirname..j..".data")
+      end
     end
   end
 end
@@ -5209,9 +5042,13 @@ function delete_pattern(i,slot)
 end
 
 function queue_saved_patterns()
-  for i = 1,3 do
-    for j = 1+((i-1)*8),8+((i-1)*8) do
-      build_pattern_queue(j,i)
+  local buckets = {"arp","grid","euclid"}
+  for b = 1,#buckets do
+    local dest = buckets[b]
+    for i = 1,3 do
+      for j = 1,8 do
+        pattern_data[i][dest][j] = tab.load(_path.data .. "cheat_codes_yellow/collection-"..selected_coll.."/patterns/"..dest.."/"..i.."/"..j..".data")
+      end
     end
   end
 end

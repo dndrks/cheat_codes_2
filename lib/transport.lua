@@ -104,9 +104,7 @@ function tp.start()
       print("100 in transport")
       start_pattern(grid_pat[i],"jumpstart")
     end
-    -- toggle_meta("start",i) -- AH !! TODO THIS ERRORS ON NEW CLOCK
   end
-  toggle_meta("start") -- AH !! TODO THIS ERRORS ON NEW CLOCK
   rytm.toggle("start")
   tp.start_midi()
   tp.send_midi_clock()
@@ -134,7 +132,6 @@ function tp.start_from_midi_message()
       print("128 in transport")
       start_pattern(grid_pat[i],"jumpstart")
     end
-    toggle_meta("stop",i)
     -- print(clock.get_beats())
   end
   rytm.toggle("start")
@@ -199,10 +196,6 @@ function tp.stop()
     end
     -- rytm.toggle("stop",i)
   end
-  if step_sequence_clock ~= nil then
-    clock.cancel(step_sequence_clock)
-    step_sequence_clock = nil
-  end
   rytm.toggle("stop")
   tp.stop_midi()
   if tp.midi_out_clocks ~= nil then
@@ -235,10 +228,6 @@ function tp.stop_from_midi_message()
       end
     end
     -- rytm.toggle("stop",i)
-  end
-  if step_sequence_clock ~= nil then
-    clock.cancel(step_sequence_clock)
-    step_sequence_clock = nil
   end
   rytm.toggle("stop")
   if params:string("crow output 4") == "transport gate" then
@@ -282,7 +271,6 @@ function tp.crow_toggle_now()
         print("263 in transport")
         start_pattern(grid_pat[i],"jumpstart")
       end
-      toggle_meta("start",i)
       -- print(clock.get_beats())
     end
     rytm.toggle("start")

@@ -128,8 +128,11 @@ function ps.handle_euclid_pat(i,slot,command)
     pattern_data[i].euclid.load_slot = slot
     pattern_data[i].euclid[slot].dirty = true
   elseif command == "load" then
+    local pre_load = {rytm.track[i].pos,rytm.track[i].runner}
     rytm.track[i] = deep_copy(pattern_data[i].euclid[slot].raw)
     pattern_data[i].euclid.load_slot = slot
+    rytm.track[i].pos = pre_load[1]
+    rytm.track[i].runner = pre_load[2]
   elseif command == "delete" then
     pattern_data[i].euclid[slot].raw = {}
     pattern_data[i].euclid[slot].dirty = false
