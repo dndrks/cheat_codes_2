@@ -9,8 +9,7 @@ sd.menu = 1
 -- local positions;
 
 function sd.init()
-  size = tonumber(params:string("grid_size"))
-  if size == 128 then
+  if tonumber(params:string("grid_size")) == 128 then
     positions = 
     {
       [2] = {14,4},
@@ -79,7 +78,7 @@ function sd.parse_press(x,y,z)
 end
 
 function sd.coordinate(x,y)
-  if size == 128 then
+  if tonumber(params:string("grid_size")) == 128 then
     return {9-y,x}
   else
     return {x,y}
@@ -87,7 +86,7 @@ function sd.coordinate(x,y)
 end
 
 function sd.translate(x,y)
-  if size == 128 then
+  if tonumber(params:string("grid_size")) == 128 then
     --3,1 = 1,6
     -- 4,5 = 5,5
     return {y,9-x}

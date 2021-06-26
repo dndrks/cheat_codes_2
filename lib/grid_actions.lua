@@ -12,6 +12,8 @@ local last_grid_page = 0
 
 local grid_level_clocks = {}
 
+local _c = speed_dial.translate
+
 zilches = 
 { 
     [2] = {{},{},{}} 
@@ -78,146 +80,9 @@ function grid_actions.init(x,y,z)
         for i = 1,3 do
           if not rytm.grid.ui[i] then
             if z == 1 and x > 0 + (5*(i-1)) and x <= 4 + (5*(i-1)) and y >=5 then
-              if bank[i].focus_hold == false then
-                if not grid_alt then
-                  selected[i].x = x
-                  selected[i].y = y
-                  selected[i].id = (math.abs(y-9)+((x-1)*4))-(20*(i-1))
-                  bank[i].id = selected[i].id
-                  -- for k,v in pairs(held_keys[i]) do
-                  --   if v == selected[i].id then
-                  --     print("KILLING 2")
-                  --     grid_actions.remove_held_key(i,selected[i].id)
-                  --   end
-                  -- end
-                  -- grid_actions.add_held_key(i,selected[i].id)
-                  page.loops.meta_pad[i] = bank[i].id
-                  which_bank = i
-                  if menu == 11 then
-                    help_menu = "banks"
-                  end
-                  pad_clipboard = nil
-                  -- if arp[i].enabled and grid_pat[i].rec == 0
-                  if arp[i].enabled
-                  and not arp[i].pause
-                  -- and (not pattern_gate[i][2].active or (pattern_gate[i][2].active and grid_pat[i].rec == 1) and pattern_gate[i][1].active)
-                  and (not pattern_gate[i][2].active or (pattern_gate[i][2].active and pattern_gate[i][1].active))
-                  then
-                    -- print("9333")
-                    if arp[i].down == 0 and params:string("arp_"..i.."_hold_style") == "last pressed" then
-                      for j = #arp[i].notes,1,-1 do
-                        arps.remove_momentary(i,j)
-                      end
-                    end
-                    arps.momentary(i, bank[i].id, "on")
-                    arp[i].down = arp[i].down + 1
-                  else
-                    -- if rytm.track[i].k == 0 then -- this needs touched up
-                      if not arp[i].playing
-                      -- or arp[i].playing and arp[i].gate.active then
-                      or arp[i].playing and pattern_gate[i][2].active then
-                        if not bank[i].quantized_press then
-                          cheat(i, bank[i].id)
-                          for k,v in pairs(held_keys[i]) do
-                            if v == selected[i].id then
-                              print("KILLING 2")
-                              grid_actions.remove_held_key(i,selected[i].id)
-                            end
-                          end
-                          grid_actions.add_held_key(i,selected[i].id)
-                        else
-                          quantize_events[i] = {["bank"] = i, ["pad"] = bank[i].id}
-                          for k,v in pairs(held_keys[i]) do
-                            if v == selected[i].id then
-                              print("KILLING 2")
-                              grid_actions.remove_held_key(i,selected[i].id)
-                            end
-                          end
-                          grid_actions.add_held_key(i,selected[i].id)
-                        end
-                      end
-                    -- end
-                  end
-                  grid_pattern_watch(i)
-                  -- else
-                    -- table.insert(quantize_events[i],selected[i].id)
-                  -- end
-                else
-                  local released_pad = (math.abs(y-9)+((x-1)*4))-(20*(i-1))
-                  arps.momentary(i, released_pad, "off")
-                end
-              else
-                if not grid_alt then
-                  bank[i].focus_pad = (math.abs(y-9)+((x-1)*4))-(20*(i-1))
-                  mc.mft_redraw(bank[i][bank[i].focus_pad],"all")
-                  main_menu.change_pad_focus(i,bank[i].focus_pad)
-                elseif grid_alt then
-                  if not pad_clipboard then
-                    pad_clipboard = {}
-                    bank[i].focus_pad = (math.abs(y-9)+((x-1)*4))-(20*(i-1))
-                    -- pad_copy(pad_clipboard, bank[i][bank[i].focus_pad])
-                    pad_clipboard = deep_copy(bank[i][bank[i].focus_pad])
-                  else
-                    bank[i].focus_pad = (math.abs(y-9)+((x-1)*4))-(20*(i-1))
-                    -- pad_copy(bank[i][bank[i].focus_pad], pad_clipboard)
-                    bank[i][bank[i].focus_pad] = deep_copy(pad_clipboard)
-                    bank[i][bank[i].focus_pad].bank_id = i
-                    pad_clipboard = nil
-                  end
-                end
-              end
-              if menu ~= 1 then screen_dirty = true end
+              grid_actions.bank_pad_down(i,(math.abs(y-9)+((x-1)*4))-(20*(i-1)))
             elseif z == 0 and x > 0 + (5*(i-1)) and x <= 4 + (5*(i-1)) and y >=5 then
-              if not bank[i].focus_hold then
-                local released_pad = (math.abs(y-9)+((x-1)*4))-(20*(i-1))
-                if not grid_alt then
-                  if not bank[i][released_pad].drone then
-                    grid_actions.remove_held_key(i,released_pad)
-                  end
-                elseif grid_alt then
-                  grid_actions.drone_pad(i,released_pad)
-                end
-                if bank[i][released_pad].play_mode == "momentary" and released_pad == selected[i].id then
-                  softcut.rate(i+1,0)
-                  softcut.position(i+1,bank[i][released_pad].start_point)
-                  softcut.loop_start(i+1,bank[i][released_pad].start_point)
-                  softcut.loop_end(i+1,bank[i][released_pad].end_point)
-                end
-                if not arp[i].enabled then
-                  if not grid_alt then
-                    grid_actions.kill_note(i,released_pad)
-                  elseif grid_alt then
-                  end
-                end
-
-                if arp[i].enabled
-                and not pattern_gate[i][1].active
-                and pattern_gate[i][2].active
-                then
-                  if not grid_alt then
-                    grid_actions.kill_note(i,released_pad)
-                  end
-                end
-
-
-                if arp[i].enabled
-                and not arp[i].pause
-                -- and (not pattern_gate[i][2].active or (pattern_gate[i][2].active and grid_pat[i].rec == 1) and pattern_gate[i][1].active)
-                and (not pattern_gate[i][2].active or (pattern_gate[i][2].active and pattern_gate[i][1].active))
-                then
-                  if (arp[i].enabled and not arp[i].hold) or (menu == 9 and not arp[i].hold) then
-                    if params:string("arp_"..i.."_hold_style") ~= "sequencer" then
-                      arps.momentary(i, released_pad, "off")
-                    end
-                    arp[i].down = arp[i].down - 1
-                  elseif (arp[i].enabled and arp[i].hold and not arp[i].pause) or (menu == 9 and arp[i].hold and not arp[i].pause) then
-                    arp[i].down = arp[i].down - 1
-                  end
-                end
-                if grid_pat[i].rec ~= 0 then
-                  grid_pattern_watch(i,"release",released_pad)
-                end
-              end
+              grid_actions.bank_pad_up(i,(math.abs(y-9)+((x-1)*4))-(20*(i-1)))
             end
           end
         end
@@ -883,52 +748,11 @@ function grid_actions.init(x,y,z)
 
         if x >= 10 and x <= 13 and y >=3 and y <=6 then
           local id = delay_grid.bank
-          if not grid_alt then
-            if z == 1 then
-              local xval = {9,4,-1}
-              selected[id].x = x - xval[id]
-              selected[id].y = y + 2
-              selected[id].id = (math.abs(selected[id].y-9)+((selected[id].x-1)*4))-(20*(id-1))
-              bank[id].id = selected[id].id
-              -- if (arp[id].hold or (menu == 9)) and grid_pat[id].rec == 0 and not arp[id].pause then
-              if (arp[id].enabled or (menu == 9)) and grid_pat[id].rec == 0 and not arp[id].pause then
-                if arp[id].down == 0 and params:string("arp_"..id.."_hold_style") == "last pressed" then
-                  for i = #arp[id].notes,1,-1 do
-                    arps.remove_momentary(id,i)
-                  end
-                end
-                -- arp[id].time = bank[id][bank[id].id].arp_time
-                arps.momentary(id, bank[id].id, "on")
-                arp[id].down = arp[id].down + 1
-              else
-                -- if rytm.track[id].k == 0 then
-                  if not arp[id].playing
-                  -- or arp[id].playing and arp[id].gate.active then
-                  or arp[id].playing and pattern_gate[id][2].active then
-                    cheat(id, bank[id].id)
-                  end
-                -- end
-                grid_pattern_watch(id)
-              end
-            else
-              -- if not arp[id].hold then
-              if not bank[id].focus_hold then
-                if arp[id].enabled and not arp[id].hold then
-                  local xval = {9,4,-1}
-                  local released_pad = (math.abs((y + 2)-9)+(((x - xval[id])-1)*4))-(20*(id-1))
-                  arps.momentary(id, released_pad, "off")
-                  arp[id].down = arp[id].down - 1
-                elseif arp[id].enabled and arp[id].hold then
-                  arp[id].down = arp[id].down - 1
-                end
-              end
-            end
-          else
-            if z == 1 then
-              local xval = {9,4,-1}
-              local released_pad = (math.abs((y + 2)-9)+(((x - xval[id])-1)*4))-(20*(id-1))
-              arps.momentary(id, released_pad, "off")
-            end
+          local xval = {9,4,-1}
+          if z == 1 then
+            grid_actions.bank_pad_down(delay_grid.bank,(math.abs((y + 2)-9)+(((x - xval[id])-1)*4))-(20*(id-1)))
+          elseif z == 0 then
+            grid_actions.bank_pad_up(delay_grid.bank,(math.abs((y + 2)-9)+(((x - xval[id])-1)*4))-(20*(id-1)))
           end
         end
 
@@ -1921,6 +1745,162 @@ end
 
 function grid_actions.add_held_key(b,p)
   table.insert(held_keys[b],p)
+end
+
+function grid_actions.bank_pad_down(i,p)
+  if bank[i].focus_hold == false then
+    if not grid_alt then
+      if params:string("grid_size") == "128" then
+        if grid_page == 0 then
+          selected[i].x = _arps.index_to_grid_pos(p,4)[2] + (5*(i-1))
+          selected[i].y = 9-_arps.index_to_grid_pos(p,4)[1]
+        elseif grid_page == 2 then
+          selected[i].x = _arps.index_to_grid_pos(p,4)[2] + (5*(i-1))
+          selected[i].y = 9-_arps.index_to_grid_pos(p,4)[1]
+        end
+      elseif params:string("grid_size") == "64" then
+        selected[i].x = x
+        selected[i].y = y
+      end
+      selected[i].id = p
+      bank[i].id = selected[i].id
+      -- for k,v in pairs(held_keys[i]) do
+      --   if v == selected[i].id then
+      --     print("KILLING 2")
+      --     grid_actions.remove_held_key(i,selected[i].id)
+      --   end
+      -- end
+      -- grid_actions.add_held_key(i,selected[i].id)
+      page.loops.meta_pad[i] = bank[i].id
+      which_bank = i
+      if menu == 11 then
+        help_menu = "banks"
+      end
+      pad_clipboard = nil
+      -- if arp[i].enabled and grid_pat[i].rec == 0
+      if arp[i].enabled
+      and not arp[i].pause
+      -- and (not pattern_gate[i][2].active or (pattern_gate[i][2].active and grid_pat[i].rec == 1) and pattern_gate[i][1].active)
+      and (not pattern_gate[i][2].active or (pattern_gate[i][2].active and pattern_gate[i][1].active))
+      then
+        -- print("9333")
+        if arp[i].down == 0 and params:string("arp_"..i.."_hold_style") == "last pressed" then
+          for j = #arp[i].notes,1,-1 do
+            arps.remove_momentary(i,j)
+          end
+        end
+        arps.momentary(i, bank[i].id, "on")
+        arp[i].down = arp[i].down + 1
+      else
+        -- if rytm.track[i].k == 0 then -- this needs touched up
+          if not arp[i].playing
+          -- or arp[i].playing and arp[i].gate.active then
+          or arp[i].playing and pattern_gate[i][2].active
+          or arp[i].playing and not pattern_gate[i][2].active and not pattern_gate[i][1].active and not arp[i].enabled then
+            if not bank[i].quantized_press then
+              cheat(i, bank[i].id)
+              for k,v in pairs(held_keys[i]) do
+                if v == selected[i].id then
+                  print("KILLING 2")
+                  grid_actions.remove_held_key(i,selected[i].id)
+                end
+              end
+              grid_actions.add_held_key(i,selected[i].id)
+            else
+              quantize_events[i] = {["bank"] = i, ["pad"] = bank[i].id}
+              for k,v in pairs(held_keys[i]) do
+                if v == selected[i].id then
+                  print("KILLING 2")
+                  grid_actions.remove_held_key(i,selected[i].id)
+                end
+              end
+              grid_actions.add_held_key(i,selected[i].id)
+            end
+          end
+        -- end
+      end
+      grid_pattern_watch(i)
+      -- else
+        -- table.insert(quantize_events[i],selected[i].id)
+      -- end
+    else
+      local released_pad = p
+      arps.momentary(i, released_pad, "off")
+    end
+  else
+    if not grid_alt then
+      bank[i].focus_pad = p
+      mc.mft_redraw(bank[i][bank[i].focus_pad],"all")
+      main_menu.change_pad_focus(i,bank[i].focus_pad)
+    elseif grid_alt then
+      if not pad_clipboard then
+        pad_clipboard = {}
+        bank[i].focus_pad = p
+        -- pad_copy(pad_clipboard, bank[i][bank[i].focus_pad])
+        pad_clipboard = deep_copy(bank[i][bank[i].focus_pad])
+      else
+        bank[i].focus_pad = p
+        -- pad_copy(bank[i][bank[i].focus_pad], pad_clipboard)
+        bank[i][bank[i].focus_pad] = deep_copy(pad_clipboard)
+        bank[i][bank[i].focus_pad].bank_id = i
+        pad_clipboard = nil
+      end
+    end
+  end
+  if menu ~= 1 then screen_dirty = true end
+end
+
+function grid_actions.bank_pad_up(i,p)
+  if not bank[i].focus_hold then
+    local released_pad = p
+    if not grid_alt then
+      if not bank[i][released_pad].drone then
+        grid_actions.remove_held_key(i,released_pad)
+      end
+    elseif grid_alt then
+      grid_actions.drone_pad(i,released_pad)
+    end
+    if bank[i][released_pad].play_mode == "momentary" and released_pad == selected[i].id then
+      softcut.rate(i+1,0)
+      softcut.position(i+1,bank[i][released_pad].start_point)
+      softcut.loop_start(i+1,bank[i][released_pad].start_point)
+      softcut.loop_end(i+1,bank[i][released_pad].end_point)
+    end
+    if not arp[i].enabled or (arp[i].enabled and arp[i].pause) then
+      if not grid_alt then
+        grid_actions.kill_note(i,released_pad)
+      elseif grid_alt then
+      end
+    end
+
+    if arp[i].enabled
+    and not pattern_gate[i][1].active
+    and pattern_gate[i][2].active
+    then
+      if not grid_alt then
+        grid_actions.kill_note(i,released_pad)
+      end
+    end
+
+
+    if arp[i].enabled
+    and not arp[i].pause
+    -- and (not pattern_gate[i][2].active or (pattern_gate[i][2].active and grid_pat[i].rec == 1) and pattern_gate[i][1].active)
+    and (not pattern_gate[i][2].active or (pattern_gate[i][2].active and pattern_gate[i][1].active))
+    then
+      if (arp[i].enabled and not arp[i].hold) or (menu == 9 and not arp[i].hold) then
+        if params:string("arp_"..i.."_hold_style") ~= "sequencer" then
+          arps.momentary(i, released_pad, "off")
+        end
+        arp[i].down = arp[i].down - 1
+      elseif (arp[i].enabled and arp[i].hold and not arp[i].pause) or (menu == 9 and arp[i].hold and not arp[i].pause) then
+        arp[i].down = arp[i].down - 1
+      end
+    end
+    if grid_pat[i].rec ~= 0 then
+      grid_pattern_watch(i,"release",released_pad)
+    end
+  end
 end
 
 return grid_actions

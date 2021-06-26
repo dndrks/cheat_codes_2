@@ -78,6 +78,7 @@ encoder_actions = include 'lib/encoder_actions'
 arc_actions = include 'lib/arc_actions'
 rightangleslice = include 'lib/zilchmos'
 start_up = include 'lib/start_up'
+speed_dial = include 'lib/_menus/speed_dial'
 grid_actions = include 'lib/grid_actions'
 easingFunctions = include 'lib/easing'
 arps = include 'lib/arp_actions'
@@ -88,7 +89,6 @@ mc = include 'lib/midicheat'
 -- sharer = include 'lib/sharer'
 macros = include 'lib/macros'
 transport = include 'lib/transport'
-speed_dial = include 'lib/_menus/speed_dial'
 _gleds = include 'lib/grid_leds'
 p_gate = include 'lib/p_gate'
 _dough = include 'lib/doughstretch'
@@ -2984,11 +2984,11 @@ function find_the_key(t,val)
   return nil
 end
 
-function cheat(b,i)
+function cheat(b,i,silent)
   local pad = bank[b][i]
   b = util.round(b)
   i = util.round(i)
-  if all_loaded then
+  if all_loaded and silent == nil then
     mc.midi_note_from_pad(util.round(b),util.round(i))
     mc.route_midi_mod(b,i)
   end
@@ -4734,7 +4734,6 @@ function named_loadstate(path)
         end
       end
     end
-    reset_all_banks(bank)
     print(path)
     io.input(file)
     local collection = io.read()
@@ -4749,7 +4748,8 @@ function named_loadstate(path)
     _norns.key(1,1)
     _norns.key(1,0)
     screen_dirty = true
-    -- all_loaded = false
+    all_loaded = false
+    reset_all_banks(bank)
     params:read(_path.data.."cheat_codes_yellow/collection-"..collection.."/params/all.pset")
     -- persistent_state_restore()
     if tab.load(_path.data .. "cheat_codes_yellow/collection-"..collection.."/rec/rec[rec.focus].data") ~= nil then
@@ -4916,9 +4916,8 @@ function named_loadstate(path)
   if not lfo_metro.is_running then
     lfo_metro:start()
   end
-
   grid_dirty = true
-
+  all_loaded = true
 end
 
 function test_save(i)
