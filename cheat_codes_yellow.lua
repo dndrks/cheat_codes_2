@@ -2024,38 +2024,6 @@ function midi_pattern_execute(entry)
   end
 end
 
--- function start_synced_loop(target)
---   if target.count > 0 then
---     --pattern_length_to_bars(target)
---     target.clock = clock.run(synced_loop, target)
---   end
--- end
-
--- function synced_loop(target, state)
---   print("synced_loop_start")
---   --clock.sleep(clock.get_beat_sec()*target.rec_clock_time)
---   if transport.is_running then
---     clock.sync(1)
---     if state == "restart" then
---       target:start()
---     end
---     --^ would this be problematic?
-
---     --clock.sync(4)
---     while true do
---       -- print("syncing to..."..target.clock_time, clock.get_beats())
---       clock.sync(target.clock_time)
---       local overdub_flag = target.overdub
---       -- target:stop()
---       stop_pattern(target)
---       if overdub_flag == 1 then
---         target.overdub = 1
---       end
---       target:start()
---     end
---   end
--- end
-
 function clear_arps_from_pattern_restart(i)
   if i~= nil then
     if arp[i].enabled
@@ -2121,7 +2089,7 @@ function stop_pattern(target,style)
   local function wipe_slate(b)
     for i = 1,#grid_pat[b].event do
       if tab.contains(held_keys[b],grid_pat[b].event[i].id) then
-        print(">>>"..grid_pat[b].event[i].id, clock.get_beats())
+        print(">>>***"..b,i,grid_pat[b].event[i].id, clock.get_beats())
         grid_actions.kill_note(b,grid_pat[b].event[i].id)
       end
     end
@@ -4062,7 +4030,8 @@ function grid_pattern_execute(entry)
           end
           grid_actions.remove_held_key(i,released_pad)
           if not arp[i].enabled then
-            mc.midi_note_off_from_pad(i,released_pad)
+            -- mc.midi_note_off_from_pad(i,released_pad)
+            mc.global_note_off(i,released_pad)
           end
           if arp[i].enabled
           and not pattern_gate[i][1].active
@@ -4722,13 +4691,10 @@ function named_loadstate(path)
         end
       end
 
-      -- if params:get("collect_live") == 2 then
-      --   _ca.reload_collected_samples(_path.dust.."audio/cc2_live-audio/"..collection.."/".."cc2_"..collection.."-"..i..".wav",i)
-      -- end
-      if util.file_exists(_path.dust.."audio/cc2_live-audio/"..collection.."/".."cc2_"..collection.."-"..i..".wav") then
-        _ca.reload_collected_samples(_path.dust.."audio/cc2_live-audio/"..collection.."/".."cc2_"..collection.."-"..i..".wav",i)
+      if util.file_exists(_path.dust.."audio/ccy_live-audio/"..collection.."/".."ccy_"..collection.."-"..i..".wav") then
+        _ca.reload_collected_samples(_path.dust.."audio/ccy_live-audio/"..collection.."/".."ccy_"..collection.."-"..i..".wav",i)
       else
-        print("don't worry, but no file: ".._path.dust.."audio/cc2_live-audio/"..collection.."/".."cc2_"..collection.."-"..i..".wav")
+        print("don't worry, but no file: ".._path.dust.."audio/ccy_live-audio/"..collection.."/".."ccy_"..collection.."-"..i..".wav")
         print("^ just a heads up, in case you were expecting a live recording to pre-load :)")
       end
       
@@ -5369,6 +5335,11 @@ function midi_panic()
       for z = 1,16 do
       midi_dev[params:get(j.."_pad_to_midi_note_destination")]:note_off(i, nil, z)
       end
+    end
+  end
+  for i = 1,3 do
+    for j = 1,16 do
+      mc.global_note_off(i,j)
     end
   end
 end

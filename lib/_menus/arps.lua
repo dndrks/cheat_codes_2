@@ -353,7 +353,7 @@ function _arps.check_for_first_touch()
   and not arp[_arps_.sel].pause
   and not arp[_arps_.sel].enabled
   then
-    arp[_arps_.sel].enabled = true
+    arps.enable(_arps_.sel,true)
     arp[_arps_.sel].pause = true
     arp[_arps_.sel].hold = true
     grid_dirty = true
@@ -380,7 +380,7 @@ function _arps.fill(style)
   and not arp[_arps_.sel].pause
   and not arp[_arps_.sel].enabled
   then
-    arp[_arps_.sel].enabled = true
+    arps.enable(_arps_.sel,true)
     arp[_arps_.sel].pause = true
     arp[_arps_.sel].hold = true
     grid_dirty = true

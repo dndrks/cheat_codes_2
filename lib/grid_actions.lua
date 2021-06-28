@@ -219,7 +219,9 @@ function grid_actions.init(x,y,z)
                     end
                   else
                     if grid_alt then -- still relevant
-                      grid_actions.rec_stop(i)
+                      if grid_pat[i].rec == 1 then
+                        grid_actions.rec_stop(i)
+                      end
                       -- grid_pat[i]:stop()
                       stop_pattern(grid_pat[i])
                       --grid_pat[i].external_start = 0
@@ -432,15 +434,8 @@ function grid_actions.init(x,y,z)
             end
           elseif y == 6 or y == 7 or y == 8 then
             if (bank[b].alt_lock and z == 1) or not bank[b].alt_lock then
-              pattern_gate[b][9-y].active = not pattern_gate[b][9-y].active
+              p_gate.flip(b,9-y)
             end
-          -- elseif y == 8 and z == 1 then
-          --   rytm.grid.ui[b] = not rytm.grid.ui[b]
-            -- if not grid_alt then
-            --   _ca.SOS_toggle(b)
-            -- else
-            --   _ca.SOS_erase(b)
-            -- end
           end
         end
         
@@ -1395,19 +1390,18 @@ end
 function grid_actions.arp_handler(i)
   if params:string("arp_"..i.."_hold_style") ~= "sequencer" then
     if not arp[i].enabled and tab.count(arp[i].notes) == 0 then
-      arp[i].enabled = true
+      arps.enable(i,true)
       if not transport.is_running then
         print("should start transport...")
         transport.toggle_transport()
       end
     elseif arp[i].enabled and tab.count(arp[i].notes) == 0 then
-      arp[i].enabled = false
+      arps.enable(i,false)
     elseif not arp[i].hold then
       -- if #arp[i].notes > 0 then
       if tab.count(arp[i].notes) > 0 then
         arp[i].hold = true
       else
-        -- arp[i].enabled = false
       end
     else
       -- if #arp[i].notes > 0 then
@@ -1427,11 +1421,12 @@ function grid_actions.arp_handler(i)
     end
   end
   screen_dirty = true
+  p_gate.check_conflicts(i,"arp")
 end
 
 function grid_actions.arp_toggle_write(i)
   if arp[i].playing then
-    arp[i].enabled = not arp[i].enabled
+    arps.enable(i,not arp[i].enabled)
     if not arp[i].enabled then
       arp[i].down = 0
     end
@@ -1452,7 +1447,7 @@ function grid_actions.kill_arp(i)
       arps.clear(i)
     end
     arp[i].down = 0
-    arp[i].enabled = false
+    arps.enable(i,false)
     screen_dirty = true
   elseif params:string("arp_"..i.."_hold_style") == "sequencer" then
     page.arps.sel = i
@@ -1515,13 +1510,6 @@ end
 
 local function dumb_shit(i,note_in_question)
   if arp[i].enabled then
-    -- for j = arp[i].start_point,arp[i].end_point do
-    --   if arp[i].notes[j] == note_in_question then
-    --     return false
-    --   else
-    --     return true
-    --   end
-    -- end
     if arp[i].hold then
       return false
     else
@@ -1536,24 +1524,48 @@ function grid_actions.rec_stop(i)
   if #grid_pat[i].event > 0 then
     print("1769")
     if #held_keys[i] > 0 then
+      local original_max = #grid_pat[i].event
       for j = #held_keys[i],1,-1 do
-        print(#held_keys[i],j,held_keys[i][j])
+        print("~~~~",#held_keys[i],j,held_keys[i][j])
         if held_keys[i][j] ~= nil then
           if not bank[i][held_keys[i][j]].drone then
             if dumb_shit(i,held_keys[i][j]) then
-              print(held_keys[i][j].." is still held")
-              grid_p[i] = {}
-              grid_p[i].action = "pads-release"
-              grid_p[i].i = i
-              grid_p[i].id = held_keys[i][j]
-              grid_pat[i]:rec_event(grid_p[i])
-              if arp[i].enabled
-              and not arp[i].pause
-              -- and not arp[i].gate.active
-              and pattern_gate[i][1].active and pattern_gate[i][2].active
-              then
-                print("off...")
-                arps.momentary(i, held_keys[i][j], "off")
+              local special_shit;
+              for k = 1,original_max do
+                if held_keys[i][j] == grid_pat[i].event[k].id then
+              -- how do i find out whether this pad is paired with any actual note down in the pattern????
+                  print(held_keys[i][j].." is still held",k,original_max)
+                  special_shit = held_keys[i][j]
+                  grid_p[i] = {}
+                  grid_p[i].action = "pads-release"
+                  grid_p[i].i = i
+                  grid_p[i].id = held_keys[i][j]
+                  grid_pat[i]:rec_event(grid_p[i])
+                  if arp[i].enabled
+                  and not arp[i].pause
+                  -- and not arp[i].gate.active
+                  and pattern_gate[i][1].active and pattern_gate[i][2].active
+                  then
+                    print("off...")
+                    arps.momentary(i, held_keys[i][j], "off")
+                  end
+                else
+                  if held_keys[i][j] == nil then
+                    print("unique",j,original_max,k,#held_keys[i],special_shit)
+                    for this = 1,#arp[i].notes do
+                      if arp[i].notes[this] ~= special_shit then
+                        grid_p[i] = {}
+                        grid_p[i].action = "pads-release"
+                        grid_p[i].i = i
+                        grid_p[i].id = arp[i].notes[this]
+                        grid_pat[i]:rec_event(grid_p[i])
+                      end
+                    end
+                    -- tab.print(held_keys[i])
+                    print("unique---") -- GUH, ok, 
+                  end
+                  -- print(held_keys[i][j].." is not part of the grid pattern")
+                end
               end
             end
           end
@@ -1576,7 +1588,7 @@ function grid_actions.drone_pad(b,p)
 end
 
 function grid_actions.kill_note(b,p)
-  mc.midi_note_off_from_pad(b,p)
+  mc.global_note_off(b,p)
   grid_actions.remove_held_key(b,p)
 end
 

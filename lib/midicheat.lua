@@ -7,7 +7,8 @@ mx_dests ={"none","none","none"}
 function mc.init()
   active_midi_notes = {{},{},{}}
   active_mx_notes = {{},{},{}}
-  active_jf_notes = {}
+  active_jf_notes = {{},{},{}}
+  active_jf_index = {1,1,1}
   for i = 1,3 do
     mc.redraw(bank[i][bank[i].id])
   end
@@ -516,7 +517,8 @@ function mc.pad_to_note_params()
       end
     end)
 
-    params:add_option(i.."_pad_to_jf_note_enabled", "Just Friends v/8 ch.",{"none","IDENTITY","2N","3N","4N","5N","6N","all","any"},9)
+    -- params:add_option(i.."_pad_to_jf_note_enabled", "Just Friends v/8 ch.",{"none","IDENTITY","2N","3N","4N","5N","6N","all","any"},i+1)
+    params:add_option(i.."_pad_to_jf_note_enabled", "Just Friends v/8 ch.",{"none","IDENTITY","2N","3N","4N","5N","6N","all"},i+1)
     params:add_number(i.."_pad_to_jf_note_velocity", "Just Friends velocity",1,10,5)
     params:hide(i.."_pad_to_jf_note_velocity")
     params:add_option(i.."_pad_to_wsyn_note_enabled", "w/syn v/8 ch.",{"none","1","2","3","4","any"},6)
@@ -536,11 +538,17 @@ function mc.pad_to_note_params()
     params:set_action(i.."_pad_to_mxcc_note_enabled",function(x)
       mx_dests[i] = mxcc_available[x]
     end)
+    params:hide(i.."_pad_to_mxcc_note_enabled")
     params:add{type="number",id=i.."mx_velocity",name="Mx.velocity",min=0,max=127,default=80}
+    params:hide(i.."mx_velocity")
     params:add{type='control',id=i.."mx_amp",name="Mx.amp",controlspec=controlspec.new(0,2,'lin',0.01,0.5,'amp',0.01/2)}
+    params:hide(i.."mx_amp")
     params:add{type="control",id=i.."mx_pan",name="Mx.pan",controlspec=controlspec.new(-1,1,'lin',0,0)}
+    params:hide(i.."mx_pan")
     params:add{type='control',id=i.."mx_attack",name="Mx.attack",controlspec=controlspec.new(0,10,'lin',0,0,'s')}
+    params:hide(i.."mx_attack")
     params:add{type='control',id=i.."mx_release",name="Mx.release",controlspec=controlspec.new(0,10,'lin',0,2,'s')}
+    params:hide(i.."mx_release")
   end
 
   params:add_group("w/syn controls",10)
@@ -677,6 +685,11 @@ function mc.inherit_notes(target)
   end
 end
 
+function mc.global_note_off(b,p)
+  mc.jf_note_off_from_pad(b,p)
+  mc.midi_note_off_from_pad(b,p)
+end
+
 function mc.midi_note_off_from_pad(b,p)
   if mc.get_midi("midi_notes",b,p) ~= "-" and mc.get_midi("midi_notes_velocities",b,p) ~= "-" and mc.get_midi("midi_notes_channels",b,p) ~= "-" then
     local note_num = mc.get_midi("midi_notes",b,p)
@@ -685,6 +698,35 @@ function mc.midi_note_off_from_pad(b,p)
     local dest = params:get(b.."_pad_to_midi_note_destination")
     midi_dev[params:get(b.."_pad_to_midi_note_destination")]:note_off(note_num, nil, params:get(b.."_pad_to_midi_note_channel"))
     table.remove(active_midi_notes[b], tab.key(active_midi_notes[b], note_num))
+  end
+end
+
+function mc.jf_note_off_from_pad(b,p)
+  if params:string("global_pad_to_jf_note_enabled") == "yes" then
+    local jf_destinations =
+    {
+      ["IDENTITY"] = 1
+    , ["2N"] = 2
+    , ["3N"] = 3
+    , ["4N"] = 4
+    , ["5N"] = 5
+    , ["6N"] = 6
+    , ["all"] = 0
+    }
+    if params:string(b.."_pad_to_jf_note_enabled") ~= "none" then
+      if #active_jf_notes[b] == 1 or active_jf_notes[b][#active_jf_notes[b]] == (mc.get_midi("midi_notes",b,p) - 60) then
+        local jf_chan = jf_destinations[params:string(b.."_pad_to_jf_note_enabled")]
+        local note_num =  mc.get_midi("midi_notes",b,p) - 60
+        crow.ii.jf.play_voice(jf_chan,note_num/12,0)
+      end
+      table.remove(active_jf_notes[b],tab.key(active_jf_notes[b],mc.get_midi("midi_notes",b,p) - 60))
+    elseif params:string(b.."_pad_to_jf_pulse") ~= "none" then
+      if #active_jf_notes[b] == 1 or active_jf_notes[b][#active_jf_notes[b]] == p then
+        local jf_chan = jf_destinations[params:string(b.."_pad_to_jf_pulse")]
+        crow.ii.jf.trigger(jf_chan,0)
+      end
+      table.remove(active_jf_notes[b],tab.key(active_jf_notes[b],p))
+    end
   end
 end
 
@@ -738,20 +780,20 @@ function mc.midi_note_from_pad(b,p)
       , ["all"] = 0
       }
       if params:string(b.."_pad_to_jf_note_enabled") ~= "none" then
-        -- local note_num = mc_notes[b][p] - 60
         local note_num =  mc.get_midi("midi_notes",b,p) - 60
         local velocity = util.round(util.linlin(0,127,0,10,mc.get_midi("midi_notes_velocities",b,p)))
-        -- local velocity = params:get(b.."_pad_to_jf_note_velocity")
         if params:string(b.."_pad_to_jf_note_enabled") == "any" then
-          crow.ii.jf.play_note(note_num/12,velocity)
+          local jf_chan = active_jf_index[b]
+          crow.ii.jf.play_voice(jf_chan,note_num/12,velocity)
+          table.insert(active_jf_notes[b], jf_chan, note_num/12)
         else
           local jf_chan = jf_destinations[params:string(b.."_pad_to_jf_note_enabled")]
           crow.ii.jf.play_voice(jf_chan,note_num/12,velocity)
-          -- table.insert(active_jf_notes[b], jf_chan,note_num/12)
-          if active_jf_notes[b] ~= nil then
-            clock.cancel(active_jf_notes[b])
-          end
-          active_jf_notes[b] = clock.run(mc.jf_note_from_pad_off,b,p,jf_chan,note_num/12)
+          table.insert(active_jf_notes[b], note_num/12)
+          -- if active_jf_notes[b] ~= nil then
+          --   clock.cancel(active_jf_notes[b])
+          -- end
+          -- active_jf_notes[b] = clock.run(mc.jf_note_from_pad_off,b,p,jf_chan,note_num/12)
         end
       end
     end
@@ -798,8 +840,8 @@ function mc.midi_note_from_pad(b,p)
       else
         local jf_chan = jf_destinations[params:string(b.."_pad_to_jf_pulse")]
         crow.ii.jf.trigger(jf_chan,1)
-        -- table.insert(active_jf_notes[b], jf_chan,note_num/12)
-        clock.run(function() clock.sleep(clock.get_beat_sec()/4)  crow.ii.jf.trigger(jf_chan,0) end)
+        table.insert(active_jf_notes[b],p)
+        -- clock.run(function() clock.sleep(clock.get_beat_sec()/4)  crow.ii.jf.trigger(jf_chan,0) end)
       end
     end
   end
@@ -813,12 +855,9 @@ function mc.mx_note_from_pad_off(b,p)
 end
 
 function mc.jf_note_from_pad_off(b,p,channel,note)
-  -- clock.sleep((bank[b][p].arp_time-(bank[b][p].arp_time/10))*clock.get_beat_sec())
   clock.sleep((arp[b].time-(arp[b].time/10))*clock.get_beat_sec())
-  -- mc.all_mx_notes_off(b)
   crow.ii.jf.play_voice(channel,note,0)
   active_jf_notes[b] = nil
-  -- mx_off[b] = nil
 end
 
 function mc.all_midi_notes_off(b)

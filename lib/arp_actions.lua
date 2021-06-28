@@ -105,6 +105,10 @@ function arp_actions.add(target, position, value)
     arp[target].end_point = position
 end
 
+function arp_actions.enable(target,state)
+  arp[target].enabled = state
+end
+
 function arp_actions.toggle(state,target)
   local i = target
   if state == "start" then
@@ -133,7 +137,7 @@ function arp_actions.start_playback(i)
     transport.toggle_transport()
   end
   if params:string("arp_"..i.."_hold_style") == "sequencer" then
-    if arp[i].enabled then arp[i].enabled = false end
+    if arp[i].enabled then arp_actions.enable(i,false) end
   end
   grid_dirty = true
 end
@@ -214,7 +218,7 @@ function arp_actions.fill(target,s_p,e_p,style)
   and not arp[target].pause
   and not arp[target].enabled
   then
-    arp[target].enabled = true
+    arp_actions.enable(target,true)
     arp[target].pause = true
     arp[target].hold = true
     grid_dirty = true
@@ -294,18 +298,20 @@ end
 
 function arp_actions.cheat(target,step,source)
   if arp[target].notes[step] ~= nil then
-    if arp_actions.check_prob(target,step) then
-      if arp[target].conditional.cycle < arp[target].conditional.A[step] then
-      elseif arp[target].conditional.cycle == arp[target].conditional.A[step] then
-        arp_actions.execute_step(target,step,source)
-      elseif arp[target].conditional.cycle > arp[target].conditional.A[step] then
-        if arp[target].conditional.cycle <= (arp[target].conditional.A[step] + arp[target].conditional.B[step]) then
-          if arp[target].conditional.cycle % (arp[target].conditional.A[step] + arp[target].conditional.B[step]) == 0 then
-            arp_actions.execute_step(target,step,source)
-          end
-        else
-          if (arp[target].conditional.cycle - arp[target].conditional.A[step]) % arp[target].conditional.B[step] == 0 then
-            arp_actions.execute_step(target,step,source)
+    if (pattern_gate[target][1].active and p_gate.check_prob(pattern_gate[target][1])) or not pattern_gate[target][1].active then
+      if arp_actions.check_prob(target,step) then
+        if arp[target].conditional.cycle < arp[target].conditional.A[step] then
+        elseif arp[target].conditional.cycle == arp[target].conditional.A[step] then
+          arp_actions.execute_step(target,step,source)
+        elseif arp[target].conditional.cycle > arp[target].conditional.A[step] then
+          if arp[target].conditional.cycle <= (arp[target].conditional.A[step] + arp[target].conditional.B[step]) then
+            if arp[target].conditional.cycle % (arp[target].conditional.A[step] + arp[target].conditional.B[step]) == 0 then
+              arp_actions.execute_step(target,step,source)
+            end
+          else
+            if (arp[target].conditional.cycle - arp[target].conditional.A[step]) % arp[target].conditional.B[step] == 0 then
+              arp_actions.execute_step(target,step,source)
+            end
           end
         end
       end

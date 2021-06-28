@@ -201,16 +201,16 @@ function ca.SOS_voice_overwrite(target,state)
 end
 
 function ca.SOS_save_clip(i)
-  local dirname = _path.dust.."audio/cc2_saved_SOS_clips/"
+  local dirname = _path.dust.."audio/ccy_saved_SOS_clips/"
   if os.rename(dirname, dirname) == nil then
     os.execute("mkdir " .. dirname)
   end
-  local dirname = _path.dust.."audio/cc2_saved_SOS_clips/"..os.date("%y%m%d").."/"
+  local dirname = _path.dust.."audio/ccy_saved_SOS_clips/"..os.date("%y%m%d").."/"
   if os.rename(dirname, dirname) == nil then
     os.execute("mkdir " .. dirname)
   end
-  local name = "cc2_"..os.date("%X-SOS_clip")..i..".wav"
-  softcut.buffer_write_mono(_path.dust.."/audio/cc2_saved_SOS_clips/"..os.date("%y%m%d").."/"..name,clip[i].min,clip[i].max-clip[i].min,2)
+  local name = "ccy_"..os.date("%X-SOS_clip")..i..".wav"
+  softcut.buffer_write_mono(_path.dust.."/audio/ccy_saved_SOS_clips/"..os.date("%y%m%d").."/"..name,clip[i].min,clip[i].max-clip[i].min,2)
 end
 
 function ca.SOS_toggle(i)
@@ -285,28 +285,81 @@ function ca.load_sample(file,sample)
   end
 end
 
+function ca.load_sample_into_live_window(file,sample,startpoint,endpoint)
+  local old_min = startpoint
+  local old_max = endpoint
+  if file ~= "-" then
+    local ch, len, rate = audio.file_info(file)
+    if rate ~= 48000 then print("sample rate needs to be 48khz!") end
+    local im_ch = 1
+    softcut.buffer_clear_region_channel(1,startpoint,endpoint-startpoint)
+    softcut.buffer_read_mono(file, 0, startpoint,endpoint-startpoint, im_ch, 1)
+  end
+  update_waveform(1,live[sample].min,live[sample].max,128)
+  rec[sample].waveform_samples = waveform_samples
+end
+
+function ca.auto_plop(file,sample,startpoint,endpoint)
+  -- local old_min = rec[sample].start_point
+  -- local old_max = live[sample].end_point
+  local old_min = startpoint
+  local old_max = endpoint
+  if file ~= "-" then
+    local ch, len, rate = audio.file_info(file)
+    if rate ~= 48000 then print("sample rate needs to be 48khz!") end
+    -- if len/48000 < 32 then
+    --   clip[sample].sample_length = len/48000
+    -- else
+    --   clip[sample].sample_length = 32
+    -- end
+    -- clip[sample].original_length = len/48000
+    -- clip[sample].original_bpm = _dough.derive_bpm(clip[sample])
+    -- clip[sample].original_samplerate = rate/1000
+    -- local im_ch = ch == 2 and clip[sample].channel or 1
+    local im_ch = 1
+    softcut.buffer_clear_region_channel(1,startpoint,endpoint-startpoint)
+    softcut.buffer_read_mono(file, 0, startpoint,endpoint-startpoint, im_ch, 1)
+    -- ca.clip_table()
+    -- for p = 1,16 do
+    --   for b = 1,3 do
+    --     if bank[b][p].mode == 2 and bank[b][p].clip == sample and pre_cc2_sample[b] == false then
+    --       ca.scale_loop_points(bank[b][p], old_min, old_max, clip[sample].min, clip[sample].max)
+    --     end
+    --   end
+    -- end
+  end
+  -- for i = 1,3 do
+  --   pre_cc2_sample[i] = false
+  -- end
+  update_waveform(1,live[sample].min,live[sample].max,128)
+  rec[sample].waveform_samples = waveform_samples
+  -- if params:get("clip "..sample.." sample") ~= file then
+  --   params:set("clip "..sample.." sample", file, 1)
+  -- end
+end
+
 function ca.save_sample(i)
-  local dirname = _path.dust.."audio/cc2_saved_samples/"
+  local dirname = _path.dust.."audio/ccy_saved_samples/"
   if os.rename(dirname, dirname) == nil then
     os.execute("mkdir " .. dirname)
   end
-  local name = "cc2_"..os.date("%y%m%d_%X-buff")..i..".wav"
+  local name = "ccy_"..os.date("%y%m%d_%X-buff")..i..".wav"
   local save_pos = i - 1
-  softcut.buffer_write_mono(_path.dust.."/audio/cc2_saved_samples/"..name,1+(32*save_pos),8,1)
+  softcut.buffer_write_mono(_path.dust.."/audio/ccy_saved_samples/"..name,1+(32*save_pos),8,1)
 end
 
 function ca.collect_samples(i,collection) -- this works!!!
-  local dirname = _path.dust.."audio/cc2_live-audio/"
+  local dirname = _path.dust.."audio/ccy_live-audio/"
   if os.rename(dirname, dirname) == nil then
     os.execute("mkdir " .. dirname)
   end
-  local dirname = _path.dust.."audio/cc2_live-audio/"..collection.."/"
+  local dirname = _path.dust.."audio/ccy_live-audio/"..collection.."/"
   if os.rename(dirname, dirname) == nil then
     os.execute("mkdir " .. dirname)
   end
-  local name = "cc2_"..collection.."-"..i..".wav"
+  local name = "ccy_"..collection.."-"..i..".wav"
   local save_pos = i - 1
-  softcut.buffer_write_mono(_path.dust.."audio/cc2_live-audio/"..collection.."/"..name,1+(32*save_pos),8,1)
+  softcut.buffer_write_mono(_path.dust.."audio/ccy_live-audio/"..collection.."/"..name,1+(32*save_pos),32,1)
 end
 
 function ca.reload_collected_samples(file,sample)
@@ -315,7 +368,7 @@ function ca.reload_collected_samples(file,sample)
   end
   if file ~= "-" then
     print(file)
-    softcut.buffer_read_mono(file, 0, 1+(8 * (sample-1)), 8, 1, 1)
+    softcut.buffer_read_mono(file, 0, 1+(32 * (sample-1)), 32, 1, 1)
     print("reloaded previous session's audio")
   end
 end
