@@ -702,7 +702,7 @@ function mc.midi_note_off_from_pad(b,p)
 end
 
 function mc.jf_note_off_from_pad(b,p)
-  if params:string("global_pad_to_jf_note_enabled") == "yes" then
+  if params:string("global_pad_to_jf_note_enabled") == "yes" and p ~= nil then
     local jf_destinations =
     {
       ["IDENTITY"] = 1
@@ -714,12 +714,15 @@ function mc.jf_note_off_from_pad(b,p)
     , ["all"] = 0
     }
     if params:string(b.."_pad_to_jf_note_enabled") ~= "none" then
-      if #active_jf_notes[b] == 1 or active_jf_notes[b][#active_jf_notes[b]] == (mc.get_midi("midi_notes",b,p) - 60) then
+      -- print(#active_jf_notes[b],b,active_jf_notes[b][#active_jf_notes[b]])
+      if #active_jf_notes[b] == 1 or (active_jf_notes[b][#active_jf_notes[b]] ~= nil and active_jf_notes[b][#active_jf_notes[b]] == (mc.get_midi("midi_notes",b,p) - 60)) then
         local jf_chan = jf_destinations[params:string(b.."_pad_to_jf_note_enabled")]
         local note_num =  mc.get_midi("midi_notes",b,p) - 60
         crow.ii.jf.play_voice(jf_chan,note_num/12,0)
       end
-      table.remove(active_jf_notes[b],tab.key(active_jf_notes[b],mc.get_midi("midi_notes",b,p) - 60))
+      if active_jf_notes[b][#active_jf_notes[b]] ~= nil then
+        table.remove(active_jf_notes[b],tab.key(active_jf_notes[b],mc.get_midi("midi_notes",b,p) - 60))
+      end
     elseif params:string(b.."_pad_to_jf_pulse") ~= "none" then
       if #active_jf_notes[b] == 1 or active_jf_notes[b][#active_jf_notes[b]] == p then
         local jf_chan = jf_destinations[params:string(b.."_pad_to_jf_pulse")]

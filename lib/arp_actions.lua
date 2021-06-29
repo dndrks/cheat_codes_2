@@ -299,7 +299,8 @@ end
 function arp_actions.cheat(target,step,source)
   if arp[target].notes[step] ~= nil then
     if (pattern_gate[target][1].active and p_gate.check_prob(pattern_gate[target][1])) or not pattern_gate[target][1].active then
-      if arp_actions.check_prob(target,step) then
+      local should_happen = arp_actions.check_prob(target,step)
+      if should_happen then
         if arp[target].conditional.cycle < arp[target].conditional.A[step] then
         elseif arp[target].conditional.cycle == arp[target].conditional.A[step] then
           arp_actions.execute_step(target,step,source)
@@ -314,6 +315,10 @@ function arp_actions.cheat(target,step,source)
             end
           end
         end
+      else
+        -- print("missed it. ",target,arp[target].notes[util.wrap(step-1,arp[target].start_point,arp[target].end_point)])
+        grid_actions.kill_note(target,arp[target].notes[util.wrap(step-1,arp[target].start_point,arp[target].end_point)])
+        -- want to kill the previous note...
       end
     end
   end
@@ -330,8 +335,6 @@ function arp_actions.check_gate_prob(target)
 end
 
 function arp_actions.execute_step(target,step,source)
-  -- if not arp[target].gate.active
-  -- or (arp[target].gate.active and arp_actions.check_gate_prob(target))
   if (not pattern_gate[target][2].active and not pattern_gate[target][3].active)
   or (pattern_gate[target][2].active and pattern_gate[target][1].active)
   then
@@ -343,11 +346,38 @@ function arp_actions.execute_step(target,step,source)
     else
       selected[target].y = 5
     end
-    -- print("killing "..last_pad)
+    arp_actions.resolve_step(target,step,last_pad)
+  end
+end
+
+function arp_actions.resolve_step(target,step,last_pad)
+  if last_pad ~= nil then
+    local next_pad = arp[target].notes[util.wrap(step+1,arp[target].start_point,arp[target].end_point)]
+    -- print("killing "..tostring(last_pad)) -- do i care if this executes on the first run?
     grid_actions.kill_note(target,last_pad)
     grid_actions.add_held_key(target,arp[target].notes[step])
     cheat(target,bank[target].id)
+    -- print("playing "..bank[target].id)
+    if next_pad == nil then
+      -- print("forcing "..bank[target].id.." off")
+      arp_actions.timed_note_off(target,bank[target].id)
+    end
+  else
+    -- print("WEIRIIRIRIRIRD..."..arp[target].notes[step])
+    grid_actions.add_held_key(target,arp[target].notes[step])
+    cheat(target,bank[target].id)
+    local this_last_pad = arp[target].notes[step]
+    -- print("the last one "..this_last_pad)
+    arp_actions.timed_note_off(target,this_last_pad)
   end
+end
+
+function arp_actions.timed_note_off(target,pad)
+  clock.run(function()
+    clock.sleep(clock.get_beat_sec() * (arp[target].time-(arp[target].time/10)))
+    grid_actions.kill_note(target,pad)
+    -- print("killing", target, pad)
+  end)
 end
 
 function arp_actions.clear(target)

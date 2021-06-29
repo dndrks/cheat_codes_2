@@ -4046,7 +4046,7 @@ function grid_pattern_execute(entry)
           -- and not arp[i].gate.active
           and pattern_gate[i][1].active and pattern_gate[i][2].active
           then
-            print("4052 release:",released_pad)
+            -- print("4052 release:",released_pad)
             if (arp[i].enabled and not arp[i].hold) then
               if params:string("arp_"..i.."_hold_style") ~= "sequencer" then
                 arps.momentary(i, released_pad, "off")

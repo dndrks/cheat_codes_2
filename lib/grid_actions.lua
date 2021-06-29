@@ -1440,6 +1440,9 @@ function grid_actions.clear_arp_sequencer(i)
 end
 
 function grid_actions.kill_arp(i)
+  if not arp[i].enabled then
+    print("whehehe")
+  end
   if params:string("arp_"..i.."_hold_style") ~= "sequencer" then
     page.arps.sel = i
     arp[i].hold = false
@@ -1574,6 +1577,7 @@ function grid_actions.rec_stop(i)
     end
   end
   grid_pat[i]:rec_stop()
+  print(#grid_pat[i].event)
 end
 
 function grid_actions.drone_pad(b,p)
