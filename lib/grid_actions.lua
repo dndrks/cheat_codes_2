@@ -1643,38 +1643,44 @@ function grid_actions.bank_pad_down(i,p)
       -- and (not pattern_gate[i][2].active or (pattern_gate[i][2].active and grid_pat[i].rec == 1) and pattern_gate[i][1].active)
       and (not pattern_gate[i][2].active or (pattern_gate[i][2].active and pattern_gate[i][1].active))
       then
-        -- print("9333")
-        if arp[i].down == 0 and params:string("arp_"..i.."_hold_style") == "last pressed" then
-          for j = #arp[i].notes,1,-1 do
-            arps.remove_momentary(i,j)
+        if (rytm.track[i].k == 0 and not pattern_gate[i][3].active)
+        or (rytm.track[i].k ~= 0 and not pattern_gate[i][3].active) then
+          print("1648")
+          if arp[i].down == 0 and params:string("arp_"..i.."_hold_style") == "last pressed" then
+            for j = #arp[i].notes,1,-1 do
+              arps.remove_momentary(i,j)
+            end
           end
+          arps.momentary(i, bank[i].id, "on")
+          arp[i].down = arp[i].down + 1
         end
-        arps.momentary(i, bank[i].id, "on")
-        arp[i].down = arp[i].down + 1
       else
         -- if rytm.track[i].k == 0 then -- this needs touched up
           if not arp[i].playing
           -- or arp[i].playing and arp[i].gate.active then
           or arp[i].playing and pattern_gate[i][2].active
           or arp[i].playing and not pattern_gate[i][2].active and not pattern_gate[i][1].active and not arp[i].enabled then
-            if not bank[i].quantized_press then
-              cheat(i, bank[i].id)
-              for k,v in pairs(held_keys[i]) do
-                if v == selected[i].id then
-                  print("KILLING 2")
-                  grid_actions.remove_held_key(i,selected[i].id)
+            if rytm.track[i].k == 0
+            or (rytm.track[i].k ~= 0 and not pattern_gate[i][3].active) then
+              if not bank[i].quantized_press then
+                cheat(i, bank[i].id)
+                for k,v in pairs(held_keys[i]) do
+                  if v == selected[i].id then
+                    print("KILLING 2")
+                    grid_actions.remove_held_key(i,selected[i].id)
+                  end
                 end
-              end
-              grid_actions.add_held_key(i,selected[i].id)
-            else
-              quantize_events[i] = {["bank"] = i, ["pad"] = bank[i].id}
-              for k,v in pairs(held_keys[i]) do
-                if v == selected[i].id then
-                  print("KILLING 2")
-                  grid_actions.remove_held_key(i,selected[i].id)
+                grid_actions.add_held_key(i,selected[i].id)
+              else
+                quantize_events[i] = {["bank"] = i, ["pad"] = bank[i].id}
+                for k,v in pairs(held_keys[i]) do
+                  if v == selected[i].id then
+                    print("KILLING 2")
+                    grid_actions.remove_held_key(i,selected[i].id)
+                  end
                 end
+                grid_actions.add_held_key(i,selected[i].id)
               end
-              grid_actions.add_held_key(i,selected[i].id)
             end
           end
         -- end

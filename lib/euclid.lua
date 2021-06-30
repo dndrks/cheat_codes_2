@@ -19,29 +19,33 @@ function euclid.trig(target)
     or (arp[target].playing or grid_pat[target].playing or midi_pat[target].playing) and pattern_gate[target][3].active then
       if (not pattern_gate[target][1].active or not pattern_gate[target][2].active) and pattern_gate[target][3].active
       or (not pattern_gate[target][1].active and not pattern_gate[target][2].active) and not pattern_gate[target][3].active then
-        if euclid.track[target].mode == "single" then
-          if euclid.track[target].current_pad ~= euclid.rotate_pads(bank[target].id + euclid.track[target].pad_offset) then
+        if ((grid_pat[target].rec ~= 1 and grid_pat[target].play ~= 1) and not pattern_gate[target][2].active and not pattern_gate[target][3].active)
+        or (grid_pat[target].play == 1 and pattern_gate[target][3].active)
+        or (grid_pat[target].rec ~= 1 and grid_pat[target].play ~= 1) and pattern_gate[target][3].active then
+          if euclid.track[target].mode == "single" then
+            if euclid.track[target].current_pad ~= euclid.rotate_pads(bank[target].id + euclid.track[target].pad_offset) then
+              grid_actions.kill_note(target,euclid.track[target].current_pad)
+            end
+            euclid.track[target].current_pad = euclid.rotate_pads(bank[target].id + euclid.track[target].pad_offset)
             grid_actions.kill_note(target,euclid.track[target].current_pad)
-          end
-          euclid.track[target].current_pad = euclid.rotate_pads(bank[target].id + euclid.track[target].pad_offset)
-          grid_actions.kill_note(target,euclid.track[target].current_pad)
-          grid_actions.add_held_key(target,euclid.track[target].current_pad)
-          cheat(target,euclid.track[target].current_pad)
-        elseif euclid.track[target].mode == "span" then
-          if euclid.track[target].current_pad ~= euclid.rotate_pads(euclid.track[target].pos + euclid.track[target].pad_offset) then
+            grid_actions.add_held_key(target,euclid.track[target].current_pad)
+            cheat(target,euclid.track[target].current_pad)
+          elseif euclid.track[target].mode == "span" then
+            if euclid.track[target].current_pad ~= euclid.rotate_pads(euclid.track[target].pos + euclid.track[target].pad_offset) then
+              grid_actions.kill_note(target,euclid.track[target].current_pad)
+            end
+            euclid.track[target].current_pad = euclid.rotate_pads(euclid.track[target].pos + euclid.track[target].pad_offset)
+            bank[target].id = euclid.track[target].current_pad
+            selected[target].x = (5*(target-1)+1)+(math.ceil(bank[target].id/4)-1)
+            if (bank[target].id % 4) ~= 0 then
+              selected[target].y = 9-(bank[target].id % 4)
+            else
+              selected[target].y = 5
+            end
             grid_actions.kill_note(target,euclid.track[target].current_pad)
+            grid_actions.add_held_key(target,euclid.track[target].current_pad)
+            cheat(target,euclid.track[target].current_pad)
           end
-          euclid.track[target].current_pad = euclid.rotate_pads(euclid.track[target].pos + euclid.track[target].pad_offset)
-          bank[target].id = euclid.track[target].current_pad
-          selected[target].x = (5*(target-1)+1)+(math.ceil(bank[target].id/4)-1)
-          if (bank[target].id % 4) ~= 0 then
-            selected[target].y = 9-(bank[target].id % 4)
-          else
-            selected[target].y = 5
-          end
-          grid_actions.kill_note(target,euclid.track[target].current_pad)
-          grid_actions.add_held_key(target,euclid.track[target].current_pad)
-          cheat(target,euclid.track[target].current_pad)
         end
         if menu ~= 1 then screen_dirty = true end
       end

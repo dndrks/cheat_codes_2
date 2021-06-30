@@ -3950,10 +3950,13 @@ function grid_pattern_execute(entry)
                 bank[i][bank[i].id].end_point = entry.end_point
               end
             end
-            if not bank[i].quantized_press then
-              cheat(i, bank[i].id)
-            else
-              quantize_events[i] = {["bank"] = i, ["pad"] = bank[i].id}
+            if (rytm.track[i].k == 0 and not pattern_gate[i][3].active)
+            or (rytm.track[i].k ~= 0 and not pattern_gate[i][3].active) then
+              if not bank[i].quantized_press then
+                cheat(i, bank[i].id)
+              else
+                quantize_events[i] = {["bank"] = i, ["pad"] = bank[i].id}
+              end
             end
             -- here, add the clock call for note off...
             if grid_pat[i].rand_generated then
