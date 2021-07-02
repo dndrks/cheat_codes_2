@@ -603,7 +603,7 @@ function encoder_actions.init(n,d)
             end
           end
         elseif page_line[pattern_page] == 8 and bank[pattern_page].crow_execute ~= 1 then
-          crow.count_execute[pattern_page] = util.clamp(crow.count_execute[pattern_page]+d,1,16)
+          _crow.count_execute[pattern_page] = util.clamp(_crow.count_execute[pattern_page]+d,1,16)
         elseif page_line[pattern_page] == 3 then
           params:delta("sync_clock_to_pattern_"..pattern_page,d)
         elseif page_line[pattern_page] == 4 then

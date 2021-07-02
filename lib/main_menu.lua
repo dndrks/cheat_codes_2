@@ -1099,7 +1099,7 @@ function main_menu.init()
             if bank[page_line].crow_execute ~= 1 then
               screen.move(97,40)
               screen.level(time_page[page_line] == 8 and 15 or 3)
-              screen.text("(/"..crow.count_execute[page_line]..")")
+              screen.text("(/".._crow.count_execute[page_line]..")")
             end
           end
         end
