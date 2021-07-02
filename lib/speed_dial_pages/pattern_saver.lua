@@ -17,6 +17,7 @@ function ps.init()
       for l,d in pairs(pattern_data[i][k]) do
         pattern_data[i][k][l].raw = {}
         pattern_data[i][k][l].dirty = false
+        pattern_data[i][k][l].loop = true
       end
       pattern_data[i][k].save_clock = nil
       pattern_data[i][k].saver_active = false
@@ -72,11 +73,12 @@ function ps.handle_grid_pat(i,slot,command)
       pattern_data[i].grid.load_slot = slot
       pattern_data[i].grid[slot].dirty = true
     elseif command == "load" then -- should this start the pattern??
+      mc.all_midi_notes_off(i)
       target = grid_pat[i]
+      stop_pattern(target)
       source = pattern_data[i].grid[slot].raw
       target.metro.props.time = source.metro_props_time
       pattern_data[i].grid.load_slot = slot
-      mc.all_midi_notes_off(i)
     end
     target.count = source.count
     target.time = deep_copy(source.time)
@@ -87,6 +89,11 @@ function ps.handle_grid_pat(i,slot,command)
     target.end_point = source.end_point
     target.mode = source.mode
     target.rec_clock_time = source.rec_clock_time
+    if command == "load" then
+      target.step = 0
+      target.loop = pattern_data[i].grid[slot].loop and 1 or 0
+      start_pattern(target)
+    end
   else
     pattern_data[i].grid[slot].raw = {}
     pattern_data[i].grid[slot].dirty = false
@@ -140,6 +147,13 @@ function ps.handle_euclid_pat(i,slot,command)
     pattern_data[i].euclid.load_slot = 0
   end
   grid_dirty = true
+end
+
+function ps.toggle_loop(i,target,slot)
+  pattern_data[i][target][slot].loop = not pattern_data[i][target][slot].loop
+  if target == "grid" then
+    grid_pat[i].loop = pattern_data[i][target][slot].loop and 1 or 0
+  end
 end
 
 function ps.disk_save_patterns(coll)

@@ -298,15 +298,18 @@ function pattern:next_event()
     self.step = self.step + 1
   end
   self.process(self.event[self.step])
-  self.metro.time = self.time[self.step] * self.time_factor
-  self.curr_time[self.step] = util.time()
+  print(">!>",self.step)
+  if self.step <= self.count then
+    self.metro.time = self.time[self.step] * self.time_factor
+    self.curr_time[self.step] = util.time()
+  end
   self:check_unloop()
   --print("next time "..self.metro.time)
-  if self.step == diff and self.loop == 0 then
-    if self.play == 1 then
+  if self.step >= diff and self.loop == 0 then
+    -- if self.play == 1 then
       self.play = 0
       self.metro:stop()
-    end
+    -- end
   else
     self.metro:start()
   end

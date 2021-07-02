@@ -544,16 +544,16 @@ params:add_separator("ALT key")
   for i = 1,3 do
     local banks = {"(a)","(b)","(c)"}
     params:add_separator(banks[i].." values")
-    -- params:add_control("current pad "..i, "current pad "..banks[i], controlspec.new(1,16,'lin',1,1))
     params:add_number("current pad "..i, "current pad "..banks[i], 1, 16, 1)
     params:set_action("current pad "..i, function(x)
       if bank[i].id ~= util.clamp(1,16,util.round(x)) then
-        bank[i].id = util.clamp(1,16,util.round(x))
-        selected[i].x = (math.ceil(bank[i].id/4)+(5*(i-1)))
-        selected[i].y = 8-((bank[i].id-1)%4)
-        cheat(i,bank[i].id)
-        screen_dirty = true
-        grid_dirty = true
+        grid_actions.bank_pad_down(i,util.clamp(1,16,util.round(x)))
+        clock.run(
+          function()
+            clock.sleep((clock.get_beat_sec()/4) * 0.9)
+            grid_actions.bank_pad_up(i,util.clamp(1,16,util.round(x)))
+          end
+        )
       end
     end)
     local rates = {-4,-2,-1,-0.5,-0.25,-0.125,0.125,0.25,0.5,1,2,4}

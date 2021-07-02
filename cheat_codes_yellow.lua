@@ -3922,7 +3922,8 @@ function grid_pattern_execute(entry)
       local should_happen = pattern_gate[i][2].active and p_gate.check_prob(pattern_gate[i][2])
         -- print(clock.get_beats().."<<<<<<<")
       if entry.action == "pads" then
-        if (not arp[i].enabled and not arp[i].playing) 
+        if (not arp[i].enabled and not arp[i].playing and not pattern_gate[i][1].active) 
+        or (not arp[i].enabled and not arp[i].playing and pattern_gate[i][1].active and pattern_gate[i][2].active) 
         or ((arp[i].enabled or arp[i].playing) and not pattern_gate[i][1].active and pattern_gate[i][2].active)
         or ((not arp[i].enabled and arp[i].playing) and (pattern_gate[i][1].active and pattern_gate[i][2].active)) then
           if should_happen or not pattern_gate[i][2].active then

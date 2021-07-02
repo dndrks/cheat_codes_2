@@ -30,6 +30,13 @@ function euclid.trig(target)
             grid_actions.kill_note(target,euclid.track[target].current_pad)
             grid_actions.add_held_key(target,euclid.track[target].current_pad)
             cheat(target,euclid.track[target].current_pad)
+            local to_kill = euclid.track[target].current_pad
+            clock.run(
+              function()
+                clock.sleep((clock.get_beat_sec()*euclid.track[target].clock_div) * 0.9)
+                grid_actions.kill_note(target,to_kill)
+              end
+            )
           elseif euclid.track[target].mode == "span" then
             if euclid.track[target].current_pad ~= euclid.rotate_pads(euclid.track[target].pos + euclid.track[target].pad_offset) then
               grid_actions.kill_note(target,euclid.track[target].current_pad)
@@ -45,6 +52,13 @@ function euclid.trig(target)
             grid_actions.kill_note(target,euclid.track[target].current_pad)
             grid_actions.add_held_key(target,euclid.track[target].current_pad)
             cheat(target,euclid.track[target].current_pad)
+            local to_kill = euclid.track[target].current_pad
+            clock.run(
+              function()
+                clock.sleep((clock.get_beat_sec()*euclid.track[target].clock_div)*0.9)
+                grid_actions.kill_note(target,to_kill)
+              end
+            )
           end
         end
         if menu ~= 1 then screen_dirty = true end

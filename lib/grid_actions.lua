@@ -1656,10 +1656,10 @@ function grid_actions.bank_pad_down(i,p)
         end
       else
         -- if rytm.track[i].k == 0 then -- this needs touched up
-          if not arp[i].playing
+          if (not arp[i].playing and not pattern_gate[i][1].active)
           -- or arp[i].playing and arp[i].gate.active then
-          or arp[i].playing and pattern_gate[i][2].active
-          or arp[i].playing and not pattern_gate[i][2].active and not pattern_gate[i][1].active and not arp[i].enabled then
+          or (arp[i].playing and pattern_gate[i][2].active)
+          or (arp[i].playing and not pattern_gate[i][2].active and not pattern_gate[i][1].active and not arp[i].enabled) then
             if rytm.track[i].k == 0
             or (rytm.track[i].k ~= 0 and not pattern_gate[i][3].active) then
               if not bank[i].quantized_press then
@@ -1714,6 +1714,7 @@ function grid_actions.bank_pad_down(i,p)
     end
   end
   if menu ~= 1 then screen_dirty = true end
+  grid_dirty = true
 end
 
 function grid_actions.bank_pad_up(i,p)
@@ -1767,6 +1768,8 @@ function grid_actions.bank_pad_up(i,p)
       grid_pattern_watch(i,"release",released_pad)
     end
   end
+  if menu ~= 1 then screen_dirty = true end
+  grid_dirty = true
 end
 
 return grid_actions

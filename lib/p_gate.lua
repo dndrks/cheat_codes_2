@@ -22,6 +22,7 @@ function p_gate.check_prob(stream)
 end
 
 function p_gate.flip(i,j)
+  print("iii", i,j)
   if (j == 2 or j == 3) and not pattern_gate[i][1].active then
     for k,v in pairs(arp[i].notes) do
       if tab.contains(held_keys[i],v) then
@@ -31,7 +32,7 @@ function p_gate.flip(i,j)
   elseif (j == 1 or j == 3) and not pattern_gate[i][2].active then
     for k = 1,#grid_pat[i].event do
       if tab.contains(held_keys[i],grid_pat[i].event[k].id) then
-        print(">>>"..grid_pat[i].event[k].id, clock.get_beats())
+        print(">>}}}>"..grid_pat[i].event[k].id, clock.get_beats())
         grid_actions.kill_note(i,grid_pat[i].event[k].id)
       end
     end
@@ -40,6 +41,14 @@ function p_gate.flip(i,j)
     end
   end
   pattern_gate[i][j].active = not pattern_gate[i][j].active
+  if j == 2 and not pattern_gate[i][2].active then
+    for k = 1,#grid_pat[i].event do
+      if tab.contains(held_keys[i],grid_pat[i].event[k].id) then
+        print(">>{{{{{}}}>"..grid_pat[i].event[k].id, clock.get_beats())
+        grid_actions.kill_note(i,grid_pat[i].event[k].id)
+      end
+    end
+  end
 end
 
 function p_gate.check_conflicts(i,source)
