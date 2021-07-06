@@ -68,7 +68,7 @@ rnd = include 'lib/rnd_actions'
 del = include 'lib/delay'
 rytm = include 'lib/euclid'
 mc = include 'lib/midicheat'
-sharer = include 'lib/sharer'
+-- sharer = include 'lib/sharer'
 macros = include 'lib/macros'
 transport = include 'lib/transport'
 speed_dial = include 'lib/speed_dial'
@@ -874,7 +874,7 @@ function init()
     end
   end
 
-  sharer.setup("cheat_codes_2")
+  -- sharer.setup("cheat_codes_2")
 
   clock.run(check_page_for_k1)
 
