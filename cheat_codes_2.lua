@@ -1924,13 +1924,24 @@ function init()
 
   hardware_redraw = metro.init(
     function()
-      if all_loaded then draw_grid() end
-      if all_loaded then arc_redraw() end
-      if all_loaded then draw_screen() end
-      if all_loaded then draw_waveform() end
+      if all_loaded then
+        draw_grid()
+        arc_redraw()
+        draw_screen()
+        draw_waveform()
+      end
     end
     , 1/30, -1)
   hardware_redraw:start()
+
+  clock.run(function()
+    while true do
+      clock.sync(1/4)
+      if menu == 1 then
+        screen_dirty = true
+      end
+    end
+  end)
 
   for i = 1,3 do
     update_waveform(1,live[i].min,live[i].max,128)
