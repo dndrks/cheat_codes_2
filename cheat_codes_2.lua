@@ -794,8 +794,7 @@ grid_alt = false
 grid_loop_mod = 0
 
 local function crow_flush()
-  crow.reset()
-  crow.clear()
+  norns.crow.init() -- clears & inits both crow & norns-support-of-crow
 end
 
 local function crow_init()
@@ -805,6 +804,15 @@ local function crow_init()
   end
   crow.input[2].mode("change",2,0.1,"rising")
   crow.input[2].change = buff_freeze
+end
+
+-- crow hotplug support
+norns.crow.add = function()
+  norns.crow.init()
+  crow_init()
+  if params:get("jf_toggle") == 2 then
+    crow.ii.jf.mode(1)
+  end
 end
 
 local function process_stream_1(v)
@@ -1030,11 +1038,12 @@ function init()
   for i = 1,4 do
     crow.output[i].action = "{to(5,0),to(0,0.05)}"
   end
-  crow.count = {}
-  crow.count_execute = {}
+  _crow = {}
+  _crow.count = {}
+  _crow.count_execute = {}
   for i = 1,3 do
-    crow.count[i] = 1
-    crow.count_execute[i] = 1
+    _crow.count[i] = 1
+    _crow.count_execute[i] = 1
   end
 
   screen.line_width(1)

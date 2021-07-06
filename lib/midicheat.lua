@@ -537,7 +537,7 @@ function mc.pad_to_note_params()
     options = {"off", "on"},
     default = 2,
     action = function(val) 
-      crow.send("ii.wsyn.ar_mode(" .. (val - 1) .. ")") 
+      crow.ii.wsyn.ar_mode(val - 1) 
     end
   }
   params:add {
@@ -546,7 +546,7 @@ function mc.pad_to_note_params()
     name = "Curve",
     controlspec = controlspec.new(-5, 5, "lin", 0, 0, "v"),
     action = function(val) 
-      crow.send("ii.wsyn.curve(" .. val .. ")") 
+      crow.ii.wsyn.curve(val)
     end
   }
   params:add {
@@ -555,7 +555,7 @@ function mc.pad_to_note_params()
     name = "Ramp",
     controlspec = controlspec.new(-5, 5, "lin", 0, 0, "v"),
     action = function(val) 
-      crow.send("ii.wsyn.ramp(" .. val .. ")")
+      crow.ii.wsyn.ramp(val)
     end
   }
   params:add {
@@ -564,7 +564,7 @@ function mc.pad_to_note_params()
     name = "FM index",
     controlspec = controlspec.new(0, 5, "lin", 0, 0, "v"),
     action = function(val) 
-      crow.send("ii.wsyn.fm_index(" .. val .. ")")
+      crow.ii.wsyn.fm_index(val)
     end
   }
   params:add {
@@ -573,7 +573,7 @@ function mc.pad_to_note_params()
     name = "FM env",
     controlspec = controlspec.new(-5, 5, "lin", 0, 0, "v"),
     action = function(val) 
-      crow.send("ii.wsyn.fm_env(" .. val .. ")")
+      crow.ii.wsyn.fm_env(val)
     end
   }
   params:add {
@@ -582,7 +582,7 @@ function mc.pad_to_note_params()
     name = "FM ratio numerator",
     controlspec = controlspec.new(1, 20, "lin", 1, 2),
     action = function(val) 
-      crow.send("ii.wsyn.fm_ratio(" .. val .. "," .. params:get("w/fm den") .. ")")
+      crow.ii.wsyn.fm_ratio(val, params:get("w/fm den"))
     end
   }
   params:add {
@@ -591,7 +591,7 @@ function mc.pad_to_note_params()
     name = "FM ratio denominator",
     controlspec = controlspec.new(1, 20, "lin", 1, 1),
     action = function(val) 
-      crow.send("ii.wsyn.fm_ratio(" .. params:get("w/fm num") .. "," .. val .. ")")
+      crow.ii.wsyn.fm_ratio(params:get("w/fm num"), val)
     end
   }
   params:add {
@@ -600,7 +600,7 @@ function mc.pad_to_note_params()
     name = "LPG time",
     controlspec = controlspec.new(-5, 5, "lin", 0, 0, "v"),
     action = function(val) 
-      crow.send("ii.wsyn.lpg_time(" .. val .. ")")
+      crow.ii.wsyn.lpg_time(val)
     end
   }
   params:add {
@@ -609,7 +609,7 @@ function mc.pad_to_note_params()
     name = "LPG symmetry",
     controlspec = controlspec.new(-5, 5, "lin", 0, 0, "v"),
     action = function(val) 
-      crow.send("ii.wsyn.lpg_symmetry(" .. val .. ")")
+      crow.ii.wsyn.lpg_symmetry(val)
     end
   }
   params:add{
@@ -630,14 +630,14 @@ function mc.pad_to_note_params()
   }
 
   function wsyn_init()
-    crow.send("ii.wsyn.ar_mode(" .. (params:get("wsyn_ar_mode") - 1) .. ")") 
-    crow.send("ii.wsyn.curve(" .. params:get("w/curve") .. ")") 
-    crow.send("ii.wsyn.ramp(" .. params:get("w/ramp") .. ")") 
-    crow.send("ii.wsyn.fm_index(" .. params:get("w/fm index") .. ")") 
-    crow.send("ii.wsyn.fm_env(" .. params:get("w/fm env") .. ")")
-    crow.send("ii.wsyn.fm_ratio("..params:get("w/fm num")..","..params:get("w/fm den")..")")
-    crow.send("ii.wsyn.lpg_time(" .. params:get("w/lpg time") .. ")") 
-    crow.send("ii.wsyn.lpg_symmetry(" .. params:get("w/lpg symm") .. ")") 
+    crow.ii.wsyn.ar_mode(params:get("wsyn_ar_mode") - 1)
+    crow.ii.wsyn.curve(params:get("w/curve"))
+    crow.ii.wsyn.ramp(params:get("w/ramp"))
+    crow.ii.wsyn.fm_index(params:get("w/fm index"))
+    crow.ii.wsyn.fm_env(params:get("w/fm env"))
+    crow.ii.wsyn.fm_ratio(params:get("w/fm num"), params:get("w/fm den"))
+    crow.ii.wsyn.lpg_time(params:get("w/lpg time"))
+    crow.ii.wsyn.lpg_symmetry(params:get("w/lpg symm"))
   end
 
 end
@@ -729,12 +729,10 @@ function mc.midi_note_from_pad(b,p)
       local note_num = mc_notes[b][p] - 60
       local velocity = util.linlin(0,127,0,5,params:get(b.."_pad_to_wsyn_note_velocity"))
       if params:string(b.."_pad_to_wsyn_note_enabled") == "any" then
-        -- crow.ii.jf.play_note(note_num/12,velocity)
-        crow.send("ii.wsyn.play_note(" .. note_num/12 .. "," .. velocity .. ")")
+        crow.ii.wsyn.play_note(note_num/12,velocity)
       else
         local wsyn_chan = params:get(b.."_pad_to_wsyn_note_enabled") - 1
-        -- crow.ii.jf.play_voice(jf_chan,note_num/12,velocity)
-        crow.send("ii.wsyn.play_voice(" .. wsyn_chan .. "," .. note_num/12 .. "," .. velocity .. ")")
+        crow.ii.wsyn.play_voice(wsyn_chan,note_num/12,velocity)
       end
     end
   end
