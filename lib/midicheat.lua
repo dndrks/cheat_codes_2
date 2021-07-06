@@ -773,7 +773,7 @@ function mc.midi_note_from_pad(b,p)
     if params:string(b.."_pad_to_jf_pulse") ~= "none" then
       local jf_destinations =
       {
-        ["IDENTITY"] = 1
+        ["ID"] = 1
       , ["2N"] = 2
       , ["3N"] = 3
       , ["4N"] = 4
