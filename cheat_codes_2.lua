@@ -2090,45 +2090,82 @@ function synced_loop(target, state)
 end
 
 function alt_synced_loop(target,state)
-  if state == "restart" then
-    clock.sync(params:get("launch_quantization") == 1 and 1 or 4)
-    print("restarting")
-  end
-  target:start()
-  target.synced_loop_runner = 1
-  print("alt_synced")
-  while true do
-    clock.sync(1/4)
-    if target.synced_loop_runner == target.rec_clock_time * 4 then
-      -- print(clock.get_beats(), target.synced_loop_runner)
-      local overdub_flag = target.overdub
-      target:stop()
-      if overdub_flag == 1 then
-        target.overdub = 1
+  if transport.is_running then
+    if state == "restart" then
+      clock.sync(params:get("launch_quantization") == 1 and 1 or 4)
+      print("restarting")
+    end
+    -- clear_arps_from_pattern_restart(target.event[target.count].i)
+    target:start()
+    target.synced_loop_runner = 1
+    -- print("alt_synced",clock.get_beats(),target)
+    while true do
+      clock.sync(1/4)
+      if target.synced_loop_runner == target.rec_clock_time * 4 then
+        target.synced_loop_runner = 1
+        -- print(clock.get_beats(), target.synced_loop_runner)
+        local overdub_flag = target.overdub
+        -- target:stop()
+        stop_pattern(target,"no kill")
+        -- print("stopping")
+        if overdub_flag == 1 then
+          target.overdub = 1
+        end
+        if target.loop == 1 then
+          -- clear_arps_from_pattern_restart(target.event[target.count].i)
+          target:start()
+          -- print("and then start...")
+        end
+      else
+        target.synced_loop_runner =  target.synced_loop_runner + 1
       end
-      target:start()
-      target.synced_loop_runner = 1
-    else
-      target.synced_loop_runner =  target.synced_loop_runner + 1
     end
   end
 end
 
-function stop_pattern(target)
-  if target.clock ~= nil then
+function stop_pattern(target,style)
+  if target.clock ~= nil and style ~= "no kill" then
     clock.cancel(target.clock)
+    target.clock = nil
   end
-  target.clock = nil
   target:stop()
 end
 
 function start_pattern(target)
-  print("new start")
-  if target.playmode == 2 then
-    target.clock = clock.run(alt_synced_loop, target, "restart")
-  else
-    target:start()
+  -- print("new start")
+  -- if target.playmode == 2 then
+  --   target.clock = clock.run(alt_synced_loop, target, "restart")
+  -- else
+  --   target:start()
+  -- end
+
+  if not transport.is_running then
+    print("starting transport...")
+    if transport.is_running then
+      clock.transport.stop()
+    else
+      if params:string("clock_source") == "internal" then
+        -- clock.internal.start(3.9)
+        clock.internal.start(-0.1)
+      -- elseif params:string("clock_source") == "link" then
+      else
+        transport.cycle = 1
+        clock.transport.start()
+      end
+      transport.pending = true
+      -- clock.transport.start()
+    end
   end
+  if transport.is_running then
+    -- print("new start")
+    if target.playmode == 2 then
+      if target.clock ~= nil then clock.cancel(target.clock) end
+      target.clock = clock.run(alt_synced_loop, target, state == nil and "restart" or "jumpstart")
+    else
+      target:start()
+    end
+  end
+
 end
 
 function synced_record_start(target,i)
@@ -4316,6 +4353,9 @@ function grid_redraw()
   -- if g.device ~= nil then
   if get_grid_connected() then
     if params:string("grid_size") == "128" then
+      if (grid.rows ~= 8 and grid.cols ~= 8) then
+        print("wrong size")
+      end
       g:all(0)
       local edition = params:get("LED_style")
       
@@ -5403,6 +5443,11 @@ function persistent_state_save()
   end
   for i = 1,3 do
     io.write("start_arp_"..i.."_at_launch: "..params:get("start_arp_"..i.."_at_launch").."\n")
+  end
+  for i = 1,3 do
+    io.write(i.."_pad_to_crow_v-8: "..params:get(i.."_pad_to_crow_v-8").."\n")
+    io.write(i.."_pad_to_crow_pulse: "..params:get(i.."_pad_to_crow_pulse").."\n")
+    io.write(i.."_pad_to_jf_pulse: "..params:get(i.."_pad_to_jf_pulse").."\n")
   end
   io.close(file)
 end

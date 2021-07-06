@@ -200,13 +200,18 @@ function grid_actions.init(x,y,z)
                 end
               else
                 if grid_alt then -- still relevant
-                  grid_pat[i]:rec_stop()
-                  grid_pat[i]:stop()
+                  if grid_pat[i].rec == 1 then
+                    -- grid_actions.rec_stop(i)
+                    grid_pat[i]:rec_stop()
+                  end
+                  -- grid_pat[i]:stop()
+                  stop_pattern(grid_pat[i])
                   --grid_pat[i].external_start = 0
                   grid_pat[i].tightened_start = 0
                   grid_pat[i]:clear()
                   pattern_saver[i].load_slot = 0
                 elseif grid_pat[i].rec == 1 then -- still relevant
+                  -- grid_actions.rec_stop(i)
                   grid_pat[i]:rec_stop()
                   midi_clock_linearize(i)
                   if grid_pat[i].auto_snap == 1 then
@@ -223,6 +228,23 @@ function grid_actions.init(x,y,z)
                   grid_pat[i].loop = 1
                 elseif grid_pat[i].count == 0 then
                   if grid_pat[i].playmode ~= 2 then
+                    if not transport.is_running then
+                      print("starting transport...")
+                      if transport.is_running then
+                        clock.transport.stop()
+                      else
+                        if params:string("clock_source") == "internal" then
+                          -- clock.internal.start(3.9)
+                          clock.internal.start(-0.1)
+                        -- elseif params:string("clock_source") == "link" then
+                        else
+                          transport.cycle = 1
+                          clock.transport.start()
+                        end
+                        transport.pending = true
+                        -- clock.transport.start()
+                      end
+                    end
                     grid_pat[i]:rec_start()
                   --new!
                   else
@@ -238,8 +260,10 @@ function grid_actions.init(x,y,z)
               end
             else
               if grid_alt then
+                -- grid_actions.rec_stop(i)
                 grid_pat[i]:rec_stop()
-                grid_pat[i]:stop()
+                -- grid_pat[i]:stop()
+                stop_pattern(grid_pat[i])
                 grid_pat[i].tightened_start = 0
                 grid_pat[i]:clear()
                 pattern_saver[i].load_slot = 0
@@ -1117,13 +1141,18 @@ function grid_actions.init(x,y,z)
             end
           else
             if grid_alt then -- still relevant
-              grid_pat[i]:rec_stop()
-              grid_pat[i]:stop()
+              if grid_pat[i].rec == 1 then
+                -- grid_actions.rec_stop(i)
+                grid_pat[i]:rec_stop()
+              end
+              -- grid_pat[i]:stop()
+              stop_pattern(grid_pat[i])
               --grid_pat[i].external_start = 0
               grid_pat[i].tightened_start = 0
               grid_pat[i]:clear()
               pattern_saver[i].load_slot = 0
             elseif grid_pat[i].rec == 1 then -- still relevant
+              -- grid_actions.rec_stop(i)
               grid_pat[i]:rec_stop()
               midi_clock_linearize(i)
               if grid_pat[i].auto_snap == 1 then
@@ -1140,6 +1169,23 @@ function grid_actions.init(x,y,z)
               grid_pat[i].loop = 1
             elseif grid_pat[i].count == 0 then
               if grid_pat[i].playmode ~= 2 then
+                if not transport.is_running then
+                  print("starting transport...")
+                  if transport.is_running then
+                    clock.transport.stop()
+                  else
+                    if params:string("clock_source") == "internal" then
+                      -- clock.internal.start(3.9)
+                      clock.internal.start(-0.1)
+                    -- elseif params:string("clock_source") == "link" then
+                    else
+                      transport.cycle = 1
+                      clock.transport.start()
+                    end
+                    transport.pending = true
+                    -- clock.transport.start()
+                  end
+                end
                 grid_pat[i]:rec_start()
               --new!
               else
@@ -1155,8 +1201,10 @@ function grid_actions.init(x,y,z)
           end
         else
           if grid_alt then
+            -- grid_actions.rec_stop(i)
             grid_pat[i]:rec_stop()
-            grid_pat[i]:stop()
+            -- grid_pat[i]:stop()
+            stop_pattern(grid_pat[i])
             grid_pat[i].tightened_start = 0
             grid_pat[i]:clear()
             pattern_saver[i].load_slot = 0
@@ -1164,6 +1212,10 @@ function grid_actions.init(x,y,z)
             --table.insert(grid_pat_quantize_events[i],i)
             better_grid_pat_q_clock(i)
           end
+        end
+        if menu == 11 then
+          help_menu = "grid patterns"
+          which_bank = i
         end
       end
       
