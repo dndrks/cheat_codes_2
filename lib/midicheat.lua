@@ -703,91 +703,93 @@ local mx_dests ={
 }
 
 function mc.midi_note_from_pad(b,p)
-  if params:string(b.."_pad_to_midi_note_enabled") == "yes" then
-    if mc.get_midi("midi_notes",b,p) ~= "-" and mc.get_midi("midi_notes_velocities",b,p) ~= "-" and mc.get_midi("midi_notes_channels",b,p) ~= "-" then
-      mc.all_midi_notes_off(b)
-      -- local note_num = mc_notes[b][p]
-      local note_num = mc.get_midi("midi_notes",b,p)
-      -- local vel = params:get(b.."_pad_to_midi_note_velocity")
-      local vel = mc.get_midi("midi_notes_velocities",b,p)
-      local ch = params:get(b.."_pad_to_midi_note_channel")
+  if bank[b][p].crow_pad_execute == 1 then
+    if params:string(b.."_pad_to_midi_note_enabled") == "yes" then
+      if mc.get_midi("midi_notes",b,p) ~= "-" and mc.get_midi("midi_notes_velocities",b,p) ~= "-" and mc.get_midi("midi_notes_channels",b,p) ~= "-" then
+        mc.all_midi_notes_off(b)
+        -- local note_num = mc_notes[b][p]
+        local note_num = mc.get_midi("midi_notes",b,p)
+        -- local vel = params:get(b.."_pad_to_midi_note_velocity")
+        local vel = mc.get_midi("midi_notes_velocities",b,p)
+        local ch = params:get(b.."_pad_to_midi_note_channel")
+        local dest = params:get(b.."_pad_to_midi_note_destination")
+        midi_dev[dest]:note_on(note_num,vel,ch)
+        table.insert(active_midi_notes[b], note_num)
+        if midi_off[b] ~= nil then clock.cancel(midi_off[b]) end
+        midi_off[b] = clock.run(mc.midi_note_from_pad_off,b,p)
+        -- mxcc:on({name = mx_dests[b],midi=note_num,velocity=vel})
+      end
+    end
+    if mc.get_midi("midi_ccs",b,p) ~= "-" and mc.get_midi("midi_ccs_values",b,p) ~= "-" and mc.get_midi("midi_ccs_channels",b,p) ~= "-" then
+      local cc_num = mc.get_midi("midi_ccs",b,p)
+      local val = mc.get_midi("midi_ccs_values",b,p)
+      local ch = mc.get_midi("midi_ccs_channels",b,p)
       local dest = params:get(b.."_pad_to_midi_note_destination")
-      midi_dev[dest]:note_on(note_num,vel,ch)
-      table.insert(active_midi_notes[b], note_num)
-      if midi_off[b] ~= nil then clock.cancel(midi_off[b]) end
-      midi_off[b] = clock.run(mc.midi_note_from_pad_off,b,p)
-      -- mxcc:on({name = mx_dests[b],midi=note_num,velocity=vel})
+      midi_dev[dest]:cc(cc_num,val,ch)
     end
-  end
-  if mc.get_midi("midi_ccs",b,p) ~= "-" and mc.get_midi("midi_ccs_values",b,p) ~= "-" and mc.get_midi("midi_ccs_channels",b,p) ~= "-" then
-    local cc_num = mc.get_midi("midi_ccs",b,p)
-    local val = mc.get_midi("midi_ccs_values",b,p)
-    local ch = mc.get_midi("midi_ccs_channels",b,p)
-    local dest = params:get(b.."_pad_to_midi_note_destination")
-    midi_dev[dest]:cc(cc_num,val,ch)
-  end
-  if params:string("global_pad_to_jf_note_enabled") == "yes" then
-    local jf_destinations =
-    {
-      ["IDENTITY"] = 1
-    , ["2N"] = 2
-    , ["3N"] = 3
-    , ["4N"] = 4
-    , ["5N"] = 5
-    , ["6N"] = 6
-    , ["all"] = 0
-    }
-    if params:string(b.."_pad_to_jf_note_enabled") ~= "none" then
-      local note_num = mc_notes[b][p] - 60
-      local velocity = params:get(b.."_pad_to_jf_note_velocity")
-      if params:string(b.."_pad_to_jf_note_enabled") == "any" then
-        crow.ii.jf.play_note(note_num/12,velocity)
-      else
-        local jf_chan = jf_destinations[params:string(b.."_pad_to_jf_note_enabled")]
-        crow.ii.jf.play_voice(jf_chan,note_num/12,velocity)
+    if params:string("global_pad_to_jf_note_enabled") == "yes" then
+      local jf_destinations =
+      {
+        ["IDENTITY"] = 1
+      , ["2N"] = 2
+      , ["3N"] = 3
+      , ["4N"] = 4
+      , ["5N"] = 5
+      , ["6N"] = 6
+      , ["all"] = 0
+      }
+      if params:string(b.."_pad_to_jf_note_enabled") ~= "none" then
+        local note_num = mc_notes[b][p] - 60
+        local velocity = params:get(b.."_pad_to_jf_note_velocity")
+        if params:string(b.."_pad_to_jf_note_enabled") == "any" then
+          crow.ii.jf.play_note(note_num/12,velocity)
+        else
+          local jf_chan = jf_destinations[params:string(b.."_pad_to_jf_note_enabled")]
+          crow.ii.jf.play_voice(jf_chan,note_num/12,velocity)
+        end
       end
     end
-  end
-  if params:string("global_pad_to_wsyn_note_enabled") == "yes" then
-    if params:string(b.."_pad_to_wsyn_note_enabled") ~= "none" then
-      local note_num = mc_notes[b][p] - 60
-      local velocity = util.linlin(0,127,0,5,params:get(b.."_pad_to_wsyn_note_velocity"))
-      if params:string(b.."_pad_to_wsyn_note_enabled") == "any" then
-        crow.ii.wsyn.play_note(note_num/12,velocity)
-      else
-        local wsyn_chan = params:get(b.."_pad_to_wsyn_note_enabled") - 1
-        crow.ii.wsyn.play_voice(wsyn_chan,note_num/12,velocity)
+    if params:string("global_pad_to_wsyn_note_enabled") == "yes" then
+      if params:string(b.."_pad_to_wsyn_note_enabled") ~= "none" then
+        local note_num = mc_notes[b][p] - 60
+        local velocity = util.linlin(0,127,0,5,params:get(b.."_pad_to_wsyn_note_velocity"))
+        if params:string(b.."_pad_to_wsyn_note_enabled") == "any" then
+          crow.ii.wsyn.play_note(note_num/12,velocity)
+        else
+          local wsyn_chan = params:get(b.."_pad_to_wsyn_note_enabled") - 1
+          crow.ii.wsyn.play_voice(wsyn_chan,note_num/12,velocity)
+        end
       end
     end
-  end
-  if params:string(b.."_pad_to_crow_v-8") ~= "none" then
-    local note_num =  mc.get_midi("midi_notes",b,p) - 60
-    local which_output = tonumber(params:string(b.."_pad_to_crow_v-8"))
-    crow.output[which_output].volts = note_num/12
-  end
-  if params:string(b.."_pad_to_crow_pulse") ~= "none" then
-    local which_output = tonumber(params:string(b.."_pad_to_crow_pulse"))
-    norns.crow.send ("output["..which_output.."]( pulse() )")
-  end
-  if params:string(b.."_pad_to_jf_pulse") ~= "none" then
-    local jf_destinations =
-    {
-      ["IDENTITY"] = 1
-    , ["2N"] = 2
-    , ["3N"] = 3
-    , ["4N"] = 4
-    , ["5N"] = 5
-    , ["6N"] = 6
-    , ["all"] = 0
-    }
-    -- local note_num = mc_notes[b][p] - 60
-    local velocity = util.round(util.linlin(0,127,0,10,mc.get_midi("midi_notes_velocities",b,p)))
-    -- local velocity = params:get(b.."_pad_to_jf_note_velocity")
-    if params:string(b.."_pad_to_jf_pulse") == "any" then
-      crow.ii.jf.play_note(0,velocity)
-    else
-      local jf_chan = jf_destinations[params:string(b.."_pad_to_jf_pulse")]
-      crow.ii.jf.vtrigger(jf_chan,velocity)
+    if params:string(b.."_pad_to_crow_v-8") ~= "none" then
+      local note_num =  mc.get_midi("midi_notes",b,p) - 60
+      local which_output = tonumber(params:string(b.."_pad_to_crow_v-8"))
+      crow.output[which_output].volts = note_num/12
+    end
+    if params:string(b.."_pad_to_crow_pulse") ~= "none" then
+      local which_output = tonumber(params:string(b.."_pad_to_crow_pulse"))
+      norns.crow.send ("output["..which_output.."]( pulse() )")
+    end
+    if params:string(b.."_pad_to_jf_pulse") ~= "none" then
+      local jf_destinations =
+      {
+        ["IDENTITY"] = 1
+      , ["2N"] = 2
+      , ["3N"] = 3
+      , ["4N"] = 4
+      , ["5N"] = 5
+      , ["6N"] = 6
+      , ["all"] = 0
+      }
+      -- local note_num = mc_notes[b][p] - 60
+      local velocity = util.round(util.linlin(0,127,0,10,mc.get_midi("midi_notes_velocities",b,p)))
+      -- local velocity = params:get(b.."_pad_to_jf_note_velocity")
+      if params:string(b.."_pad_to_jf_pulse") == "any" then
+        crow.ii.jf.play_note(0,velocity)
+      else
+        local jf_chan = jf_destinations[params:string(b.."_pad_to_jf_pulse")]
+        crow.ii.jf.vtrigger(jf_chan,velocity)
+      end
     end
   end
 end

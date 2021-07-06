@@ -769,6 +769,10 @@ function grid_actions.init(x,y,z)
         end
       end
 
+      if x == 9 and (y == 2 or y == 7) and z == 1 then
+        params:set("delay "..(y == 7 and "L:" or "R:").." external input", params:get("delay "..(y == 7 and "L:" or "R:").." external input") > 0 and 0 or 1)
+      end
+
       if y == 1 or y == 2 or y == 7 or y == 8 then
         if x <= 8 then
           if z == 1 then

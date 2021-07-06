@@ -4353,9 +4353,6 @@ function grid_redraw()
   -- if g.device ~= nil then
   if get_grid_connected() then
     if params:string("grid_size") == "128" then
-      if (grid.rows ~= 8 and grid.cols ~= 8) then
-        print("wrong size")
-      end
       g:all(0)
       local edition = params:get("LED_style")
       
@@ -4593,6 +4590,10 @@ function grid_redraw()
       
       elseif grid_page == 2 then
         -- delay page!
+
+        g:led(9,7,params:get("delay L: external input") > 0 and 15 or 0)
+        g:led(9,2,params:get("delay R: external input") > 0 and 15 or 0)
+
         for i = 1,8 do
           local check = {i+8, i}
           for j = 1,2 do
