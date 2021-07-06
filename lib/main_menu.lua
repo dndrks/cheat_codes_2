@@ -1066,7 +1066,7 @@ function main_menu.init()
         screen.font_size(8)
       else
         local state_option = pattern.play == 1 and "current step" or "rec mode"
-        local p_options = {state_option, "shuffle pat","P"..page_line.." sets bpm?","rand pat [K3]", "pat start", "pat end", "crow pulse"}
+        local p_options = {state_option, "shuffle pat","P"..page_line.." sets bpm?","rand pat [K3]", "pat start", "pat end"}
         local p_options_rand = {"low rates", "mid rates", "hi rates", "full range", "keep rates"}
 
         if page.time_scroll[page_line] == 1 then
@@ -1174,7 +1174,7 @@ function main_menu.init()
     screen.level(3)
     if page.time_sel < 4 then
       local show_top = page.time_scroll[page_line] ~= 1 and true or false
-      local show_bottom = page.time_scroll[page_line] < 3 and true or false
+      local show_bottom = page.time_scroll[page_line] == 1 and true or false
       screen.move(0,64)
       screen.text(show_bottom and "..." or "")
       screen.move(0,34)

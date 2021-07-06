@@ -527,7 +527,7 @@ function mc.pad_to_note_params()
       end
     end
     )
-    params:add_option(i.."_pad_to_crow_pulse", "crow gate output",{"none","1","2","3","4"},1)
+    params:add_option(i.."_pad_to_crow_pulse", "crow pulse output",{"none","1","2","3","4"},1)
     params:set_action(i.."_pad_to_crow_pulse",
     function(x)
       if all_loaded then

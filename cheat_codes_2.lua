@@ -3025,11 +3025,11 @@ function cheat(b,i)
     slew_counter[b].prev_q = pad.q
   end
   previous_pad = bank[b].id
-  if bank[b].crow_execute == 1 then
-    if pad.crow_pad_execute == 1 then
-      crow.output[b]()
-    end
-  end
+  -- if bank[b].crow_execute == 1 then
+  --   if pad.crow_pad_execute == 1 then
+  --     crow.output[b]()
+  --   end
+  -- end
   --dangerous??
   local rate_array = {-4.0,-2.0,-1.0,-0.5,-0.25,-0.125,0.125,0.25,0.5,1.0,2.0,4.0}
   local s = {}

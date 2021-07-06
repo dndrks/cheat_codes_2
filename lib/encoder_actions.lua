@@ -289,7 +289,7 @@ function encoder_actions.init(n,d)
       local pattern_page = page.time_sel
 
       if pattern_page < 4 then
-        page_line[pattern_page] = util.clamp(page_line[pattern_page]+d,1,bank[pattern_page].crow_execute ~= 1 and 8 or 7)
+        page_line[pattern_page] = util.clamp(page_line[pattern_page]+d,1,6)
         if page_line[pattern_page] < 4 then
           page.time_scroll[pattern_page] = 1
         elseif page_line[pattern_page] < 7 then
