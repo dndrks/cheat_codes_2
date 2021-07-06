@@ -535,7 +535,7 @@ function mc.pad_to_note_params()
       end
     end
     )
-    params:add_option(i.."_pad_to_jf_pulse", "Just Friends gate ch.",{"none","IDENTITY","2N","3N","4N","5N","6N","all"},1)
+    params:add_option(i.."_pad_to_jf_pulse", "Just Friends pulse ch.",{"none","ID","2N","3N","4N","5N","6N","all"},1)
     params:set_action(i.."_pad_to_jf_pulse",
     function(x)
       if all_loaded then
