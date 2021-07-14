@@ -4,7 +4,7 @@ a sample playground for norns
 
 ### hard requirements:
 
-- norns (210301 or later)
+- norns (210706 or later)
 
 ### encouraged (any or all):
 
@@ -12,6 +12,7 @@ a sample playground for norns
 - arc 4 (works with 2, but only two banks of control)
 - Launchpad (X, Pro or Mini MK3) for [midigrid compatibility](https://github.com/jaggednz/midigrid)
 - MIDI keyboard, MIDI button box, OP-Z (see below)
+- [TouchOSC (mk1)](https://llllllll.co/uploads/short-url/k2XPQ0ehvcj6W9DuEYu1vlRo60P.touchosc)
 - Midi Fighter Twister ([template](https://llllllll.co/uploads/short-url/so1QoxfHVWn29a4YNkybdVEIQgi.mfs))
 - Max for Live ([device](https://llllllll.co/uploads/short-url/cckkpyWjH3ywfaHfYzOmV27GS3m.amxd))
 - crow for pad-to-trigger or Just Friends + w/ note output
