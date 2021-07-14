@@ -1473,19 +1473,6 @@ function grid_actions.arp_handler(i)
         arps.toggle("stop",i)
       else
         arps.toggle("start",i)
-        -- local arp_start =
-        -- {
-        --   ["fwd"] = arp[i].start_point - 1
-        -- , ["bkwd"] = arp[i].end_point + 1
-        -- , ["pend"] = arp[i].start_point
-        -- , ["rnd"] = arp[i].start_point - 1
-        -- }
-        -- arp[i].step = arp_start[arp[i].mode]
-        -- arp[i].pause = false
-        -- arp[i].playing = true
-        -- if arp[i].mode == "pend" then
-        --   arp_direction[i] = "negative"
-        -- end
       end
     end
   end

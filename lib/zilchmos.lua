@@ -110,13 +110,19 @@ end
 
 function zilchmos.start_zero( pad )
   local duration;
-  if pad.mode == 1 and pad.clip == rec.focus then
-    duration = rec[rec.focus].end_point-rec[rec.focus].start_point
-    pad.start_point = (duration*(pad.clip-1)) + 1
+  if pad.mode == 1 then
+    pad.start_point = rec[pad.clip].start_point
   else
-    duration = pad.mode == 1 and ((8*(pad.clip-1)) + 1) or clip[pad.clip].min
-    pad.start_point = duration
+    pad.start_point = clip[pad.clip].min
   end
+  -- if pad.mode == 1 and pad.clip == rec.focus then
+  --   -- duration = rec[rec.focus].end_point-rec[rec.focus].start_point
+  --   -- pad.start_point = (duration*(pad.clip-1)) + 1
+  --   pad.start_point = rec[rec.focus].start_point
+  -- else
+  --   duration = pad.mode == 1 and ((8*(pad.clip-1)) + 1) or clip[pad.clip].min
+  --   pad.start_point = duration
+  -- end
 end
 
 function zilchmos.start_end_default( pad )
@@ -145,13 +151,19 @@ end
 
 function zilchmos.end_at_eight( pad )
   local duration;
-  if pad.mode == 1 and pad.clip == rec.focus then
-    duration = rec[rec.focus].end_point-rec[rec.focus].start_point
-    pad.end_point = (duration*pad.clip) + 1
+  if pad.mode == 1 then
+    pad.end_point = rec[pad.clip].end_point
   else
-    duration = pad.mode == 1 and ((8*pad.clip) + 1) or clip[pad.clip].max
-    pad.end_point = duration
+    pad.end_point = clip[pad.clip].max
   end
+  -- if pad.mode == 1 and pad.clip == rec.focus then
+  --   -- duration = rec[rec.focus].end_point-rec[rec.focus].start_point
+  --   -- pad.end_point = (duration*pad.clip) + 1
+  --   pad.end_point = rec[rec.focus].end_point
+  -- else
+  --   duration = pad.mode == 1 and ((8*pad.clip) + 1) or clip[pad.clip].max
+  --   pad.end_point = duration
+  -- end
 end
 
 function zilchmos.start_random( pad )

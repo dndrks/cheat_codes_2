@@ -86,20 +86,19 @@ function tp.init()
 end
 
 function tp.start()
-  -- set stuff to 1 and start them
-  clock.sync(4)
-  -- print("starting at "..clock.get_beats())
   tp.is_running = true
   transport.status_icon.status = 4
   for i = 1,3 do
-    if #arp[i].notes > 0 and params:string("start_arp_"..i.."_at_launch") == "yes" then
+    -- if tab.count(arp[i].notes) > 0 and params:string("start_arp_"..i.."_at_launch") == "yes" then
+    if params:string("start_arp_"..i.."_at_launch") == "yes" then
       arps.toggle("start",i)
     end
     if #grid_pat[i].event > 0 and params:string("start_pat_"..i.."_at_launch") == "yes" then
-      grid_pat[i]:start()
+      -- grid_pat[i]:start()
+      -- print("100 in transport")
+      start_pattern(grid_pat[i],"jumpstart")
     end
     toggle_meta("start",i)
-    -- print(clock.get_beats())
   end
   rytm.toggle("start")
   tp.start_midi()
@@ -112,6 +111,30 @@ function tp.start()
   grid_dirty = true
   tp.start_clock = nil
   tp.pending = false
+  -- clock.sync(4)
+  -- tp.is_running = true
+  -- transport.status_icon.status = 4
+  -- for i = 1,3 do
+  --   if #arp[i].notes > 0 and params:string("start_arp_"..i.."_at_launch") == "yes" then
+  --     arps.toggle("start",i)
+  --   end
+  --   if #grid_pat[i].event > 0 and params:string("start_pat_"..i.."_at_launch") == "yes" then
+  --     grid_pat[i]:start()
+  --   end
+  --   toggle_meta("start",i)
+  --   -- print(clock.get_beats())
+  -- end
+  -- rytm.toggle("start")
+  -- tp.start_midi()
+  -- tp.send_midi_clock()
+  -- if params:string("crow output 4") == "transport gate" then
+  --   crow.output[4].volts = 5.0
+  -- elseif params:string("crow output 4") == "transport pulse" then
+  --   crow.output[4]("{to(5,0),to(0,0.05)}")
+  -- end
+  -- grid_dirty = true
+  -- tp.start_clock = nil
+  -- tp.pending = false
 end
 
 function tp.start_from_midi_message()
@@ -270,8 +293,11 @@ function clock.transport.start()
   -- if (all_loaded and tp.cycle > 0) or (all_loaded and (params:string("clock_source") == "internal" or params:string("clock_source") == "link")) then
     -- print("for real..")
     if tp.start_clock == nil then
-      tp.start_clock = clock.run(tp.start)
+      -- tp.start_clock = clock.run(tp.start)
+      -- tp.pending = true
       tp.pending = true
+      tp.start()
+      screen_dirty = true
     end
   end
   tp.cycle = tp.cycle + 1

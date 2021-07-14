@@ -1,6 +1,6 @@
 -- cheat codes 2
 --          a sample playground
--- rev: 210607
+-- rev: 210714
 -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
 -- need help?
 -- please visit:
@@ -783,6 +783,7 @@ key2_hold_counter.time = 0.25
 key2_hold_counter.count = 1
 key2_hold_counter.event = function()
   key2_hold = true
+  screen_dirty = true
 end
 
 key2_hold = false
@@ -2992,8 +2993,8 @@ function cheat(b,i)
   end
   --/ OH ALL THIS SUCKS TODO FIXME
   softcut.fade_time(b+1,variable_fade_time)
-  softcut.loop_start(b+1,pad.start_point+variable_fade_time)
-  softcut.loop_end(b+1,pad.end_point-variable_fade_time)
+  softcut.loop_start(b+1,pad.start_point)
+  softcut.loop_end(b+1,pad.end_point)
   softcut.buffer(b+1,pad.mode)
   if pad.pause == false then
     softcut.rate(b+1,pad.rate*pad.offset)
@@ -3303,7 +3304,7 @@ function buff_freeze()
 end
 
 function buff_flush()
-  softcut.buffer_clear_region_channel(1,rec[rec.focus].start_point, rec[rec.focus].end_point-rec[rec.focus].start_point)
+  softcut.buffer_clear_region_channel(1,rec[rec.focus].start_point, (rec[rec.focus].end_point-rec[rec.focus].start_point)+0.01)
   rec[rec.focus].state = 0
   rec[rec.focus].clear = 1
   softcut.rec_level(1,0)
@@ -3807,32 +3808,38 @@ function key(n,z)
         end
 
       elseif menu == 9 then
-        -- arp[page.arp_page_sel].hold = not arp[page.arp_page_sel].hold
-        local id = page.arp_page_sel
-        if not arp[id].hold then
-          if not arp[id].enabled then
-            arp[id].enabled = true
-          end
-          if #arp[id].notes > 0 then
-            arp[id].hold = true
-          else
-            arp[id].enabled = false
-          end
+        if not key2_hold then
+          grid_actions.arp_handler(page.arp_page_sel)
         else
-          if #arp[id].notes > 0 then
-            if arp[id].playing == true then
-              arp[id].hold = not arp[id].hold
-              if not arp[id].hold then
-                arps.clear(id)
-              end
-              arp[id].enabled = false
-            -- else
-            --   arp[id].step = arp[id].start_point-1
-            --   arp[id].pause = false
-            --   arp[id].playing = true
-            end
-          end
+          key2_hold_and_modify = true
+          grid_actions.kill_arp(page.arp_page_sel)
         end
+        -- arp[page.arp_page_sel].hold = not arp[page.arp_page_sel].hold
+        -- local id = page.arp_page_sel
+        -- if not arp[id].hold then
+        --   if not arp[id].enabled then
+        --     arp[id].enabled = true
+        --   end
+        --   if #arp[id].notes > 0 then
+        --     arp[id].hold = true
+        --   else
+        --     arp[id].enabled = false
+        --   end
+        -- else
+        --   if #arp[id].notes > 0 then
+        --     if arp[id].playing == true then
+        --       arp[id].hold = not arp[id].hold
+        --       if not arp[id].hold then
+        --         arps.clear(id)
+        --       end
+        --       arp[id].enabled = false
+        --     -- else
+        --     --   arp[id].step = arp[id].start_point-1
+        --     --   arp[id].pause = false
+        --     --   arp[id].playing = true
+        --     end
+        --   end
+        -- end
         grid_dirty = true
 
 
@@ -3862,7 +3869,7 @@ function key(n,z)
         else
           menu = "transport_config"
         end
-      elseif (menu == 2 or menu == 7) and not key1_hold then
+      elseif (menu == 2 or menu == 7 or menu == 9) and not key1_hold then
         -- key2_hold = true
         key2_hold_counter:start()
         key2_hold_and_modify = false
@@ -3893,7 +3900,7 @@ function key(n,z)
           end
         end
       end
-    elseif n == 2 and z == 0 and key2_hold == false and (menu == 2 or menu == 7) and not key1_hold then
+    elseif n == 2 and z == 0 and key2_hold == false and (menu == 2 or menu == 7 or menu == 9) and not key1_hold then
       key2_hold_counter:stop()
       menu = 1
     elseif n == 2 and z == 0 and key2_hold_and_modify then

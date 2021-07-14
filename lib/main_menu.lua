@@ -137,8 +137,11 @@ function main_menu.init()
         end
         -- local pad = bank[page.loops.sel].focus_hold and bank[page.loops.sel][bank[page.loops.sel].focus_pad] or bank[page.loops.sel][bank[page.loops.sel].id]
         local off = pad.mode == 1 and (((pad.clip-1)*8)+1) or clip[pad.clip].min
-        local display_end = pad.mode == 1 and (pad.end_point == 8.99 and 9 or pad.end_point) or pad.end_point
-        screen.text_right("s: "..string.format("%.4g",(util.round(pad.start_point,0.0001))-off).."s | e: "..string.format("%.4g",(display_end)-off).."s")
+        local rs = {1,2,4}
+        local rate_mod = rs[params:get("live_buff_rate")]
+        local display_start = pad.mode == 1 and ((util.round(pad.start_point,0.0001)-off)*rate_mod) or ((util.round(pad.start_point,0.0001))-off)
+        local display_end = pad.mode == 1 and (((pad.end_point == 8.99 and 9 or pad.end_point)-off) * rate_mod) or (pad.end_point-off)
+        screen.text_right("s: "..string.format("%.4g",display_start).."s | e: "..string.format("%.4g",display_end).."s")
       elseif page.loops.sel == 4 then
         local off = ((rec.focus-1)*8)+1
         local mults = {1,2,4}
@@ -1288,10 +1291,15 @@ function main_menu.init()
     screen.move(0,60)
     screen.font_size(15)
     screen.level(15)
-    screen.text((focus_arp.hold and focus_arp.playing) and "hold" or ((focus_arp.hold and not focus_arp.playing) and "pause" or ""))
+    if not key2_hold then
+      screen.text((focus_arp.hold and focus_arp.playing) and "hold" or ((focus_arp.hold and not focus_arp.playing) and "pause" or ""))
+    elseif #focus_arp.notes > 0 then
+      screen.text("K3: CLEAR")
+    end
     
     screen.font_size(40)
     screen.move(50,50)
+    screen.level(arp[page.arp_page_sel].enabled and 15 or 3)
     screen.text(#focus_arp.notes > 0 and focus_arp.notes[focus_arp.step] or "...")
 
     screen.font_size(8)

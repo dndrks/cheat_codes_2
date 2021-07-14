@@ -251,7 +251,9 @@ function encoder_actions.init(n,d)
             end
           else
             local resolution = loop_enc_resolution[id] * (key1_hold and 10 or 1)
-            ea.move_start(bank[id][focused_pad],d/resolution)
+            local rs = {1,2,4}
+            local rate_mod = rs[params:get("live_buff_rate")]
+            ea.move_start(bank[id][focused_pad],d/(resolution * rate_mod))
             if bank[id].focus_hold == false then
               ea.sc.move_start(id)
             end
@@ -423,7 +425,9 @@ function encoder_actions.init(n,d)
             end
           else
             local resolution = loop_enc_resolution[id] * (key1_hold and 10 or 1)
-            ea.move_end(bank[id][focused_pad],d/resolution)
+            local rs = {1,2,4}
+            local rate_mod = rs[params:get("live_buff_rate")]
+            ea.move_end(bank[id][focused_pad],d/(resolution*rate_mod))
             if bank[id].focus_hold == false then
               ea.sc.move_end(id)
             end
