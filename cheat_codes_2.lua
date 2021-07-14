@@ -1432,11 +1432,17 @@ function init()
 
   params:add_separator("cheat codes external zone")
 
-  params:add_group("OSC setup",3)
+  params:add_group("OSC setup",4)
   params:add_text("osc_IP", "source OSC IP", "192.168.")
   params:set_action("osc_IP", function() dest = {tostring(params:get("osc_IP")), tonumber(params:get("osc_port"))} end)
   params:add_text("osc_port", "OSC port", "9000")
   params:set_action("osc_port", function() dest = {tostring(params:get("osc_IP")), tonumber(params:get("osc_port"))} end)
+  params:add_option("touchosc_echo", "TouchOSC echo?", {"no","yes"}, 2)
+  params:set_action("touchosc_echo", function()
+    if all_loaded then
+      persistent_state_save()
+    end
+  end)
   params:add{type = "trigger", id = "refresh_osc", name = "refresh OSC [K3]", action = function()
     params:set("osc_IP","none")
     params:set("osc_port","none")
@@ -1934,10 +1940,12 @@ function init()
     end
     , 1/30, -1)
   hardware_redraw:start()
+  viz_metro_advance = 1
 
   clock.run(function()
     while true do
-      clock.sync(1/4)
+      clock.sync(1)
+      viz_metro_advance = util.wrap(viz_metro_advance+1,1,4)
       if menu == 1 then
         screen_dirty = true
       end
@@ -2546,11 +2554,24 @@ osc_in = function(path, args, from)
   end
   for i = 1,3 do
     local target = bank[i][bank[i].id]
-    if path == "/pad_sel_"..i then
-      if args[1] ~= 0 then
-        bank[i].id = util.round(args[1])
-        cheat(i,bank[i].id)
-        if menu ~= 1 then screen_dirty = true end
+    if path:find('^'.."/pad_sel_"..i) then
+      local pad_target = tonumber(path:match("^.*%_(.*)"))
+      if args[1] == 1 then
+        grid_actions.pad_down(i,pad_target)
+      elseif args[1] == 0 then
+        grid_actions.pad_up(i,pad_target)
+      end
+    elseif path:find('^'.."/grid_pat_"..i) then
+      if args[1] == 1 then
+        grid_actions.grid_pat_handler(i)
+      end
+    elseif path:find('^'.."/arp_"..i) then
+      if args[1] == 1 then
+        if not grid_alt then
+          grid_actions.arp_handler(i)
+        else
+          grid_actions.kill_arp(i)
+        end
       end
     elseif path == "/randomize_this_bank_"..i then
       random_grid_pat(i,3)
@@ -2662,58 +2683,20 @@ osc_in = function(path, args, from)
       encoder_actions.set_filter_cutoff(i,args[1])
     end
   end
+  grid_dirty = true
+  screen_dirty = true
 end
 
 osc.event = osc_in
 
 function osc_redraw(i)
-  if osc_echo then
+  if params:string("touchosc_echo") == "yes" then
     local target = bank[i][bank[i].id]
-    osc.send(dest, "/pad_start_point_"..i, {target.start_point})
-    osc.send(dest, "/pad_end_point_"..i, {target.end_point})
-    osc.send(dest, "/pad_rate_"..i, {target.rate})
-    -- local loop_to_osc = nil
-    -- if bank[i][bank[i].id].loop == false then
-    --   loop_to_osc = 0
-    -- else
-    --   loop_to_osc = 1
-    -- end
-    -- osc.send(dest, "/pad_loop_single_"..i, {loop_to_osc})
-    -- osc.send(dest, "/rate_"..i, {params:get("rate "..i)})
-    -- for j = 7,12 do
-    --   osc.send(dest, "/rate_"..i.."_"..j, {0})
-    -- end
-    -- if params:get("rate "..i) > 6 then
-    --   osc.send(dest, "/rate_"..i.."_"..params:get("rate "..i), {1})
-    --   osc.send(dest, "/rate_rev_"..i,{0})
-    -- else
-    --   osc.send(dest, "/rate_"..i.."_"..math.abs(params:get("rate "..i)-13), {1})
-    --   osc.send(dest, "/rate_rev_"..i,{1})
-    -- end
-    -- -- osc.send(dest, "/pad_start_"..i, {(bank[i][bank[i].id].start_point*100)-((8*(bank[i][bank[i].id].clip-1))*100)})
-    -- osc.send(dest, "/pad_start_"..i, {(bank[i][bank[i].id].start_point)})
-    -- -- osc.send(dest, "/pad_start_display_"..i, {tonumber(string.format("%.2f",(bank[i][bank[i].id].start_point) - (8*(bank[i][bank[i].id].clip-1))))})
-    -- -- osc.send(dest, "/pad_end_"..i, {(bank[i][bank[i].id].end_point*100)-((8*(bank[i][bank[i].id].clip-1))*100)})
-    -- osc.send(dest, "/pad_end_"..i, {(bank[i][bank[i].id].end_point)})
-    -- osc.send(dest, "/pad_end_display_"..i, {tonumber(string.format("%.2f",bank[i][bank[i].id].end_point - (8*(bank[i][bank[i].id].clip-1))))})
-    -- for j = 1,16 do
-    --   osc.send(dest, "/pad_sel_"..i.."_"..j, {0})
-    -- end
-    -- osc.send(dest, "/pad_sel_"..i.."_"..bank[i].id, {1})
-    -- local rec_state_to_osc = nil
-    -- if rec[rec.focus].state == 0 then
-    --   rec_state_to_osc = "not recording"
-    -- else
-    --   rec_state_to_osc = "recording"
-    -- end
-    -- osc.send(dest, "/buffer_state", {rec_state_to_osc})
-    -- for j = 1,3 do
-    --   if rec.focus ~= j then
-    --     osc.send(dest, "/buffer_LED_"..j, {0})
-    --   else
-    --     osc.send(dest, "/buffer_LED_"..rec.focus, {1})
-    --   end
-    -- end
+    osc.send(dest, "/param/start point "..i, {params:get("start point "..i)})
+    osc.send(dest, "/param/end point "..i, {params:get("end point "..i)})
+    osc.send(dest, "/param/level "..i, {params:get("level "..i)})
+    osc.send(dest, "/param/pan "..i, {params:get("pan "..i)})
+    osc.send(dest, "/param/loop_"..i, {bank[i][bank[i].id].loop == true and 0 or 1})
   end
 end
 
@@ -5468,6 +5451,7 @@ function persistent_state_save()
     io.write(i.."_pad_to_crow_pulse: "..params:get(i.."_pad_to_crow_pulse").."\n")
     io.write(i.."_pad_to_jf_pulse: "..params:get(i.."_pad_to_jf_pulse").."\n")
   end
+  io.write("touchosc_echo: "..params:get("touchosc_echo").."\n")
   io.close(file)
 end
 

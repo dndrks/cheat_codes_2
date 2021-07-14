@@ -12,7 +12,7 @@ function main_menu.metro_icon(x,y)
   screen.move(x+7,y+3)
   local pos =
   transport.is_running
-  and (util.round(clock.get_beats()%1) == 0
+  and ((viz_metro_advance == 1 or viz_metro_advance == 3)
   and (x+10)
   or (x+4))
   or (x+4)

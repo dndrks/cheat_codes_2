@@ -597,6 +597,9 @@ params:add_separator("ALT key")
       action=function(x)
         if x == 1 then
           grid_actions.toggle_pad_loop(i)
+          if osc_communication == true then
+            osc_redraw(i)
+          end
         end
       end
     }

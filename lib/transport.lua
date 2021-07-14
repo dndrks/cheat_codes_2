@@ -111,6 +111,7 @@ function tp.start()
   grid_dirty = true
   tp.start_clock = nil
   tp.pending = false
+  viz_metro_advance = 1
   -- clock.sync(4)
   -- tp.is_running = true
   -- transport.status_icon.status = 4
@@ -220,6 +221,7 @@ function tp.stop()
   end
   tp.is_running = false
   transport.status_icon.status = 1
+  viz_metro_advance = 1
   grid_dirty = true
 end
 

@@ -50,39 +50,40 @@ function grid_actions.init(x,y,z)
       for i = 1,3 do
         if z == 1 and x > 0 + (5*(i-1)) and x <= 4 + (5*(i-1)) and y >=5 then
           if bank[i].focus_hold == false then
-            if not grid_alt then
-              selected[i].x = x
-              selected[i].y = y
-              selected[i].id = (math.abs(y-9)+((x-1)*4))-(20*(i-1))
-              bank[i].id = selected[i].id
-              which_bank = i
-              if menu == 11 then
-                help_menu = "banks"
-              end
-              pad_clipboard = nil
-              if bank[i].quantize_press == 0 then
-                if arp[i].enabled and grid_pat[i].rec == 0 and not arp[i].pause then
-                  if arp[i].down == 0 and params:string("arp_"..i.."_hold_style") == "last pressed" then
-                    for j = #arp[i].notes,1,-1 do
-                      table.remove(arp[i].notes,j)
-                    end
-                  end
-                  arp[i].time = bank[i][bank[i].id].arp_time
-                  arps.momentary(i, bank[i].id, "on")
-                  arp[i].down = arp[i].down + 1
-                else
-                  if rytm.track[i].k == 0 then
-                    cheat(i, bank[i].id)
-                  end
-                  grid_pattern_watch(i)
-                end
-              else
-                table.insert(quantize_events[i],selected[i].id)
-              end
-            else
-              local released_pad = (math.abs(y-9)+((x-1)*4))-(20*(i-1))
-              arps.momentary(i, released_pad, "off")
-            end
+            grid_actions.pad_down(i,(math.abs(y-9)+((x-1)*4))-(20*(i-1)))
+            -- if not grid_alt then
+            --   selected[i].x = x
+            --   selected[i].y = y
+            --   selected[i].id = (math.abs(y-9)+((x-1)*4))-(20*(i-1))
+            --   bank[i].id = selected[i].id
+            --   which_bank = i
+            --   if menu == 11 then
+            --     help_menu = "banks"
+            --   end
+            --   pad_clipboard = nil
+            --   if bank[i].quantize_press == 0 then
+            --     if arp[i].enabled and grid_pat[i].rec == 0 and not arp[i].pause then
+            --       if arp[i].down == 0 and params:string("arp_"..i.."_hold_style") == "last pressed" then
+            --         for j = #arp[i].notes,1,-1 do
+            --           table.remove(arp[i].notes,j)
+            --         end
+            --       end
+            --       arp[i].time = bank[i][bank[i].id].arp_time
+            --       arps.momentary(i, bank[i].id, "on")
+            --       arp[i].down = arp[i].down + 1
+            --     else
+            --       if rytm.track[i].k == 0 then
+            --         cheat(i, bank[i].id)
+            --       end
+            --       grid_pattern_watch(i)
+            --     end
+            --   else
+            --     table.insert(quantize_events[i],selected[i].id)
+            --   end
+            -- else
+            --   local released_pad = (math.abs(y-9)+((x-1)*4))-(20*(i-1))
+            --   arps.momentary(i, released_pad, "off")
+            -- end
           else
             if not grid_alt then
               bank[i].focus_pad = (math.abs(y-9)+((x-1)*4))-(20*(i-1))
@@ -102,16 +103,17 @@ function grid_actions.init(x,y,z)
           if menu ~= 1 then screen_dirty = true end
         elseif z == 0 and x > 0 + (5*(i-1)) and x <= 4 + (5*(i-1)) and y >=5 then
           if not bank[i].focus_hold then
-            local released_pad = (math.abs(y-9)+((x-1)*4))-(20*(i-1))
-            if bank[i][released_pad].play_mode == "momentary" then
-              softcut.rate(i+1,0)
-            end
-            if (arp[i].enabled and not arp[i].hold) or (menu == 9 and not arp[i].hold) then
-              arps.momentary(i, released_pad, "off")
-              arp[i].down = arp[i].down - 1
-            elseif (arp[i].enabled and arp[i].hold and not arp[i].pause) or (menu == 9 and arp[i].hold and not arp[i].pause) then
-              arp[i].down = arp[i].down - 1
-            end
+            grid_actions.pad_up(i,(math.abs(y-9)+((x-1)*4))-(20*(i-1)))
+            -- local released_pad = (math.abs(y-9)+((x-1)*4))-(20*(i-1))
+            -- if bank[i][released_pad].play_mode == "momentary" then
+            --   softcut.rate(i+1,0)
+            -- end
+            -- if (arp[i].enabled and not arp[i].hold) or (menu == 9 and not arp[i].hold) then
+            --   arps.momentary(i, released_pad, "off")
+            --   arp[i].down = arp[i].down - 1
+            -- elseif (arp[i].enabled and arp[i].hold and not arp[i].pause) or (menu == 9 and arp[i].hold and not arp[i].pause) then
+            --   arp[i].down = arp[i].down - 1
+            -- end
           end
         end
       end
@@ -193,89 +195,7 @@ function grid_actions.init(x,y,z)
       for k = 1,1 do
         for i = 1,3 do
           if z == 0 and x == (k+1)+(5*(i-1)) and y<=k then
-            if grid_pat[i].quantize == 0 then -- still relevant
-              if bank[i].alt_lock and not grid_alt then
-                if grid_pat[i].play == 1 then
-                  grid_pat[i].overdub = grid_pat[i].overdub == 0 and 1 or 0
-                end
-              else
-                if grid_alt then -- still relevant
-                  if grid_pat[i].rec == 1 then
-                    -- grid_actions.rec_stop(i)
-                    grid_pat[i]:rec_stop()
-                  end
-                  -- grid_pat[i]:stop()
-                  stop_pattern(grid_pat[i])
-                  --grid_pat[i].external_start = 0
-                  grid_pat[i].tightened_start = 0
-                  grid_pat[i]:clear()
-                  pattern_saver[i].load_slot = 0
-                elseif grid_pat[i].rec == 1 then -- still relevant
-                  -- grid_actions.rec_stop(i)
-                  grid_pat[i]:rec_stop()
-                  midi_clock_linearize(i)
-                  if grid_pat[i].auto_snap == 1 then
-                    print("auto-snap")
-                    snap_to_bars(i,how_many_bars(i))
-                  end
-                  if grid_pat[i].mode ~= "quantized" then
-                    --grid_pat[i]:start()
-                    start_pattern(grid_pat[i])
-                  --TODO: CONFIRM THIS IS OK...
-                  elseif grid_pat[i].mode == "quantized" then
-                    start_pattern(grid_pat[i])
-                  end
-                  grid_pat[i].loop = 1
-                elseif grid_pat[i].count == 0 then
-                  if grid_pat[i].playmode ~= 2 then
-                    if not transport.is_running then
-                      print("starting transport...")
-                      if transport.is_running then
-                        clock.transport.stop()
-                      else
-                        if params:string("clock_source") == "internal" then
-                          -- clock.internal.start(3.9)
-                          clock.internal.start(-0.1)
-                        -- elseif params:string("clock_source") == "link" then
-                        else
-                          transport.cycle = 1
-                          clock.transport.start()
-                        end
-                        transport.pending = true
-                        -- clock.transport.start()
-                      end
-                    end
-                    grid_pat[i]:rec_start()
-                  --new!
-                  else
-                    grid_pat[i].rec_clock = clock.run(synced_record_start,grid_pat[i],i)
-                  end
-                  --/new!
-                elseif grid_pat[i].play == 1 then
-                  --grid_pat[i]:stop()
-                  stop_pattern(grid_pat[i])
-                else
-                  start_pattern(grid_pat[i])
-                end
-              end
-            else
-              if grid_alt then
-                -- grid_actions.rec_stop(i)
-                grid_pat[i]:rec_stop()
-                -- grid_pat[i]:stop()
-                stop_pattern(grid_pat[i])
-                grid_pat[i].tightened_start = 0
-                grid_pat[i]:clear()
-                pattern_saver[i].load_slot = 0
-              else
-                --table.insert(grid_pat_quantize_events[i],i)
-                better_grid_pat_q_clock(i)
-              end
-            end
-            if menu == 11 then
-              help_menu = "grid patterns"
-              which_bank = i
-            end
+            grid_actions.grid_pat_handler(i)
           end
         end
       end
@@ -1501,6 +1421,147 @@ function grid_actions.toggle_pad_loop(i)
     softcut.loop(i+1,bank[i][which_pad].loop == true and 1 or 0)
   end
   if menu ~= 1 then screen_dirty = true end
+end
+
+function grid_actions.index_to_grid_pos(val,columns,i)
+  local x = math.fmod(val-1,columns)+1
+  local y = math.modf((val-1)/columns)+1
+  return {x,y}
+end
+
+function grid_actions.pad_down(i,p)
+  if not grid_alt then
+    selected[i].x = grid_actions.index_to_grid_pos(p,4,i)[2] + (5*(i-1))
+    selected[i].y = 9 - grid_actions.index_to_grid_pos(p,4,i)[1]
+    selected[i].id = p
+    bank[i].id = selected[i].id
+    which_bank = i
+    if menu == 11 then
+      help_menu = "banks"
+    end
+    pad_clipboard = nil
+    if bank[i].quantize_press == 0 then
+      if arp[i].enabled and grid_pat[i].rec == 0 and not arp[i].pause then
+        if arp[i].down == 0 and params:string("arp_"..i.."_hold_style") == "last pressed" then
+          for j = #arp[i].notes,1,-1 do
+            table.remove(arp[i].notes,j)
+          end
+        end
+        arp[i].time = bank[i][bank[i].id].arp_time
+        arps.momentary(i, bank[i].id, "on")
+        arp[i].down = arp[i].down + 1
+      else
+        if rytm.track[i].k == 0 then
+          cheat(i, bank[i].id)
+        end
+        grid_pattern_watch(i)
+      end
+    else
+      table.insert(quantize_events[i],selected[i].id)
+    end
+  else
+    local released_pad = p
+    arps.momentary(i, released_pad, "off")
+  end
+end
+
+function grid_actions.pad_up(i,p)
+  local released_pad = p
+  if bank[i][released_pad].play_mode == "momentary" then
+    softcut.rate(i+1,0)
+  end
+  if (arp[i].enabled and not arp[i].hold) or (menu == 9 and not arp[i].hold) then
+    arps.momentary(i, released_pad, "off")
+    arp[i].down = arp[i].down - 1
+  elseif (arp[i].enabled and arp[i].hold and not arp[i].pause) or (menu == 9 and arp[i].hold and not arp[i].pause) then
+    arp[i].down = arp[i].down - 1
+  end
+end
+
+function grid_actions.grid_pat_handler(i)
+  if grid_pat[i].quantize == 0 then -- still relevant
+    if bank[i].alt_lock and not grid_alt then
+      if grid_pat[i].play == 1 then
+        grid_pat[i].overdub = grid_pat[i].overdub == 0 and 1 or 0
+      end
+    else
+      if grid_alt then -- still relevant
+        if grid_pat[i].rec == 1 then
+          -- grid_actions.rec_stop(i)
+          grid_pat[i]:rec_stop()
+        end
+        -- grid_pat[i]:stop()
+        stop_pattern(grid_pat[i])
+        --grid_pat[i].external_start = 0
+        grid_pat[i].tightened_start = 0
+        grid_pat[i]:clear()
+        pattern_saver[i].load_slot = 0
+      elseif grid_pat[i].rec == 1 then -- still relevant
+        -- grid_actions.rec_stop(i)
+        grid_pat[i]:rec_stop()
+        midi_clock_linearize(i)
+        if grid_pat[i].auto_snap == 1 then
+          print("auto-snap")
+          snap_to_bars(i,how_many_bars(i))
+        end
+        if grid_pat[i].mode ~= "quantized" then
+          --grid_pat[i]:start()
+          start_pattern(grid_pat[i])
+        --TODO: CONFIRM THIS IS OK...
+        elseif grid_pat[i].mode == "quantized" then
+          start_pattern(grid_pat[i])
+        end
+        grid_pat[i].loop = 1
+      elseif grid_pat[i].count == 0 then
+        if grid_pat[i].playmode ~= 2 then
+          if not transport.is_running then
+            print("starting transport...")
+            if transport.is_running then
+              clock.transport.stop()
+            else
+              if params:string("clock_source") == "internal" then
+                -- clock.internal.start(3.9)
+                clock.internal.start(-0.1)
+              -- elseif params:string("clock_source") == "link" then
+              else
+                transport.cycle = 1
+                clock.transport.start()
+              end
+              transport.pending = true
+              -- clock.transport.start()
+            end
+          end
+          grid_pat[i]:rec_start()
+        --new!
+        else
+          grid_pat[i].rec_clock = clock.run(synced_record_start,grid_pat[i],i)
+        end
+        --/new!
+      elseif grid_pat[i].play == 1 then
+        --grid_pat[i]:stop()
+        stop_pattern(grid_pat[i])
+      else
+        start_pattern(grid_pat[i])
+      end
+    end
+  else
+    if grid_alt then
+      -- grid_actions.rec_stop(i)
+      grid_pat[i]:rec_stop()
+      -- grid_pat[i]:stop()
+      stop_pattern(grid_pat[i])
+      grid_pat[i].tightened_start = 0
+      grid_pat[i]:clear()
+      pattern_saver[i].load_slot = 0
+    else
+      --table.insert(grid_pat_quantize_events[i],i)
+      better_grid_pat_q_clock(i)
+    end
+  end
+  if menu == 11 then
+    help_menu = "grid patterns"
+    which_bank = i
+  end
 end
 
 return grid_actions
