@@ -369,7 +369,7 @@ end
 function _arps.fill(style)
   if style ~= "random" then
     for i = arp[_arps_.sel].start_point,arp[_arps_.sel].end_point do
-      arp[_arps_.sel].notes[i] = snakes[style][util.wrap(i,1,16)]
+      arp[_arps_.sel].notes[i] = snakes[style][wrap(i,1,16)]
     end
   else
     for i = arp[_arps_.sel].start_point,arp[_arps_.sel].end_point do

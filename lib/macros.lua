@@ -503,7 +503,7 @@ function Container.key(n,z)
       -- page.macros.mode = page.macros.mode == "setup" and "perform" or "setup"
     else
       if p.mode == "setup" then
-        -- p.section = util.wrap(p.section+1,1,2)
+        -- p.section = wrap(p.section+1,1,2)
       elseif p.mode == "perform" then
         if p.perform_focus[p.selected_macro] == 1 then
           params:set("macro "..p.selected_macro,math.random(macro[p.selected_macro].in_min,macro[p.selected_macro].in_max))

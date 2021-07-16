@@ -160,7 +160,7 @@ function dough.pgh_set(param,i)
   local current = params:get(param..i)
   local next_move = math.random(0,1)
   next_move = next_move == 0 and -1 or 1
-  local next_step = util.wrap(current+next_move,bounds[param].min,bounds[param].max)
+  local next_step = wrap(current+next_move,bounds[param].min,bounds[param].max)
   params:set(param..i,next_step)
 end
 
@@ -230,9 +230,9 @@ function dough.cheat(i)
     end
   else
     if pad.rate > 0 then
-      dough_stretch[i].pos = util.wrap(pad.start_point+dough_stretch[i].fade_time,pad.start_point,pad.end_point)
+      dough_stretch[i].pos = wrap(pad.start_point+dough_stretch[i].fade_time,pad.start_point,pad.end_point)
     elseif pad.rate < 0 then
-      dough_stretch[i].pos = util.wrap(pad.end_point-dough_stretch[i].fade_time-0.01,pad.start_point,pad.end_point)
+      dough_stretch[i].pos = wrap(pad.end_point-dough_stretch[i].fade_time-0.01,pad.start_point,pad.end_point)
     end
   end
 end

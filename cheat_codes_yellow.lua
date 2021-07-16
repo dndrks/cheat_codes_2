@@ -86,6 +86,7 @@ rnd = include 'lib/rnd_actions'
 del = include 'lib/delay'
 rytm = include 'lib/euclid'
 mc = include 'lib/midicheat'
+filters = include 'lib/filters'
 -- sharer = include 'lib/sharer'
 macros = include 'lib/macros'
 transport = include 'lib/transport'
@@ -98,6 +99,22 @@ variable_fade_time = 0.01
 --with positive playback rates, the buffer is actually read from / written to up to (loop end + fade time).
 -- with negative rates, up to (loop start - fade time).
 splash_done = true
+
+function wrap(n, min, max)
+  if max >= min then
+    local y = n
+    local d = max - min + 1
+    while y > max do
+      y = y - d
+    end
+    while y < min do
+      y = y + d
+    end
+    return y
+  else
+    error("max needs to be greater than min")
+  end
+end
 
 macro = {}
 for i = 1,8 do
@@ -251,20 +268,6 @@ for i = 1,3 do
 end
 
 help_menu = "welcome"
-
-function f1()
-  softcut.post_filter_lp(2,0)
-  softcut.post_filter_hp(2,1)
-  softcut.post_filter_fc(2,10)
-  params:set("filter 1 cutoff",10)
-end
-
-function f2()
-  softcut.post_filter_hp(2,0)
-  softcut.post_filter_lp(2,1)
-  softcut.post_filter_fc(2,12000)
-  params:set("filter 1 cutoff",12000)
-end
 
 pattern_saver = { {},{},{} }
 for i = 1,3 do
@@ -2086,6 +2089,7 @@ function stop_pattern(target,style)
     clock.cancel(target.clock)
     target.clock = nil
   end
+  print(style,clock.get_beats())
   local function wipe_slate(b)
     for i = 1,#grid_pat[b].event do
       if tab.contains(held_keys[b],grid_pat[b].event[i].id) then
@@ -2952,32 +2956,32 @@ function cheat(b,i,silent)
       -- softcut.position(b+1,pad.end_point-variable_fade_time-0.05)
       softcut.position(b+1,pad.end_point-variable_fade_time-0.01)
   end
-  if slew_counter[b] ~= nil then
-    slew_counter[b].next_tilt = pad.tilt
-    slew_counter[b].next_q = pad.q
-    if pad.tilt_ease_type == 1 then
-      if slew_counter[b].slewedVal ~= nil and math.floor(slew_counter[b].slewedVal*10000) ~= math.floor(slew_counter[b].next_tilt*10000) then
-        if math.floor(slew_counter[b].prev_tilt*10000) ~= math.floor(slew_counter[b].slewedVal*10000) then
-          slew_counter[b].interrupted = 1
-          slew_filter(util.round(b),slew_counter[b].slewedVal,slew_counter[b].next_tilt,slew_counter[b].prev_q,slew_counter[b].next_q,pad.tilt_ease_time)
-        else
-          slew_counter[b].interrupted = 0
-          slew_filter(util.round(b),slew_counter[b].prev_tilt,slew_counter[b].next_tilt,slew_counter[b].prev_q,slew_counter[b].next_q,pad.tilt_ease_time)
-        end
-      end
-    elseif pad.tilt_ease_type == 2 then
-      slew_filter(util.round(b),slew_counter[b].prev_tilt,slew_counter[b].next_tilt,slew_counter[b].prev_q,slew_counter[b].next_q,pad.tilt_ease_time)
-    end
-  end
+  -- if slew_counter[b] ~= nil then
+  --   slew_counter[b].next_tilt = pad.tilt
+  --   slew_counter[b].next_q = pad.q
+  --   if pad.tilt_ease_type == 1 then
+  --     if slew_counter[b].slewedVal ~= nil and math.floor(slew_counter[b].slewedVal*10000) ~= math.floor(slew_counter[b].next_tilt*10000) then
+  --       if math.floor(slew_counter[b].prev_tilt*10000) ~= math.floor(slew_counter[b].slewedVal*10000) then
+  --         slew_counter[b].interrupted = 1
+  --         slew_filter(util.round(b),slew_counter[b].slewedVal,slew_counter[b].next_tilt,slew_counter[b].prev_q,slew_counter[b].next_q,pad.tilt_ease_time)
+  --       else
+  --         slew_counter[b].interrupted = 0
+  --         slew_filter(util.round(b),slew_counter[b].prev_tilt,slew_counter[b].next_tilt,slew_counter[b].prev_q,slew_counter[b].next_q,pad.tilt_ease_time)
+  --       end
+  --     end
+  --   elseif pad.tilt_ease_type == 2 then
+  --     slew_filter(util.round(b),slew_counter[b].prev_tilt,slew_counter[b].next_tilt,slew_counter[b].prev_q,slew_counter[b].next_q,pad.tilt_ease_time)
+  --   end
+  -- end
   -- softcut.pan(b+1,pad.pan)
   -- _p.process_cheat(b,i)
   _lfos.process_cheat(b,i,"pan_lfo")
   -- _lfos.process_cheat(b,i,"level_lfo")
   del.update_delays()
-  if slew_counter[b] ~= nil then
-    slew_counter[b].prev_tilt = pad.tilt
-    slew_counter[b].prev_q = pad.q
-  end
+  -- if slew_counter[b] ~= nil then
+  --   slew_counter[b].prev_tilt = pad.tilt
+  --   slew_counter[b].prev_q = pad.q
+  -- end
   previous_pad = bank[b].id
   if bank[b].crow_execute == 1 then
     if pad.send_pad_note then
@@ -3187,10 +3191,10 @@ function easing_slew(i)
   slew_counter[i].slewedQ = slew_counter[i].ease(slew_counter[i].current,slew_counter[i].beginQ,slew_counter[i].changeQ,slew_counter[i].duration)
   slew_counter[i].current = slew_counter[i].current + 0.01
   if grid_alt and all_loaded then
-    try_tilt_process(i,bank[i].id,slew_counter[i].slewedVal,slew_counter[i].slewedQ)
+    -- try_tilt_process(i,bank[i].id,slew_counter[i].slewedVal,slew_counter[i].slewedQ)
   elseif all_loaded then
     for j = 1,16 do
-      try_tilt_process(i,j,slew_counter[i].slewedVal,slew_counter[i].slewedQ)
+      -- try_tilt_process(i,j,slew_counter[i].slewedVal,slew_counter[i].slewedQ)
     end
   end
   if menu == 5 then
@@ -3263,14 +3267,14 @@ function try_tilt_process(b,i,t,rq)
     bank[b][i].cf_hp = 0
     bank[b][i].cf_dry = 1
     bank[b][i].cf_exp_dry = 1
-    if bank[b][i].filter_type == 4 then
-      params:set("filter "..b.." cutoff",12000)
-      params:set("filter "..b.." lp", 0)
-      params:set("filter "..b.." hp", 0)
-      params:set("filter "..b.." dry", 1)
-    end
+    -- if bank[b][i].filter_type == 4 then
+    --   params:set("filter "..b.." cutoff",12000)
+    --   params:set("filter "..b.." lp", 0)
+    --   params:set("filter "..b.." hp", 0)
+    --   params:set("filter "..b.." dry", 1)
+    -- end
   end
-  softcut.post_filter_rq(b+1,rq)
+  -- softcut.post_filter_rq(b+1,rq)
 end
 
 function adjust_key1_timing()
@@ -3961,7 +3965,7 @@ function grid_pattern_execute(entry)
             end
             -- here, add the clock call for note off...
             if grid_pat[i].rand_generated then
-              grid_pat[i].rand_step_count = util.wrap(grid_pat[i].rand_step_count+1,grid_pat[i].start_point,grid_pat[i].end_point)
+              grid_pat[i].rand_step_count = wrap(grid_pat[i].rand_step_count+1,grid_pat[i].start_point,grid_pat[i].end_point)
               table.insert(grid_pat[i].random_notes_held,selected[i].id)
               -- if grid_pat[i].rand_step_count % (params:get("rand_pattern_"..i.."_polyphony")+1) == 0 then
               if grid_pat[i].rand_step_count % (params:get("rand_pattern_"..i.."_polyphony")+1) == 0 then

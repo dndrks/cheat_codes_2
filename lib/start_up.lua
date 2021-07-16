@@ -79,7 +79,7 @@ function start_up.init()
   
   --params:add_separator()
   
-  params:add_group("loops + buffers", 58)
+  params:add_group("loops + buffers", 64)
 
   params:add_separator("clips")
   
@@ -200,11 +200,24 @@ function start_up.init()
         softcut.pre_level(i+1,x)
       end
     end}
+    params:add_option("SOS_L_in_"..i, "--> SOS L input", {"off","on"},2)
+    params:set_action("SOS_L_in_"..i, function(x)
+      if params:get("SOS_enabled_"..i) == 1 then
+        softcut.level_input_cut(1,i+1,x-1)
+      end
+    end)
+    params:add_option("SOS_R_in_"..i, "--> SOS R input", {"on","off"},1)
+    params:set_action("SOS_R_in_"..i, function(x)
+      if params:get("SOS_enabled_"..i) == 1 then
+        softcut.level_input_cut(1,i+1,x-1)
+      end
+    end)
     params:add{id="SOS_erase_strength_"..i, name="--> SOS erase strength", type="control", 
     controlspec=controlspec.new(0,1.0,'lin',0,1,"")}
     params:hide("SOS_erase_strength_"..i)
     params:add{id="SOS_erase_fade_"..i, name="--> SOS erase fade", type="control", 
     controlspec=controlspec.new(0,1.0,'lin',0,0,"")}
+    params:hide("SOS_erase_fade_"..i)
   end
 
   for i = 1,3 do
@@ -1053,33 +1066,7 @@ params:add_separator("ALT key")
     --/
   end
   
-  --params:add_separator()
-  
-  params:add_group("cc1.0 filters",18)
-  -- params:hide("old filters")
-  
-  --params:add{type = "trigger", id = "ignore", name = "ignore, data only:"}
-  
-  for i = 1,3 do
-    local banks = {"(a)", "(b)", "(c)"}
-    params:add_control("filter "..i.." cutoff", "filter "..banks[i].." cutoff", controlspec.new(10,12000,'lin',1,12000,"Hz"))
-    params:set_action("filter "..i.." cutoff", function(x) softcut.post_filter_fc(i+1,x) bank[i][bank[i].id].fc = x end)
-    params:add_control("filter "..i.." q", "filter "..banks[i].." q", controlspec.new(0.0005, 2.0, 'exp', 0, 0.32, ""))
-    params:set_action("filter "..i.." q", function(x)
-      softcut.post_filter_rq(i+1,x)
-      for j = 1,16 do
-        bank[i][j].q = x
-      end
-    end)
-    params:add_control("filter "..i.." lp", "filter "..banks[i].." lp", controlspec.new(0, 1, 'lin', 0, 1, ""))
-    params:set_action("filter "..i.." lp", function(x) softcut.post_filter_lp(i+1,x) bank[i][bank[i].id].lp = x end)
-    params:add_control("filter "..i.." hp", "filter "..banks[i].." hp", controlspec.new(0, 1, 'lin', 0, 0, ""))
-    params:set_action("filter "..i.." hp", function(x) softcut.post_filter_hp(i+1,x) bank[i][bank[i].id].hp = x end)
-    params:add_control("filter "..i.." bp", "filter "..banks[i].." bp", controlspec.new(0, 1, 'lin', 0, 0, ""))
-    params:set_action("filter "..i.." bp", function(x) softcut.post_filter_bp(i+1,x) bank[i][bank[i].id].bp = x end)
-    params:add_control("filter "..i.." dry", "filter "..banks[i].." dry", controlspec.new(0, 1, 'lin', 0, 0, ""))
-    params:set_action("filter "..i.." dry", function(x) softcut.post_filter_dry(i+1,x) bank[i][bank[i].id].fd = x end)
-  end
+  filters.init()
   
 end
 

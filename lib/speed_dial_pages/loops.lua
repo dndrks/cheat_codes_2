@@ -46,9 +46,13 @@ function sd_loop.draw_grid_banks()
   local pad_y = _arps.index_to_grid_pos(pad,4)[2]+7
   g:led(_c(pad_x,pad_y)[1], _c(pad_x,pad_y)[2], 15)
   
-  for i = 1,3 do
-    local SOS_level = params:get("SOS_enabled_"..i)
-    g:led(_c(0+i,13)[1], _c(0+i,13)[2], SOS_level == 1 and 15 or 4)
+  local SOS_level = params:get("SOS_enabled_".._loops_.sel)
+  local SOS_L_in = params:string("SOS_L_in_".._loops_.sel)
+  local SOS_R_in = params:string("SOS_R_in_".._loops_.sel)
+  g:led(_c(1,13)[1], _c(1,13)[2], SOS_level == 1 and 15 or 4)
+  if SOS_level == 1 then
+    g:led(_c(1,14)[1], _c(1,14)[2], SOS_level == 1 and (SOS_L_in == "on" and 15 or 4) or 0)
+    g:led(_c(2,14)[1], _c(2,14)[2], SOS_level == 1 and (SOS_R_in == "on" and 15 or 4) or 0)
   end
 
   local dough_mode = params:get("doughstretch_mode_".._loops_.sel)
@@ -128,12 +132,16 @@ function sd_loop.parse_press_banks(x,y,z)
       rightangleslice.sc.rate(bank[_loops_.sel][pad],_loops_.sel)
     end
   end
-  if (nx == 1 or nx == 2 or nx == 3) and ny == 13 and z == 1 then
+  if nx == 1 and ny == 13 and z == 1 then
     if not grid_alt then
-      _ca.SOS_toggle(nx)
+      _ca.SOS_toggle(_loops_.sel)
     else
-      _ca.SOS_erase(nx)
+      _ca.SOS_erase(_loops_.sel)
     end
+  end
+  if (nx == 1 or nx == 2) and ny == 14 and z == 1 and params:get("SOS_enabled_".._loops_.sel) == 1 then
+    local SOS_strings = {"SOS_L_in_".._loops_.sel,"SOS_R_in_".._loops_.sel}
+    params:set(SOS_strings[nx], params:get(SOS_strings[nx]) == 1 and 2 or 1)
   end
   if (nx >= 4 and nx <= 8) and ny == 5 and z == 1 then
     params:set("doughstretch_mode_".._loops_.sel,nx-3)

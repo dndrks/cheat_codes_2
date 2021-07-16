@@ -3,6 +3,7 @@ local sd = {}
 local sd_arp = include 'lib/speed_dial_pages/arps'
 local sd_loop = include 'lib/speed_dial_pages/loops'
 local sd_level = include 'lib/speed_dial_pages/levels'
+local sd_filter = include 'lib/speed_dial_pages/filters'
 
 local size;
 sd.menu = 1
@@ -43,6 +44,8 @@ function sd.draw_grid()
     sd_loop.draw_grid()
   elseif sd.menu == 3 then  
     sd_level.draw_grid()
+  elseif sd.menu == 5 then
+    sd_filter.draw_grid()
   elseif sd.menu == 9 then
     sd_arp.draw_grid()
   end
@@ -68,6 +71,8 @@ function sd.parse_press(x,y,z)
   end
   if sd.menu == 2 then
     sd_loop.parse_press(x,y,z)
+  elseif sd.menu == 5 then
+    sd_filter.parse_press(x,y,z)
   elseif sd.menu == 9 then
     sd_arp.parse_press(x,y,z)
   end

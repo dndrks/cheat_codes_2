@@ -11,6 +11,7 @@ was_transport_toggled = false
 local last_grid_page = 0
 
 local grid_level_clocks = {}
+local mute_clock = {}
 
 local _c = speed_dial.translate
 
@@ -132,6 +133,73 @@ function grid_actions.init(x,y,z)
           if y <= 2 then
             -- need to delay the collation...
             if not rytm.grid.ui[util.round(x/5)] then
+              -- local zilch_id = 2
+              -- local zmap = zilches[zilch_id]
+              -- local k1 = util.round(x/5)
+              -- local k2 = 3-y
+              -- if z == 1 then
+              --   zmap[k1][k2] = true
+              --   zmap[k1].held = zmap[k1].held + 1
+              --   zilch_leds[zilch_id][k1][y] = 1
+
+              --   local coll = {}
+              --   for j = 1,4 do
+              --     if zmap[k1][j] == true then
+              --       table.insert(coll,j)
+              --     end
+              --   end
+              --   coll.con = table.concat(coll)
+              --   local previous_rate = bank[k1][bank[k1].id].rate
+              --   print(coll.con)
+              --   if coll.con ~= "12" then
+              --     if grid_level_clocks[k1] == nil then
+              --       -- print(">>>> starting 248")
+              --       rightangleslice.init(2,k1,coll.con)
+              --       grid_dirty = true
+              --       if menu == 3 then
+              --         screen_dirty = true
+              --       end
+              --       grid_level_clocks[k1] = clock.run(
+              --         function()
+              --           while true do
+              --             clock.sleep(0.1)
+              --             rightangleslice.init(2,k1,coll.con)
+              --             grid_dirty = true
+              --             if menu == 3 then
+              --               screen_dirty = true
+              --             end
+              --           end
+              --         end
+              --       )
+              --     else
+              --       print(">>>>"..coll.con)
+              --     end
+              --   else print("it's 12") end
+              -- elseif z == 0 then
+              --   if zmap[k1].held > 0 then
+              --     local coll = {}
+              --     for j = 1,4 do
+              --       if zmap[k1][j] == true then
+              --         table.insert(coll,j)
+              --       end
+              --     end
+              --     coll.con = table.concat(coll)
+              --     local previous_rate = bank[k1][bank[k1].id].rate
+              --     -- rightangleslice.init(2,k1,coll.con)
+              --     if grid_level_clocks[k1] ~= nil then
+              --       clock.cancel(grid_level_clocks[k1])
+              --       -- print(">>>> canceling 282")
+              --       grid_level_clocks[k1] = nil
+              --     end
+              --     for j = 1,4 do
+              --       zmap[k1][j] = false
+              --     end
+              --   end
+              --   zmap[k1].held = 0
+              --   zilch_leds[zilch_id][k1][y] = 0
+              --   grid_dirty = true
+              --   if menu ~= 1 then screen_dirty = true end
+              -- end
               local zilch_id = 2
               local zmap = zilches[zilch_id]
               local k1 = util.round(x/5)
@@ -140,44 +208,7 @@ function grid_actions.init(x,y,z)
                 zmap[k1][k2] = true
                 zmap[k1].held = zmap[k1].held + 1
                 zilch_leds[zilch_id][k1][y] = 1
-
-                local coll = {}
-                for j = 1,4 do
-                  if zmap[k1][j] == true then
-                    table.insert(coll,j)
-                  end
-                end
-                coll.con = table.concat(coll)
-                local previous_rate = bank[k1][bank[k1].id].rate
-                if coll.con ~= "12" then
-                  if grid_level_clocks[k1] == nil then
-                    -- print(">>>> starting 248")
-                    rightangleslice.init(2,k1,coll.con)
-                    grid_dirty = true
-                    if menu == 3 then
-                      screen_dirty = true
-                    end
-                    grid_level_clocks[k1] = clock.run(
-                      function()
-                        while true do
-                          clock.sleep(0.1)
-                          rightangleslice.init(2,k1,coll.con)
-                          grid_dirty = true
-                          if menu == 3 then
-                            screen_dirty = true
-                          end
-                        end
-                      end
-                    )
-                  else
-                    print(">>>>"..coll.con)
-                    -- rightangleslice.init(2,k1,coll.con)
-                    -- grid_dirty = true
-                    -- if menu == 3 then
-                    --   screen_dirty = true
-                    -- end
-                  end
-                else print("it's 12") end
+                grid_dirty = true
               elseif z == 0 then
                 if zmap[k1].held > 0 then
                   local coll = {}
@@ -188,12 +219,7 @@ function grid_actions.init(x,y,z)
                   end
                   coll.con = table.concat(coll)
                   local previous_rate = bank[k1][bank[k1].id].rate
-                  -- rightangleslice.init(2,k1,coll.con)
-                  if grid_level_clocks[k1] ~= nil then
-                    clock.cancel(grid_level_clocks[k1])
-                    -- print(">>>> canceling 282")
-                    grid_level_clocks[k1] = nil
-                  end
+                  rightangleslice.init(2,k1,coll.con)
                   for j = 1,4 do
                     zmap[k1][j] = false
                   end
@@ -1645,7 +1671,7 @@ function grid_actions.bank_pad_down(i,p)
       then
         if (rytm.track[i].k == 0 and not pattern_gate[i][3].active)
         or (rytm.track[i].k ~= 0 and not pattern_gate[i][3].active) then
-          print("1648")
+          -- print("1648")
           if arp[i].down == 0 and params:string("arp_"..i.."_hold_style") == "last pressed" then
             for j = #arp[i].notes,1,-1 do
               arps.remove_momentary(i,j)

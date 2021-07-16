@@ -298,7 +298,6 @@ function pattern:next_event()
     self.step = self.step + 1
   end
   self.process(self.event[self.step])
-  print(">!>",self.step)
   if self.step <= self.count then
     self.metro.time = self.time[self.step] * self.time_factor
     self.curr_time[self.step] = util.time()

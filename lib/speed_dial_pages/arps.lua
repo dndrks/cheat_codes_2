@@ -19,19 +19,19 @@ function sd_arp.draw_grid()
   local lvl = 5
   for i = min_max[_arps_.seq_page[_arps_.sel]][1], min_max[_arps_.seq_page[_arps_.sel]][2] do
     local x_val = _arps.index_to_grid_pos(i,8)[1]
-    local y_val = util.wrap(_arps.index_to_grid_pos(i,8)[2],1,4)+1
+    local y_val = wrap(_arps.index_to_grid_pos(i,8)[2],1,4)+1
     g:led(_c(x_val,y_val)[1],_c(x_val,y_val)[2],arp[_arps_.sel].notes[i] ~= nil and 12 or (i >= arp[_arps_.sel].start_point and i <= arp[_arps_.sel].end_point and 4 or 2))
   end
   local edit_pos = _arps_.seq_position[_arps_.sel]
   if edit_pos >= min_max[_arps_.seq_page[_arps_.sel]][1] and edit_pos <= min_max[_arps_.seq_page[_arps_.sel]][2] then
     local x_val =  _arps.index_to_grid_pos(edit_pos,8)[1]
-    local y_val = util.wrap(_arps.index_to_grid_pos(edit_pos,8)[2],1,4)+1
+    local y_val = wrap(_arps.index_to_grid_pos(edit_pos,8)[2],1,4)+1
     g:led(_c(x_val,y_val)[1],_c(x_val,y_val)[2],8)
   end
   local current_step = arp[_arps_.sel].step
   if current_step >= min_max[_arps_.seq_page[_arps_.sel]][1] and current_step <= min_max[_arps_.seq_page[_arps_.sel]][2] and arp[_arps_.sel].playing then
     local x_val =  _arps.index_to_grid_pos(current_step,8)[1]
-    local y_val = util.wrap(_arps.index_to_grid_pos(current_step,8)[2],1,4)+1
+    local y_val = wrap(_arps.index_to_grid_pos(current_step,8)[2],1,4)+1
     g:led(_c(x_val,y_val)[1],_c(x_val,y_val)[2],0)
   end
   for i = 1,4 do

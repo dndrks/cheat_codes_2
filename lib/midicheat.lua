@@ -822,7 +822,8 @@ function mc.midi_note_from_pad(b,p)
     end
     if params:string(b.."_pad_to_crow_pulse") ~= "none" then
       local which_output = tonumber(params:string(b.."_pad_to_crow_pulse"))
-      crow.output[which_output](pulse(0.1,8,1))
+      -- crow.output[which_output](pulse(0.1,8,1))
+      norns.crow.send ("output["..which_output.."]( pulse() )")
     end
     if params:string(b.."_pad_to_jf_pulse") ~= "none" then
       local jf_destinations =
@@ -1119,7 +1120,7 @@ function mc.key(n,z)
     else
       local d = {"header", "notes", "ccs"}
       local old_focus = tab.key(d,page.midi_focus)
-      page.midi_focus = d[util.wrap(old_focus + 1,1,3)]
+      page.midi_focus = d[wrap(old_focus + 1,1,3)]
     end
   elseif n == 2 and z == 1 then
     key2_hold_counter:start()

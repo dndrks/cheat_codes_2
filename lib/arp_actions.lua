@@ -207,7 +207,7 @@ function arp_actions.fill(target,s_p,e_p,style)
   }
   if style ~= 9 then
     for i = s_p,e_p do
-      arp[target].notes[i] = snakes[style][util.wrap(i,1,16)]
+      arp[target].notes[i] = snakes[style][wrap(i,1,16)]
     end
   else
     for i = s_p,e_p do
@@ -227,6 +227,10 @@ function arp_actions.fill(target,s_p,e_p,style)
 end
 
 function arp_actions.process(target,source)
+  if arp[target].step == nil then
+    print("how is arp step nil???")
+    arp[target].step = arp[target].start_point
+  end
   if arp[target].mode == "fwd" then
     arp_actions.forward(target)
   elseif arp[target].mode == "bkwd" then
@@ -241,14 +245,14 @@ function arp_actions.process(target,source)
 end
 
 function arp_actions.forward(target)
-  arp[target].step = util.wrap(arp[target].step + 1,arp[target].start_point,arp[target].end_point)
+  arp[target].step = wrap(arp[target].step + 1,arp[target].start_point,arp[target].end_point)
   if arp[target].step == arp[target].start_point then
     arp[target].conditional.cycle = arp[target].conditional.cycle + 1
   end
 end
 
 function arp_actions.backward(target)
-  arp[target].step = util.wrap(arp[target].step - 1,arp[target].start_point,arp[target].end_point)
+  arp[target].step = wrap(arp[target].step - 1,arp[target].start_point,arp[target].end_point)
   if arp[target].step == arp[target].end_point then
     arp[target].conditional.cycle = arp[target].conditional.cycle + 1
   end
@@ -316,8 +320,8 @@ function arp_actions.cheat(target,step,source)
           end
         end
       else
-        -- print("missed it. ",target,arp[target].notes[util.wrap(step-1,arp[target].start_point,arp[target].end_point)])
-        grid_actions.kill_note(target,arp[target].notes[util.wrap(step-1,arp[target].start_point,arp[target].end_point)])
+        -- print("missed it. ",target,arp[target].notes[wrap(step-1,arp[target].start_point,arp[target].end_point)])
+        grid_actions.kill_note(target,arp[target].notes[wrap(step-1,arp[target].start_point,arp[target].end_point)])
         -- want to kill the previous note...
       end
     end
@@ -338,7 +342,7 @@ function arp_actions.execute_step(target,step,source)
   if (not pattern_gate[target][2].active and not pattern_gate[target][3].active)
   or (pattern_gate[target][2].active and pattern_gate[target][1].active)
   then
-    local last_pad = arp[target].notes[util.wrap(step-1,arp[target].start_point,arp[target].end_point)]
+    local last_pad = arp[target].notes[wrap(step-1,arp[target].start_point,arp[target].end_point)]
     bank[target].id = arp[target].notes[step]
     selected[target].x = (5*(target-1)+1)+(math.ceil(bank[target].id/4)-1)
     if (bank[target].id % 4) ~= 0 then
@@ -352,7 +356,7 @@ end
 
 function arp_actions.resolve_step(target,step,last_pad)
   if last_pad ~= nil then
-    local next_pad = arp[target].notes[util.wrap(step+1,arp[target].start_point,arp[target].end_point)]
+    local next_pad = arp[target].notes[wrap(step+1,arp[target].start_point,arp[target].end_point)]
     -- print("killing "..tostring(last_pad)) -- do i care if this executes on the first run?
     grid_actions.kill_note(target,last_pad)
     grid_actions.add_held_key(target,arp[target].notes[step])

@@ -57,6 +57,14 @@ led_maps =
   , ["alt_on"]            =   {15,12,15}
   , ["alt_off"]           =   {3,4,0}
   , ["focus_on"]          =   {10,8,15}
+
+  -- filters page
+  , ["filter_page_sel"]   =   {10,8,15}
+  , ["filter_engaged"]    =   {10,12,15}
+  , ["filter_disengaged"] =   {4,4,0}
+  , ["filter_level_on"]   =   {8,8,15}
+  , ["filter_level_on_disengaged"]   =   {4,0,0}
+  , ["filter_level_off"]  =   {2,4,0}
   -- , ["focus_soft"]        =   {10,8,15}
 
   -- seq page
