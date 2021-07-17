@@ -968,23 +968,7 @@ function ea.set_delay_param(target,prm,val)
 end
 
 function ea.set_filter_cutoff(target,d)
-  if slew_counter[target] ~= nil then
-    slew_counter[target].prev_tilt = bank[target][bank[target].id].tilt
-  end
-  for j = 1,16 do
-    bank[target][j].tilt = util.clamp(bank[target][j].tilt+(d/100),-1,1)
-    if d < 0 then
-      if util.round(bank[target][j].tilt*100) < 0 and util.round(bank[target][j].tilt*100) > -9 then
-        bank[target][j].tilt = -0.10
-      elseif util.round(bank[target][j].tilt*100) > 0 and util.round(bank[target][j].tilt*100) < 32 then
-        bank[target][j].tilt = 0.0
-      end
-    elseif d > 0 and util.round(bank[target][j].tilt*100) > 0 and util.round(bank[target][j].tilt*100) < 32 then
-      bank[target][j].tilt = 0.32
-    end
-  end
-  slew_filter(target,slew_counter[target].prev_tilt,bank[target][bank[target].id].tilt,bank[target][bank[target].id].q,bank[target][bank[target].id].q,15)
-  params:set("filter tilt "..tonumber(string.format("%.0f",target)),bank[target][bank[target].id].tilt,"true")
+  params:delta("filter "..target.." cutoff", d/10)
 end
 
 function ea.delta_MIDI_values(target,d,quant_table)

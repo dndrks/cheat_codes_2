@@ -1,5 +1,14 @@
 local filters = {}
 
+local speeds =
+  {
+    ["rapid"] = 0.002,
+    ["1 bar"] = (clock.get_beat_sec()*4) / 100,
+    ["2 bar"] = ((clock.get_beat_sec()*4) / 100) * 2,
+    ["3 bar"] = ((clock.get_beat_sec()*4) / 100) * 3,
+    ["4 bar"] = ((clock.get_beat_sec()*4) / 100) * 4,
+  }
+
 function filters.init()
 
   filter = {}
@@ -13,11 +22,12 @@ function filters.init()
 
   local filter_types = {"dry","lp","hp","bp"}
 
-  params:add_group("filters",18)
+  params:add_group("filters",57)
   for i = 1,3 do
     local banks = {"(a)", "(b)", "(c)"}
     local filter_controlspec = controlspec.FREQ
     filter_controlspec.default = 20000
+    params:add_separator(banks[i].." general")
     params:add_control("filter "..i.." cutoff", "filter "..banks[i].." cutoff", filter_controlspec)
     params:set_action("filter "..i.." cutoff", function(x) softcut.post_filter_fc(i+1,x) bank[i][bank[i].id].fc = x end)
     params:add_control("filter "..i.." q", "filter "..banks[i].." q", controlspec.new(0.0005, 2.0, 'exp', 0, 2, ""))
@@ -28,13 +38,27 @@ function filters.init()
       end
     end)
     for j = 1,#filter_types do
+      params:add_separator(banks[i].." "..filter_types[j])
+      params:add_binary("filter "..i.." "..filter_types[j].." active", "filter "..banks[i].." "..filter_types[j].." active","toggle",0)
+      params:set_action("filter "..i.." "..filter_types[j].." active", function(x)
+        if x == 1 then
+          filter[i][filter_types[j]].active = true
+        else
+          filter[i][filter_types[j]].active = false
+        end
+      end)
       params:add_control("filter "..i.." "..filter_types[j], "filter "..banks[i].." "..filter_types[j].." max level", controlspec.new(0, 1, 'lin', 0, 1, ""))
       params:set_action("filter "..i.." "..filter_types[j], function(x)
         if filter[i][filter_types[j]].active then
           softcut["post_filter_"..filter_types[j]](i+1,x)
+          filter[i][filter_types[j]].current_value = x
+        else
+          filter[i][filter_types[j]].target_value = x
         end
       end)
+      params:add_option("filter "..i.." "..filter_types[j].." fade", "filter "..banks[i].." "..filter_types[j].." fade time", {"1 bar","2 bar","3 bar","4 bar"})
     end
+    params:set("filter "..i.." dry active",1)
   end
 
   -- test_count = 1
@@ -82,21 +106,24 @@ function filters.filt_level_adjust(i,type,target_val)
   end
 end
 
-function filters.filt_flip(i,type,state)
+function filters.filt_flip(i,type,speed,state)
+  if speed == nil then
+    speed = speeds["rapid"]
+  else
+    speed = speeds[speed]
+  end
   local target_val = params:get("filter "..i.." "..type)
   if filter[i][type].clock ~= nil then
-    -- clock.cancel(filter[i][type].clock)
-    -- filter[i][type].clock = nil
     filter[i][type].current_value = state == 1 and 0 or target_val
     filter[i][type].target_value = state == 1 and target_val or 0
-    filter[i][type].active = state == 1 and true or false
+    params:set("filter "..i.." "..type.." active",state)
   end
   if state == 0 then
-    filter[i][type].active = false
+    params:set("filter "..i.." "..type.." active",0)
     filter[i][type].clock = clock.run(
       function()
         while filter[i][type].current_value > filter[i][type].target_value do
-          clock.sleep(0.002)
+          clock.sleep(speed)
           if filter[i][type].current_value <= 1 and filter[i][type].current_value >= filter[i][type].target_value then
             filter[i][type].current_value = util.round(filter[i][type].current_value - 0.01,0.01)
             softcut["post_filter_"..type](i+1,filter[i][type].current_value)
@@ -108,11 +135,11 @@ function filters.filt_flip(i,type,state)
       end
     )
   elseif state == 1 then
-    filter[i][type].active = true
+    params:set("filter "..i.." "..type.." active",1)
     filter[i][type].clock = clock.run(
       function()
         while filter[i][type].current_value < filter[i][type].target_value do
-          clock.sleep(0.002)
+          clock.sleep(speed)
           if filter[i][type].current_value >= 0 and filter[i][type].current_value <= filter[i][type].target_value then
             filter[i][type].current_value = util.round(filter[i][type].current_value + 0.01,0.01)
             softcut["post_filter_"..type](i+1,filter[i][type].current_value)

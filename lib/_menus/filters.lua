@@ -8,8 +8,8 @@ local last_slew = {nil,nil,nil}
 
 function _f.init()
   page.filters = {}
-  page.filters.regions = {"cutoff","Q","slew","type"}
-  page.filters.selected_region = "cutoff"
+  page.filters.regions = {"FREQ","Q","DRY","LP","HP","BP"}
+  page.filters.selected_region = "FREQ"
   page.filters.sel = 1
   page.filters.bank = 1
   page.filters.alt_view = false
@@ -137,62 +137,58 @@ function _f.draw_side()
 end
 
 function _f.draw_filters()
-  screen.level(_f_.selected_region == "cutoff" and 15 or 3)
-  local tilt_options = {"LP", "-", "HP"}
-  local x_positions = {28,74,120}
-  for i = 1,3 do
-    screen.move(x_positions[i],20)
+  screen.level(_f_.selected_region == "FREQ" and 15 or 3)
+  screen.move(25,21)
+  screen.text("F: "..string.format("%.6g",params:get("filter ".._f_.bank.." cutoff")).."hz")
+  screen.level(_f_.selected_region == "Q" and 15 or 3)
+  local q_scaled = util.linlin(0.0005,4,100,0,params:get("filter ".._f_.bank.." q"))
+  screen.move(120,21)
+  screen.text_right("Q: "..string.format("%.4g",q_scaled).."%")
+  screen.level(_f_.selected_region == "FADE" and 15 or 3)
+  local tilt_options = {"DRY","LP","HP","BP"}
+  local x_positions = {32,60,88,116}
+  for i = 1,#tilt_options do
+    screen.level(_f_.selected_region == tilt_options[i] and 15 or 3)
+    screen.move(x_positions[i],39)
     screen.text_center(tilt_options[i])
+    screen.move(x_positions[i],49)
+    screen.text_center( util.round(params:get("filter ".._f_.bank.." "..string.lower(tilt_options[i])) * 100) )
+    screen.move(x_positions[i],59)
+    screen.text_center(params:get("filter ".._f_.bank.." "..string.lower(tilt_options[i]).." active") == 1 and "on" or "off")
   end
-
-  local cut_to_line = util.round(math.abs(slew_counter[_f_.bank].slewedVal),0.01)*100
-
-  if slew_counter[_f_.bank].slewedVal < 0 then
-    for i = 0,cut_to_line do
-      screen.move(util.linlin(0,100,74,28,i),32)
-      screen.text_center("|")
-    end
-  elseif slew_counter[_f_.bank].slewedVal > 0 then
-    for i = 3,cut_to_line do
-      screen.move(util.linlin(30,100,74,120,i),32)
-      screen.text_center("|")
-    end
-  else
-    screen.move(74,32)
-    screen.text_center("|")
-  end
-
+  -- screen.move(120,60)
+  -- screen.text_right("FADE: "..params:string("filter ".._f_.bank.." fade"))
 end
 
 function _f.draw_params()
-  screen.level(15)
-  --three sections, 20 to 128: 36 each
-  -- local x_positions = {47,75,101}
-  local x_positions = {56,92}
-  for i = 1,2 do
-    screen.move(x_positions[i],40)
-    screen.line(x_positions[i],64)
-    screen.stroke()
-  end
-  -- x_positions = {33,60,88,114}
-  x_positions = {38,74,110}
-  local q_scaled = util.linlin(0.0005,4,100,0,bank[_f_.bank][bank[_f_.bank].id].q)
-  local ease_time_to_screen = bank[_f_.bank][bank[_f_.bank].id].tilt_ease_time
-  local ease_type_to_screen = bank[_f_.bank][bank[_f_.bank].id].tilt_ease_type
-  local ease_types = {"cont","jumpy"}
-  local text_to_display =
-  {
-    string.format("%.4g",q_scaled) .."%",
-    string.format("%.2f",ease_time_to_screen/100) .."s",
-    ease_types[ease_type_to_screen]
-  }
-  for i = 1,3 do
-    screen.level(_f_.selected_region == _f_.regions[i+1] and 15 or 3)
-    screen.move(x_positions[i],48)
-    screen.text_center(_f_.regions[i+1])
-    screen.move(x_positions[i],58)
-    screen.text_center(text_to_display[i])
-  end
+  -- screen.level(15)
+  -- --three sections, 20 to 128: 36 each
+  -- -- local x_positions = {47,75,101}
+  -- local x_positions = {56,92}
+  -- for i = 1,2 do
+  --   screen.move(x_positions[i],40)
+  --   screen.line(x_positions[i],64)
+  --   screen.stroke()
+  -- end
+  -- -- x_positions = {33,60,88,114}
+  -- x_positions = {38,74,110}
+  -- local q_scaled = util.linlin(0.0005,4,100,0,bank[_f_.bank][bank[_f_.bank].id].q)
+  -- local ease_time_to_screen = bank[_f_.bank][bank[_f_.bank].id].tilt_ease_time
+  -- local ease_type_to_screen = bank[_f_.bank][bank[_f_.bank].id].tilt_ease_type
+  -- local ease_types = {"cont","jumpy"}
+  -- local text_to_display =
+  -- {
+  --   string.format("%.4g",q_scaled) .."%",
+  --   string.format("%.2f",ease_time_to_screen/100) .."s",
+  --   ease_types[ease_type_to_screen]
+  -- }
+  -- for i = 1,3 do
+  --   screen.level(_f_.selected_region == _f_.regions[i+1] and 15 or 3)
+  --   screen.move(x_positions[i],48)
+  --   screen.text_center(_f_.regions[i+1])
+  --   screen.move(x_positions[i],58)
+  --   screen.text_center(text_to_display[i])
+  -- end
 end
 
 function _f.draw_boundaries()
@@ -203,11 +199,14 @@ function _f.draw_boundaries()
   screen.move(1,10)
   screen.line(1,64)
   screen.stroke()
-  if not page.filters.alt_view then
-    screen.move(20,40)
-    screen.line(128,40)
-    screen.stroke()
-  end
+  screen.move(20,30)
+  screen.line(128,30)
+  screen.stroke()
+  -- if not page.filters.alt_view then
+  --   screen.move(20,40)
+  --   screen.line(128,40)
+  --   screen.stroke()
+  -- end
   screen.move(128,10)
   screen.line(128,64)
   screen.stroke()
@@ -229,20 +228,17 @@ function _f.process_encoder(n,d)
       current_area = util.clamp(current_area+d,1,#_f_.regions)
       _f_.selected_region = _f_.regions[current_area]
     elseif n == 3 then
-      if _f_.selected_region == "cutoff" then
+      if _f_.selected_region == "FREQ" then
         encoder_actions.set_filter_cutoff(_f_.bank,d)
       elseif _f_.selected_region == "Q" then
         params:delta("filter ".._f_.bank.." q",d*-1)
-      elseif _f_.selected_region == "slew" then
-        for j = 1,16 do
-          bank[_f_.bank][j].tilt_ease_time = util.clamp(bank[_f_.bank][j].tilt_ease_time+(d/1), 5, 15000)
-        end
-      elseif _f_.selected_region == "type" then
-        for j = 1,16 do
-          bank[_f_.bank][j].tilt_ease_type = util.clamp(bank[_f_.bank][j].tilt_ease_type+d, 1, 2)
-        end
+      else
+        params:delta("filter ".._f_.bank.." "..string.lower(_f_.selected_region),d)
       end
     end
+  end
+  if speed_dial.menu == 5 and speed_dial_active then
+    grid_dirty = true
   end
 end
 
@@ -296,6 +292,12 @@ function _f.process_key(n,z)
     end
   elseif n == 2 and z == 1 then
     menu = 1
+  elseif n == 3 and z == 1 then
+    if _f_.selected_region == "DRY" or _f_.selected_region == "LP" or _f_.selected_region == "HP" or _f_.selected_region == "BP" then
+      -- local current_state = params:get("filter ".._f_.bank.." "..string.lower(_f_.selected_region).." active")
+      -- params:set("filter ".._f_.bank.." "..string.lower(_f_.selected_region).." active", current_state == 1 and 0 or 1)
+      filters.filt_flip(_f_.bank,string.lower(_f_.selected_region),"rapid",filter[_f_.bank][string.lower(_f_.selected_region)].active and 0 or 1)
+    end
   end
 end
 
@@ -357,66 +359,3 @@ function _f.seed_change(parameter)
 end
 
 return filters_menu
-
-
-
--- old filters:
--- screen.move(0,10)
--- screen.level(3)
--- screen.text("filters")
-
--- for i = 1,3 do
---   screen.move(17+((i-1)*45),20)
---   screen.level(15)
---   local filters_to_screen_options = {"a", "b", "c"}
---   if key1_hold or grid_alt then
---     screen.text_center(filters_to_screen_options[i]..""..bank[i].id)
---   else
---     screen.text_center("("..filters_to_screen_options[i]..")")
---   end
---   screen.move(17+((i-1)*45),30)
-  
---   screen.level(page.filters.sel+1 == 1 and 15 or 3)
---   if slew_counter[i].slewedVal ~= nil then
---     if slew_counter[i].slewedVal >= -0.04 and slew_counter[i].slewedVal <=0.04 then
---     screen.text_center(".....|.....")
---     elseif slew_counter[i].slewedVal < -0.04 then
---       if slew_counter[i].slewedVal > -0.3 then
---         screen.text_center("....||.....")
---       elseif slew_counter[i].slewedVal > -0.45 then
---         screen.text_center("...|||.....")
---       elseif slew_counter[i].slewedVal > -0.65 then
---         screen.text_center("..||||.....")
---       elseif slew_counter[i].slewedVal > -0.8 then
---         screen.text_center(".|||||.....")
---       elseif slew_counter[i].slewedVal >= -1.01 then
---         screen.text_center("||||||.....")
---       end
---     elseif slew_counter[i].slewedVal > 0 then
---       if slew_counter[i].slewedVal < 0.5 then
---         screen.text_center(".....||....")
---       elseif slew_counter[i].slewedVal < 0.65 then
---         screen.text_center(".....|||...")
---       elseif slew_counter[i].slewedVal < 0.8 then
---         screen.text_center(".....||||..")
---       elseif slew_counter[i].slewedVal < 0.85 then
---         screen.text_center(".....|||||.")
---       elseif slew_counter[i].slewedVal <= 1.01 then
---         screen.text_center(".....||||||")
---       end
---     end
---   end
---   screen.move(17+((i-1)*45),40)
---   screen.level(page.filters.sel+1 == 2 and 15 or 3)
---   local ease_time_to_screen = bank[i][bank[i].id].tilt_ease_time
---   screen.text_center(string.format("%.2f",ease_time_to_screen/100).."s")
---   screen.move(17+((i-1)*45),50)
---   screen.level(page.filters.sel+1 == 3 and 15 or 3)
---   local q_scaled = util.linlin(0.0005,4,100,0,params:get("filter "..i.." q"))
---   screen.text_center(string.format("%.4g",q_scaled).."%")
---   screen.move(17+((i-1)*45),60)
---   screen.level(page.filters.sel+1 == 4 and 15 or 3)
---   local ease_type_to_screen = bank[i][bank[i].id].tilt_ease_type
---   local ease_types = {"cont","jumpy"}
---   screen.text_center(ease_types[ease_type_to_screen])
--- end

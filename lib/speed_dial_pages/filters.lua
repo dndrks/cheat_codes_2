@@ -95,7 +95,23 @@ function sd_filter.parse_press_filters(x,y,z)
 
   end
   if nx == 1 and (ny >= 3 and ny <= 6) and z == 1 then
-    filters.filt_flip(b,filter_types[ny-2],filter[b][filter_types[ny-2]].active and 0 or 1)
+    if not grid_alt then
+      filters.filt_flip(b,filter_types[ny-2],"rapid",filter[b][filter_types[ny-2]].active and 0 or 1)
+    else
+      for i = 1,3 do
+        filters.filt_flip(i,filter_types[ny-2],"rapid",filter[i][filter_types[ny-2]].active and 0 or 1)
+      end
+    end
+  elseif nx == 2 and (ny >= 3 and ny <= 6) and z == 1 then
+    if not grid_alt then
+      local s = params:string("filter "..b.." "..filter_types[ny-2].." fade")
+      filters.filt_flip(b,filter_types[ny-2],s,filter[b][filter_types[ny-2]].active and 0 or 1)
+    else
+      for i = 1,3 do
+        local s = params:string("filter "..i.." "..filter_types[ny-2].." fade")
+        filters.filt_flip(i,filter_types[ny-2],s,filter[i][filter_types[ny-2]].active and 0 or 1)
+      end
+    end
   end
 end
 
