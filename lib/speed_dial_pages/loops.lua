@@ -37,13 +37,13 @@ function sd_loop.draw_grid_banks()
       g:led(_c(i+1,3)[1],_c(i+1,3)[2],current_rate == i and 15 or 4)
     end
   end
-  for i = 1,4 do
-    for j = 8,11 do
-      g:led(_c(i,j)[1],_c(i,j)[2],led_maps["square_off"][edition])
-    end
-  end
+  -- for i = 1,4 do
+  --   for j = 9,12 do
+  --     g:led(_c(i,j)[1],_c(i,j)[2],led_maps["square_off"][edition])
+  --   end
+  -- end
   local pad_x = _arps.index_to_grid_pos(pad,4)[1]
-  local pad_y = _arps.index_to_grid_pos(pad,4)[2]+7
+  local pad_y = _arps.index_to_grid_pos(pad,4)[2]+8
   g:led(_c(pad_x,pad_y)[1], _c(pad_x,pad_y)[2], 15)
   
   local SOS_level = params:get("SOS_enabled_".._loops_.sel)
@@ -69,6 +69,9 @@ function sd_loop.draw_grid_banks()
       end
     end
   end
+
+  speed_dial.perf_draw(_loops_.sel)
+
 end
 
 function sd_loop.draw_grid_Live()
@@ -90,19 +93,20 @@ function sd_loop.parse_press(x,y,z)
   if ny == 1 and nx >= 3 and z == 1 then
     _loops_.sel = nx-2
   end
-  if ny >= 8 and ny <= 11 and nx >= 1 and nx <= 4 then
-    if z == 1 then
-      _loops_.meta_pad[_loops_.sel] = nx+((ny-8)*4)
-      if grid_alt then
-        selected[_loops_.sel].x = (ny-7)+(5*(_loops_.sel-1))
-        selected[_loops_.sel].y = (9-nx)
-        selected[_loops_.sel].id = _loops_.meta_pad[_loops_.sel]
-        cheat(_loops_.sel,_loops_.meta_pad[_loops_.sel])
-      end
-    end
-  end
+  -- if ny >= 9 and ny <= 12 and nx >= 1 and nx <= 4 then
+  --   if z == 1 then
+  --     _loops_.meta_pad[_loops_.sel] = nx+((ny-9)*4)
+  --     if grid_alt then
+  --       selected[_loops_.sel].x = (ny-8)+(5*(_loops_.sel-1))
+  --       selected[_loops_.sel].y = (9-nx)
+  --       selected[_loops_.sel].id = _loops_.meta_pad[_loops_.sel]
+  --       cheat(_loops_.sel,_loops_.meta_pad[_loops_.sel])
+  --     end
+  --   end
+  -- end
   if _loops_.sel < 4 then
     sd_loop.parse_press_banks(x,y,z)
+    speed_dial.perf_press(page.loops.sel,x,y,z)
   elseif _loops_.sel == 4 then
     sd_loop.parse_press_Live(x,y,z)
   end

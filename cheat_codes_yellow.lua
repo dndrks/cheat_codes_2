@@ -864,8 +864,6 @@ function set_crow_input(id,type)
   end
 end
 
-local lit = {}
-
 zilch_leds =
 {   [1] = {{0},{0},{0}}
   , [2] = {{0,0},{0,0},{0,0}}
@@ -2089,7 +2087,6 @@ function stop_pattern(target,style)
     clock.cancel(target.clock)
     target.clock = nil
   end
-  print(style,clock.get_beats())
   local function wipe_slate(b)
     for i = 1,#grid_pat[b].event do
       if tab.contains(held_keys[b],grid_pat[b].event[i].id) then

@@ -50,14 +50,7 @@ function sd_filter.draw_grid_banks()
   local _c = speed_dial.translate
   local _filters_ = page.filters
   local pad = _filters_.meta_pad[_filters_.bank]
-  for i = 1,4 do
-    for j = 8,11 do
-      g:led(_c(i,j)[1],_c(i,j)[2],led_maps["square_off"][edition])
-    end
-  end
-  local pad_x = _arps.index_to_grid_pos(pad,4)[1]
-  local pad_y = _arps.index_to_grid_pos(pad,4)[2]+7
-  g:led(_c(pad_x,pad_y)[1], _c(pad_x,pad_y)[2], 15) 
+  speed_dial.perf_draw(_filters_.bank)
 end
 
 function sd_filter.parse_press(x,y,z)
@@ -68,17 +61,7 @@ function sd_filter.parse_press(x,y,z)
   if ny == 1 and nx >= 6 and z == 1 then
     _filters_.bank = nx-5
   end
-  if ny >= 8 and ny <= 11 and nx >= 1 and nx <= 4 then
-    if z == 1 then
-      _filters_.meta_pad[_filters_.bank] = nx+((ny-8)*4)
-      if grid_alt then
-        selected[_filters_.bank].x = (ny-7)+(5*(_filters_.bank-1))
-        selected[_filters_.bank].y = (9-nx)
-        selected[_filters_.bank].id = _filters_.meta_pad[_filters_.bank]
-        cheat(_filters_.bank,_filters_.meta_pad[_filters_.bank])
-      end
-    end
-  end
+  speed_dial.perf_press(_filters_.bank,x,y,z)
   if _filters_.bank < 4 then
     sd_filter.parse_press_banks(x,y,z)
     sd_filter.parse_press_filters(x,y,z)

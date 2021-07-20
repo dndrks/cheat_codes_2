@@ -38,19 +38,19 @@ function sd_arp.draw_grid()
     g:led(_c(i,6)[1],_c(i,6)[2],_arps_.seq_page[_arps_.sel] == i and 12 or 4)
   end
   for i = 1,4 do
-    for j = 8,11 do
+    for j = 9,12 do
       g:led(_c(i,j)[1],_c(i,j)[2],led_maps["square_off"][edition])
     end
   end
   if sd_arp.pad_focus ~= 0 then
     local pad_x = _arps.index_to_grid_pos(sd_arp.pad_focus,4)[1]
-    local pad_y = _arps.index_to_grid_pos(sd_arp.pad_focus,4)[2]+7
+    local pad_y = _arps.index_to_grid_pos(sd_arp.pad_focus,4)[2]+8
     g:led(_c(pad_x,pad_y)[1], _c(pad_x,pad_y)[2], 15)
   end
   if #sd_arp.keys_held > 0 and arp[_arps_.sel].notes[edit_pos] ~= nil then
     local show_selected = arp[_arps_.sel].notes[edit_pos]
     local x_val =  _arps.index_to_grid_pos(show_selected,4)[1]
-    local y_val = _arps.index_to_grid_pos(show_selected,4)[2]+7
+    local y_val = _arps.index_to_grid_pos(show_selected,4)[2]+8
     g:led(_c(x_val,y_val)[1],_c(x_val,y_val)[2],8)
   end
 end
@@ -73,9 +73,9 @@ function sd_arp.parse_press(x,y,z)
     _arps_.seq_page[_arps_.sel] = nx
   elseif ny == 1 and nx >=6 and nx<=8 and z == 1 then
     _arps_.sel = nx-5
-  elseif ny >= 8 and ny <= 11 and nx >= 1 and nx <= 4 then
+  elseif ny >= 9 and ny <= 12 and nx >= 1 and nx <= 4 then
     if z == 1 then
-      sd_arp.pad_focus = nx+((ny-8)*4)
+      sd_arp.pad_focus = nx+((ny-9)*4)
       if #sd_arp.keys_held > 0 then
         for i = 1,#sd_arp.keys_held do
           arp[_arps_.sel].notes[sd_arp.keys_held[i]] = sd_arp.pad_focus

@@ -17,12 +17,12 @@ function sd_level.draw_grid()
     g:led(_c(i+5,1)[1],_c(i+5,1)[2],_levels_.bank == i and 15 or 8)
   end
   for i = 1,4 do
-    for j = 8,11 do
+    for j = 9,12 do
       g:led(_c(i,j)[1],_c(i,j)[2],led_maps["square_off"][edition])
     end
   end
   local pad_x = _arps.index_to_grid_pos(pad,4)[1]
-  local pad_y = _arps.index_to_grid_pos(pad,4)[2]+7
+  local pad_y = _arps.index_to_grid_pos(pad,4)[2]+8
   g:led(_c(pad_x,pad_y)[1], _c(pad_x,pad_y)[2], 15)
   for i = 11,3,-1 do
     for j = 7,8 do
@@ -59,11 +59,11 @@ function sd_level.parse_press(x,y,z)
   if ny == 1 and nx >= 3 and z == 1 then
     _levels_.bank = nx-2
   end
-  if ny >= 8 and ny <= 11 and nx >= 1 and nx <= 4 then
+  if ny >= 9 and ny <= 12 and nx >= 1 and nx <= 4 then
     if z == 1 then
-      _levels_.meta_pad[_levels_.bank] = nx+((ny-8)*4)
+      _levels_.meta_pad[_levels_.bank] = nx+((ny-9)*4)
       if grid_alt then
-        selected[_levels_.bank].x = (ny-7)+(5*(_levels_.bank-1))
+        selected[_levels_.bank].x = (ny-8)+(5*(_levels_.bank-1))
         selected[_levels_.bank].y = (9-nx)
         selected[_levels_.bank].id = _levels_.meta_pad[_levels_.bank]
         cheat(_levels_.bank,_levels_.meta_pad[_levels_.bank])

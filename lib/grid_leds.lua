@@ -1,6 +1,6 @@
 local _gleds = {}
 
-local lit = {}
+lit = {}
 
 function _gleds.clear_lit()
   lit = {}
@@ -139,6 +139,10 @@ function _gleds.grid_redraw()
             end
           end
           
+          -- for i = 1,3 do
+          --   _gleds.draw_zilchmos(5,5*i,i)
+          -- end
+
           for i = 0,1 do
             for x = 4+i,14+i,5 do
               for j = 1,3+i do
@@ -158,21 +162,19 @@ function _gleds.grid_redraw()
           end
           
           for i = 1,3 do
-            if not rytm.grid.ui[i] then
-              local target = grid_pat[i]
-              if target.rec == 1 then
-                g:led(2+(5*(i-1)),1,(9*target.led))
-              elseif (target.quantize == 0 and target.play == 1) or (target.quantize == 1 and target.tightened_start == 1) then
-                if target.overdub == 0 then
-                  g:led(2+(5*(i-1)),1,9)
-                else
-                  g:led(2+(5*(i-1)),1,15)
-                end
-              elseif target.count > 0 then
-                g:led(2+(5*(i-1)),1,5)
+            local target = grid_pat[i]
+            if target.rec == 1 then
+              g:led(2+(5*(i-1)),1,(9*target.led))
+            elseif (target.quantize == 0 and target.play == 1) or (target.quantize == 1 and target.tightened_start == 1) then
+              if target.overdub == 0 then
+                g:led(2+(5*(i-1)),1,9)
               else
-                g:led(2+(5*(i-1)),1,3)
+                g:led(2+(5*(i-1)),1,15)
               end
+            elseif target.count > 0 then
+              g:led(2+(5*(i-1)),1,5)
+            else
+              g:led(2+(5*(i-1)),1,3)
             end
           end
           
@@ -215,9 +217,9 @@ function _gleds.grid_redraw()
           --   end
           -- end
 
-          for j = 5,15,5 do
-            g:led(j,8,(params:get("SOS_enabled_"..util.round(j/5)) == 1 and led_maps["live_rec"][edition] or 0))
-          end
+          -- for j = 5,15,5 do
+          --   g:led(j,8,(params:get("SOS_enabled_"..util.round(j/5)) == 1 and led_maps["live_rec"][edition] or 0))
+          -- end
           
           for i = 1,3 do
             if not rytm.grid.ui[i] then
@@ -307,46 +309,48 @@ function _gleds.grid_redraw()
                 g:led(3+(5*(i-1)),4,led_maps["loop_on"][edition])
               end
 
-              if params:string("arp_"..i.."_hold_style") ~= "sequencer" then
-                local arp_button = 3+(5*(i-1))
-                local arp_writer = 4+(5*(i-1))
-                if arp[i].enabled and tab.count(arp[i].notes) == 0 then
-                  g:led(arp_button,3,led_maps["arp_on"][edition])
-                elseif arp[i].playing then
-                  if arp[i].hold then
-                    g:led(arp_button,3,led_maps["arp_play"][edition])
+              if not bank[i].focus_hold then
+                if params:string("arp_"..i.."_hold_style") ~= "sequencer" then
+                  local arp_button = 3+(5*(i-1))
+                  local arp_writer = 4+(5*(i-1))
+                  if arp[i].enabled and tab.count(arp[i].notes) == 0 then
+                    g:led(arp_button,3,led_maps["arp_on"][edition])
+                  elseif arp[i].playing then
+                    if arp[i].hold then
+                      g:led(arp_button,3,led_maps["arp_play"][edition])
+                    else
+                      if not arp[i].pause then
+                        g:led(arp_button,3,led_maps["arp_pause"][edition]) -- i know, i know...
+                      end
+                    end
+                    if arp[i].enabled then
+                      g:led(arp_writer,4,led_maps["arp_play"][edition])
+                    else
+                      g:led(arp_writer,4,led_maps["arp_on"][edition])
+                    end
                   else
-                    if not arp[i].pause then
-                      g:led(arp_button,3,led_maps["arp_pause"][edition]) -- i know, i know...
+                    if arp[i].hold then
+                      -- g:led(arp_button,3,led_maps["arp_pause"][edition])
+                    end
+                    if tab.count(arp[i].notes) > 0 then
+                      g:led(arp_button,3,led_maps["arp_pause"][edition])
                     end
                   end
-                  if arp[i].enabled then
-                    g:led(arp_writer,4,led_maps["arp_play"][edition])
-                  else
-                    g:led(arp_writer,4,led_maps["arp_on"][edition])
-                  end
                 else
-                  if arp[i].hold then
-                    -- g:led(arp_button,3,led_maps["arp_pause"][edition])
-                  end
-                  if tab.count(arp[i].notes) > 0 then
-                    g:led(arp_button,3,led_maps["arp_pause"][edition])
-                  end
-                end
-              else
-                local arp_button = 3+(5*(i-1))
-                local arp_writer = 4+(5*(i-1))
-                if arp[i].playing then
-                  g:led(arp_button,3,led_maps["arp_play"][edition])
-                  if arp[i].enabled then
-                    g:led(arp_writer,4,led_maps["arp_play"][edition])
+                  local arp_button = 3+(5*(i-1))
+                  local arp_writer = 4+(5*(i-1))
+                  if arp[i].playing then
+                    g:led(arp_button,3,led_maps["arp_play"][edition])
+                    if arp[i].enabled then
+                      g:led(arp_writer,4,led_maps["arp_play"][edition])
+                    else
+                      g:led(arp_writer,4,led_maps["arp_on"][edition])
+                    end
                   else
-                    g:led(arp_writer,4,led_maps["arp_on"][edition])
-                  end
-                else
-                  g:led(arp_button,3,led_maps["off"][edition])
-                  if tab.count(arp[i].notes) > 0 then
-                    g:led(arp_button,3,led_maps["arp_pause"][edition])
+                    g:led(arp_button,3,led_maps["off"][edition])
+                    if tab.count(arp[i].notes) > 0 then
+                      g:led(arp_button,3,led_maps["arp_pause"][edition])
+                    end
                   end
                 end
               end
@@ -1183,6 +1187,44 @@ function _gleds.grid_redraw()
       g:refresh()
     end
   end
+end
+
+local _t = speed_dial.translate
+
+function _gleds.draw_zilchmos(x,y,bank)
+  local edition = params:get("LED_style")
+  -- x + y == 4,1 in the zilchmo
+  -- 4 + 3
+
+  --4 
+  for lat = x,x+3 do
+    for j = 1,4 do
+      print(_t(lat,y)[1],_t(lat,y)[2],zilch_leds[4][bank][j] == 1 and led_maps["zilchmo_on"][edition] or led_maps["zilchmo_off"][edition])
+      g:led(_t(lat,y)[1],_t(lat,y)[2],zilch_leds[4][bank][j] == 1 and led_maps["zilchmo_on"][edition] or led_maps["zilchmo_off"][edition])
+    end
+  end
+
+  --3
+  for lat = x+1,x+3 do
+    for j = 1,3 do
+      g:led(_t(lat,y-1)[1],_t(lat,y-1)[2],zilch_leds[3][bank][j] == 1 and led_maps["zilchmo_on"][edition] or led_maps["zilchmo_off"][edition])
+    end
+  end
+
+  --2
+  for lat = x+2,x+3 do
+    for j = 1,2 do
+      g:led(_t(lat,y-2)[1],_t(lat,y-2)[2],zilch_leds[2][bank][j] == 1 and led_maps["zilchmo_on"][edition] or led_maps["zilchmo_off"][edition])
+    end
+  end
+
+  --1
+  -- for lat = x+3,x+3 do
+  --   for j = 1,1 do
+  --     g:led(_t(lat,y-3)[1],_t(lat,y-3)[2],zilch_leds[4][bank][j] == 1 and led_maps["zilchmo_on"][edition] or led_maps["zilchmo_off"][edition])
+  --   end
+  -- end
+
 end
 
 return _gleds

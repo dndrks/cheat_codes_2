@@ -133,73 +133,6 @@ function grid_actions.init(x,y,z)
           if y <= 2 then
             -- need to delay the collation...
             if not rytm.grid.ui[util.round(x/5)] then
-              -- local zilch_id = 2
-              -- local zmap = zilches[zilch_id]
-              -- local k1 = util.round(x/5)
-              -- local k2 = 3-y
-              -- if z == 1 then
-              --   zmap[k1][k2] = true
-              --   zmap[k1].held = zmap[k1].held + 1
-              --   zilch_leds[zilch_id][k1][y] = 1
-
-              --   local coll = {}
-              --   for j = 1,4 do
-              --     if zmap[k1][j] == true then
-              --       table.insert(coll,j)
-              --     end
-              --   end
-              --   coll.con = table.concat(coll)
-              --   local previous_rate = bank[k1][bank[k1].id].rate
-              --   print(coll.con)
-              --   if coll.con ~= "12" then
-              --     if grid_level_clocks[k1] == nil then
-              --       -- print(">>>> starting 248")
-              --       rightangleslice.init(2,k1,coll.con)
-              --       grid_dirty = true
-              --       if menu == 3 then
-              --         screen_dirty = true
-              --       end
-              --       grid_level_clocks[k1] = clock.run(
-              --         function()
-              --           while true do
-              --             clock.sleep(0.1)
-              --             rightangleslice.init(2,k1,coll.con)
-              --             grid_dirty = true
-              --             if menu == 3 then
-              --               screen_dirty = true
-              --             end
-              --           end
-              --         end
-              --       )
-              --     else
-              --       print(">>>>"..coll.con)
-              --     end
-              --   else print("it's 12") end
-              -- elseif z == 0 then
-              --   if zmap[k1].held > 0 then
-              --     local coll = {}
-              --     for j = 1,4 do
-              --       if zmap[k1][j] == true then
-              --         table.insert(coll,j)
-              --       end
-              --     end
-              --     coll.con = table.concat(coll)
-              --     local previous_rate = bank[k1][bank[k1].id].rate
-              --     -- rightangleslice.init(2,k1,coll.con)
-              --     if grid_level_clocks[k1] ~= nil then
-              --       clock.cancel(grid_level_clocks[k1])
-              --       -- print(">>>> canceling 282")
-              --       grid_level_clocks[k1] = nil
-              --     end
-              --     for j = 1,4 do
-              --       zmap[k1][j] = false
-              --     end
-              --   end
-              --   zmap[k1].held = 0
-              --   zilch_leds[zilch_id][k1][y] = 0
-              --   grid_dirty = true
-              --   if menu ~= 1 then screen_dirty = true end
-              -- end
               local zilch_id = 2
               local zmap = zilches[zilch_id]
               local k1 = util.round(x/5)
@@ -238,73 +171,7 @@ function grid_actions.init(x,y,z)
           for i = 1,3 do
             if not rytm.grid.ui[i] then
               if z == 0 and x == (k+1)+(5*(i-1)) and y<=k then
-                if grid_pat[i].quantize == 0 then -- still relevant
-                  if bank[i].alt_lock and not grid_alt then
-                    if grid_pat[i].play == 1 then
-                      grid_pat[i].overdub = grid_pat[i].overdub == 0 and 1 or 0
-                    end
-                  else
-                    if grid_alt then -- still relevant
-                      if grid_pat[i].rec == 1 then
-                        grid_actions.rec_stop(i)
-                      end
-                      -- grid_pat[i]:stop()
-                      stop_pattern(grid_pat[i])
-                      --grid_pat[i].external_start = 0
-                      grid_pat[i].tightened_start = 0
-                      grid_pat[i]:clear()
-                      pattern_saver[i].load_slot = 0
-                    elseif grid_pat[i].rec == 1 then -- still relevant
-                      grid_actions.rec_stop(i)
-                      midi_clock_linearize(i)
-                      if grid_pat[i].auto_snap == 1 then
-                        print("auto-snap")
-                        snap_to_bars(i,how_many_bars(i))
-                      end
-                      if grid_pat[i].mode ~= "quantized" then
-                        --grid_pat[i]:start()
-                        start_pattern(grid_pat[i])
-                      --TODO: CONFIRM THIS IS OK...
-                      elseif grid_pat[i].mode == "quantized" then
-                        start_pattern(grid_pat[i])
-                      end
-                      grid_pat[i].loop = 1
-                    elseif grid_pat[i].count == 0 then
-                      if grid_pat[i].playmode ~= 2 then
-                        if not transport.is_running then
-                          print("starting transport...")
-                          transport.toggle_transport()
-                        end
-                        grid_pat[i]:rec_start()
-                      --new!
-                      else
-                        grid_pat[i].rec_clock = clock.run(synced_record_start,grid_pat[i],i)
-                      end
-                      --/new!
-                    elseif grid_pat[i].play == 1 then
-                      --grid_pat[i]:stop()
-                      stop_pattern(grid_pat[i])
-                    else
-                      start_pattern(grid_pat[i])
-                    end
-                  end
-                else
-                  if grid_alt then
-                    grid_actions.rec_stop(i)
-                    -- grid_pat[i]:stop()
-                    stop_pattern(grid_pat[i])
-                    grid_pat[i].tightened_start = 0
-                    grid_pat[i]:clear()
-                    pattern_saver[i].load_slot = 0
-                  else
-                    --table.insert(grid_pat_quantize_events[i],i)
-                    better_grid_pat_q_clock(i)
-                  end
-                end
-                if menu == 11 then
-                  help_menu = "grid patterns"
-                  which_bank = i
-                end
+                grid_actions.grid_pat_handler(i)
               end
             end
           end
@@ -469,39 +336,37 @@ function grid_actions.init(x,y,z)
         for k = 4,1,-1 do
           for i = 1,3 do
             if not rytm.grid.ui[i] then
-              if z == 1 and x == k+(5*(i-1)) and y == k then 
-                ---
-                --if not grid_alt then
+              if z == 1 and x == k+(5*(i-1)) and y == k then
                 if not bank[i].alt_lock and not grid_alt then
-                  if y == 3 then
-                    grid_actions.arp_handler(i)
-                  else
-                    if key1_hold == true then key1_hold = false end
-                    if y == 4 then
-                      if not bank[i].alt_lock and not grid_alt then -- TODO verify if it shouldn't just be grid_alt
-                        grid_actions.arp_toggle_write(i)
-                      else
-                        grid_actions.clear_arp_sequencer(i)
+                  if not bank[i].focus_hold then
+                    if y == 3 then
+                      grid_actions.arp_handler(i)
+                    else
+                      if key1_hold == true then key1_hold = false end
+                      if y == 4 then
+                        if not bank[i].alt_lock and not grid_alt then -- TODO verify if it shouldn't just be grid_alt
+                          grid_actions.arp_toggle_write(i)
+                        else
+                          grid_actions.clear_arp_sequencer(i)
+                        end
                       end
+                      if menu ~= 1 then screen_dirty = true end
                     end
-                    if menu ~= 1 then screen_dirty = true end
+                  else
+                    if y == 4 then
+                      bank[i][bank[i].focus_pad].send_pad_note = not bank[i][bank[i].focus_pad].send_pad_note
+                    end
                   end
                 elseif bank[i].alt_lock or grid_alt then
                   if y == 2 then
                     random_grid_pat(math.ceil(x/4),3)
                   end
-                  if y == 3 then
-                    grid_actions.kill_arp(i)
+                  if not bank[i].focus_hold then
+                    if y == 3 then
+                      grid_actions.kill_arp(i)
+                    end
                   end
                   if y == 4 and not bank[i].focus_hold then
-                    -- local current = math.floor(x/5)+1
-                    -- for j = 1,16 do
-                    --   bank[current][j].rate = 1
-                    --   if bank[current][j].fifth == true then
-                    --     bank[current][j].fifth = false
-                    --   end
-                    -- end
-                    -- softcut.rate(current+1,1*bank[current][bank[current].id].offset)
                   elseif y == 4 and bank[i].focus_hold then
                     bank[i][bank[i].focus_pad].send_pad_note = not bank[i][bank[i].focus_pad].send_pad_note
                     for j = 1,16 do
@@ -953,64 +818,7 @@ function grid_actions.init(x,y,z)
       if z == 0 and x == 8 and y == 5 then
         local i = bank_64
         if not rytm.grid.ui[i] then
-          if grid_pat[i].quantize == 0 then -- still relevant
-            if bank[i].alt_lock and not grid_alt then
-              if grid_pat[i].play == 1 then
-                grid_pat[i].overdub = grid_pat[i].overdub == 0 and 1 or 0
-              end
-            else
-              if grid_alt then -- still relevant
-                grid_actions.rec_stop(i)
-                -- grid_pat[i]:stop()
-                stop_pattern(grid_pat[i])
-                --grid_pat[i].external_start = 0
-                grid_pat[i].tightened_start = 0
-                grid_pat[i]:clear()
-                pattern_saver[i].load_slot = 0
-              elseif grid_pat[i].rec == 1 then -- still relevant
-                grid_actions.rec_stop(i)
-                midi_clock_linearize(i)
-                if grid_pat[i].auto_snap == 1 then
-                  print("auto-snap")
-                  snap_to_bars(i,how_many_bars(i))
-                end
-                if grid_pat[i].mode ~= "quantized" then
-                  --grid_pat[i]:start()
-                  start_pattern(grid_pat[i])
-                --TODO: CONFIRM THIS IS OK...
-                elseif grid_pat[i].mode == "quantized" then
-                  start_pattern(grid_pat[i])
-                end
-                grid_pat[i].loop = 1
-              elseif grid_pat[i].count == 0 then
-                if grid_pat[i].playmode ~= 2 then
-                  grid_pat[i]:rec_start()
-                --new!
-                else
-                  grid_pat[i].rec_clock = clock.run(synced_record_start,grid_pat[i],i)
-                end
-                --/new!
-              elseif grid_pat[i].play == 1 then
-                --grid_pat[i]:stop()
-                stop_pattern(grid_pat[i])
-              else
-                -- print("line 1114")
-                start_pattern(grid_pat[i])
-              end
-            end
-          else
-            if grid_alt then
-              grid_actions.rec_stop(i)
-              -- grid_pat[i]:stop()
-              stop_pattern(grid_pat[i])
-              grid_pat[i].tightened_start = 0
-              grid_pat[i]:clear()
-              pattern_saver[i].load_slot = 0
-            else
-              --table.insert(grid_pat_quantize_events[i],i)
-              better_grid_pat_q_clock(i)
-            end
-          end
+          grid_actions.grid_pat_handler(i)
         end
       end
       
@@ -1466,9 +1274,6 @@ function grid_actions.clear_arp_sequencer(i)
 end
 
 function grid_actions.kill_arp(i)
-  if not arp[i].enabled then
-    print("whehehe")
-  end
   if params:string("arp_"..i.."_hold_style") ~= "sequencer" then
     page.arps.sel = i
     arp[i].hold = false
@@ -1650,28 +1455,18 @@ function grid_actions.bank_pad_down(i,p)
       end
       selected[i].id = p
       bank[i].id = selected[i].id
-      -- for k,v in pairs(held_keys[i]) do
-      --   if v == selected[i].id then
-      --     print("KILLING 2")
-      --     grid_actions.remove_held_key(i,selected[i].id)
-      --   end
-      -- end
-      -- grid_actions.add_held_key(i,selected[i].id)
       page.loops.meta_pad[i] = bank[i].id
       which_bank = i
       if menu == 11 then
         help_menu = "banks"
       end
       pad_clipboard = nil
-      -- if arp[i].enabled and grid_pat[i].rec == 0
       if arp[i].enabled
       and not arp[i].pause
-      -- and (not pattern_gate[i][2].active or (pattern_gate[i][2].active and grid_pat[i].rec == 1) and pattern_gate[i][1].active)
       and (not pattern_gate[i][2].active or (pattern_gate[i][2].active and pattern_gate[i][1].active))
       then
         if (rytm.track[i].k == 0 and not pattern_gate[i][3].active)
         or (rytm.track[i].k ~= 0 and not pattern_gate[i][3].active) then
-          -- print("1648")
           if arp[i].down == 0 and params:string("arp_"..i.."_hold_style") == "last pressed" then
             for j = #arp[i].notes,1,-1 do
               arps.remove_momentary(i,j)
@@ -1796,6 +1591,76 @@ function grid_actions.bank_pad_up(i,p)
   end
   if menu ~= 1 then screen_dirty = true end
   grid_dirty = true
+end
+
+function grid_actions.grid_pat_handler(i)
+  if grid_pat[i].quantize == 0 then -- still relevant
+    if bank[i].alt_lock and not grid_alt then
+      if grid_pat[i].play == 1 then
+        grid_pat[i].overdub = grid_pat[i].overdub == 0 and 1 or 0
+      end
+    else
+      if grid_alt then -- still relevant
+        if grid_pat[i].rec == 1 then
+          grid_actions.rec_stop(i)
+        end
+        -- grid_pat[i]:stop()
+        stop_pattern(grid_pat[i])
+        --grid_pat[i].external_start = 0
+        grid_pat[i].tightened_start = 0
+        grid_pat[i]:clear()
+        pattern_saver[i].load_slot = 0
+      elseif grid_pat[i].rec == 1 then -- still relevant
+        grid_actions.rec_stop(i)
+        midi_clock_linearize(i)
+        if grid_pat[i].auto_snap == 1 then
+          print("auto-snap")
+          snap_to_bars(i,how_many_bars(i))
+        end
+        if grid_pat[i].mode ~= "quantized" then
+          --grid_pat[i]:start()
+          start_pattern(grid_pat[i])
+        --TODO: CONFIRM THIS IS OK...
+        elseif grid_pat[i].mode == "quantized" then
+          start_pattern(grid_pat[i])
+        end
+        grid_pat[i].loop = 1
+      elseif grid_pat[i].count == 0 then
+        if grid_pat[i].playmode ~= 2 then
+          if not transport.is_running then
+            print("starting transport...")
+            transport.toggle_transport()
+          end
+          grid_pat[i]:rec_start()
+        --new!
+        else
+          grid_pat[i].rec_clock = clock.run(synced_record_start,grid_pat[i],i)
+        end
+        --/new!
+      elseif grid_pat[i].play == 1 then
+        --grid_pat[i]:stop()
+        stop_pattern(grid_pat[i])
+      else
+        start_pattern(grid_pat[i])
+      end
+    end
+  else
+    if grid_alt then
+      grid_actions.rec_stop(i)
+      -- grid_pat[i]:stop()
+      stop_pattern(grid_pat[i])
+      grid_pat[i].tightened_start = 0
+      grid_pat[i]:clear()
+      pattern_saver[i].load_slot = 0
+    else
+      --table.insert(grid_pat_quantize_events[i],i)
+      better_grid_pat_q_clock(i)
+    end
+  end
+  if menu == 11 then
+    help_menu = "grid patterns"
+    which_bank = i
+  end
 end
 
 return grid_actions

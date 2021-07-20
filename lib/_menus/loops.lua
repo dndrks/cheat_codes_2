@@ -336,7 +336,7 @@ function _loops.process_encoder(n,d)
         end
       elseif page.loops.sel == 5 then
         clip[page.loops.selected_clip_control].channel =
-          util.clamp(clip[page.loops.selected_clip_control].channel+d,1,2)
+          util.clamp(clip[page.loops.selected_clip_control].channel+d,1,3)
       end
     end
   elseif not page.loops.meta_control and page.loops.zoomed_mode then
@@ -736,11 +736,13 @@ function _loops.draw_menu()
       for i = 1,3 do
         screen.level(page.loops.selected_clip_control == i and 15 or 3)
         screen.move(0,20+(i*10))
-        local sides = {"[LEFT CH]","[RIGHT CH]"}
-        local text_to_display = params:get("clip "..i.." sample") == "-"
-        and ("K3: load, E3: "..sides[clip[i].channel])
-        or params:get("clip "..i.." sample"):match("^.+/(.+)$")
-        screen.text("CLIP "..i..": "..text_to_display)
+        local sides = {"[LEFT CH]","[RIGHT CH]","[FOLDER]"}
+        -- if clip[i].channel ~= 3 then
+          local text_to_display = params:get("clip "..i.." sample") == "-"
+          and ("K3: load, E3: "..sides[clip[i].channel])
+          or params:get("clip "..i.." sample"):match("^.+/(.+)$")
+          screen.text("CLIP "..i..": "..text_to_display)
+        -- end
       end
       if key1_hold and params:get("clip "..page.loops.selected_clip_control.." sample") ~= "-" then
         screen.level(8)
