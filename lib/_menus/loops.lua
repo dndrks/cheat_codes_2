@@ -102,7 +102,12 @@ function _loops.process_key(n,z)
     elseif page.loops.sel == 5 then
       _norns.key(1,1)
       _norns.key(1,0)
-      fileselect.enter(_path.audio,function(x) _ca.sample_callback(x,page.loops.selected_clip_control) end)
+      -- fileselect.enter(_path.audio,function(x) _ca.sample_callback(x,page.loops.selected_clip_control) end)
+      if clip[page.loops.selected_clip_control].channel == 3 then
+        fileselect.enter(_path.audio,function(x) _ca.folder_callback(x,page.loops.selected_clip_control) end)
+      else
+        fileselect.enter(_path.audio,function(x) _ca.sample_callback(x,page.loops.selected_clip_control) end)
+      end
       if key2_hold then key2_hold = false end
     elseif page.loops.sel == 6 then
       page.loops.meta_control = not page.loops.meta_control

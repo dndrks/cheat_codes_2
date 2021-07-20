@@ -7,8 +7,10 @@ function start_up.init()
   
   for i = 1, 4 do
     softcut.level(i,0.0)
-    softcut.level_input_cut(1, i, 1.0)
-    softcut.level_input_cut(2, i, 1.0)
+    -- softcut.level_input_cut(1, i, 1.0)
+    -- softcut.level_input_cut(2, i, 1.0)
+    softcut.level_input_cut(1, i, 0.5)
+    softcut.level_input_cut(2, i, 0.5)
     softcut.buffer(i, 1)
     audio.level_adc_cut(1)
     softcut.fade_time(i, 0.01)
@@ -203,13 +205,20 @@ function start_up.init()
     params:add_option("SOS_L_in_"..i, "--> SOS L input", {"off","on"},2)
     params:set_action("SOS_L_in_"..i, function(x)
       if params:get("SOS_enabled_"..i) == 1 then
-        softcut.level_input_cut(1,i+1,x-1)
+        local good_level;
+        if x == 1 then good_level = 0 else good_level = 0.5 end
+        -- softcut.level_input_cut(1,i+1,x-1)
+        softcut.level_input_cut(1,i+1,good_level)
       end
     end)
     params:add_option("SOS_R_in_"..i, "--> SOS R input", {"on","off"},1)
     params:set_action("SOS_R_in_"..i, function(x)
       if params:get("SOS_enabled_"..i) == 1 then
-        softcut.level_input_cut(1,i+1,x-1)
+        -- softcut.level_input_cut(1,i+1,x-1)
+        local good_level;
+        if x == 1 then good_level = 0 else good_level = 0.5 end
+        -- softcut.level_input_cut(1,i+1,x-1)
+        softcut.level_input_cut(2,i+1,good_level)
       end
     end)
     params:add{id="SOS_erase_strength_"..i, name="--> SOS erase strength", type="control", 

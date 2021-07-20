@@ -375,8 +375,21 @@ function ca.reload_collected_samples(file,sample)
   end
 end
 
+function ca.folder_callback(file,dest)
+  
+  local split_at = string.match(file, "^.*()/")
+  local folder = string.sub(file, 1, split_at)
+  file = string.sub(file, split_at + 1)
+  
+  ca.collage(folder,dest,1)
+  
+  _norns.key(1,1)
+  _norns.key(1,0)
+  key1_hold = false
+end
+
 function ca.collage(folder,dest,style)
-  local wavs = util.scandir(_path.audio .. folder)
+  local wavs = util.scandir(folder)
   local clean_wavs = {}
   local sample_id = 0
   for index, data in ipairs(wavs) do
@@ -393,7 +406,7 @@ function ca.collage(folder,dest,style)
 
   if style == 1 then
     for i = 1,(sample_id <=16 and sample_id or 16) do
-      local samp = _path.audio .. folder .. clean_wavs[i]
+      local samp = folder .. clean_wavs[i]
       softcut.buffer_clear_region_channel(2,1+(32*(dest-1))+((i-1)*2)+variable_fade_time,2)
       softcut.buffer_read_mono(samp, 0, 1+(32*(dest-1))+((i-1)*2)+variable_fade_time,2, 1, 2)
       print(samp,i,1+(32*(dest-1))+((i-1)*2))
