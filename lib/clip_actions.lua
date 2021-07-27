@@ -375,6 +375,31 @@ function ca.reload_collected_samples(file,sample)
   end
 end
 
+function ca.sample_to_pad_callback(path,i,p)
+  
+  if path ~= "cancel" and path ~= "" then
+    ca.sample_to_pad(path,i,p)
+  end
+
+  _norns.key(1,1)
+  _norns.key(1,0)
+  key1_hold = false
+end
+
+function ca.sample_to_pad(file,dest,p)
+  if file ~= "-" then
+    print(file,0, 1+(32*(dest-1))+((p-1)*2)+variable_fade_time,2, 1, 2)
+    softcut.buffer_clear_region_channel(2,1+(32*(dest-1))+((p-1)*2)+variable_fade_time,bank[dest][p].end_point-bank[dest][p].start_point)
+    softcut.buffer_read_mono(file, 0, 1+(32*(dest-1))+((p-1)*2)+variable_fade_time,bank[dest][p].end_point-bank[dest][p].start_point, 1, 2)
+  end
+  clip[dest].sample_length = 32
+  ca.clip_table()
+  clip[dest].original_length = 32
+  clip[dest].original_bpm = 120
+  clip[dest].original_samplerate = 48
+  update_waveform(2,clip[dest].min,clip[dest].max,128)
+end
+
 function ca.folder_callback(file,dest)
   
   local split_at = string.match(file, "^.*()/")
@@ -400,7 +425,6 @@ function ca.collage(folder,dest,style)
   end
   print(sample_id)
   tab.print(clean_wavs)
-
   -- ok what are the desireable behaviors??
   -- STYLE 1, load whole folder sequentially
 
@@ -419,27 +443,6 @@ function ca.collage(folder,dest,style)
   clip[dest].original_samplerate = 48
   
   update_waveform(2,clip[dest].min,clip[dest].max,128)
-
-  -- local total_length = 32
-  -- for i = sample_id,1,-1 do
-  --   local samp = _path.audio .. folder .. clean_wavs[i]
-  -- -- local ch, len = audio.file_info(samp)
-  -- local start_source;
-  -- -- get 2 seconds per pad
-  -- if len/48000 >=2 then
-  --   local start_source = math.random(0,math.floor(len/48000))
-  -- else
-  --   local start_source = 0
-  -- end
-  -- for i = 0,32,2 do
-  --   softcut.buffer_clear_region_channel(2,1+(32*(dest-1))+i,2)
-  --   softcut.buffer_read_mono(samp, 0, 1+(32*(dest-1)),2, math.random(1,2), 2)
-  -- end
-  -- for i = 0,total_length do
-    -- local snip_dur = 
-  -- local random_snip = math.random()
-  --   if len/48000 < 32 then
-  -- return (samp)
 end
 
 

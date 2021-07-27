@@ -2,11 +2,6 @@ local sd_filter = {}
 
 sd_filter.keys_held = {}
 sd_filter.pad_focus = 0
-sd_filter.dough_mod = {}
-for i = 1,3 do
-  sd_filter.dough_mod[i] = {["sub"] = false, ["add"] = false}
-  sd_filter.dough_mod[i].clock = nil
-end
 sd_filter.inv_mod = false
 
 local filter_types = {"dry","lp","hp","bp"}
@@ -42,6 +37,9 @@ function sd_filter.draw_filters()
     for j = 1,level_to_led do
       g:led(_c(j+2,i+2)[1], _c(j+2,i+2)[2],led_maps[off_bright][edition])
     end
+  end
+  for i = 1,8 do
+    g:led(_c(i,7)[1],_c(i,7)[2],filter_data[i].dirty and 15 or 0)
   end
   g:led(_c(1,15)[1],_c(1,15)[2],sd_filter.inv_mod and 15 or 4)
 end
@@ -82,6 +80,32 @@ function sd_filter.parse_press_filters(x,y,z)
   if (nx >= 3 and nx <= 8) and (ny >= 3 and ny <= 6) and z == 1 then
 
   end
+
+  if (ny == 7 and z == 1) then
+    if not grid_alt then
+      if not filter_data[nx].dirty then
+        filter_data[nx].save_clock = clock.run(
+          function()
+            clock.sleep(0.25)
+            _fs.handle_preset(nx,"save")
+            filter_data[nx].save_clock = nil
+          end
+        )
+      else
+        _fs.handle_preset(nx,"load")
+      end
+    else
+      if filter_data[nx].dirty then
+        _fs.handle_preset(nx,"delete")
+      end
+    end
+  elseif z == 0 then
+    if filter_data[nx].save_clock ~= nil then
+      clock.cancel(filter_data[nx].save_clock)
+      filter_data[nx].save_clock = nil
+    end
+  end
+
   if nx == 1 and (ny >= 3 and ny <= 6) and z == 1 then
     local pre_flip = filter[b][filter_types[ny-2]].active
     filters.filt_flip(b,filter_types[ny-2],"rapid",filter[b][filter_types[ny-2]].active and 0 or 1)

@@ -2,7 +2,7 @@ local filters = {}
 
 local speeds =
   {
-    ["rapid"] = 0.002,
+    ["rapid"] = 0.001,
     ["1 bar"] = (clock.get_beat_sec()*4) / 100,
     ["2 bar"] = ((clock.get_beat_sec()*4) / 100) * 2,
     ["3 bar"] = ((clock.get_beat_sec()*4) / 100) * 3,
@@ -47,8 +47,8 @@ function filters.init()
           filter[i][filter_types[j]].active = false
         end
       end)
-      params:add_control("filter "..i.." "..filter_types[j], "filter "..banks[i].." "..filter_types[j].." max level", controlspec.new(0, 1, 'lin', 0, 1, ""))
-      params:set_action("filter "..i.." "..filter_types[j], function(x)
+      params:add_control("filter "..i.." "..filter_types[j].." max level", "filter "..banks[i].." "..filter_types[j].." max level", controlspec.new(0, 1, 'lin', 0, 1, ""))
+      params:set_action("filter "..i.." "..filter_types[j].. " max level", function(x)
         if filter[i][filter_types[j]].active then
           softcut["post_filter_"..filter_types[j]](i+1,x)
           filter[i][filter_types[j]].current_value = x
@@ -112,7 +112,7 @@ function filters.filt_flip(i,type,speed,state)
   else
     speed = speeds[speed]
   end
-  local target_val = params:get("filter "..i.." "..type)
+  local target_val = params:get("filter "..i.." "..type.." max level")
   if filter[i][type].clock ~= nil then
     filter[i][type].current_value = state == 1 and 0 or target_val
     filter[i][type].target_value = state == 1 and target_val or 0

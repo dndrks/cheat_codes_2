@@ -5,6 +5,11 @@ local _loops = loops_menu
 local focused_pad = {nil,nil,nil}
 local _loops_;
 
+local import_sides = {"[LEFT CH]","[RIGHT CH]","[FOLDER]"}
+for j = 1,16 do
+  table.insert(import_sides,"[PAD: "..tostring(j).."]")
+end
+
 function _loops.init()
   page.loops = {}
   page.loops.layer = "global" -- "global" or "clip" or "record"
@@ -105,8 +110,10 @@ function _loops.process_key(n,z)
       -- fileselect.enter(_path.audio,function(x) _ca.sample_callback(x,page.loops.selected_clip_control) end)
       if clip[page.loops.selected_clip_control].channel == 3 then
         fileselect.enter(_path.audio,function(x) _ca.folder_callback(x,page.loops.selected_clip_control) end)
-      else
+      elseif clip[page.loops.selected_clip_control].channel < 3 then
         fileselect.enter(_path.audio,function(x) _ca.sample_callback(x,page.loops.selected_clip_control) end)
+      else
+        fileselect.enter(_path.audio,function(x) _ca.sample_to_pad_callback(x,page.loops.selected_clip_control,clip[page.loops.selected_clip_control].channel-3) end)
       end
       if key2_hold then key2_hold = false end
     elseif page.loops.sel == 6 then
@@ -341,7 +348,7 @@ function _loops.process_encoder(n,d)
         end
       elseif page.loops.sel == 5 then
         clip[page.loops.selected_clip_control].channel =
-          util.clamp(clip[page.loops.selected_clip_control].channel+d,1,3)
+          util.clamp(clip[page.loops.selected_clip_control].channel+d,1,19)
       end
     end
   elseif not page.loops.meta_control and page.loops.zoomed_mode then
@@ -741,12 +748,11 @@ function _loops.draw_menu()
       for i = 1,3 do
         screen.level(page.loops.selected_clip_control == i and 15 or 3)
         screen.move(0,20+(i*10))
-        local sides = {"[LEFT CH]","[RIGHT CH]","[FOLDER]"}
         -- if clip[i].channel ~= 3 then
-          local text_to_display = params:get("clip "..i.." sample") == "-"
-          and ("K3: load, E3: "..sides[clip[i].channel])
-          or params:get("clip "..i.." sample"):match("^.+/(.+)$")
-          screen.text("CLIP "..i..": "..text_to_display)
+        local text_to_display = params:get("clip "..i.." sample") == "-"
+        and ("K3: load, E3: "..import_sides[clip[i].channel])
+        or params:get("clip "..i.." sample"):match("^.+/(.+)$")
+        screen.text("CLIP "..i..": "..text_to_display)
         -- end
       end
       if key1_hold and params:get("clip "..page.loops.selected_clip_control.." sample") ~= "-" then

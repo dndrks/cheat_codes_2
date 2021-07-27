@@ -94,6 +94,7 @@ _gleds = include 'lib/grid_leds'
 p_gate = include 'lib/p_gate'
 _dough = include 'lib/doughstretch'
 _ps = include 'lib/speed_dial_pages/pattern_saver'
+_fs = include 'lib/speed_dial_pages/filter_saver'
 math.randomseed(os.time())
 variable_fade_time = 0.01
 --with positive playback rates, the buffer is actually read from / written to up to (loop end + fade time).
@@ -128,6 +129,7 @@ end
 
 p_gate.init()
 _ps.init()
+_fs.init()
 
 function rec_ended_callback()
   -- for i = 1,3 do
@@ -203,7 +205,8 @@ function on_render(ch, start, i, s)
 end
 
 function update_waveform(buffer,winstart,winend,samples)
-  softcut.render_buffer(buffer, winstart+variable_fade_time, (winend - winstart)-variable_fade_time, 128)
+  -- softcut.render_buffer(buffer, winstart+variable_fade_time, (winend - winstart)-variable_fade_time, 128)
+  softcut.render_buffer(buffer, winstart, (winend - winstart), 128)
 end
 
 --/ waveform stuff
