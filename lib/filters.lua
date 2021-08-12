@@ -18,11 +18,12 @@ function filters.init()
     filter[i].lp = {["current_value"] = 0, ["target_value"] = 1, ["clock"] = nil, ["active"] = false}
     filter[i].hp = {["current_value"] = 0, ["target_value"] = 1, ["clock"] = nil, ["active"] = false}
     filter[i].bp = {["current_value"] = 0, ["target_value"] = 1, ["clock"] = nil, ["active"] = false}
+    filter[i].freq = {["current_value"] = 1000, ["min"] = 1000, ["max"] = 7000, ["attack"] = 10, ["release"] = 10, ["clock"] = nil, ["attack_clock"] = nil, ["release_clock"] = nil, ["clock_stage"] = "done", ["alt"] = false}
   end
 
   local filter_types = {"dry","lp","hp","bp"}
 
-  params:add_group("filters",57)
+  params:add_group("filters",60)
   for i = 1,3 do
     local banks = {"(a)", "(b)", "(c)"}
     local filter_controlspec = controlspec.FREQ
@@ -37,6 +38,18 @@ function filters.init()
         bank[i][j].q = x
       end
     end)
+    params:add_binary("filter "..i.." dynamic freq", "filter "..banks[i].." dynamic freq","momentary",0)
+    params:set_action("filter "..i.." dynamic freq",
+      function(x)
+        local state;
+        if x == 1 then
+          state = true
+        else
+          state = false
+        end
+        filters.freq_press(i,state)
+      end
+    )
     for j = 1,#filter_types do
       params:add_separator(banks[i].." "..filter_types[j])
       params:add_binary("filter "..i.." "..filter_types[j].." active", "filter "..banks[i].." "..filter_types[j].." active","toggle",0)
@@ -150,6 +163,91 @@ function filters.filt_flip(i,type,speed,state)
         end
       end
     )
+  end
+end
+
+local function compare_freq_values(i,style)
+  if style == "attack" then
+    if filter[i].freq.max > filter[i].freq.min then
+      return util.round(filter[i].freq.current_value) < util.round(filter[i].freq.max)
+    else
+      return util.round(filter[i].freq.current_value) > util.round(filter[i].freq.max)
+    end
+  elseif style == "release" then
+    if filter[i].freq.max > filter[i].freq.min then
+      return util.round(filter[i].freq.current_value) > util.round(filter[i].freq.min)
+    else
+      return util.round(filter[i].freq.current_value) < util.round(filter[i].freq.min)
+    end
+  end
+end
+
+local function iterate_freq_values(i,delta,style)
+  if style == "attack" then
+    if filter[i].freq.max > filter[i].freq.min then
+      if filter[i].freq.current_value <= filter[i].freq.max then
+        filter[i].freq.current_value = util.round(filter[i].freq.current_value + (delta/100),1)
+      end
+    else
+      if filter[i].freq.current_value >= filter[i].freq.max then
+        filter[i].freq.current_value = util.round(filter[i].freq.current_value - (delta/100),1)
+      end
+    end
+  elseif style == "release" then
+    if filter[i].freq.max > filter[i].freq.min then
+      if filter[i].freq.current_value >= filter[i].freq.min then
+        filter[i].freq.current_value = util.round(filter[i].freq.current_value - (delta/100),1)
+      end
+    else
+      if filter[i].freq.current_value <= filter[i].freq.min then
+        filter[i].freq.current_value = util.round(filter[i].freq.current_value + (delta/100),1)
+      end
+    end
+  end
+  -- softcut.post_filter_fc(i+1,filter[i].freq.current_value)
+  if filter[i].freq.max > filter[i].freq.min then
+    softcut.post_filter_fc(i+1,util.linexp(filter[i].freq.min, filter[i].freq.max, filter[i].freq.min, filter[i].freq.max, filter[i].freq.current_value)) -- won't work for min > max tho...
+    print(filter[i].freq.current_value, util.linexp(filter[i].freq.min, filter[i].freq.max, filter[i].freq.min, filter[i].freq.max, filter[i].freq.current_value))
+  else
+    softcut.post_filter_fc(i+1,util.linexp(filter[i].freq.max, filter[i].freq.min, filter[i].freq.max, filter[i].freq.min, filter[i].freq.current_value)) -- won't work for min > max tho...
+    print(filter[i].freq.current_value, util.linexp(filter[i].freq.min, filter[i].freq.max, filter[i].freq.min, filter[i].freq.max, filter[i].freq.current_value))
+  end
+  if speed_dial_active and speed_dial.menu == 5 then
+    grid_dirty = true
+  end
+end
+
+function filters.freq_press(i,state)
+  local direction, delta;
+  if state then
+    if filter[i].freq.release_clock~= nil then
+      clock.cancel(filter[i].freq.release_clock)
+    end
+    filter[i].freq.attack_clock = clock.run(
+      function()
+        delta = math.abs(filter[i].freq.max - filter[i].freq.min)
+        local comparator;
+        while compare_freq_values(i,"attack") do
+          clock.sleep(filter[i].freq.attack/100)
+          iterate_freq_values(i,delta,"attack")
+        end
+      end
+    )
+  else
+    if filter[i].freq.attack_clock~= nil then
+      clock.cancel(filter[i].freq.attack_clock)
+    end
+    if not filter[i].freq.alt then -- cuz this only matters during release...it's a 'hold'
+      filter[i].freq.release_clock = clock.run(
+        function()
+          delta = math.abs(filter[i].freq.max - filter[i].freq.min)
+          while compare_freq_values(i,"release") do
+            clock.sleep(filter[i].freq.release/100)
+            iterate_freq_values(i,delta,"release")
+          end
+        end
+      )
+    end
   end
 end
 

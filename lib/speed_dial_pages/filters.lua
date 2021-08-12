@@ -25,6 +25,19 @@ function sd_filter.draw_filters()
   local _filters_ = page.filters
   local b = _filters_.bank
   -- local pad = _filters_.meta_pad[_filters_.bank]
+  if filter[b].freq.max > filter[b].freq.min then
+    if filter[b].freq.current_value ~= filter[b].freq.max then
+      g:led(_c(1,2)[1],_c(1,2)[2],util.round(util.linlin(filter[b].freq.min,filter[b].freq.max,0,15,filter[b].freq.current_value)))
+    elseif filter[b].freq.current_value == filter[b].freq.max then
+      g:led(_c(1,2)[1],_c(1,2)[2],params:get("filter "..b.." dynamic freq")*15)
+    end
+  else
+    if filter[b].freq.current_value ~= filter[b].freq.min then
+      g:led(_c(1,2)[1],_c(1,2)[2],util.round(util.linlin(filter[1].freq.max,filter[1].freq.min,15,0,filter[1].freq.current_value)))
+    elseif filter[b].freq.current_value == filter[b].freq.min then
+      g:led(_c(1,2)[1],_c(1,2)[2],params:get("filter "..b.." dynamic freq")*15)
+    end
+  end
   local led_s = {"filter_engaged","filter_disengaged"}
   for i = 1,4 do
     local leds = filter[b][filter_types[i]].active and led_s[1] or led_s[2]
@@ -138,6 +151,18 @@ function sd_filter.parse_press_filters(x,y,z)
         if i ~= b then
           local s = params:string("filter "..i.." "..filter_types[ny-2].." fade")
           filters.filt_flip(i,filter_types[ny-2],s,filter[i][filter_types[ny-2]].active and 0 or 1)
+        end
+      end
+    end
+  end
+  if nx == 1 and ny == 2 then
+    -- filters.freq_press(b,z == 1 and true or false)
+    params:set("filter "..b.." dynamic freq",z)
+    if grid_alt then
+      for i = 1,3 do
+        if i ~= b then
+          -- filters.freq_press(i,z == 1 and true or false)
+          params:set("filter "..i.." dynamic freq",z)
         end
       end
     end

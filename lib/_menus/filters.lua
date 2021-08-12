@@ -152,7 +152,7 @@ function _f.draw_filters()
     screen.move(x_positions[i],39)
     screen.text_center(tilt_options[i])
     screen.move(x_positions[i],49)
-    screen.text_center( util.round(params:get("filter ".._f_.bank.." "..string.lower(tilt_options[i]).." active") * 100) )
+    screen.text_center( util.round(params:get("filter ".._f_.bank.." "..string.lower(tilt_options[i]).." max level") * 100) )
     screen.move(x_positions[i],59)
     screen.text_center(params:get("filter ".._f_.bank.." "..string.lower(tilt_options[i]).." active") == 1 and "on" or "off")
   end
@@ -233,7 +233,7 @@ function _f.process_encoder(n,d)
       elseif _f_.selected_region == "Q" then
         params:delta("filter ".._f_.bank.." q",d*-1)
       else
-        params:delta("filter ".._f_.bank.." "..string.lower(_f_.selected_region),d)
+        params:delta("filter ".._f_.bank.." "..string.lower(_f_.selected_region).." max level",d)
       end
     end
   end
