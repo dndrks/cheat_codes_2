@@ -58,7 +58,7 @@ function _f.draw_header()
   screen.text("filters")
   if _f_.alt_view then
     screen.move(128,6)
-    screen.text_right("PER-PAD VALUES")
+    screen.text_right("DYNAMIC FREQUENCY")
   end
 end
 
@@ -66,7 +66,7 @@ function _f.draw_alt_view()
   local f = _f_.meta_pad[_f_.bank]
   screen.level(_f_.alt_view_sel == 1 and 15 or 3)
   screen.move(24,20)
-  screen.text("PAD: "..f)
+  screen.text("MIN: ")
 
 
   screen.level(_f_.alt_view_sel == 2 and 15 or 3)
@@ -139,9 +139,9 @@ end
 function _f.draw_filters()
   screen.level(_f_.selected_region == "FREQ" and 15 or 3)
   screen.move(25,21)
-  screen.text("F: "..string.format("%.6g",params:get("filter ".._f_.bank.." cutoff")).."hz")
+  screen.text("F: "..string.format("%.6g",params:get("filter cutoff ".._f_.bank)).."hz")
   screen.level(_f_.selected_region == "Q" and 15 or 3)
-  local q_scaled = util.linlin(0.0005,4,100,0,params:get("filter ".._f_.bank.." q"))
+  local q_scaled = util.linlin(0.0005,4,100,0,params:get("filter q ".._f_.bank))
   screen.move(120,21)
   screen.text_right("Q: "..string.format("%.4g",q_scaled).."%")
   screen.level(_f_.selected_region == "FADE" and 15 or 3)
@@ -152,9 +152,9 @@ function _f.draw_filters()
     screen.move(x_positions[i],39)
     screen.text_center(tilt_options[i])
     screen.move(x_positions[i],49)
-    screen.text_center( util.round(params:get("filter ".._f_.bank.." "..string.lower(tilt_options[i]).." max level") * 100) )
+    screen.text_center( util.round(params:get("filter "..string.lower(tilt_options[i]).." max level ".._f_.bank) * 100) )
     screen.move(x_positions[i],59)
-    screen.text_center(params:get("filter ".._f_.bank.." "..string.lower(tilt_options[i]).." active") == 1 and "on" or "off")
+    screen.text_center(params:get("filter "..string.lower(tilt_options[i]).." active ".._f_.bank) == 1 and "on" or "off")
   end
   -- screen.move(120,60)
   -- screen.text_right("FADE: "..params:string("filter ".._f_.bank.." fade"))
@@ -231,9 +231,9 @@ function _f.process_encoder(n,d)
       if _f_.selected_region == "FREQ" then
         encoder_actions.set_filter_cutoff(_f_.bank,d)
       elseif _f_.selected_region == "Q" then
-        params:delta("filter ".._f_.bank.." q",d*-1)
+        params:delta("filter q ".._f_.bank,d*-1)
       else
-        params:delta("filter ".._f_.bank.." "..string.lower(_f_.selected_region).." max level",d)
+        params:delta("filter "..string.lower(_f_.selected_region).." max level ".._f_.bank,d)
       end
     end
   end

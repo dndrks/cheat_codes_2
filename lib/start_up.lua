@@ -718,6 +718,7 @@ params:add_separator("ALT key")
     params:set_action("level_lfo_depth_"..i, function(x)
       bank[i].level_lfo.depth = x
     end)
+    params:hide("level_lfo_depth_"..i)
   end
   params:add_separator("pans")
   for i = 1,3 do
@@ -739,6 +740,13 @@ params:add_separator("ALT key")
         bank[i][j].pan_lfo.waveform = bank[i].pan_lfo.waveform
       end
     end)
+    params:add_number("pan_lfo_depth_"..i, "["..bnks[i].."] lfo depth",1,200,100)
+    params:set_action("pan_lfo_depth_"..i, function(x)
+      bank[i].pan_lfo.depth = x
+      for j = 1,16 do
+        bank[i][j].pan_lfo.depth = bank[i].pan_lfo.depth
+      end
+    end)
     params:add_option("pan_lfo_rate_"..i, "["..bnks[i].."] lfo rate",lfo_rates.names,15)
     params:set_action("pan_lfo_rate_"..i, function(x)
       bank[i].pan_lfo.freq = 1/((clock.get_beat_sec()*4) * lfo_rates.values[x])
@@ -746,13 +754,6 @@ params:add_separator("ALT key")
       for j = 1,16 do
         bank[i][j].pan_lfo.freq = bank[i].pan_lfo.freq
         bank[i][j].pan_lfo.rate_index = bank[i].pan_lfo.rate_index
-      end
-    end)
-    params:add_number("pan_lfo_depth_"..i, "["..bnks[i].."] lfo depth",1,200,100)
-    params:set_action("pan_lfo_depth_"..i, function(x)
-      bank[i].pan_lfo.depth = x
-      for j = 1,16 do
-        bank[i][j].pan_lfo.depth = bank[i].pan_lfo.depth
       end
     end)
   end

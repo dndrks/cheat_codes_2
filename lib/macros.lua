@@ -86,12 +86,32 @@ default_vals =
   , target = 1
   , curve = "linear"
   }
-, ["filter tilt"] =
+, ["pan_lfo_rate_"] =
   {
-    params_name = "filter tilt"
+    params_name = "pan_lfo_rate_"
   , enabled = false
   , destructive = true
-  , min = -1
+  , min = 1
+  , max = 21
+  , target = 1
+  , curve = "linear"
+  }
+, ["level_lfo_rate_"] =
+  {
+    params_name = "level_lfo_rate_"
+  , enabled = false
+  , destructive = true
+  , min = 1
+  , max = 21
+  , target = 1
+  , curve = "linear"
+  }
+, ["filter dynamic freq"] =
+  {
+    params_name = "filter dynamic freq"
+  , enabled = false
+  , destructive = true
+  , min = 0
   , max = 1
   , target = 1
   , curve = "linear"
@@ -344,6 +364,10 @@ function Macro:pass_value(val)
             name = m[i].params_name
           elseif string.find(m[i].params_name, "rec_live_") ~= nil then
             name = m[i].params_name..target
+          elseif string.find(m[i].params_name, "pan_lfo_rate_") ~= nil then
+            name = m[i].params_name..target
+          elseif string.find(m[i].params_name, "level_lfo_rate_") ~= nil then
+            name = m[i].params_name..target
           else
             name = m[i].params_name..(m[i].destructive and (" ".. target) or (" non-destructive "..target))
           end
@@ -352,7 +376,11 @@ function Macro:pass_value(val)
           local eased_val = easingFunctions[m[i].curve](val/self.in_max,self.in_min,self.in_max,1)
           local new_val = util.linlin(self.in_min,self.in_max,min,max,eased_val)
           if m[i].destructive then
-            params:set(name,new_val)
+            if m[i].params_name ~= "filter dynamic freq" then
+              params:set(name,new_val)
+            else
+              params:set(name,eased_val > 64 and 1 or 0)
+            end
           else
             params:set(name.." non-destructive")
           end
@@ -391,7 +419,9 @@ local parameter_names =
 , "current pad"
 , "rate"
 , "pan"
-, "filter tilt"
+, "pan_lfo_rate_"
+, "level_lfo_rate_"
+, "filter dynamic freq"
 , "start point"
 , "end point"
 , "start (delta)"
@@ -426,12 +456,12 @@ function Macro:cycle_entry(d,id)
     macro[p.selected_macro]:delta_target(p.param_sel[p.selected_macro],d)
   elseif id == 3 then
     local current = macro[p.selected_macro].params[p.param_sel[p.selected_macro]]
-    local params_with_fine = {"pan","filter tilt","delay pan","delay free time"}
+    local params_with_fine = {"pan","delay pan","delay free time"}
     local div = tab.contains(params_with_fine,current.params_name) and 10 or 1
     macro[p.selected_macro]:delta_min(p.param_sel[p.selected_macro],d,div)
   elseif id ==  4 then
     local current = macro[p.selected_macro].params[p.param_sel[p.selected_macro]]
-    local params_with_fine = {"pan","filter tilt","delay pan","delay free time"}
+    local params_with_fine = {"pan","delay pan","delay free time"}
     local div = tab.contains(params_with_fine,current.params_name) and 10 or 1
     macro[p.selected_macro]:delta_max(p.param_sel[p.selected_macro],d,div)
   elseif id == 5 then
@@ -562,7 +592,7 @@ function Container:convert(prm,trg,indx,controlspec_type)
   if lookup_name ~= "none" then
     local id;
     if string.find(lookup_name,"w/") == nil then
-      if string.find(lookup_name,"rec_live") == nil then
+      if string.find(lookup_name,"rec_live") == nil and string.find(lookup_name,"pan_lfo_rate_") == nil and string.find(lookup_name,"level_lfo_rate_") == nil then
         id = params.lookup[lookup_name.." "..trg]
       else
         id = params.lookup[lookup_name..trg]
@@ -678,7 +708,15 @@ function Container.UI()
     screen.font_size(8)
     screen.move(30,21)
     screen.level(edit_focus == 2 and 15 or 3)
-    local display_name = current.params_name ~= "rec_live_" and current.params_name or "live rec toggle"
+    local special_cases =
+      {
+        ["rec_live_"] = "live rec toggle",
+        ["pan_lfo_rate_"] = "pan LFO rate",
+        ["level_lfo_rate_"] = "level LFO rate",
+        ["filter dynamic freq"] = "filter dyn freq"
+      }
+    local display_name = special_cases[current.params_name] ~= nil and special_cases[current.params_name] or current.params_name
+    -- local display_name = current.params_name ~= "rec_live_" and current.params_name or "live rec toggle"
     screen.text("param: "..display_name)
 
     screen.move(30,31)

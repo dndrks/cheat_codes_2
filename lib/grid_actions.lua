@@ -1440,7 +1440,7 @@ end
 
 function grid_actions.bank_pad_down(i,p)
   if bank[i].focus_hold == false then
-    if not grid_alt then
+    if (not grid_alt and not _live.enabled) or _live.enabled then
       if params:string("grid_size") == "128" then
         if grid_page == 0 then
           selected[i].x = _arps.index_to_grid_pos(p,4)[2] + (5*(i-1))
@@ -1541,12 +1541,15 @@ end
 function grid_actions.bank_pad_up(i,p)
   if not bank[i].focus_hold then
     local released_pad = p
-    if not grid_alt then
+    -- if not grid_alt then
+    if (not grid_alt and not _live.enabled) or _live.enabled then
       if not bank[i][released_pad].drone then
         grid_actions.remove_held_key(i,released_pad)
       end
     elseif grid_alt then
-      grid_actions.drone_pad(i,released_pad)
+      if not _live.enabled then
+        grid_actions.drone_pad(i,released_pad)
+      end
     end
     if bank[i][released_pad].play_mode == "momentary" and released_pad == selected[i].id then
       softcut.rate(i+1,0)

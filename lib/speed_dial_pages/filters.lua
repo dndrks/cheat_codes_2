@@ -29,15 +29,17 @@ function sd_filter.draw_filters()
     if filter[b].freq.current_value ~= filter[b].freq.max then
       g:led(_c(1,2)[1],_c(1,2)[2],util.round(util.linlin(filter[b].freq.min,filter[b].freq.max,0,15,filter[b].freq.current_value)))
     elseif filter[b].freq.current_value == filter[b].freq.max then
-      g:led(_c(1,2)[1],_c(1,2)[2],params:get("filter "..b.." dynamic freq")*15)
+      g:led(_c(1,2)[1],_c(1,2)[2],params:get("filter dynamic freq "..b)*15)
     end
   else
     if filter[b].freq.current_value ~= filter[b].freq.min then
       g:led(_c(1,2)[1],_c(1,2)[2],util.round(util.linlin(filter[1].freq.max,filter[1].freq.min,15,0,filter[1].freq.current_value)))
     elseif filter[b].freq.current_value == filter[b].freq.min then
-      g:led(_c(1,2)[1],_c(1,2)[2],params:get("filter "..b.." dynamic freq")*15)
+      g:led(_c(1,2)[1],_c(1,2)[2],params:get("filter dynamic freq "..b)*15)
     end
   end
+  g:led(_c(2,2)[1],_c(2,2)[2],filter[b].freq.sample_hold and 15 or 0)
+  g:led(_c(3,2)[1],_c(3,2)[2],filter[b].freq.latch and 15 or 0)
   local led_s = {"filter_engaged","filter_disengaged"}
   for i = 1,4 do
     local leds = filter[b][filter_types[i]].active and led_s[1] or led_s[2]
@@ -137,35 +139,50 @@ function sd_filter.parse_press_filters(x,y,z)
     end
   elseif nx == 2 and (ny >= 3 and ny <= 6) and z == 1 then
     local pre_flip = filter[b][filter_types[ny-2]].active
-    local s = params:string("filter "..b.." "..filter_types[ny-2].." fade")
+    local s = params:string("filter "..filter_types[ny-2].." fade "..b)
     filters.filt_flip(b,filter_types[ny-2],s,filter[b][filter_types[ny-2]].active and 0 or 1)
     if not sd_filter.inv_mod and grid_alt then
       for i = 1,3 do
         if i ~= b then
-          local s = params:string("filter "..i.." "..filter_types[ny-2].." fade")
+          local s = params:string("filter "..filter_types[ny-2].." fade "..i)
           filters.filt_flip(i,filter_types[ny-2],s,pre_flip and 0 or 1)
         end
       end
     elseif sd_filter.inv_mod and not grid_alt then
       for i = 1,3 do
         if i ~= b then
-          local s = params:string("filter "..i.." "..filter_types[ny-2].." fade")
+          local s = params:string("filter "..filter_types[ny-2].." fade "..i)
           filters.filt_flip(i,filter_types[ny-2],s,filter[i][filter_types[ny-2]].active and 0 or 1)
         end
       end
     end
   end
   if nx == 1 and ny == 2 then
-    -- filters.freq_press(b,z == 1 and true or false)
-    params:set("filter "..b.." dynamic freq",z)
-    if grid_alt then
-      for i = 1,3 do
-        if i ~= b then
-          -- filters.freq_press(i,z == 1 and true or false)
-          params:set("filter "..i.." dynamic freq",z)
+    if not filter[b].freq.latch then
+      params:set("filter dynamic freq "..b,z)
+      if grid_alt then
+        for i = 1,3 do
+          if i ~= b then
+            params:set("filter dynamic freq "..i,z)
+          end
+        end
+      end
+    elseif z == 1 then
+      params:set("filter dynamic freq "..b,params:get("filter dynamic freq "..b) == 0 and 1 or 0)
+      if grid_alt then
+        for i = 1,3 do
+          if i ~= b then
+            params:set("filter dynamic freq "..i,params:get("filter dynamic freq "..i) == 0 and 1 or 0)
+          end
         end
       end
     end
+  end
+  if nx == 2 and ny == 2 and z == 1 then
+    filters.toggle_hold_freq(b,not filter[b].freq.sample_hold)
+  end
+  if nx == 3 and ny == 2 then
+    filters.latch_freq_press(b,not filter[b].freq.latch)
   end
 end
 

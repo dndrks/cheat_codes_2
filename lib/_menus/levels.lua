@@ -394,14 +394,17 @@ function _l.process_encoder(n,d)
           _l.pass_to_all(_l_.bank,f,"envelope_time")
         end
       elseif _l_.selected_region == "bank_lfo_active" then
-        b.level_lfo.active = d > 0 and true or false
+        -- b.level_lfo.active = d > 0 and true or false
+        params:set("level_lfo_active_".._l_.bank,d > 0 and 2 or 1)
       elseif _l_.selected_region == "bank_lfo_shape" then
         local current_index = tab.key(lfo_types,b.level_lfo.waveform)
         current_index = util.clamp(current_index + d,1,#lfo_types)
-        b.level_lfo.waveform = lfo_types[current_index]
+        -- b.level_lfo.waveform = lfo_types[current_index]
+        params:set("level_lfo_waveform_".._l_.bank,current_index)
       elseif _l_.selected_region == "bank_lfo_freq" then
         b.level_lfo.rate_index = util.clamp(b.level_lfo.rate_index + d,1,#lfo_rates.values)
-        b.level_lfo.freq = 1/((clock.get_beat_sec()*4) * lfo_rates.values[b.level_lfo.rate_index])
+        -- b.level_lfo.freq = 1/((clock.get_beat_sec()*4) * lfo_rates.values[b.level_lfo.rate_index])
+        params:set("level_lfo_rate_".._l_.bank,b.level_lfo.rate_index)
       end
     end
   end

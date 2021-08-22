@@ -968,7 +968,7 @@ function ea.set_delay_param(target,prm,val)
 end
 
 function ea.set_filter_cutoff(target,d)
-  params:delta("filter "..target.." cutoff", d/10)
+  params:delta("filter cutoff "..target, d/10)
 end
 
 function ea.delta_MIDI_values(target,d,quant_table)

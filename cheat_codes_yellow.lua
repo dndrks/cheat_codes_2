@@ -95,6 +95,7 @@ p_gate = include 'lib/p_gate'
 _dough = include 'lib/doughstretch'
 _ps = include 'lib/speed_dial_pages/pattern_saver'
 _fs = include 'lib/speed_dial_pages/filter_saver'
+_live = include 'lib/livecode'
 math.randomseed(os.time())
 variable_fade_time = 0.01
 --with positive playback rates, the buffer is actually read from / written to up to (loop end + fade time).
