@@ -82,7 +82,7 @@ speed_dial = include 'lib/_menus/speed_dial'
 grid_actions = include 'lib/grid_actions'
 easingFunctions = include 'lib/easing'
 arps = include 'lib/arp_actions'
-rnd = include 'lib/rnd_actions'
+-- rnd = include 'lib/rnd_actions'
 del = include 'lib/delay'
 rytm = include 'lib/euclid'
 mc = include 'lib/midicheat'
@@ -1865,9 +1865,9 @@ function init()
     arps.init(i)
   end
 
-  for i = 1,3 do
-    rnd.init(i)
-  end
+  -- for i = 1,3 do
+  --   rnd.init(i)
+  -- end
 
   rytm.init()
   transport.init()
@@ -3067,7 +3067,8 @@ function cheat(b,i,silent)
   -- redraw waveform if it's zoomed in and the pad changes
   -- TODO UPDATE FOR GUHHHH
   -- if menu == 2 and page.loops.sel == b and page.loops.frame == 2 and not key2_hold and key1_hold then
-  if menu == 2 and page.loops.sel == b and not key2_hold and key1_hold then
+  -- if menu == 2 and page.loops.sel == b and not key2_hold and key1_hold then
+  if menu == 2 and page.loops.sel == b and key2_hold then
     local focused_pad;
     if bank[page.loops.sel].focus_hold then
       focused_pad = bank[page.loops.sel].focus_pad
@@ -3421,6 +3422,7 @@ function key(n,z)
           if menu == 4 then
             main_menu.reset_view("pans")
           end
+          if menu == 10 then menu = "macro_config" end
         end
       elseif menu == 2 then
         -- local id = page.loops_sel
@@ -3670,7 +3672,7 @@ function key(n,z)
     elseif n == 2 and z == 1 then
       if menu == 1 then
         if key1_hold then
-          menu = "macro_config"
+          -- menu = "macro_config"
           key1_hold = false
         else
           menu = "transport_config"
@@ -4276,31 +4278,13 @@ arc_redraw = function()
       a:led(which_enc, arc_param[i] == 2 and (end_to_led+17) or (start_to_led+16),8)
     end
     if arc_param[i] == 4 then
-      local tilt_to_led = slew_counter[i].slewedVal
-      if bank[i].focus_hold == true then
-        which_pad = bank[i].focus_pad
-        tilt_to_led = bank[i][bank[i].focus_pad].tilt
-      else
-        which_pad = bank[i].id
-      end
-      if tilt_to_led == nil then
-        tilt_to_led = bank[i][which_pad].tilt
-        a:led(which_enc,47,5)
-        a:led(which_enc,48,10)
-        a:led(which_enc,49,15)
-        a:led(which_enc,50,10)
-        a:led(which_enc,51,5)
-      elseif tilt_to_led >= -0.04 and tilt_to_led <=0.20 then
-        a:led(which_enc,47,5)
-        a:led(which_enc,48,10)
-        a:led(which_enc,49,15)
-        a:led(which_enc,50,10)
-        a:led(which_enc,51,5)
-      elseif tilt_to_led < -0.04 then
-        a:segment(which_enc, tau*(1/4), util.linlin(-1, 1, (tau*(1/4))+0.1, tau*1.249999, tilt_to_led), 15)
-      elseif tilt_to_led > 0.20 then
-        a:segment(which_enc, util.linlin(-1, 1, (tau*(1/4)), (tau*1.24)+0.4, tilt_to_led-0.1), tau*(1/4)+0.1, 15)
-      end
+      local cutoff_to_led = params:get("filter cutoff "..i)
+      cutoff_to_led = util.round(util.explin(20,20000,22,78,cutoff_to_led))
+      a:led(which_enc,cutoff_to_led-2,5)
+      a:led(which_enc,cutoff_to_led-1,8)
+      a:led(which_enc,cutoff_to_led,15)
+      a:led(which_enc,cutoff_to_led+1,8)
+      a:led(which_enc,cutoff_to_led+2,5)
     end
     if arc_param[i] == 5 then
       local level_to_led;

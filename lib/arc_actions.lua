@@ -167,19 +167,20 @@ end
 
 function aa.change_tilt(target, delta, enc)
   local a_c = enc
-  if slew_counter[a_c] ~= nil then
-    slew_counter[a_c].prev_tilt = target.tilt
-  end
-  target.tilt = util.explin(1,3,-1,1,target.tilt+2)
-  target.tilt = util.clamp(target.tilt+(delta),-1,1)
-  target.tilt = util.linexp(-1,1,1,3,target.tilt)-2
-  if delta < 0 then
-    if util.round(target.tilt*100) < 0 and util.round(target.tilt*100) > -9 then
-      target.tilt = -0.10
-    elseif util.round(target.tilt*100) > 0 and util.round(target.tilt*100) < 3 then
-      target.tilt = 0.0
-    end
-  end
+  params:delta("filter cutoff "..a_c,delta*8)
+  -- if slew_counter[a_c] ~= nil then
+  --   slew_counter[a_c].prev_tilt = target.tilt
+  -- end
+  -- target.tilt = util.explin(1,3,-1,1,target.tilt+2)
+  -- target.tilt = util.clamp(target.tilt+(delta),-1,1)
+  -- target.tilt = util.linexp(-1,1,1,3,target.tilt)-2
+  -- if delta < 0 then
+  --   if util.round(target.tilt*100) < 0 and util.round(target.tilt*100) > -9 then
+  --     target.tilt = -0.10
+  --   elseif util.round(target.tilt*100) > 0 and util.round(target.tilt*100) < 3 then
+  --     target.tilt = 0.0
+  --   end
+  -- end
 end
 
 function aa.change_pan(target, delta)
@@ -210,7 +211,7 @@ function aa.sc.move_end(enc, target)
 end
 
 function aa.sc.change_tilt(enc, target)
-  slew_filter(enc,slew_counter[enc].prev_tilt,target.tilt,target.q,target.q,15)
+  -- slew_filter(enc,slew_counter[enc].prev_tilt,target.tilt,target.q,target.q,15)
 end
 
 function aa.sc.change_pan(enc, target)

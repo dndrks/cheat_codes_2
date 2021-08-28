@@ -113,19 +113,7 @@ function main_menu.draw()
     screen.move(0,10)
     screen.text("cheat codes")
     screen.move(10,30)
-    if not key1_hold then
-      for i = 1,10 do
-        screen.level(page.main_sel == i and 15 or 3)
-        if i < 4 then
-          screen.move(5,20+(10*i))
-        elseif i < 7 then
-          screen.move(50,10*(i-1))
-        elseif i < 10 then
-          screen.move(95,30+(10*(i-7)))
-        elseif i == 10 then
-          screen.move(115,64)
-        end
-        local options =
+    local options =
         { " loops"
         , " levels"
         , " pans"
@@ -134,9 +122,23 @@ function main_menu.draw()
         , " timing"
         , " euclid"
         , " arps"
-        , " rnd"
+        -- , " rnd"
+        , " macros"
         , " "
         }
+    if not key1_hold then
+      for i = 1,10 do
+        screen.level(page.main_sel == i and 15 or 3)
+        if i < 4 then
+          screen.move(5,20+(10*i))
+        elseif i < 7 then
+          screen.move(47,10*(i-1))
+        elseif i < 10 then
+          screen.move(90,30+(10*(i-7)))
+        elseif i == 10 then
+          screen.move(115,64)
+        end
+        
         screen.text(page.main_sel == i and (">"..options[i]) or options[i])
         main_menu.metro_icon(0,58)
       end
@@ -159,9 +161,7 @@ function main_menu.draw()
         screen.text_right("["..util.trim_string_to_width(selected_coll,68).."]")
       end
     else
-      screen.move(60,35)
-      screen.text_center("+K2: MACRO CONFIG")
-      screen.move(60,45)
+      screen.move(64,38)
       screen.text_center("+K3: OUTGOING MIDI CONFIG")
     end
   elseif menu == 2 then

@@ -305,6 +305,7 @@ function arp_actions.cheat(target,step,source)
     if (pattern_gate[target][1].active and p_gate.check_prob(pattern_gate[target][1])) or not pattern_gate[target][1].active then
       local should_happen = arp_actions.check_prob(target,step)
       if should_happen then
+        -- print("should happen")
         if arp[target].conditional.cycle < arp[target].conditional.A[step] then
         elseif arp[target].conditional.cycle == arp[target].conditional.A[step] then
           arp_actions.execute_step(target,step,source)
@@ -312,14 +313,19 @@ function arp_actions.cheat(target,step,source)
           if arp[target].conditional.cycle <= (arp[target].conditional.A[step] + arp[target].conditional.B[step]) then
             if arp[target].conditional.cycle % (arp[target].conditional.A[step] + arp[target].conditional.B[step]) == 0 then
               arp_actions.execute_step(target,step,source)
+            else
+              grid_actions.kill_note(target,arp[target].notes[wrap(step-1,arp[target].start_point,arp[target].end_point)])
             end
           else
             if (arp[target].conditional.cycle - arp[target].conditional.A[step]) % arp[target].conditional.B[step] == 0 then
               arp_actions.execute_step(target,step,source)
+            else
+              grid_actions.kill_note(target,arp[target].notes[wrap(step-1,arp[target].start_point,arp[target].end_point)])
             end
           end
         end
       else
+        print("missed it")
         -- print("missed it. ",target,arp[target].notes[wrap(step-1,arp[target].start_point,arp[target].end_point)])
         grid_actions.kill_note(target,arp[target].notes[wrap(step-1,arp[target].start_point,arp[target].end_point)])
         -- want to kill the previous note...

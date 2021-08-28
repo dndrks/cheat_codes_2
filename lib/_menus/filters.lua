@@ -247,9 +247,15 @@ function _f.process_key(n,z)
     end
   elseif n == 2 and z == 1 then
     menu = 1
-  elseif n == 3 and z == 1 then
-    if _f_.selected_region == "DRY" or _f_.selected_region == "LP" or _f_.selected_region == "HP" or _f_.selected_region == "BP" then
-      filters.filt_flip(_f_.bank,string.lower(_f_.selected_region),"rapid",filter[_f_.bank][string.lower(_f_.selected_region)].active and 0 or 1)
+  elseif n == 3 then
+    if (_f_.selected_region == "FREQ" and not _f_.alt_view) or _f_.alt_view then
+      params:set("filter dynamic freq ".._f_.bank,z)
+    end
+    if z == 1 then
+      if (_f_.selected_region == "DRY" or _f_.selected_region == "LP" or _f_.selected_region == "HP" or _f_.selected_region == "BP")
+      and not _f_.alt_view then
+        filters.filt_flip(_f_.bank,string.lower(_f_.selected_region),"rapid",filter[_f_.bank][string.lower(_f_.selected_region)].active and 0 or 1)
+      end
     end
   end
 end

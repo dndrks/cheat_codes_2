@@ -13,7 +13,7 @@ end
 function _loops.init()
   page.loops = {}
   page.loops.layer = "global" -- "global" or "clip" or "record"
-  page.loops.bank_controls = {"cheat_pad","start_point","end_point","rate","semitone","glide","buffer","loop_state","auto_chop"}
+  page.loops.bank_controls = {"cheat_pad","start_point","end_point","rate","semitone","glide","buffer","loop_state","auto_chop","stretch_mode","stretch_step","stretch_duration","stretch_fade"}
   page.loops.selected_bank_control = "cheat_pad"
   page.loops.live_controls = {"segment","start_point","end_point","record","feedback","mode","duration","erase","random_rec"}
   page.loops.selected_live_control = "segment"
@@ -231,19 +231,25 @@ function _loops.process_encoder(n,d)
           if not key1_hold then
             _loops.change_pad(page.loops.sel,d)
           elseif key1_hold then
-            _dough.change(page.loops.sel,"time",d)
+            for i = 1,16 do
+              _loops.move_loop_points(bank[page.loops.sel][i],d,resolution,"move_play_window")
+            end
           end
         elseif page.loops.selected_bank_control == "start_point" then
           if not key1_hold then
             _loops.move_loop_points(pad,d,resolution,"move_start")
           elseif key1_hold then
-            _dough.change(page.loops.sel,"time",d)
+            for i = 1,16 do
+              _loops.move_loop_points(bank[page.loops.sel][i],d,resolution,"move_start")
+            end
           end
         elseif page.loops.selected_bank_control == "end_point" then
           if not key1_hold then
             _loops.move_loop_points(pad,d,resolution,"move_end")
           elseif key1_hold then
-            _dough.change(page.loops.sel,"time",d)
+            for i = 1,16 do
+              _loops.move_loop_points(bank[page.loops.sel][i],d,resolution,"move_end")
+            end
           end
         elseif page.loops.selected_bank_control == "rate" then
           local rates ={-4,-2,-1,-0.5,-0.25,-0.125,0,0.125,0.25,0.5,1,2,4}
@@ -329,6 +335,14 @@ function _loops.process_encoder(n,d)
           if bank[page.loops.sel].id == pad.pad_id then
             softcut.loop(page.loops.sel+1,pad.loop == true and 1 or 0)
           end
+        elseif page.loops.selected_bank_control == "stretch_mode" then
+          params:delta("doughstretch_mode_"..page.loops.sel,d)
+        elseif page.loops.selected_bank_control == "stretch_step" then
+          params:delta("doughstretch_step_"..page.loops.sel,d)
+        elseif page.loops.selected_bank_control == "stretch_duration" then
+          params:delta("doughstretch_duration_"..page.loops.sel,d)
+        elseif page.loops.selected_bank_control == "stretch_fade" then
+          params:delta("doughstretch_fade_"..page.loops.sel,d)
         end
       elseif page.loops.sel == 4 then
         if page.loops.selected_live_control == "segment" then
@@ -430,7 +444,7 @@ function _loops.draw_menu()
 
       local pad = bank[page.loops.sel][page.loops.meta_pad[page.loops.sel]]
 
-      if (key1_hold and tab.key(page.loops.bank_controls,sel) < 4) or not key1_hold then
+      if (key1_hold and (tab.key(page.loops.bank_controls,sel) < 4 or tab.key(page.loops.bank_controls,sel) > 9)) or not key1_hold then
 
         local loops_to_screen_options = {"a", "b", "c"}
         screen.move(0,31)
@@ -561,61 +575,95 @@ function _loops.draw_menu()
         -- screen.text_center("K3: toggle looping, all pads")
         --new//
       elseif not key1_hold or (key1_hold and tab.key(page.loops.bank_controls,sel) > 3) then
-        screen.level(sel == "rate" and 15 or 3)
-        screen.move(0,54)
-        screen.text(string.format("%.4g",pad.rate).."x")
-        screen.level(sel == "semitone" and 15 or 3)
-        screen.move(64,54)
-        screen.text_center((string.format("%.2f",((math.log(pad.offset)/math.log(0.5))*-12))).." st")
-        screen.level(sel == "glide" and 15 or 3)
-        screen.move(128,54)
-        screen.text_right(string.format("%.1f",pad.rate_slew).."s")
-        screen.level(sel == "buffer" and 15 or 3)
-        screen.move(0,64)
-        screen.text("["..header[page.loops.sel].."] "..(pad.mode == 1 and ("LIVE "..pad.clip) or ("CLIP "..pad.clip)))
-        screen.level(sel == "loop_state" and 15 or 3)
-        screen.move(64,64)
-        screen.text_center(pad.loop == false and "1-SHOT" or "∞")
-        screen.level(sel == "auto_chop" and 15 or 3)
-        screen.move(128,64)
-        screen.text_right("CHOP")
-        if key1_hold and tab.key(page.loops.bank_controls,sel) > 3 then
-          screen.level(15)
-          screen.move(64,25)
-          screen.text_center((sel ~= "buffer" and sel ~= "auto_chop") and "K3/E3:" or "K3:")
-          local texts =
-          {
-            ["rate"] = "set all pads to "..string.format("%.4g",pad.rate).."x"
-          , ["semitone"] = "offset all pads to "..(string.format("%.2f",((math.log(pad.offset)/math.log(0.5))*-12))).." st"
-          , ["glide"] = "set all pitch slews to "..string.format("%.1f",pad.rate_slew).."s"
-          , ["buffer"] = (params:get("SOS_enabled_"..page.loops.sel) == 1 and "turn SOS off" or "turn SOS on")
-          , ["loop_state"] = "set all pad loops to "..(pad.loop == false and "1-SHOT" or "∞")
-          , ["auto_chop"] = "set bpm from pad "..pad.pad_id
-          }
-          screen.level(15)
-          screen.move(64,35)
-          if texts[sel] ~= nil then
-            screen.text_center(texts[sel])
+        if tab.key(page.loops.bank_controls,page.loops.selected_bank_control) < 10 then
+          screen.level(sel == "rate" and 15 or 3)
+          screen.move(0,54)
+          screen.text(string.format("%.4g",pad.rate).."x")
+          screen.level(sel == "semitone" and 15 or 3)
+          screen.move(64,54)
+          screen.text_center((string.format("%.2f",((math.log(pad.offset)/math.log(0.5))*-12))).." st")
+          screen.level(sel == "glide" and 15 or 3)
+          screen.move(128,54)
+          screen.text_right(string.format("%.1f",pad.rate_slew).."s")
+          screen.level(sel == "buffer" and 15 or 3)
+          screen.move(0,64)
+          screen.text("["..header[page.loops.sel].."] "..(pad.mode == 1 and ("LIVE "..pad.clip) or ("CLIP "..pad.clip)))
+          screen.level(sel == "loop_state" and 15 or 3)
+          screen.move(64,64)
+          screen.text_center(pad.loop == false and "1-SHOT" or "∞")
+          screen.level(sel == "auto_chop" and 15 or 3)
+          screen.move(128,64)
+          screen.text_right("CHOP")
+          if key1_hold and tab.key(page.loops.bank_controls,sel) > 3 then
+            screen.level(15)
+            screen.move(64,25)
+            screen.text_center((sel ~= "buffer" and sel ~= "auto_chop") and "K3/E3:" or "K3:")
+            local texts =
+            {
+              ["rate"] = "set all pads to "..string.format("%.4g",pad.rate).."x"
+            , ["semitone"] = "offset all pads to "..(string.format("%.2f",((math.log(pad.offset)/math.log(0.5))*-12))).." st"
+            , ["glide"] = "set all pitch slews to "..string.format("%.1f",pad.rate_slew).."s"
+            , ["buffer"] = (params:get("SOS_enabled_"..page.loops.sel) == 1 and "turn SOS off" or "turn SOS on")
+            , ["loop_state"] = "set all pad loops to "..(pad.loop == false and "1-SHOT" or "∞")
+            , ["auto_chop"] = "set bpm from pad "..pad.pad_id
+            }
+            screen.level(15)
+            screen.move(64,35)
+            if texts[sel] ~= nil then
+              screen.text_center(texts[sel])
+            end
           end
+        else
+          local textline_1 = "STRETCH: "..params:string("doughstretch_mode_"..page.loops.sel)
+          -- local textline_2 = 
+          -- dough_stretch[page.loops.sel].mode == "chi" and "FADE: 1/"..dough_stretch[page.loops.sel].fade_time
+          -- or ""
+          local textline_2 = "STEP: 1/"..dough_stretch[page.loops.sel].inc
+          local textline_3 = "DUR: 1/"..dough_stretch[page.loops.sel].time
+          local textline_4 = "FADE: "..(params:get("doughstretch_fade_"..page.loops.sel)/100).."s"
+          
+          screen.level(sel == "stretch_mode" and 15 or 3)
+          screen.move(0,54)
+          screen.text(textline_1 ~= nil and textline_1 or "")
+          screen.level(sel == "stretch_step" and 15 or 3)
+          screen.move(128,54)
+          screen.text_right(textline_2 ~= nil and textline_2 or "")
+          screen.level(sel == "stretch_duration" and 15 or 3)
+          screen.move(0,64)
+          screen.text(textline_3 ~= nil and textline_3 or "")
+          screen.level(sel == "stretch_fade" and 15 or 3)
+          screen.move(128,64)
+          screen.text_right(textline_4 ~= nil and textline_4 or "")
         end
         --//new
       elseif key1_hold and tab.key(page.loops.bank_controls,sel) < 4 then
-        local textline_1 = "STRETCH: "..(dough_stretch[page.loops.sel].enabled == true and dough_stretch[page.loops.sel].mode or "OFF")
-        local textline_2 = 
-        dough_stretch[page.loops.sel].mode == "chi" and "FADE: 1/"..dough_stretch[page.loops.sel].fade_time
-        or ""
-        local textline_3 = "STEP: 1/"..dough_stretch[page.loops.sel].inc
-        local textline_4 = "DUR: 1/"..dough_stretch[page.loops.sel].time
-        
         screen.level(15)
-        screen.move(0,54)
-        screen.text(textline_1 ~= nil and textline_1 or "")
-        screen.move(128,54)
-        screen.text_right(textline_2 ~= nil and textline_2 or "")
-        screen.move(0,64)
-        screen.text(textline_3 ~= nil and textline_3 or "")
-        screen.move(128,64)
-        screen.text_right(textline_4 ~= nil and textline_4 or "")
+        screen.move(64,54)
+        if page.loops.selected_bank_control == "cheat_pad" then
+          screen.text_center("E3: delta all pad windows")
+        elseif page.loops.selected_bank_control == "start_point" then
+          screen.text_center("E3: delta all pad start points")
+        elseif page.loops.selected_bank_control == "end_point" then
+          screen.text_center("E3: delta all pad end points")
+        end
+        -- local textline_1 = "STRETCH: "..params:string("doughstretch_mode_"..page.loops.sel)
+        -- local textline_2 = 
+        -- dough_stretch[page.loops.sel].mode == "chi" and "FADE: 1/"..dough_stretch[page.loops.sel].fade_time
+        -- or ""
+        -- local textline_3 = "STEP: 1/"..dough_stretch[page.loops.sel].inc
+        -- local textline_4 = "DUR: 1/"..dough_stretch[page.loops.sel].time
+        
+        -- screen.level(sel == "stretch_mode" and 15 or 3)
+        -- screen.move(0,54)
+        -- screen.text(textline_1 ~= nil and textline_1 or "")
+        -- screen.move(128,54)
+        -- screen.text_right(textline_2 ~= nil and textline_2 or "")
+        -- screen.level(sel == "stretch_step" and 15 or 3)
+        -- screen.move(0,64)
+        -- screen.text(textline_3 ~= nil and textline_3 or "")
+        -- screen.level(sel == "stretch_duration" and 15 or 3)
+        -- screen.move(128,64)
+        -- screen.text_right(textline_4 ~= nil and textline_4 or "")
       end
         
     elseif page.loops.sel == 4 then
