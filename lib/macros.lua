@@ -24,13 +24,25 @@ end
 function Macro:delta_min(id,d,divisor)
   local min = default_vals[self.params[id].params_name].min
   local max = default_vals[self.params[id].params_name].max
-  self.params[id].min = util.clamp(self.params[id].min + (d/divisor),min,max)
+  if self.params[id].params_name == "filter cutoff" then
+    params:delta("filter macro min "..self.params[id].target,d/10)
+    self.params[id].min = params:get("filter macro min "..self.params[id].target)
+  else
+    self.params[id].min = util.clamp(self.params[id].min + (d/divisor),min,max)
+  end
 end
 
 function Macro:delta_max(id,d,divisor)
   local min = default_vals[self.params[id].params_name].min
   local max = default_vals[self.params[id].params_name].max
-  self.params[id].max = util.clamp(self.params[id].max + (d/divisor),min,max)
+  if self.params[id].params_name == "filter cutoff" then
+    self.params[id].max = util.explin(min, max, 0, 1, self.params[id].max)
+    local delta = d > 0 and 0.01 or -0.01
+    self.params[id].max = util.clamp(self.params[id].max+delta,0,1)
+    self.params[id].max = util.linexp(0,1,min,max,self.params[id].max)
+  else
+    self.params[id].max = util.clamp(self.params[id].max + (d/divisor),min,max)
+  end
 end
 
 function Macro:delta_curve(id,d)
@@ -103,6 +115,16 @@ default_vals =
   , destructive = true
   , min = 1
   , max = 21
+  , target = 1
+  , curve = "linear"
+  }
+, ["filter cutoff"] =
+  {
+    params_name = "filter cutoff"
+  , enabled = false
+  , destructive = true
+  , min = 20
+  , max = 20000
   , target = 1
   , curve = "linear"
   }
@@ -378,6 +400,7 @@ function Macro:pass_value(val)
           if m[i].destructive then
             if m[i].params_name ~= "filter dynamic freq" then
               params:set(name,new_val)
+              if menu == 5 then screen_dirty = true end
             else
               params:set(name,eased_val > 64 and 1 or 0)
             end
@@ -421,6 +444,7 @@ local parameter_names =
 , "pan"
 , "pan_lfo_rate_"
 , "level_lfo_rate_"
+, "filter cutoff"
 , "filter dynamic freq"
 , "start point"
 , "end point"

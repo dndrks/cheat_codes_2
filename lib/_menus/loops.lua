@@ -747,12 +747,24 @@ function _loops.draw_menu()
     elseif page.loops.sel == 5 then
       for i = 1,3 do
         screen.level(page.loops.selected_clip_control == i and 15 or 3)
-        screen.move(0,20+(i*10))
+        screen.move(0,10+(i*10)+(8*(i-1)))
+        screen.text("CLIP "..i..": "..("K3: load, E3: "..import_sides[clip[i].channel]))
+        screen.level(page.loops.selected_clip_control == i and 8 or 3)
+        screen.move(0,18+(i*10)+(8*(i-1)))
+        if params:get("clip "..i.." sample") == "-" and not clip[i].collage then
+          screen.text("(no clip loaded)")
+        elseif params:get("clip "..i.." sample") == "-" and clip[i].collage then
+          screen.text("collaged audio")
+        elseif params:get("clip "..i.." sample") ~= "-" and clip[i].collage then
+          screen.text("collaged audio")
+        elseif params:get("clip "..i.." sample") ~= "-" and not clip[i].collage then
+          screen.text(params:get("clip "..i.." sample"):match("^.+/(.+)$"))
+        end
         -- if clip[i].channel ~= 3 then
-        local text_to_display = params:get("clip "..i.." sample") == "-"
-        and ("K3: load, E3: "..import_sides[clip[i].channel])
-        or params:get("clip "..i.." sample"):match("^.+/(.+)$")
-        screen.text("CLIP "..i..": "..text_to_display)
+        -- local text_to_display = params:get("clip "..i.." sample") == "-"
+        -- and ("K3: load, E3: "..import_sides[clip[i].channel])
+        -- or params:get("clip "..i.." sample"):match("^.+/(.+)$")
+        -- screen.text("CLIP "..i..": "..text_to_display)
         -- end
       end
       if key1_hold and params:get("clip "..page.loops.selected_clip_control.." sample") ~= "-" then

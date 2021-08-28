@@ -66,62 +66,16 @@ function _f.draw_alt_view()
   local f = _f_.meta_pad[_f_.bank]
   screen.level(_f_.alt_view_sel == 1 and 15 or 3)
   screen.move(24,20)
-  screen.text("MIN: ")
-
-
+  screen.text("MIN: "..string.format("%.6g",params:get("filter dynamic freq min ".._f_.bank)).."hz")
   screen.level(_f_.alt_view_sel == 2 and 15 or 3)
-  screen.move(26,30)
-  local tilt_options = {"LP", "-", "HP"}
-  local x_positions = {28,74,120}
-  for i = 1,3 do
-    screen.move(x_positions[i],30)
-    screen.text_center(tilt_options[i])
-  end
-  local cut_to_line = util.round(math.abs(bank[_f_.bank][f].tilt),0.01)*100
-  if bank[_f_.bank][f].tilt < 0 then
-    for i = 0,cut_to_line do
-      screen.move(util.linlin(0,100,74,28,i),38)
-      screen.text_center("|")
-    end
-  elseif bank[_f_.bank][f].tilt > 0 then
-    for i = 3,cut_to_line do
-      screen.move(util.linlin(30,100,74,120,i),38)
-      screen.text_center("|")
-    end
-  else
-    screen.move(74,38)
-    screen.text_center("|")
-  end
-
-
-  local x_positions = {43,74,105}
-  -- {38,74,110}
-  local q_scaled = util.linlin(0.0005,4,100,0,bank[_f_.bank][f].q)
-  local ease_time_to_screen = bank[_f_.bank][f].tilt_ease_time
-  local ease_type_to_screen = bank[_f_.bank][f].tilt_ease_type
-  local ease_types = {"cont","jumpy"}
-  local text_to_display =
-  {
-    string.format("%.4g",q_scaled) .."%",
-    string.format("%.2f",ease_time_to_screen/100) .."s",
-    ease_types[ease_type_to_screen]
-  }
-  for i = 1,3 do
-    screen.level(_f_.alt_view_sel == i+2 and 15 or 3)
-    screen.move(x_positions[i],50)
-    screen.text_center(_f_.regions[i+1])
-    screen.move(x_positions[i],60)
-    screen.text_center(text_to_display[i])
-  end
-  -- screen.level(_f_.alt_view_sel == 7 and 15 or (_f_.alt_view_sel == 8 and 15 or 3))
-  -- screen.move(26,60)
-  -- screen.text("RANDOMIZE: ")
-  -- screen.level(_f_.alt_view_sel == 7 and 15 or 3)
-  -- screen.move(80,60)
-  -- screen.text("pad")
-  -- screen.level(_f_.alt_view_sel == 8 and 15 or 3)
-  -- screen.move(122,60)
-  -- screen.text_right("bank")
+  screen.move(24,32)
+  screen.text("MAX: "..string.format("%.6g",params:get("filter dynamic freq max ".._f_.bank)).."hz")
+  screen.level(_f_.alt_view_sel == 3 and 15 or 3)
+  screen.move(24,44)
+  screen.text("RISE: "..params:string("filter dynamic freq attack ".._f_.bank)..(params:get("filter dynamic freq attack ".._f_.bank) >= 13 and " bars" or " beats"))
+  screen.level(_f_.alt_view_sel == 4 and 15 or 3)
+  screen.move(24,56)
+  screen.text("FALL: "..params:string("filter dynamic freq release ".._f_.bank)..(params:get("filter dynamic freq release ".._f_.bank) >= 13 and " bars" or " beats"))
 end
 
 function _f.draw_side()
@@ -154,7 +108,7 @@ function _f.draw_filters()
     screen.move(x_positions[i],49)
     screen.text_center( util.round(params:get("filter "..string.lower(tilt_options[i]).." max level ".._f_.bank) * 100) )
     screen.move(x_positions[i],59)
-    screen.text_center(params:get("filter "..string.lower(tilt_options[i]).." active ".._f_.bank) == 1 and "on" or "off")
+    screen.text_center(filter[_f_.bank][string.lower(tilt_options[i])].active == true and "on" or "off")
   end
   -- screen.move(120,60)
   -- screen.text_right("FADE: "..params:string("filter ".._f_.bank.." fade"))
@@ -199,14 +153,11 @@ function _f.draw_boundaries()
   screen.move(1,10)
   screen.line(1,64)
   screen.stroke()
-  screen.move(20,30)
-  screen.line(128,30)
-  screen.stroke()
-  -- if not page.filters.alt_view then
-  --   screen.move(20,40)
-  --   screen.line(128,40)
-  --   screen.stroke()
-  -- end
+  if not page.filters.alt_view then
+    screen.move(20,30)
+    screen.line(128,30)
+    screen.stroke()
+  end
   screen.move(128,10)
   screen.line(128,64)
   screen.stroke()
@@ -249,37 +200,41 @@ function _f.process_meta_encoder(n,d)
   if n == 1 then
     _f_.bank = util.clamp(_f_.bank + d,1,3)
   elseif n == 2 then
-    _f_.alt_view_sel = util.clamp(_f_.alt_view_sel+d,1,5)
+    _f_.alt_view_sel = util.clamp(_f_.alt_view_sel+d,1,4)
   elseif n == 3 then
     if _f_.alt_view_sel == 1 then
-      _f_.meta_pad[_f_.bank] = util.clamp(_f_.meta_pad[_f_.bank]+d,1,16)
+      params:delta("filter dynamic freq min ".._f_.bank,d)
+      -- _f_.meta_pad[_f_.bank] = util.clamp(_f_.meta_pad[_f_.bank]+d,1,16)
     elseif _f_.alt_view_sel == 2 then
-      slew_counter[_f_.bank].prev_tilt =  b[_f].tilt
-      b[_f].tilt = util.clamp(b[_f].tilt+(d/100),-1,1)
-      if d < 0 then
-        if util.round(b[_f].tilt*100) < 0 and util.round(b[_f].tilt*100) > -9 then
-          b[_f].tilt = -0.10
-        elseif util.round(b[_f].tilt*100) > 0 and util.round(b[_f].tilt*100) < 32 then
-          b[_f].tilt = 0.0
-        end
-      elseif d > 0 and util.round(b[_f].tilt*100) > 0 and util.round(b[_f].tilt*100) < 32 then
-        b[_f].tilt = 0.32
-      end
-      if _f == f then
-        slew_filter(_f_.bank,slew_counter[_f_.bank].prev_tilt,b[_f].tilt,b[_f].q,b[_f].q,15)
-      end
+      params:delta("filter dynamic freq max ".._f_.bank,d)
+      -- slew_counter[_f_.bank].prev_tilt =  b[_f].tilt
+      -- b[_f].tilt = util.clamp(b[_f].tilt+(d/100),-1,1)
+      -- if d < 0 then
+      --   if util.round(b[_f].tilt*100) < 0 and util.round(b[_f].tilt*100) > -9 then
+      --     b[_f].tilt = -0.10
+      --   elseif util.round(b[_f].tilt*100) > 0 and util.round(b[_f].tilt*100) < 32 then
+      --     b[_f].tilt = 0.0
+      --   end
+      -- elseif d > 0 and util.round(b[_f].tilt*100) > 0 and util.round(b[_f].tilt*100) < 32 then
+      --   b[_f].tilt = 0.32
+      -- end
+      -- if _f == f then
+      --   slew_filter(_f_.bank,slew_counter[_f_.bank].prev_tilt,b[_f].tilt,b[_f].q,b[_f].q,15)
+      -- end
     elseif _f_.alt_view_sel == 3 then
-      local cs_q = controlspec.new(0.0005, 2.0, 'exp', 0, 0.32, "")
-      local current_q = cs_q:unmap(b[_f].q)
-      current_q = current_q - (d/100)
-      b[_f].q = cs_q:map(current_q)
-      if _f == f then
-        softcut.post_filter_rq(_f_.bank+1,b[_f].q)
-      end
+      params:delta("filter dynamic freq attack ".._f_.bank,d)
+      -- local cs_q = controlspec.new(0.0005, 2.0, 'exp', 0, 0.32, "")
+      -- local current_q = cs_q:unmap(b[_f].q)
+      -- current_q = current_q - (d/100)
+      -- b[_f].q = cs_q:map(current_q)
+      -- if _f == f then
+      --   softcut.post_filter_rq(_f_.bank+1,b[_f].q)
+      -- end
     elseif _f_.alt_view_sel == 4 then
-      b[_f].tilt_ease_time = util.clamp(b[_f].tilt_ease_time+(d/1), 5, 15000)
-    elseif _f_.alt_view_sel == 5 then
-      b[_f].tilt_ease_type = util.clamp(b[_f].tilt_ease_type+d, 1, 2)
+      params:delta("filter dynamic freq release ".._f_.bank,d)
+      -- b[_f].tilt_ease_time = util.clamp(b[_f].tilt_ease_time+(d/1), 5, 15000)
+    -- elseif _f_.alt_view_sel == 5 then
+    --   b[_f].tilt_ease_type = util.clamp(b[_f].tilt_ease_type+d, 1, 2)
     end
   end
 end
@@ -294,8 +249,6 @@ function _f.process_key(n,z)
     menu = 1
   elseif n == 3 and z == 1 then
     if _f_.selected_region == "DRY" or _f_.selected_region == "LP" or _f_.selected_region == "HP" or _f_.selected_region == "BP" then
-      -- local current_state = params:get("filter ".._f_.bank.." "..string.lower(_f_.selected_region).." active")
-      -- params:set("filter ".._f_.bank.." "..string.lower(_f_.selected_region).." active", current_state == 1 and 0 or 1)
       filters.filt_flip(_f_.bank,string.lower(_f_.selected_region),"rapid",filter[_f_.bank][string.lower(_f_.selected_region)].active and 0 or 1)
     end
   end

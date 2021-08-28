@@ -180,11 +180,16 @@ end
 
 
 function lfos.find_the_current(id,parameter)
-  local thing = 1
-  while util.round(1 * math.sin(((tau / 100) * (thing)) - (tau / (bank[id][parameter].freq))),0.01) ~= bank[id][parameter].slope do
-    thing = thing + 0.01
+  local current_value;
+  if parameter == "pan_lfo" then
+    current_value = bank[id][bank[id].id].pan
   end
-  return thing
+  return (math.asin(current_value) + (tau/bank[id][parameter].freq))/(tau/100)
+end
+
+function lfos.respect_the_current(id,parameter)
+  local current_value = bank[id][parameter].slope
+  return (math.asin(current_value) + (tau/bank[id][parameter].freq))/(tau/100)
 end
 
 function lfos.iterate(id,parameter)
@@ -317,25 +322,20 @@ function lfos.process_encoder(n,d,target,parameter)
     local f = focused_pad[_p_.bank]
     
     if parameter == "LFO" then
-
+      local pre_active = b[f].pan_lfo.active
       b[f].pan_lfo.active = d > 0 and true or false
       if not focused then
-        -- for i = 1,16 do
-        --   if i ~= f then
-        --     b[i].pan_lfo.active = b[f].pan_lfo.active
-        --   end
-        -- end
         params:set("pan_lfo_active_".._p_.bank,d > 0 and 2 or 1)
       end
 
       if b.id == f then
-        b.pan_lfo.active = b[f].pan_lfo.active
-        b.pan_lfo.counter = lfos.find_the_one(_p_.bank,target)
-        -- b.pan_lfo.counter = 20*tonumber(params:string("pan_lfo_rate_".._p_.bank))
-        b.pan_lfo.slope = b[f].pan
+        if pre_active ~= b[f].pan_lfo.active then
+          b.pan_lfo.counter = lfos.find_the_current(_p_.bank,target)
+          b.pan_lfo.active = b[f].pan_lfo.active
+          b.pan_lfo.slope = b[f].pan
+        end
         if not b.pan_lfo.active then
           softcut.pan(_p_.bank+1,b[f].pan)
-          b.pan_lfo.counter = 1
           b.pan_lfo.slope = b[f].pan
         end
       end
@@ -344,11 +344,6 @@ function lfos.process_encoder(n,d,target,parameter)
       current_index = util.clamp(current_index + d,1,#lfo_types)
       b[f].pan_lfo.waveform = lfo_types[current_index]
       if not focused then
-        -- for i = 1,16 do
-        --   if i ~= f then
-        --     b[i].pan_lfo.waveform = b[f].pan_lfo.waveform
-        --   end
-        -- end
         params:set("pan_lfo_waveform_".._p_.bank,current_index)
       end
       if b.id == f then
@@ -357,11 +352,6 @@ function lfos.process_encoder(n,d,target,parameter)
     elseif parameter == "DPTH" then
       b[f].pan_lfo.depth = util.clamp(b[f].pan_lfo.depth + d,1,200)
       if not focused then
-        -- for i = 1,16 do
-        --   if i ~= f then
-        --     b[i].pan_lfo.depth = b[f].pan_lfo.depth
-        --   end
-        -- end
         params:set("pan_lfo_depth_".._p_.bank,b[f].pan_lfo.depth)
       end
       if b.id == f then
@@ -371,16 +361,11 @@ function lfos.process_encoder(n,d,target,parameter)
       b[f].pan_lfo.rate_index = util.clamp(b[f].pan_lfo.rate_index + d,1,#lfo_rates.values)
       b[f].pan_lfo.freq = 1/((clock.get_beat_sec()*4) * lfo_rates.values[b[f].pan_lfo.rate_index])
       if not focused then
-        -- for i = 1,16 do
-        --   if i ~= f then
-        --     b[i].pan_lfo.rate_index = b[f].pan_lfo.rate_index
-        --     b[i].pan_lfo.freq = b[f].pan_lfo.freq
-        --   end
-        -- end
         params:set("pan_lfo_rate_".._p_.bank,b[f].pan_lfo.rate_index)
       end
       if b.id == f then
         b.pan_lfo.freq = b[f].pan_lfo.freq
+        b.pan_lfo.counter = lfos.respect_the_current(_p_.bank,"pan_lfo")
       end
     end
 

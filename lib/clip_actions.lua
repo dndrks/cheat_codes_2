@@ -245,6 +245,7 @@ end
 function ca.sample_callback(path,i)
   if path ~= "cancel" and path ~= "" then
     ca.load_sample(path,i)
+    clip[i].collage = false
   end
   _norns.key(1,1)
   _norns.key(1,0)
@@ -387,17 +388,23 @@ function ca.sample_to_pad_callback(path,i,p)
 end
 
 function ca.sample_to_pad(file,dest,p)
-  if file ~= "-" then
-    print(file,0, 1+(32*(dest-1))+((p-1)*2)+variable_fade_time,2, 1, 2)
-    softcut.buffer_clear_region_channel(2,1+(32*(dest-1))+((p-1)*2)+variable_fade_time,bank[dest][p].end_point-bank[dest][p].start_point)
-    softcut.buffer_read_mono(file, 0, 1+(32*(dest-1))+((p-1)*2)+variable_fade_time,bank[dest][p].end_point-bank[dest][p].start_point, 1, 2)
+  if bank[dest][p].mode == 2 and bank[dest][p].clip == dest then
+    if file ~= "-" then
+      print(file,0, 1+(32*(dest-1))+((p-1)*2)+variable_fade_time,2, 1, 2)
+      softcut.buffer_clear_region_channel(2,1+(32*(dest-1))+((p-1)*2)+variable_fade_time,bank[dest][p].end_point-bank[dest][p].start_point)
+      softcut.buffer_read_mono(file, 0, 1+(32*(dest-1))+((p-1)*2)+variable_fade_time,bank[dest][p].end_point-bank[dest][p].start_point, 1, 2)
+    end
+    clip[dest].sample_length = 32
+    ca.clip_table()
+    clip[dest].original_length = 32
+    clip[dest].original_bpm = 120
+    clip[dest].original_samplerate = 48
+    update_waveform(2,clip[dest].min,clip[dest].max,128)
+    clip[dest].collage = true
+    -- clip[dest].waveform_samples[1] = 0.0001
+  else
+    print("to collage a clip, bank "..dest.." pad "..p.." needs to be set to clip "..dest)
   end
-  clip[dest].sample_length = 32
-  ca.clip_table()
-  clip[dest].original_length = 32
-  clip[dest].original_bpm = 120
-  clip[dest].original_samplerate = 48
-  update_waveform(2,clip[dest].min,clip[dest].max,128)
 end
 
 function ca.folder_callback(file,dest)
@@ -441,6 +448,7 @@ function ca.collage(folder,dest,style)
   clip[dest].original_length = 32
   clip[dest].original_bpm = 120
   clip[dest].original_samplerate = 48
+  clip[dest].collage = true
   
   update_waveform(2,clip[dest].min,clip[dest].max,128)
 end

@@ -101,6 +101,7 @@ variable_fade_time = 0.01
 --with positive playback rates, the buffer is actually read from / written to up to (loop end + fade time).
 -- with negative rates, up to (loop start - fade time).
 splash_done = true
+softcut_voices_are_paused = {false,false,false}
 
 function wrap(n, min, max)
   if max >= min then
@@ -243,6 +244,7 @@ for i = 1,3 do
   clip[i].waveform_samples = {}
   clip[i].waveform_rendered = false
   clip[i].channel = 1
+  clip[i].collage = false
 end
 
 pre_cc2_sample = { false, false, false }
@@ -2715,42 +2717,42 @@ function reset_all_banks( banks )
     b.alt_lock = false
     b.global_level = 1.0
 
-    b.pan_lfo =
-    {
-      freq = 1/((clock.get_beat_sec()*4) * lfo_rates.values[15]),
-      counter = 1,
-      waveform = lfo_types[1],
-      slope = 0,
-      depth = 100,
-      offset = 0,
-      active = false,
-      loop = true
-    }
+    -- b.pan_lfo =
+    -- {
+    --   freq = 1/((clock.get_beat_sec()*4) * lfo_rates.values[15]),
+    --   counter = 1,
+    --   waveform = lfo_types[1],
+    --   slope = 0,
+    --   depth = 100,
+    --   offset = 0,
+    --   active = false,
+    --   loop = true
+    -- }
 
-    b.level_lfo =
-    {
-      freq = 1/((clock.get_beat_sec()*4) * lfo_rates.values[15]),
-      counter = 1,
-      waveform = lfo_types[1],
-      slope = 0,
-      depth = 100,
-      offset = 0,
-      active = false,
-      loop = true,
-      rate_index = 15
-    }
+    -- b.level_lfo =
+    -- {
+    --   freq = 1/((clock.get_beat_sec()*4) * lfo_rates.values[15]),
+    --   counter = 1,
+    --   waveform = lfo_types[1],
+    --   slope = 0,
+    --   depth = 100,
+    --   offset = 0,
+    --   active = false,
+    --   loop = true,
+    --   rate_index = 15
+    -- }
 
-    b.filter_lfo =
-    {
-      freq = 1/((clock.get_beat_sec()*4) * lfo_rates.values[15]),
-      counter = 1,
-      waveform = lfo_types[1],
-      slope = 0,
-      depth = 100,
-      offset = 0,
-      active = false,
-      loop = true
-    }
+    -- b.filter_lfo =
+    -- {
+    --   freq = 1/((clock.get_beat_sec()*4) * lfo_rates.values[15]),
+    --   counter = 1,
+    --   waveform = lfo_types[1],
+    --   slope = 0,
+    --   depth = 100,
+    --   offset = 0,
+    --   active = false,
+    --   loop = true
+    -- }
 
 
     for k = 1,16 do
@@ -2843,6 +2845,44 @@ function reset_all_banks( banks )
     cross_filter[i].hp      = 0
     cross_filter[i].dry     = 1
     cross_filter[i].exp_dry = 1
+
+    b.pan_lfo =
+    {
+      freq = 1/((clock.get_beat_sec()*4) * lfo_rates.values[15]),
+      counter = (math.asin(b[b.id].pan) + (tau/(1/((clock.get_beat_sec()*4) * lfo_rates.values[15]))))/(tau/100),
+      waveform = lfo_types[1],
+      slope = 0,
+      depth = 100,
+      offset = 0,
+      active = false,
+      loop = true
+    }
+
+    b.level_lfo =
+    {
+      freq = 1/((clock.get_beat_sec()*4) * lfo_rates.values[15]),
+      counter = 1,
+      waveform = lfo_types[1],
+      slope = 0,
+      depth = 100,
+      offset = 0,
+      active = false,
+      loop = true,
+      rate_index = 15
+    }
+
+    b.filter_lfo =
+    {
+      freq = 1/((clock.get_beat_sec()*4) * lfo_rates.values[15]),
+      counter = 1,
+      waveform = lfo_types[1],
+      slope = 0,
+      depth = 100,
+      offset = 0,
+      active = false,
+      loop = true
+    }
+
     cheat(i,bank[i].id)
   end
 end
@@ -2861,6 +2901,9 @@ function cheat(b,i,silent)
   if all_loaded and silent == nil then
     mc.midi_note_from_pad(util.round(b),util.round(i))
     mc.route_midi_mod(b,i)
+    -- if softcut_voices_are_paused[b] == true then
+    --   softcut.play(b+1,1)
+    -- end
   end
   if env_counter[b].is_running then
     env_counter[b]:stop()
@@ -2951,11 +2994,11 @@ function cheat(b,i,silent)
     softcut.loop(b+1,1)
   end
   if pad.rate > 0 then
-      -- softcut.position(b+1,pad.start_point+0.05)
-      softcut.position(b+1,pad.start_point+variable_fade_time)
+    -- softcut.position(b+1,pad.start_point+0.05)
+    softcut.position(b+1,pad.start_point+variable_fade_time)
   elseif pad.rate < 0 then
-      -- softcut.position(b+1,pad.end_point-variable_fade_time-0.05)
-      softcut.position(b+1,pad.end_point-variable_fade_time-0.01)
+    -- softcut.position(b+1,pad.end_point-variable_fade_time-0.05)
+    softcut.position(b+1,pad.end_point-variable_fade_time-0.01)
   end
   -- if slew_counter[b] ~= nil then
   --   slew_counter[b].next_tilt = pad.tilt
@@ -3037,6 +3080,12 @@ function cheat(b,i,silent)
     local min = bank[page.loops.sel][focused_pad].start_point
     local max = bank[page.loops.sel][focused_pad].end_point
     update_waveform(mode,min,max,128)
+  end
+
+  if all_loaded and silent == nil then
+    if softcut_voices_are_paused[b] == true then
+      softcut.play(b+1,1)
+    end
   end
 
 end
@@ -4471,10 +4520,11 @@ function named_savestate(text)
     os.execute("mkdir " .. dirname)
   end
 
-  local dirnames = {"banks/","params/","arc-rec/","patterns/","step-seq/","arps/","euclid/","rnd/","delays/","rec/","misc/","midi_output_maps/","macros/"}
+  local dirnames = {"banks/","params/","arc-rec/","patterns/","step-seq/","arps/","euclid/","filters/","rnd/","delays/","rec/","misc/","midi_output_maps/","macros/"}
   for i = 1,#dirnames do
     local directory = _path.data.."cheat_codes_yellow/collection-"..collection.."/"..dirnames[i]
-    if os.rename(directory, directory) == nil then
+    -- if os.rename(directory, directory) == nil then
+    if not util.file_exists(directory) then
       os.execute("mkdir " .. directory)
     end
   end
@@ -4484,6 +4534,7 @@ function named_savestate(text)
     tab.save(step_seq[i],_path.data .. "cheat_codes_yellow/collection-"..collection.."/step-seq/"..i..".data")
     tab.save(arp[i],_path.data .. "cheat_codes_yellow/collection-"..collection.."/arps/"..i..".data")
     tab.save(rytm.track[i],_path.data .. "cheat_codes_yellow/collection-"..collection.."/euclid/euclid"..i..".data")
+    tab.save(filter[i],_path.data .. "cheat_codes_yellow/collection-"..collection.."/filters/filter"..i..".data")
     tab.save(rnd[i],_path.data .. "cheat_codes_yellow/collection-"..collection.."/rnd/"..i..".data")
     _ca.collect_samples(i,collection)
     -- if params:get("collect_live") == 2 then
@@ -4598,7 +4649,13 @@ end
 
 function named_loadstate(path)
   local file = io.open(path, "r")
+  softcut_voices_are_paused = {}
   if file then
+    for i = 1,3 do
+      softcut.play(i+1,0)
+      softcut_voices_are_paused[i] = true
+      -- softcut.level(i+1,0)
+    end
     splash_done = false
     print("loading...")
     for j = 1,3 do
@@ -4717,6 +4774,7 @@ function named_loadstate(path)
 
     arps.restore_collection()
     rytm.restore_collection()
+    filters.restore_collection(collection)
 
     for i = 1,8 do
       if tab.load(_path.data .. "cheat_codes_yellow/collection-"..collection.."/macros/"..i..".data") ~= nil then

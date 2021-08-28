@@ -54,7 +54,17 @@ function sd_filter.draw_filters()
     end
   end
   for i = 1,8 do
-    g:led(_c(i,7)[1],_c(i,7)[2],filter_data[i].dirty and 15 or 0)
+    local brightness;
+    if filter_data[i].dirty and filter_data.load_slot == i then
+      brightness = 15
+    elseif filter_data[i].dirty and filter_data.load_slot ~= i then
+      brightness = 8
+    elseif not filter_data[i].dirty then
+      brightness = 0
+    else
+      brightness = 4
+    end
+    g:led(_c(i,7)[1],_c(i,7)[2],brightness)
   end
   g:led(_c(1,15)[1],_c(1,15)[2],sd_filter.inv_mod and 15 or 4)
 end
