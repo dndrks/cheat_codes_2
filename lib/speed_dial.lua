@@ -30,15 +30,6 @@ local sd = {}
 --   page.arps.param_group[i] = 1
 -- end
 
--- RND
--- page.rnd_page = 1
--- page.rnd_page_section = 1
--- page.rnd_page_sel = {}
--- page.rnd_page_edit = {}
--- for i = 1,3 do
---   page.rnd_page_sel[i] = 1
---   page.rnd_page_edit[i] = 1
--- end
 
 -- MIDI SETUP
 -- page.midi_setup = 1

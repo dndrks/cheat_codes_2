@@ -13,7 +13,7 @@ local last_grid_page = 0
 local grid_level_clocks = {}
 local mute_clock = {}
 
-local _c = speed_dial.translate
+local _c = speed_dial.coordinate
 
 zilches = 
 { 
@@ -60,31 +60,38 @@ function grid_actions.init(x,y,z)
 
     if not speed_dial_active then
       if grid_page == 0 then
+        local vert_128_bank;
 
-        for i = 1,3 do
-          if rytm.grid.ui[i] and z == 1 then
-            grid_actions.parse_euclid(i,9-y,x-(5*(i-1)),z)
-          end
+        local nx = _c(x,y)[1]
+        local ny = _c(x,y)[2]
+
+        if ny <= 5 then
+          vert_128_bank = 1
+        elseif ny <= 10 then
+          vert_128_bank = 2
+        elseif ny <= 15 then
+          vert_128_bank = 3
+        end
+
+        local four_sub = {}
+
+        -- for i = 1,3 do
+        --   if rytm.grid.ui[i] and z == 1 then
+        --     grid_actions.parse_euclid(i,9-y,x-(5*(i-1)),z)
+        --   end
+        -- end
+        
+        if vert_128_bank ~= nil and (grid_alt or bank[vert_128_bank].alt_lock) and ny == (1)+(5*(vert_128_bank-1)) and nx == 8 and z == 1 then
+          bank[vert_128_bank].focus_hold = not bank[vert_128_bank].focus_hold
+          mc.mft_redraw(bank[vert_128_bank][bank[vert_128_bank].focus_hold and bank[vert_128_bank].focus_pad or bank[vert_128_bank].id],"all")
         end
         
-        for i = 1,3 do
-          if not rytm.grid.ui[i] then
-            if grid_alt or bank[i].alt_lock then
-              if x == 1+(5*(i-1)) and y == 1 and z == 1 then
-                bank[i].focus_hold = not bank[i].focus_hold
-                mc.mft_redraw(bank[i][bank[i].focus_hold and bank[i].focus_pad or bank[i].id],"all")
-              end
-            end
-          end
-        end
-        
-        for i = 1,3 do
-          if not rytm.grid.ui[i] then
-            if z == 1 and x > 0 + (5*(i-1)) and x <= 4 + (5*(i-1)) and y >=5 then
-              grid_actions.bank_pad_down(i,(math.abs(y-9)+((x-1)*4))-(20*(i-1)))
-            elseif z == 0 and x > 0 + (5*(i-1)) and x <= 4 + (5*(i-1)) and y >=5 then
-              grid_actions.bank_pad_up(i,(math.abs(y-9)+((x-1)*4))-(20*(i-1)))
-            end
+        -- 4x4
+        if vert_128_bank ~= nil and ny < (5 * vert_128_bank) and nx <= 4 then
+          if z == 1 then
+            grid_actions.bank_pad_down(vert_128_bank,nx+(4* ((ny-(5*(vert_128_bank-1)))-1) ))
+          elseif z == 0 then
+            grid_actions.bank_pad_up(vert_128_bank,nx+(4* ((ny-(5*(vert_128_bank-1)))-1) ))
           end
         end
         
@@ -167,15 +174,10 @@ function grid_actions.init(x,y,z)
         end
 
         
-        for k = 1,1 do
-          for i = 1,3 do
-            if not rytm.grid.ui[i] then
-              if z == 0 and x == (k+1)+(5*(i-1)) and y<=k then
-                grid_actions.grid_pat_handler(i)
-              end
-            end
-          end
+        if vert_128_bank ~= nil and z == 0 and ny == 2+(5*(vert_128_bank-1)) and nx == 8 then
+          grid_actions.grid_pat_handler(vert_128_bank)
         end
+
         
         -- for i = 4,2,-1 do
         --   if x == 16 and y == i and z == 0 then
@@ -203,12 +205,8 @@ function grid_actions.init(x,y,z)
         --   end
         -- end
         
-        for i = 1,3 do
-          if not rytm.grid.ui[i] then
-            if x == (3)+(5*(i-1)) and y == 4 and z == 1 then
-              grid_actions.toggle_pad_loop(i)
-            end
-          end
+        if vert_128_bank ~= nil and ny == (3)+(5*(vert_128_bank-1)) and nx == 5 and z == 1 then
+          grid_actions.toggle_pad_loop(vert_128_bank)
         end
         
         if x == 16 and y == 8 then
@@ -246,70 +244,49 @@ function grid_actions.init(x,y,z)
             end
           end
         end
-        
-        for i = 4,3,-1 do
-          for j = 2,12,5 do
-            if x == j and y == i and z == 1 then
-              if not rytm.grid.ui[math.sqrt(math.abs(x-3))] then
-                local which_pad = nil
-                
-                if not bank[math.sqrt(math.abs(x-3))].alt_lock and not grid_alt then
-                  local current = math.sqrt(math.abs(x-3))
-                  local target = bank[current].focus_hold == false and bank[current][bank[current].id] or bank[current][bank[current].focus_pad]
-                  local old_mode = target.mode
-                  target.mode = math.abs(i-5)
-                  if old_mode ~= target.mode then
-                    _ca.change_mode(target, old_mode)
-                  end
 
-                elseif bank[math.sqrt(math.abs(x-3))].alt_lock or grid_alt then
-                  for k = 1,16 do
-                    local current = math.sqrt(math.abs(x-3))
-                    local old_mode = bank[current][k].mode
-                    bank[current][k].mode = math.abs(i-5)
-                    if old_mode ~= bank[current][k].mode then
-                      _ca.change_mode(bank[current][k], old_mode)
-                    end
-                  end
-                end
+        if vert_128_bank ~= nil and (nx == 5 or nx == 6) and ny == (2)+(5*(vert_128_bank-1)) then
+          if not bank[vert_128_bank].alt_lock and not grid_alt then
+            local current = vert_128_bank
+            local target = bank[current].focus_hold == false and bank[current][bank[current].id] or bank[current][bank[current].focus_pad]
+            local old_mode = target.mode
+            target.mode = math.abs(nx-4)
+            if old_mode ~= target.mode then
+              _ca.change_mode(target, old_mode)
+            end
 
-                local current = math.sqrt(math.abs(x-3))
-                if bank[current].focus_hold == false then
-                  which_pad = bank[current].id
-                else
-                  which_pad = bank[current].focus_pad
-                end
-
-
-                if bank[current].focus_hold == false then
-                  if params:string("preview_clip_change") == "yes" then
-                    local current = math.sqrt(math.abs(x-3))
-                    cheat(current,bank[current].id)
-                  end
-                end
-
-                if menu == 11 then
-                  which_bank = current
-                  help_menu = "mode"
-                end
+          elseif bank[vert_128_bank].alt_lock or grid_alt then
+            for k = 1,16 do
+              local current = vert_128_bank
+              local old_mode = bank[current][k].mode
+              bank[current][k].mode = math.abs(nx-4)
+              if old_mode ~= bank[current][k].mode then
+                _ca.change_mode(bank[current][k], old_mode)
               end
+            end
+          end
+
+
+          if bank[vert_128_bank].focus_hold == false then
+            if params:string("preview_clip_change") == "yes" then
+              local current = vert_128_bank
+              cheat(current,bank[current].id)
             end
           end
         end
         
-        for i = 7,5,-1 do
-          if x == 16 and z == 1 and y == i then
-            if rec.focus ~= 8-y then
-              rec.focus = 8-y
-            else
-              if rec[rec.focus].loop == 0 and params:string("one_shot_clock_div") == "threshold" and not grid_alt then
-                _ca.threshold_rec_handler()
-              elseif not grid_alt then
-                _ca.toggle_buffer(8-y)
-              end
-              if grid_alt then
-                _ca.buff_flush()
-              end
+        
+        if x == 16 and z == 1 and (y == 7 or y == 6 or y == 5) then
+          if rec.focus ~= 8-y then
+            rec.focus = 8-y
+          else
+            if rec[rec.focus].loop == 0 and params:string("one_shot_clock_div") == "threshold" and not grid_alt then
+              _ca.threshold_rec_handler()
+            elseif not grid_alt then
+              _ca.toggle_buffer(8-y)
+            end
+            if grid_alt then
+              _ca.buff_flush()
             end
           end
         end
@@ -332,52 +309,38 @@ function grid_actions.init(x,y,z)
           end
         end
         
-        --- new page focus
-        for k = 4,1,-1 do
-          for i = 1,3 do
-            if not rytm.grid.ui[i] then
-              if z == 1 and x == k+(5*(i-1)) and y == k then
-                if not bank[i].alt_lock and not grid_alt then
-                  if not bank[i].focus_hold then
-                    if y == 3 then
-                      grid_actions.arp_handler(i)
-                    else
-                      if key1_hold == true then key1_hold = false end
-                      if y == 4 then
-                        if not bank[i].alt_lock and not grid_alt then -- TODO verify if it shouldn't just be grid_alt
-                          grid_actions.arp_toggle_write(i)
-                        else
-                          grid_actions.clear_arp_sequencer(i)
-                        end
-                      end
-                      if menu ~= 1 then screen_dirty = true end
-                    end
-                  else
-                    if y == 4 then
-                      bank[i][bank[i].focus_pad].send_pad_note = not bank[i][bank[i].focus_pad].send_pad_note
-                    end
-                  end
-                elseif bank[i].alt_lock or grid_alt then
-                  if y == 2 then
-                    random_grid_pat(math.ceil(x/4),3)
-                  end
-                  if not bank[i].focus_hold then
-                    if y == 3 then
-                      grid_actions.kill_arp(i)
-                    end
-                  end
-                  if y == 4 and not bank[i].focus_hold then
-                  elseif y == 4 and bank[i].focus_hold then
-                    bank[i][bank[i].focus_pad].send_pad_note = not bank[i][bank[i].focus_pad].send_pad_note
-                    for j = 1,16 do
-                      bank[i][j].send_pad_note = bank[i][bank[i].focus_pad].send_pad_note
-                    end
-                  end
+        if vert_128_bank ~= nil and z == 1 and nx == 6 and ny == (3)+(5*(vert_128_bank-1)) then
+          if not bank[vert_128_bank].focus_hold then
+            if not bank[vert_128_bank].alt_lock and not grid_alt then
+              grid_actions.arp_handler(vert_128_bank)
+            else
+              grid_actions.kill_arp(vert_128_bank)
+            end
+          end
+        end
+
+        if vert_128_bank ~= nil and z == 1 and nx == 5 and ny == (4)+(5*(vert_128_bank-1)) then
+          if not bank[vert_128_bank].focus_hold then
+            if key1_hold == true then key1_hold = false end
+            if not bank[vert_128_bank].alt_lock and not grid_alt then -- TODO verify if it shouldn't just be grid_alt
+              grid_actions.arp_toggle_write(vert_128_bank)
+            else
+              grid_actions.clear_arp_sequencer(vert_128_bank)
+            end
+          else
+            bank[vert_128_bank][bank[vert_128_bank].focus_pad].send_pad_note = not bank[vert_128_bank][bank[vert_128_bank].focus_pad].send_pad_note
+            if bank[vert_128_bank].alt_lock or grid_alt then
+              for j = 1,16 do
+                if j ~= bank[vert_128_bank].focus_pad then
+                  bank[vert_128_bank][j].send_pad_note = bank[vert_128_bank][bank[vert_128_bank].focus_pad].send_pad_note
                 end
-                ---
               end
             end
           end
+        end
+
+        if vert_128_bank ~= nil and z == 1 and nx == 7 and ny == (2)+(5*(vert_128_bank-1)) then
+          random_grid_pat(vert_128_bank,3)
         end
         
       elseif grid_page == 1 then
@@ -608,7 +571,6 @@ function grid_actions.init(x,y,z)
         elseif menu == 9 then
           page.arps.sel = x
         elseif menu == 10 then
-          page.rnd_page = x
         elseif menu == "MIDI_config" then
           page.midi_bank = x
         end
@@ -1080,7 +1042,6 @@ function grid_actions.init(x,y,z)
         elseif menu == 9 then
           page.arps.sel = x
         elseif menu == 10 then
-          page.rnd_page = x
         elseif menu == "MIDI_config" then
           page.midi_bank = x
         end

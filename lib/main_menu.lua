@@ -2,7 +2,6 @@ local main_menu = {}
 
 _p = include 'lib/_menus/pans'
 _l = include 'lib/_menus/levels'
-_r = include 'lib/_menus/rnd'
 _f = include 'lib/_menus/filters'
 _d = include 'lib/_menus/delays'
 _loops = include 'lib/_menus/loops'
@@ -67,14 +66,6 @@ function main_menu.init()
   for i = 1,3 do
     page.track_param_sel[i] = 1
   end
-  page.rnd_page = 1
-  page.rnd_page_section = 1
-  page.rnd_page_sel = {}
-  page.rnd_page_edit = {}
-  for i = 1,3 do
-    page.rnd_page_sel[i] = 1
-    page.rnd_page_edit[i] = 1
-  end
   page.midi_setup = 1
   page.midi_focus = "header"
   page.midi_bank = 1
@@ -122,7 +113,6 @@ function main_menu.draw()
         , " timing"
         , " euclid"
         , " arps"
-        -- , " rnd"
         , " macros"
         , " "
         }
@@ -426,7 +416,6 @@ function main_menu.draw()
     _arps.draw_menu()
 
   elseif menu == 10 then
-    _r.draw_menu()
 
   elseif menu == "load screen" then
     screen.level(15)
@@ -557,6 +546,25 @@ function main_menu.draw()
     macros.UI()
   elseif menu == "transport_config" then
     transport.UI()
+  elseif menu == "pattern_rec_clock" then
+    if pattern_recording_sync_hold ~= nil and pattern_recording_sync_hold then
+      local show_me_beats = clock.get_beats() % 4
+      local show_me_frac = math.fmod(clock.get_beats(),1)
+      if show_me_frac <= 0.25 then
+        show_me_frac = 1
+      elseif show_me_frac <= 0.5 then
+        show_me_frac = 2
+      elseif show_me_frac <= 0.75 then
+        show_me_frac = 3
+      else
+        show_me_frac = 4
+      end
+      screen.level(3)
+      screen.move(45,55)
+      screen.font_size(30)
+      screen.text_center(" -"..math.modf(4-show_me_beats).."."..math.modf(4-show_me_frac,1))
+      screen.font_size(8)
+    end
   else
     screen.move(62,30)
     -- screen.text_center("hi!")
@@ -723,7 +731,6 @@ function main_menu.process_encoder(target,n,d)
   {
     ["pans"] = _p.process_encoder,
     ["levels"] = _l.process_encoder,
-    ["rnd"] = _r.process_encoder,
     ["filters"] = _f.process_encoder,
     ["loops"] = _loops.process_encoder,
     ["arps"] = _arps.process_encoder

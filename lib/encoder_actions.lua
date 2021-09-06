@@ -710,7 +710,6 @@ function encoder_actions.init(n,d)
     --   end
     -- end
   elseif menu == 10 then
-    main_menu.process_encoder("rnd",n,d)
   end
   screen_dirty = true
 end

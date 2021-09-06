@@ -82,7 +82,6 @@ speed_dial = include 'lib/_menus/speed_dial'
 grid_actions = include 'lib/grid_actions'
 easingFunctions = include 'lib/easing'
 arps = include 'lib/arp_actions'
--- rnd = include 'lib/rnd_actions'
 del = include 'lib/delay'
 rytm = include 'lib/euclid'
 mc = include 'lib/midicheat'
@@ -208,7 +207,7 @@ end
 
 function update_waveform(buffer,winstart,winend,samples)
   -- softcut.render_buffer(buffer, winstart+variable_fade_time, (winend - winstart)-variable_fade_time, 128)
-  softcut.render_buffer(buffer, winstart, (winend - winstart), 128)
+  softcut.render_buffer(buffer, winstart+variable_fade_time, (winend - winstart)+variable_fade_time, 128)
 end
 
 --/ waveform stuff
@@ -237,7 +236,7 @@ clip = {}
 for i = 1,3 do
   clip[i] = {}
   clip[i].length = 90
-  clip[i].sample_length = 8
+  clip[i].sample_length = 32
   clip[i].start_point = nil
   clip[i].end_point = nil
   clip[i].mode = 1
@@ -355,11 +354,13 @@ end
 --]]
 
 function cheat_clock_synced(i)
-  if tab.count(quantize_events[i]) > 0 then
+  -- if tab.count(quantize_events[i]) > 0 then
+  if quantize_events[i].bank ~= nil then
     cheat(quantize_events[i].bank,quantize_events[i].pad)
       local kill_this = quantize_events[i].pad
       clock.run(function()
-        clock.sync(1/4)
+        -- clock.sync(1/4)
+        clock.sleep((clock.get_beat_sec()/4)*0.5)
         if not tab.contains(held_keys[i],kill_this) then
           grid_actions.kill_note(i,kill_this)
         end
@@ -1001,7 +1002,7 @@ function init()
   
   params:add_separator("cheat codes params")
   
-  params:add_group("collections",8)
+  params:add_group("load/save (collections)",8)
   params:add_separator("load/save")
   params:add_trigger("load", "load collection")
   params:set_action("load",
@@ -1305,7 +1306,9 @@ function init()
   function draw_screen()
     if screen_dirty then
       redraw()
-      screen_dirty = false
+      if menu ~= "pattern_rec_clock" then
+        screen_dirty = false
+      end
     end
   end
 
@@ -1865,10 +1868,6 @@ function init()
     arps.init(i)
   end
 
-  -- for i = 1,3 do
-  --   rnd.init(i)
-  -- end
-
   rytm.init()
   transport.init()
   _dough.init()
@@ -2096,7 +2095,7 @@ function stop_pattern(target,style)
   local function wipe_slate(b)
     for i = 1,#grid_pat[b].event do
       if tab.contains(held_keys[b],grid_pat[b].event[i].id) then
-        print(">>>***"..b,i,grid_pat[b].event[i].id, clock.get_beats())
+        -- print(">>>***"..b,i,grid_pat[b].event[i].id, clock.get_beats())
         grid_actions.kill_note(b,grid_pat[b].event[i].id)
       end
     end
@@ -2132,12 +2131,19 @@ end
 
 function synced_record_start(target,i)
   --midi_pat[i].sync_hold = true
+  local return_to_menu = menu
   target.sync_hold = true
+  menu = "pattern_rec_clock"
+  pattern_recording_sync_hold = true
+  screen_dirty = true
   clock.sync(4)
   --midi_pat[i]:rec_start()
   target:rec_start()
   --midi_pat[i].sync_hold = false
   target.sync_hold = false
+  pattern_recording_sync_hold = false
+  menu = return_to_menu
+  screen_dirty = true
   if target == midi_pat[i] then
     midi_pattern_watch(i, "pause")
   elseif target == grid_pat[i] then
@@ -3655,17 +3661,6 @@ function key(n,z)
       elseif menu == 9 then
 
       elseif menu == 10 then
-        if key1_hold then
-          local rnd_bank = page.rnd_page
-          local rnd_slot = page.rnd_page_sel[rnd_bank]
-          local state = tostring(rnd[rnd_bank][rnd_slot].playing)
-          rnd.transport(rnd_bank,rnd_slot,state == "false" and "on" or "off")
-          if state == "true" then
-            rnd.restore_default(rnd_bank,rnd_slot)
-          end
-        else
-          -- page.rnd_page_section = page.rnd_page_section == 1 and 2 or 1
-        end
       end
 
 
@@ -3731,10 +3726,6 @@ function key(n,z)
         end
       elseif menu == 10 then
         if key1_hold then
-          for i = 1,#rnd.targets do
-            rnd.transport(page.rnd_page,i,"off")
-            rnd.restore_default(page.rnd_page,i)
-          end
         else
           menu = 1
         end
@@ -4504,7 +4495,7 @@ function named_savestate(text)
     os.execute("mkdir " .. dirname)
   end
 
-  local dirnames = {"banks/","params/","arc-rec/","patterns/","step-seq/","arps/","euclid/","filters/","rnd/","delays/","rec/","misc/","midi_output_maps/","macros/"}
+  local dirnames = {"banks/","params/","arc-rec/","patterns/","step-seq/","arps/","euclid/","filters/","delays/","rec/","misc/","midi_output_maps/","macros/"}
   for i = 1,#dirnames do
     local directory = _path.data.."cheat_codes_yellow/collection-"..collection.."/"..dirnames[i]
     -- if os.rename(directory, directory) == nil then
@@ -4519,7 +4510,6 @@ function named_savestate(text)
     tab.save(arp[i],_path.data .. "cheat_codes_yellow/collection-"..collection.."/arps/"..i..".data")
     tab.save(rytm.track[i],_path.data .. "cheat_codes_yellow/collection-"..collection.."/euclid/euclid"..i..".data")
     tab.save(filter[i],_path.data .. "cheat_codes_yellow/collection-"..collection.."/filters/filter"..i..".data")
-    tab.save(rnd[i],_path.data .. "cheat_codes_yellow/collection-"..collection.."/rnd/"..i..".data")
     _ca.collect_samples(i,collection)
     -- if params:get("collect_live") == 2 then
     --   _ca.collect_samples(i,collection)
@@ -4642,14 +4632,6 @@ function named_loadstate(path)
     end
     splash_done = false
     print("loading...")
-    for j = 1,3 do
-      for k = 1,7 do
-        if rnd[j][k].clock ~= nil then
-          -- print(rnd[j][k].clock)
-          clock.cancel(rnd[j][k].clock)
-        end
-      end
-    end
     print(path)
     io.input(file)
     local collection = io.read()
@@ -4709,19 +4691,6 @@ function named_loadstate(path)
             -- print(v)
             arp[i][k] = deep_copy(v)
           end
-        end
-      end
-      for j = 1,#rnd[i] do
-        rnd[i][j].lattice:destroy()
-      end
-      if tab.load(_path.data .. "cheat_codes_yellow/collection-"..collection.."/rnd/"..i..".data") ~= nil then
-        rnd[i] = tab.load(_path.data .. "cheat_codes_yellow/collection-"..collection.."/rnd/"..i..".data")
-        for j = 1,#rnd[i] do
-          rnd[i][j].lattice = rnd_lattice:new_pattern{
-            action = function() rnd.lattice_advance(i,j) end,
-            division = rnd[i][j].time/4,
-            enabled = true
-          }
         end
       end
 

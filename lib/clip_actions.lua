@@ -20,10 +20,9 @@ end
 -- length mods
 
 function ca.scale_loop_points(pad,old_min,old_max,new_min,new_max)
-  --local pad = bank[b][p]
+  print("scaling",pad,old_min,old_max,new_min,new_max)
   local duration = pad.end_point - pad.start_point
   pad.start_point = util.linlin(old_min,old_max,new_min,new_max,pad.start_point)
-  --pad.end_point = util.linlin(old_min,old_max,new_min,new_max,pad.end_point)
   if pad.start_point + duration > new_max then
     pad.end_point = new_max
   else

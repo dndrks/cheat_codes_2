@@ -32,10 +32,12 @@ function sd_filter.draw_filters()
       g:led(_c(1,2)[1],_c(1,2)[2],params:get("filter dynamic freq "..b)*15)
     end
   else
-    if filter[b].freq.current_value ~= filter[b].freq.min then
-      g:led(_c(1,2)[1],_c(1,2)[2],util.round(util.linlin(filter[1].freq.max,filter[1].freq.min,15,0,filter[1].freq.current_value)))
+    if filter[b].freq.current_value < filter[b].freq.max then
+      g:led(_c(1,2)[1],_c(1,2)[2],15)
+    elseif filter[b].freq.current_value ~= filter[b].freq.min then
+      g:led(_c(1,2)[1],_c(1,2)[2],util.round(util.linlin(filter[b].freq.max,filter[b].freq.min,15,0,filter[b].freq.current_value)))
     elseif filter[b].freq.current_value == filter[b].freq.min then
-      g:led(_c(1,2)[1],_c(1,2)[2],params:get("filter dynamic freq "..b)*15)
+      g:led(_c(1,2)[1],_c(1,2)[2],0)
     end
   end
   g:led(_c(2,2)[1],_c(2,2)[2],filter[b].freq.sample_hold and 15 or 0)

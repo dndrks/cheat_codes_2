@@ -477,6 +477,10 @@ function sd.perf_press(b,x,y,z)
     ---
   end
 
+  if nx == 7 and ny == 9 and z == 1 and grid_alt then
+    random_grid_pat(b,3)
+  end
+
 end
 
 return sd
