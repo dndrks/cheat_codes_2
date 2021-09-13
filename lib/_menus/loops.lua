@@ -13,7 +13,7 @@ end
 function _loops.init()
   page.loops = {}
   page.loops.layer = "global" -- "global" or "clip" or "record"
-  page.loops.bank_controls = {"cheat_pad","start_point","end_point","rate","semitone","glide","buffer","loop_state","auto_chop","stretch_mode","stretch_step","stretch_duration","stretch_fade"}
+  page.loops.bank_controls = {"cheat_pad","start_point","end_point","rate","semitone","cent","glide","buffer","loop_state","auto_chop","stretch_mode","stretch_step","stretch_duration","stretch_fade"}
   page.loops.selected_bank_control = "cheat_pad"
   page.loops.live_controls = {"segment","start_point","end_point","record","feedback","mode","duration","erase","random_rec"}
   page.loops.selected_live_control = "segment"
@@ -84,7 +84,8 @@ function _loops.process_key(n,z)
       elseif page.loops.selected_bank_control == "rate" then
         pad.rate = pad.rate * -1
         if pad.pause == false and bank[page.loops.sel].id == pad.pad_id then
-          softcut.rate(page.loops.sel+1, pad.rate*pad.offset)
+          -- softcut.rate(page.loops.sel+1, pad.rate*pad.offset)
+          softcut.rate(page.loops.sel+1, pad.rate*_loops.get_total_pitch_offset(page.loops.sel,pad.pad_id))
         end
       elseif page.loops.selected_bank_control == "auto_chop" then
         for i = 1,16 do
@@ -161,6 +162,24 @@ function _loops.zoomed_draw()
   end
 end
 
+_loops.get_total_pitch_offset = function(i,j)
+  local total_offset;
+  total_offset = bank[i][j].new_offset.semitone + (bank[i][j].new_offset.cent/100)
+  if bank[i][j].mode == 1 then
+    local live_offset = {0,-12,-24,-36}
+    total_offset = total_offset + live_offset[params:get("live_buff_rate")]
+  end
+  return math.pow(0.5, -total_offset / 12)
+end
+
+_loops.delta_offset = function(i,j,style,d)
+  if style == "semitone" then
+    bank[i][j].new_offset[style] = util.clamp(bank[i][j].new_offset[style] + d,-48,48)
+  elseif style == "cent" then
+    bank[i][j].new_offset[style] = util.clamp(bank[i][j].new_offset[style] + d,-100,100)
+  end
+end
+
 function _loops.inherit_rate()
   local pad = bank[page.loops.sel][page.loops.meta_pad[page.loops.sel]]
   for i = 1,16 do
@@ -168,7 +187,8 @@ function _loops.inherit_rate()
       bank[page.loops.sel][i].rate = pad.rate
     end
     if bank[page.loops.sel][i].pause == false and bank[page.loops.sel].id == i then
-      softcut.rate(page.loops.sel+1, bank[page.loops.sel][i].rate*bank[page.loops.sel][i].offset)
+      -- softcut.rate(page.loops.sel+1, bank[page.loops.sel][i].rate*bank[page.loops.sel][i].offset)
+      softcut.rate(page.loops.sel+1, bank[page.loops.sel][i].rate*_loops.get_total_pitch_offset(page.loops.sel,i))
     end
   end
 end
@@ -264,20 +284,36 @@ function _loops.process_encoder(n,d)
             _loops.inherit_rate()
           end
           if pad.pause == false and bank[page.loops.sel].id == pad.pad_id then
-            softcut.rate(page.loops.sel+1, pad.rate*pad.offset)
+            -- softcut.rate(page.loops.sel+1, pad.rate*pad.offset)
+            softcut.rate(page.loops.sel+1, pad.rate*_loops.get_total_pitch_offset(page.loops.sel,pad.pad_id))
           end
         elseif page.loops.selected_bank_control == "semitone" then
-          local current_offset = (math.log(pad.offset)/math.log(0.5))*-12
-          current_offset = util.clamp(current_offset+d/32,-36,24)
-          if current_offset > -0.0001 and current_offset < 0.0001 then
-            current_offset = 0
-          end
-          pad.offset = math.pow(0.5, -current_offset / 12)
+          -- local current_offset = (math.log(pad.offset)/math.log(0.5))*-12
+          -- current_offset = util.clamp(current_offset+d/32,-36,24)
+          -- if current_offset > -0.0001 and current_offset < 0.0001 then
+          --   current_offset = 0
+          -- end
+          -- pad.offset = math.pow(0.5, -current_offset / 12)
+          -- if key1_hold then
+          --   _loops.inherit_offset()
+          -- end
+          -- if bank[page.loops.sel].id == pad.pad_id then
+          --   softcut.rate(page.loops.sel+1, pad.rate*pad.offset)
+          -- end
+          _loops.delta_offset(page.loops.sel,pad.pad_id,"semitone",d)
           if key1_hold then
             _loops.inherit_offset()
           end
           if bank[page.loops.sel].id == pad.pad_id then
-            softcut.rate(page.loops.sel+1, pad.rate*pad.offset)
+            softcut.rate(page.loops.sel+1, pad.rate*_loops.get_total_pitch_offset(page.loops.sel,pad.pad_id))
+          end
+        elseif page.loops.selected_bank_control == "cent" then
+          _loops.delta_offset(page.loops.sel,pad.pad_id,"cent",d)
+          if key1_hold then
+            _loops.inherit_offset()
+          end
+          if bank[page.loops.sel].id == pad.pad_id then
+            softcut.rate(page.loops.sel+1, pad.rate*_loops.get_total_pitch_offset(page.loops.sel,pad.pad_id))
           end
         elseif page.loops.selected_bank_control == "glide" then
           pad.rate_slew = util.clamp(pad.rate_slew+d/10,0,4)
@@ -429,11 +465,11 @@ function _loops.draw_menu()
 
   local header = {"a","b","c","L","C","#"}
   for i = 1,#header do
-    screen.level(page.loops.sel == i and 15 or 3)
+    screen.level(page.loops.sel == i and (page.loops.meta_control and 3 or 15) or 3)
     screen.move(35+(i*15),10)
     screen.text_right(header[i])
   end
-  screen.level(page.loops.sel == page.loops.sel and 15 or 3)
+  screen.level(page.loops.sel == page.loops.sel and (page.loops.meta_control and 3 or 15) or 3)
   screen.move(35+(page.loops.sel*15),13)
   screen.text_right("_")
 
@@ -575,16 +611,22 @@ function _loops.draw_menu()
         -- screen.text_center("K3: toggle looping, all pads")
         --new//
       elseif not key1_hold or (key1_hold and tab.key(page.loops.bank_controls,sel) > 3) then
-        if tab.key(page.loops.bank_controls,page.loops.selected_bank_control) < 10 then
+        if tab.key(page.loops.bank_controls,page.loops.selected_bank_control) < 11 then
           screen.level(sel == "rate" and 15 or 3)
           screen.move(0,54)
           screen.text(string.format("%.4g",pad.rate).."x")
           screen.level(sel == "semitone" and 15 or 3)
-          screen.move(64,54)
-          screen.text_center((string.format("%.2f",((math.log(pad.offset)/math.log(0.5))*-12))).." st")
+          screen.move(48,54)
+          -- screen.text_center((string.format("%.2f",((math.log(pad.offset)/math.log(0.5))*-12))).." st")
+          local sign = pad.new_offset.semitone > 0 and "+" or ""
+          screen.text_center(sign..pad.new_offset.semitone.." st")
+          screen.level(sel == "cent" and 15 or 3)
+          screen.move(82,54)
+          local sign = pad.new_offset.cent > 0 and "+" or ""
+          screen.text_center(sign..pad.new_offset.cent.." ct")
           screen.level(sel == "glide" and 15 or 3)
           screen.move(128,54)
-          screen.text_right(string.format("%.1f",pad.rate_slew).."s")
+          screen.text_right("~"..string.format("%.1f",pad.rate_slew).."s")
           screen.level(sel == "buffer" and 15 or 3)
           screen.move(0,64)
           screen.text("["..header[page.loops.sel].."] "..(pad.mode == 1 and ("LIVE "..pad.clip) or ("CLIP "..pad.clip)))
@@ -763,8 +805,6 @@ function _loops.draw_menu()
       
       -- then, loop controls:
 
-      local rate_options = {"32s","64s","128s"}
-
       -- {"segment","start_point","end_point","feedback","duration","random_rec","record","mode"}
       screen.level(sel == "record" and 15 or 3)
       screen.move(0,54)
@@ -783,7 +823,7 @@ function _loops.draw_menu()
 
       screen.level(sel == "duration" and 15 or 3)
       screen.move(128,54)
-      screen.text_right(rate_options[params:get"live_buff_rate"])
+      screen.text_right(params:string"live_buff_rate")
 
       screen.level(sel == "erase" and 15 or 3)
       screen.move(0,64)
@@ -895,7 +935,7 @@ function _loops.draw_menu()
         elseif i == 4 then
           id = rec.focus
           local off = ((id-1)*32)+1
-          local mults = {1,2,4}
+          local mults = {1,2,4,8}
           local mult = mults[params:get("live_buff_rate")]
           
           local min = live[rec.focus].min

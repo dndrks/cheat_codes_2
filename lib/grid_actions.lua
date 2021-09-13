@@ -934,7 +934,8 @@ function grid_actions.init(x,y,z)
                   bank[i][j].fifth = false
                 end
               end
-              softcut.rate(i+1,1*bank[i][bank[i].id].offset)
+              -- softcut.rate(i+1,1*bank[i][bank[i].id].offset)
+              softcut.rate(i+1,_loops.get_total_pitch_offset(i,bank[i].id))
             else
               bank[i][bank[i].focus_pad].send_pad_note = not bank[i][bank[i].focus_pad].send_pad_note
               for j = 1,16 do

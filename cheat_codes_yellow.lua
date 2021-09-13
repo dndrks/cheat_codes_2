@@ -2301,7 +2301,7 @@ end
 
 function random_rec_clock()
   while true do
-    local lbr = {1,2,4}
+    local lbr = {1,2,4,8}
     local rler = rec_loop_enc_resolution
     local rec_distance = rec[rec.focus].end_point - rec[rec.focus].start_point
     local bar_count = params:get("rec_loop_enc_resolution") > 2 and (((rec_distance)/(1/rler)) / (rler))*(2*lbr[params:get("live_buff_rate")]) or (rec_distance/clock.get_beat_sec())/4
@@ -2392,7 +2392,7 @@ function compare_rec_resolution(x)
     }
   rec_loop_enc_resolution = resolutions[x]
   if x > 2 then
-    local lbr = {1,2,4}
+    local lbr = {1,2,4,8}
     rec[rec.focus].end_point = rec[rec.focus].start_point + (((1/rec_loop_enc_resolution)*current_mult)/lbr[params:get("live_buff_rate")])
     softcut.loop_start(1,rec[rec.focus].start_point)
     softcut.loop_end(1,rec[rec.focus].end_point)
@@ -2836,6 +2836,7 @@ function reset_all_banks( banks )
 
       pad.clock_resolution  = 4
       pad.offset            = 1.0
+      pad.new_offset        = {["semitone"] = 0, ["cent"] = 0, ["live"] = {0,0,0}}
       pad.send_pad_note     = true
       pad.left_delay_thru   = false
       pad.right_delay_thru  = false
@@ -2978,7 +2979,8 @@ function cheat(b,i,silent)
   end
   --/ OH ALL THIS SUCKS TODO FIXME
   if pad.pause == false then
-    softcut.rate(b+1,pad.rate*pad.offset)
+    -- softcut.rate(b+1,pad.rate*pad.offset)
+    softcut.rate(b+1,pad.rate*_loops.get_total_pitch_offset(b,i))
   else
     softcut.rate(b+1,0)
   end

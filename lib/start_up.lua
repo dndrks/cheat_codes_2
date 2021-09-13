@@ -159,7 +159,7 @@ function start_up.init()
     }
     rec_loop_enc_resolution = resolutions[x]
     if x > 2 then
-      local lbr = {1,2,4}
+      local lbr = {1,2,4,8}
       for i = 1,3 do
         rec[i].start_point = 1+(32*(i-1))
         rec[i].end_point = (1+(32*(i-1) + (1/rec_loop_enc_resolution))/lbr[params:get("live_buff_rate")])
@@ -179,13 +179,12 @@ function start_up.init()
     end}
   end
   
-  params:add_option("live_buff_rate", "live buffer max", {"8 sec", "16 sec", "32 sec"}, 1)
+  params:add_option("live_buff_rate", "live buffer max", {"32s", "64s", "128s", "256s"}, 1)
   params:set_action("live_buff_rate", function(x)
-    local buff_rates = {1,0.5,0.25}
+    local buff_rates = {1,0.5,0.25,0.125}
     softcut.rate(1,buff_rates[x])
     compare_rec_resolution(params:get("rec_loop_enc_resolution"))
-    local rate_offset = {0,-12,-24}
-    params:set("offset",rate_offset[x])
+    -- params:set("offset",rate_offset[x])
   end)
   
   for i = 1,3 do
