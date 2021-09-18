@@ -237,6 +237,7 @@ for i = 1,3 do
   clip[i] = {}
   clip[i].length = 90
   clip[i].sample_length = 32
+  clip[i].sample_rate = 48000
   clip[i].start_point = nil
   clip[i].end_point = nil
   clip[i].mode = 1
@@ -1394,7 +1395,7 @@ function init()
     osc_echo = false
   end}
 
-  params:add_group("MIDI note/OP-Z setup",16)
+  params:add_group("MIDI note/OP-Z setup",19)
   params:add_option("midi_control_enabled", "enable MIDI control?", {"no","yes"},1)
   -- params:add_option("midi_control_device", "MIDI control device",{"port 1", "port 2", "port 3", "port 4"},1)
   
@@ -1436,6 +1437,7 @@ function init()
   params:add_separator("note = pad 1")
   for i = 1,3 do
     params:add_number("bank_"..i.."_pad_midi_base", "bank "..bank_names[i].." midi base:",0,111,53)
+    params:add_option("bank_"..i.."_pad_midi_base_wrap", "wrap notes to pads?", {"no","yes"},1)
   end
   params:add_separator("zilchmo")
   for i = 1,3 do
@@ -1552,36 +1554,47 @@ function init()
           if b_ch[i] ~= nil then
         -- local i = received_ch
             if d.note ~= nil and i ~= nil then
-              if d.note >= params:get("bank_"..i.."_pad_midi_base") and d.note <= params:get("bank_"..i.."_pad_midi_base") + (not midi_alt and 15 or 22) then
-                if not midi_alt then
+              local base_note = params:get("bank_"..i.."_pad_midi_base")
+              local received_note;
+              if params:string("bank_"..i.."_pad_midi_base_wrap") == "yes" then
+                received_note = util.wrap(d.note,base_note,base_note+15)
+              else
+                received_note = d.note
+              end
+              -- if d.note >= base_note and d.note <= base_note + (not midi_alt and 15 or 22) then
+              if received_note >= base_note and received_note <= base_note + (not midi_alt and 15 or 22) then
+                -- if not midi_alt then
                   if d.type == "note_on" then
-                    mc.cheat(i,d.note-(params:get("bank_"..i.."_pad_midi_base")-1))
-                    if midi_pat[i].rec == 1 and midi_pat[i].count == 0 then
-                    end
-                    midi_pattern_watch(i, d.note-(params:get("bank_"..i.."_pad_midi_base")-1))
-                    if menu == 9 then
-                      page.arps.sel = i
-                      arps.momentary(i, bank[i].id, "on")
-                    end
+                    grid_actions.bank_pad_down(i,received_note-(base_note-1))
+                    -- mc.cheat(i,d.note-(params:get("bank_"..i.."_pad_midi_base")-1))
+                    -- if midi_pat[i].rec == 1 and midi_pat[i].count == 0 then
+                    -- end
+                    -- midi_pattern_watch(i, d.note-(params:get("bank_"..i.."_pad_midi_base")-1))
+                    -- if menu == 9 then
+                    --   page.arps.sel = i
+                    --   arps.momentary(i, bank[i].id, "on")
+                    -- end
                   elseif d.type == "note_off" then
-                    if menu == 9 then
-                      if not arp[i].hold and page.arps.sel == i  then
-                        local targeted_pad = d.note-(params:get("bank_"..i.."_pad_midi_base")-1)
-                        arps.momentary(i, targeted_pad, "off")
-                      end
-                    end
+                    grid_actions.bank_pad_up(i,received_note-(base_note-1))
+                    -- if menu == 9 then
+                    --   if not arp[i].hold and page.arps.sel == i  then
+                    --     local targeted_pad = d.note-(params:get("bank_"..i.."_pad_midi_base")-1)
+                    --     arps.momentary(i, targeted_pad, "off")
+                    --   end
+                    -- end
                   end
-                elseif midi_alt then
-                  if params:get("bank_"..i.."_midi_zilchmo_enabled") == 2 and d.type == "note_on" then
-                    mc.zilch(i,d.note-(params:get("bank_"..i.."_pad_midi_base")-1))
-                  end
-                end
-              elseif d.note == params:get("bank_"..i.."_pad_midi_base") + 23 then
-                if d.type == "note_on" then
-                  midi_alt = true
-                else
-                  midi_alt = false
-                end
+                -- elseif midi_alt then
+                --   if params:get("bank_"..i.."_midi_zilchmo_enabled") == 2 and d.type == "note_on" then
+                --     mc.zilch(i,d.note-(params:get("bank_"..i.."_pad_midi_base")-1))
+                --   end
+                -- end
+              -- elseif d.note == base_note + 23 then
+              elseif received_note == base_note + 23 then
+                -- if d.type == "note_on" then
+                --   midi_alt = true
+                -- else
+                --   midi_alt = false
+                -- end
               end
             end
             if d.type == "cc" and params:get("midi_echo_enabled") == 2 then
@@ -4322,6 +4335,7 @@ function persistent_state_save()
   for i = 1,3 do
     io.write("bank_"..i.."_midi_channel: "..params:get("bank_"..i.."_midi_channel").."\n")
     io.write("bank_"..i.."_pad_midi_base: "..params:get("bank_"..i.."_pad_midi_base").."\n")
+    io.write("bank_"..i.."_pad_midi_base_wrap: "..params:get("bank_"..i.."_pad_midi_base_wrap").."\n")
   end
   io.write("preview_clip_change: "..params:get("preview_clip_change").."\n")
   io.write("zilchmo_patterning: "..params:get("zilchmo_patterning").."\n")
@@ -4345,12 +4359,13 @@ function persistent_state_save()
     io.write(i.."_pad_to_midi_note_scale: "..params:get(i.."_pad_to_midi_note_scale").."\n")
     io.write(i.."_pad_to_midi_note_root: "..params:get(i.."_pad_to_midi_note_root").."\n")
     io.write(i.."_pad_to_midi_note_root_octave: "..params:get(i.."_pad_to_midi_note_root_octave").."\n")
+    io.write(i.."_pad_to_midi_note_velocity: "..params:get(i.."_pad_to_midi_note_velocity").."\n")
   end
   io.write("global_pad_to_jf_note_enabled: "..params:get("global_pad_to_jf_note_enabled").."\n")
   io.write("global_pad_to_wsyn_note_enabled: "..params:get("global_pad_to_wsyn_note_enabled").."\n")
   for i = 1,3 do
     io.write(i.."_pad_to_jf_note_enabled: "..params:get(i.."_pad_to_jf_note_enabled").."\n")
-    io.write(i.."_pad_to_jf_note_velocity: "..params:get(i.."_pad_to_jf_note_velocity").."\n")
+    -- io.write(i.."_pad_to_jf_note_velocity: "..params:get(i.."_pad_to_jf_note_velocity").."\n")
     io.write(i.."_pad_to_wsyn_note_enabled: "..params:get(i.."_pad_to_wsyn_note_enabled").."\n")
     io.write(i.."_pad_to_wsyn_note_velocity: "..params:get(i.."_pad_to_wsyn_note_velocity").."\n")
   end
@@ -5368,8 +5383,6 @@ end
 
 function cleanup()
 
-  -- print("cleaning up")
-
   persistent_state_save()
 
   metro[31].time = 0.25
@@ -5381,7 +5394,6 @@ function cleanup()
   lfo_metro:stop()
 
   midi_panic()
-  -- print("cleaned up")
 end
 
 -- arc pattern stuff!

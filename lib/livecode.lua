@@ -1,6 +1,6 @@
 local lc = {}
 
-lc.enabled = false
+lc.enabled = true
 
 -- call a function repetitively in time
 -- the arg to the function is interpolated fps times per second

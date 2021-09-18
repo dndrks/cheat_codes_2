@@ -60,6 +60,9 @@ function ca.jump_clip(bank_id,pad_id,new_clip)
     else
       pad.end_point = pad.start_point + current_difference
     end
+    if clip[pad.clip].sample_rate ~= 48000 then
+      pad.new_offset.cent = -147
+    end
   else
     local old_clip = pad.clip
     pad.clip = new_clip
@@ -73,15 +76,17 @@ function ca.jump_clip(bank_id,pad_id,new_clip)
 end
 
 function ca.buff_freeze()
-  softcut.recpre_slew_time(1,0.05)
-  softcut.level_slew_time(1,0.05)
-  softcut.fade_time(1,0.01)
-  rec[rec.focus].state = (rec[rec.focus].state + 1)%2
-  softcut.rec_level(1,rec[rec.focus].state)
-  if rec[rec.focus].state == 1 then
-    softcut.pre_level(1,params:get("live_rec_feedback_"..rec.focus))
-  else
-    softcut.pre_level(1,1)
+  if all_loaded then -- TODO: clean up cuz of crow init...
+    softcut.recpre_slew_time(1,0.05)
+    softcut.level_slew_time(1,0.05)
+    softcut.fade_time(1,0.01)
+    rec[rec.focus].state = (rec[rec.focus].state + 1)%2
+    softcut.rec_level(1,rec[rec.focus].state)
+    if rec[rec.focus].state == 1 then
+      softcut.pre_level(1,params:get("live_rec_feedback_"..rec.focus))
+    else
+      softcut.pre_level(1,1)
+    end
   end
 end
 
@@ -256,7 +261,10 @@ function ca.load_sample(file,sample)
   local old_max = clip[sample].max
   if file ~= "-" then
     local ch, len, rate = audio.file_info(file)
-    if rate ~= 48000 then print("sample rate needs to be 48khz!") end
+    clip[sample].sample_rate = rate
+    if clip[sample].sample_rate ~= 48000 then
+      print("sample rate needs to be 48khz!")
+    end
     if len/48000 < 32 then
       clip[sample].sample_length = len/48000
     else

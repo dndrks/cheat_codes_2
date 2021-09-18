@@ -128,7 +128,9 @@ function _loops.process_key(n,z)
       if sel == "rate" then
         _loops.inherit_rate()
       elseif sel == "semitone" then
-        _loops.inherit_offset()
+        _loops.inherit_offset("semitone")
+      elseif sel == "cent" then
+        _loops.inherit_offset("cent")
       elseif sel == "glide" then
         _loops.inherit_slew()
       elseif sel == "loop_state" then
@@ -176,7 +178,7 @@ _loops.delta_offset = function(i,j,style,d)
   if style == "semitone" then
     bank[i][j].new_offset[style] = util.clamp(bank[i][j].new_offset[style] + d,-48,48)
   elseif style == "cent" then
-    bank[i][j].new_offset[style] = util.clamp(bank[i][j].new_offset[style] + d,-100,100)
+    bank[i][j].new_offset[style] = util.clamp(bank[i][j].new_offset[style] + d,-900,200)
   end
 end
 
@@ -193,14 +195,14 @@ function _loops.inherit_rate()
   end
 end
 
-function _loops.inherit_offset()
+function _loops.inherit_offset(style)
   local pad = bank[page.loops.sel][page.loops.meta_pad[page.loops.sel]]
   for i = 1,16 do
     if i ~= pad.pad_id then
-      bank[page.loops.sel][i].offset = pad.offset
+      bank[page.loops.sel][i].new_offset[style] = pad.new_offset[style]
     end
     if bank[page.loops.sel].id == i then
-      softcut.rate(page.loops.sel+1, bank[page.loops.sel][i].rate*bank[page.loops.sel][i].offset)
+      softcut.rate(page.loops.sel+1, bank[page.loops.sel][i].rate*_loops.get_total_pitch_offset(page.loops.sel,i))
     end
   end
 end
@@ -302,7 +304,7 @@ function _loops.process_encoder(n,d)
           -- end
           _loops.delta_offset(page.loops.sel,pad.pad_id,"semitone",d)
           if key1_hold then
-            _loops.inherit_offset()
+            _loops.inherit_offset("semitone")
           end
           if bank[page.loops.sel].id == pad.pad_id then
             softcut.rate(page.loops.sel+1, pad.rate*_loops.get_total_pitch_offset(page.loops.sel,pad.pad_id))
@@ -310,7 +312,7 @@ function _loops.process_encoder(n,d)
         elseif page.loops.selected_bank_control == "cent" then
           _loops.delta_offset(page.loops.sel,pad.pad_id,"cent",d)
           if key1_hold then
-            _loops.inherit_offset()
+            _loops.inherit_offset("cent")
           end
           if bank[page.loops.sel].id == pad.pad_id then
             softcut.rate(page.loops.sel+1, pad.rate*_loops.get_total_pitch_offset(page.loops.sel,pad.pad_id))
