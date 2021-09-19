@@ -1075,6 +1075,7 @@ params:add_separator("ALT key")
     --/
   end
   
+  levels.init()
   filters.init()
   
 end

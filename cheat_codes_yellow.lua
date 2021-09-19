@@ -13,9 +13,9 @@ if util.file_exists(_path.code.."passthrough") then
 end
 
 function developer_mode()
-  params:set("rec_loop_1",2)
-  params:set("one_shot_clock_div",4)
-  params:set("one_shot_threshold",70)
+  params:set("bank 1 fnl shape",22)
+  params:set("bank 1 fnl rise",10)
+  params:set("bank 1 fnl fall",10)
 end
 
 if util.file_exists(_path.code.."namesizer") then
@@ -85,6 +85,7 @@ arps = include 'lib/arp_actions'
 del = include 'lib/delay'
 rytm = include 'lib/euclid'
 mc = include 'lib/midicheat'
+levels = include 'lib/levels'
 filters = include 'lib/filters'
 -- sharer = include 'lib/sharer'
 macros = include 'lib/macros'
@@ -2735,6 +2736,14 @@ function reset_all_banks( banks )
     b.quantized_press_div = 1
     b.alt_lock = false
     b.global_level = 1.0
+    b.global_level_fnl = {
+      ["fnl"] = nil,
+      ["current_value"] = 1.0,
+      ["active"] = false,
+      ["start_val"] = 1.0,
+      ["end_val"] = 0.0,
+      ["direction"] = "falling"
+    }
 
     -- b.pan_lfo =
     -- {

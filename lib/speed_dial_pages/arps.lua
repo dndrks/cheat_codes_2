@@ -10,11 +10,6 @@ function sd_arp.draw_grid()
   for i = 1,3 do
     g:led(_c(i+5,1)[1],_c(i+5,1)[2],page.arps.sel == i and 15 or 8)
   end
-  -- for i = 1,8 do
-  --   for j = 2,5 do
-  --     g:led(_c(i,j)[1],_c(i,j)[2],4)
-  --   end
-  -- end
   local min_max = {{1,32},{33,64},{65,96},{97,128}}
   local lvl = 5
   for i = min_max[_arps_.seq_page[_arps_.sel]][1], min_max[_arps_.seq_page[_arps_.sel]][2] do

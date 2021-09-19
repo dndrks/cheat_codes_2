@@ -60,9 +60,6 @@ function ca.jump_clip(bank_id,pad_id,new_clip)
     else
       pad.end_point = pad.start_point + current_difference
     end
-    if clip[pad.clip].sample_rate ~= 48000 then
-      pad.new_offset.cent = -147
-    end
   else
     local old_clip = pad.clip
     pad.clip = new_clip

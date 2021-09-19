@@ -488,10 +488,14 @@ function _l.pass_to_all(bank_id,f,param)
 end
 
 function _l.get_global_level(id)
-  if bank[id].level_lfo.active then
-    return util.linlin(-1,1,0,bank[id].global_level,bank[id].level_lfo.slope)
+  if bank[id].global_level_fnl.active then
+    return levels.return_current_funnel_value(id)
   else
-    return bank[id].global_level
+    if bank[id].level_lfo.active then
+      return util.linlin(-1,1,0,bank[id].global_level,bank[id].level_lfo.slope)
+    else
+      return bank[id].global_level
+    end
   end
 end
 

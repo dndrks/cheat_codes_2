@@ -167,7 +167,15 @@ end
 _loops.get_total_pitch_offset = function(i,j)
   local total_offset;
   total_offset = bank[i][j].new_offset.semitone + (bank[i][j].new_offset.cent/100)
-  if bank[i][j].mode == 1 then
+  if bank[i][j].mode == 2 then
+    local sample_rate_compensation;
+    if (48000/clip[bank[i][j].clip].sample_rate) > 1 then
+      sample_rate_compensation = ((1200 * math.log(48000/clip[bank[i][j].clip].sample_rate,2))/-100)
+    else
+      sample_rate_compensation = ((1200 * math.log(clip[bank[i][j].clip].sample_rate/48000,2))/100)
+    end
+    total_offset = total_offset + sample_rate_compensation
+  elseif bank[i][j].mode == 1 then
     local live_offset = {0,-12,-24,-36}
     total_offset = total_offset + live_offset[params:get("live_buff_rate")]
   end

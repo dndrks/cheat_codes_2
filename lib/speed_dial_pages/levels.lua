@@ -13,40 +13,35 @@ function sd_level.draw_grid()
   local _c = speed_dial.translate
   local _levels_ = page.levels
   local pad = _levels_.meta_pad[_levels_.bank]
+  speed_dial.perf_draw(_levels_.bank)
+  
   for i = 1,3 do
     g:led(_c(i+5,1)[1],_c(i+5,1)[2],_levels_.bank == i and 15 or 8)
   end
-  for i = 1,4 do
-    for j = 9,12 do
-      g:led(_c(i,j)[1],_c(i,j)[2],led_maps["square_off"][edition])
+  
+  local level_to_led = util.round(util.linlin(0,1,1,5,bank[_levels_.bank][pad].level))
+  for i = 1,2 do
+    for j = 1,6 do
+      g:led(_c(i,j)[1],_c(i,j)[2],4)
     end
   end
-  local pad_x = _arps.index_to_grid_pos(pad,4)[1]
-  local pad_y = _arps.index_to_grid_pos(pad,4)[2]+8
-  g:led(_c(pad_x,pad_y)[1], _c(pad_x,pad_y)[2], 15)
-  for i = 11,3,-1 do
-    for j = 7,8 do
-      g:led(_c(j,i)[1], _c(j,i)[2], 4)
-    end
-  end
-  local level_to_led = util.round(util.linlin(0,1,1,7,bank[_levels_.bank][pad].level))
   for i = 1,level_to_led do
-    g:led(_c(7,12-i)[1], _c(7,12-i)[2], 8)
+    g:led(_c(1,7-i)[1], _c(1,7-i)[2], 8)
   end
   if bank[_levels_.bank][pad].level > 1.2 then
     level_to_led = util.round(bank[_levels_.bank][pad].level)
     for i = 1,level_to_led do
-      g:led(_c(7,5-i)[1], _c(7,5-i)[2], 8)
+      g:led(_c(1,2-i)[1], _c(1,2-i)[2], 8)
     end
   end
-  level_to_led = util.round(util.linlin(0,1,1,7,bank[_levels_.bank].global_level))
+  level_to_led = util.round(util.linlin(0,1,1,5,bank[_levels_.bank].global_level))
   for i = 1,level_to_led do
-    g:led(_c(8,12-i)[1], _c(8,12-i)[2], 8)
+    g:led(_c(2,7-i)[1], _c(2,7-i)[2], 8)
   end
   if bank[_levels_.bank].global_level > 1.2 then
     level_to_led = util.round(bank[_levels_.bank].global_level)
     for i = 1,level_to_led do
-      g:led(_c(8,5-i)[1], _c(8,5-i)[2], 8)
+      g:led(_c(2,2-i)[1], _c(2,2-i)[2], 8)
     end
   end
 end

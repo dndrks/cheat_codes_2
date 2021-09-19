@@ -37,11 +37,6 @@ function sd_loop.draw_grid_banks()
       g:led(_c(i+1,3)[1],_c(i+1,3)[2],current_rate == i and 15 or 4)
     end
   end
-  -- for i = 1,4 do
-  --   for j = 9,12 do
-  --     g:led(_c(i,j)[1],_c(i,j)[2],led_maps["square_off"][edition])
-  --   end
-  -- end
   local pad_x = _arps.index_to_grid_pos(pad,4)[1]
   local pad_y = _arps.index_to_grid_pos(pad,4)[2]+8
   g:led(_c(pad_x,pad_y)[1], _c(pad_x,pad_y)[2], 15)

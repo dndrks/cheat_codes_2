@@ -71,6 +71,8 @@ function sd.parse_press(x,y,z)
   end
   if sd.menu == 2 then
     sd_loop.parse_press(x,y,z)
+  elseif sd.menu == 3 then
+    sd_level.parse_press(x,y,z)
   elseif sd.menu == 5 then
     sd_filter.parse_press(x,y,z)
   elseif sd.menu == 9 then
