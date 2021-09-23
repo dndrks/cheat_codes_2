@@ -309,7 +309,6 @@ function _p.meta_actions(id)
 end
 
 function _p.seed_change(parameter,b,f)
-  print("seeding")
   if parameter == "LFO" then
     if b.id == f then
       b.pan_lfo.active = b[f].pan_lfo.active

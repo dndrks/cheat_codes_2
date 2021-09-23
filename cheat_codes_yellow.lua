@@ -96,6 +96,7 @@ _dough = include 'lib/doughstretch'
 _ps = include 'lib/speed_dial_pages/pattern_saver'
 _fs = include 'lib/speed_dial_pages/filter_saver'
 _live = include 'lib/livecode'
+_snap = include 'lib/snapshots'
 math.randomseed(os.time())
 variable_fade_time = 0.01
 --with positive playback rates, the buffer is actually read from / written to up to (loop end + fade time).
@@ -365,6 +366,9 @@ function cheat_clock_synced(i)
         clock.sleep((clock.get_beat_sec()/4)*0.5)
         if not tab.contains(held_keys[i],kill_this) then
           grid_actions.kill_note(i,kill_this)
+          if bank[i][kill_this].play_state ~= nil and bank[i][kill_this].play_state == false then
+            grid_actions.kill_momentary(i,kill_this)
+          end
         end
       end
       )
@@ -2742,7 +2746,8 @@ function reset_all_banks( banks )
       ["active"] = false,
       ["start_val"] = 1.0,
       ["end_val"] = 0.0,
-      ["direction"] = "falling"
+      ["direction"] = "falling",
+      ["mute_active"] = false
     }
 
     -- b.pan_lfo =
@@ -2862,7 +2867,7 @@ function reset_all_banks( banks )
       pad.send_pad_note     = true
       pad.left_delay_thru   = false
       pad.right_delay_thru  = false
-      pad.rate_slew         = 0
+      pad.rate_slew         = 0.05
       pad.arp_time          = 1/4
 
       pad.dough_stretch     = true
@@ -3006,9 +3011,6 @@ function cheat(b,i,silent)
   else
     softcut.rate(b+1,0)
   end
-  if params:string("doughstretch_mode_"..b) == "off" then
-    -- softcut.fade_time(b+1,variable_fade_time) -- doesn't need to be defined every cheat
-  end
   softcut.loop_start(b+1,pad.start_point)
   if dough_stretch~=nil then
     if params:string("doughstretch_mode_"..b) ~= "off" then
@@ -3030,32 +3032,8 @@ function cheat(b,i,silent)
     -- softcut.position(b+1,pad.end_point-variable_fade_time-0.05)
     softcut.position(b+1,pad.end_point-variable_fade_time-0.01)
   end
-  -- if slew_counter[b] ~= nil then
-  --   slew_counter[b].next_tilt = pad.tilt
-  --   slew_counter[b].next_q = pad.q
-  --   if pad.tilt_ease_type == 1 then
-  --     if slew_counter[b].slewedVal ~= nil and math.floor(slew_counter[b].slewedVal*10000) ~= math.floor(slew_counter[b].next_tilt*10000) then
-  --       if math.floor(slew_counter[b].prev_tilt*10000) ~= math.floor(slew_counter[b].slewedVal*10000) then
-  --         slew_counter[b].interrupted = 1
-  --         slew_filter(util.round(b),slew_counter[b].slewedVal,slew_counter[b].next_tilt,slew_counter[b].prev_q,slew_counter[b].next_q,pad.tilt_ease_time)
-  --       else
-  --         slew_counter[b].interrupted = 0
-  --         slew_filter(util.round(b),slew_counter[b].prev_tilt,slew_counter[b].next_tilt,slew_counter[b].prev_q,slew_counter[b].next_q,pad.tilt_ease_time)
-  --       end
-  --     end
-  --   elseif pad.tilt_ease_type == 2 then
-  --     slew_filter(util.round(b),slew_counter[b].prev_tilt,slew_counter[b].next_tilt,slew_counter[b].prev_q,slew_counter[b].next_q,pad.tilt_ease_time)
-  --   end
-  -- end
-  -- softcut.pan(b+1,pad.pan)
-  -- _p.process_cheat(b,i)
   _lfos.process_cheat(b,i,"pan_lfo")
-  -- _lfos.process_cheat(b,i,"level_lfo")
   del.update_delays()
-  -- if slew_counter[b] ~= nil then
-  --   slew_counter[b].prev_tilt = pad.tilt
-  --   slew_counter[b].prev_q = pad.q
-  -- end
   previous_pad = bank[b].id
   if bank[b].crow_execute == 1 then
     if pad.send_pad_note then
@@ -4098,10 +4076,7 @@ function grid_pattern_execute(entry)
         if should_happen or not pattern_gate[i][2].active then
           local released_pad = entry.id
           if bank[i][released_pad].play_mode == "momentary" and released_pad == selected[i].id then
-            softcut.rate(i+1,0)
-            softcut.position(i+1,bank[i][released_pad].start_point)
-            softcut.loop_start(i+1,bank[i][released_pad].start_point)
-            softcut.loop_end(i+1,bank[i][released_pad].end_point)
+            grid_actions.kill_momentary(i,released_pad)
           end
           grid_actions.remove_held_key(i,released_pad)
           if not arp[i].enabled then

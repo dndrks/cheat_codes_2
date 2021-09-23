@@ -40,14 +40,25 @@ function levels.volume_ramp(i)
   b.active = true
   b.fnl = _live.fnl(
     function(g_lvl)
-      softcut.level(i+1,easingFunctions[shape](g_lvl,0,bank[i].global_level,1))
-      print(easingFunctions[shape](g_lvl,0,bank[i].global_level,1))
-      b.current_value = util.round(g_lvl,0.01)
+      if bank[i].level_lfo.active then
+        -- softcut.level(i+1,easingFunctions[shape](g_lvl*bank[i].level_lfo.slope,0,bank[i].global_level,1))
+      else
+        softcut.level(i+1,easingFunctions[shape](g_lvl,0,bank[i].global_level,1))
+        softcut.level_cut_cut(i+1,5,(bank[i][bank[i].id].left_delay_level*bank[i][bank[i].id].level)*easingFunctions[shape](g_lvl,0,bank[i].global_level,1))
+        softcut.level_cut_cut(i+1,6,(bank[i][bank[i].id].right_delay_level*bank[i][bank[i].id].level)*easingFunctions[shape](g_lvl,0,bank[i].global_level,1))
+      end
+      -- print(easingFunctions[shape](g_lvl,0,bank[i].global_level,1))
+      b.current_value = util.round(g_lvl,0.0001)
       if (b.direction == "falling" and util.round(g_lvl,0.01) == 0)
       or (b.direction == "rising" and util.round(g_lvl,0.01) == util.round(bank[i].global_level,0.01))
       then
         print("LEVEL FUNNEL DONE")
         b.active = false
+        if b.direction == "falling" then
+          b.mute_active = true
+        else
+          b.mute_active = false
+        end
       end
     end,
     b.start_val,

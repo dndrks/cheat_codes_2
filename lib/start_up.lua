@@ -589,7 +589,7 @@ params:add_separator("ALT key")
       end
     end)
     params:add_control("rate slew time "..i, "rate slew time "..banks[i], controlspec.new(0,3,'lin',0.01,0))
-    params:set_action("rate slew time "..i, function(x) softcut.rate_slew_time(i+1,x) end)
+    params:set_action("rate slew time "..i, function(x) if x == 0 then x = 0.05 end softcut.rate_slew_time(i+1,x) end)
     params:add_control("pan "..i, "pan "..banks[i], controlspec.new(-1,1,'lin',0.01,0))
     params:set_action("pan "..i, function(x)
       softcut.pan(i+1,x)
@@ -700,6 +700,7 @@ params:add_separator("ALT key")
     params:set_action("level_lfo_active_"..i, function(x)
       if x == 1 then
         bank[i].level_lfo.active = false
+        softcut.level(i+1,_l.get_global_level(i))
       else
         bank[i].level_lfo.active = true
       end

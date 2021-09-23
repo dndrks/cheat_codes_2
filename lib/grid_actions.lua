@@ -716,7 +716,7 @@ function grid_actions.init(x,y,z)
           if not b.focus_hold then
             local released_pad = (4*(y-4))+x
             if b[released_pad].play_mode == "momentary" then
-              softcut.rate(bank_64+1,0)
+              grid_actions.kill_momentary(bank_64,released_pad)
             end
             if arp[bank_64].enabled and grid_pat[bank_64].rec == 0
             and not arp[bank_64].pause
@@ -1518,6 +1518,17 @@ function grid_actions.bank_pad_down(i,p)
   grid_dirty = true
 end
 
+grid_actions.kill_momentary = function(i,p)
+  print("kill bank "..i.." pad "..p)
+  env_counter[i]:stop()
+  bank[i][p].play_state = false
+  softcut.level_slew_time(i+1,0.01)
+  softcut.level(i+1,0)
+  softcut.position(i+1,bank[i][p].start_point)
+  softcut.loop_start(i+1,bank[i][p].start_point)
+  softcut.loop_end(i+1,bank[i][p].end_point)
+end
+
 function grid_actions.bank_pad_up(i,p)
   if not bank[i].focus_hold then
     local released_pad = p
@@ -1532,10 +1543,7 @@ function grid_actions.bank_pad_up(i,p)
       end
     end
     if bank[i][released_pad].play_mode == "momentary" and released_pad == selected[i].id then
-      softcut.rate(i+1,0)
-      softcut.position(i+1,bank[i][released_pad].start_point)
-      softcut.loop_start(i+1,bank[i][released_pad].start_point)
-      softcut.loop_end(i+1,bank[i][released_pad].end_point)
+      grid_actions.kill_momentary(i,released_pad)
     end
     if not arp[i].enabled or (arp[i].enabled and arp[i].pause) then
       if not grid_alt then

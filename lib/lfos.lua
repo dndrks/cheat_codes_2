@@ -273,10 +273,15 @@ function lfos.process(id,parameter)
   elseif parameter == "level_lfo" then
     local highest_to_lowest = util.linlin(-1,1,0,bank[id].global_level,bank[id][parameter].slope) -- this is so super important!
     if util.round(bank[id][parameter].prev_slope,0.05) ~= util.round(bank[id][parameter].slope,0.05) then
-      if not bank[id][bank[id].id].enveloped then
+      if (not bank[id][bank[id].id].enveloped and (not bank[id].global_level_fnl.active and not bank[id].global_level_fnl.mute_active))
+      or bank[id].global_level_fnl.active then
         softcut.level(id+1,bank[id][bank[id].id].level * _l.get_global_level(id))
         softcut.level_cut_cut(id+1,5,(bank[id][bank[id].id].left_delay_level*bank[id][bank[id].id].level)*_l.get_global_level(id))
         softcut.level_cut_cut(id+1,6,(bank[id][bank[id].id].right_delay_level*bank[id][bank[id].id].level)*_l.get_global_level(id))
+      -- elseif bank[id].global_level_fnl.active then
+      --   softcut.level(id+1,bank[id][bank[id].id].level * _l.get_global_level(id))
+      --   softcut.level_cut_cut(id+1,5,(bank[id][bank[id].id].left_delay_level*bank[id][bank[id].id].level)*_l.get_global_level(id))
+      --   softcut.level_cut_cut(id+1,6,(bank[id][bank[id].id].right_delay_level*bank[id][bank[id].id].level)*_l.get_global_level(id))
       end
       -- print(highest_to_lowest)
       -- softcut.level(id+1,bank[id][bank[id].id].level * highest_to_lowest)

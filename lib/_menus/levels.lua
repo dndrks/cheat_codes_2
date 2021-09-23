@@ -489,12 +489,18 @@ end
 
 function _l.get_global_level(id)
   if bank[id].global_level_fnl.active then
-    return levels.return_current_funnel_value(id)
-  else
     if bank[id].level_lfo.active then
-      return util.linlin(-1,1,0,bank[id].global_level,bank[id].level_lfo.slope)
+      return util.linlin(-1,1,0,levels.return_current_funnel_value(id),bank[id].level_lfo.slope)
     else
+      return levels.return_current_funnel_value(id)
+    end
+  else
+    if bank[id].level_lfo.active and not bank[id].global_level_fnl.mute_active then
+      return util.linlin(-1,1,0,bank[id].global_level,bank[id].level_lfo.slope)
+    elseif not bank[id].global_level_fnl.mute_active then
       return bank[id].global_level
+    elseif bank[id].global_level_fnl.mute_active then
+      return 0
     end
   end
 end
