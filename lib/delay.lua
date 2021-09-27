@@ -276,6 +276,13 @@ function delays.quick_action(target,param,state)
     end
     local rate = {"delay L: rate", "delay R: rate"}
     softcut.rate(target+4,params:get(rate[target])*(delay[target].reverse and -1 or 1))
+  elseif param == "glitch" then
+    if flip then
+      softcut.pre_level(target+4,1)
+      softcut.level_cut_cut(delay_grid.bank+1,target+4,0)
+      softcut.level(target+4,params:get(target == 1 and "delay L: global level" or "delay R: global level"))
+    else
+    end
   end
 end
 

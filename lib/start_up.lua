@@ -286,7 +286,7 @@ function start_up.init()
   
   --params:add_option("zilchmo_bind_rand","bind random zilchmo?", {"no","yes"}, 1)
   
-  params:add_group("patterns + arps",35)
+  params:add_group("patterns + arps",38)
   params:add_separator("patterns")
   params:add_option("zilchmo_patterning", "grid pat style", { "classic", "rad sauce" })
   for i = 1,3 do
@@ -345,6 +345,10 @@ function start_up.init()
 
   for i = 1,3 do
     params:add_number("arp_"..i.."_prob_feed", "arp "..i.." gate prob / feed",0,100,100)
+  end
+
+  for i = 1,3 do
+    params:add_number("arp_"..i.."_rand_prob", "arp "..i.." random fill prob %",0,100,50)
   end
 
   params:add_trigger("arp_panic","arp reset (K3)")

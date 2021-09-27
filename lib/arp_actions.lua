@@ -193,7 +193,25 @@ function arp_actions.tick(target,source)
   end
 end
 
+function arp_actions.prob_fill(target,s_p,e_p,value)
+  for k,v in pairs(arp[target].notes) do
+    if tab.contains(held_keys[target],v) then
+      -- print("<<<--->>>"..v)
+      grid_actions.kill_note(target,v)
+    end
+  end
+  for i = s_p,e_p do
+    arp[target].prob[i] = value
+  end
+end
+
 function arp_actions.fill(target,s_p,e_p,style)
+  for k,v in pairs(arp[target].notes) do
+    if tab.contains(held_keys[target],v) then
+      -- print("<<<--->>>"..v)
+      grid_actions.kill_note(target,v)
+    end
+  end
   local snakes = 
   { 
       [1] = { 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16 }
@@ -205,13 +223,21 @@ function arp_actions.fill(target,s_p,e_p,style)
     , [7] = { 1,2,5,9,6,3,4,7,10,13,14,11,8,12,15,16 }
     , [8] = { 1,6,11,16,15,10,5,2,7,12,8,3,9,14,13,4 }
   }
-  if style ~= 9 then
+  if style < 9 then
     for i = s_p,e_p do
       arp[target].notes[i] = snakes[style][wrap(i,1,16)]
     end
-  else
+  elseif style == 9 then
     for i = s_p,e_p do
       arp[target].notes[i] = math.random(1,16)
+    end
+  elseif style == 10 then
+    for i = s_p,e_p do
+      if params:get("arp_"..target.."_rand_prob") >= math.random(100) then
+        arp[target].notes[i] = math.random(1,16)
+      else
+        arp[target].notes[i] = nil
+      end
     end
   end
   if not arp[target].playing

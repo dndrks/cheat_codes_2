@@ -1890,6 +1890,7 @@ function init()
   transport.init()
   _dough.init()
   speed_dial.init()
+  _snap.init()
 
   if g then grid_dirty = true end
   
@@ -2867,7 +2868,7 @@ function reset_all_banks( banks )
       pad.send_pad_note     = true
       pad.left_delay_thru   = false
       pad.right_delay_thru  = false
-      pad.rate_slew         = 0.05
+      pad.rate_slew         = 0.00
       pad.arp_time          = 1/4
 
       pad.dough_stretch     = true

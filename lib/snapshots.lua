@@ -45,7 +45,7 @@ snap.restore = function(b,slot,sec)
     original_srcs[i].level = src[i].level
     original_srcs[i].pan = src[i].pan
   end
-  if not bank[b].snapshot.fnl_active then
+  if not bank[b].snapshot.fnl_active and (sec ~= nil and sec > 0.1) then
     bank[b].snapshot.fnl_active = true
     bank[b].snapshot.fnl = _live.fnl(
       function(r_val)
@@ -66,9 +66,22 @@ snap.restore = function(b,slot,sec)
       0,
       {{1,sec}}
     )
+  elseif not bank[b].snapshot.fnl_active and (sec == nil or sec == 0) then
+    for i = 1,16 do
+      src[i].start_point = shot.pad[i].start_point
+      src[i].end_point = shot.pad[i].end_point
+      if i == src.id then
+        softcut.loop_start(b+1,src[i].start_point)
+        softcut.loop_end(b+1,src[i].end_point)
+      end
+    end
+    print("snapshot funnel done")
+    bank[b].snapshot.fnl_active = false
   else
     print("already running!!!")
-    -- clock.cancel(bank[b].snapshot.fnl)
+    clock.cancel(bank[b].snapshot.fnl)
+    bank[b].snapshot.fnl_active = false
+    _snap.restore(b,slot,sec)
   end
     -- for i = 1,16 do
     --   src[i].rate = shot.pad[i].rate

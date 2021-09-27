@@ -33,6 +33,7 @@ function _arps.init()
     , "zig-zag"
     , "wrap"
     , "random"
+    , "random @"
   }
 end
 
@@ -171,6 +172,15 @@ function _arps.draw_menu()
       screen.text("C: "..arp[_arps_.sel].conditional.A[_arps_.seq_position[_arps_.sel]]..
       ":"..
       arp[_arps_.sel].conditional.B[_arps_.seq_position[_arps_.sel]])
+      screen.level(15)
+      screen.move(125,62)
+      if page.arps.alt_view_sel == 1 then
+        screen.text_right("K3: set active to "..arp[_arps_.sel].prob[_arps_.seq_position[_arps_.sel]].."%")
+      elseif page.arps.alt_view_sel == 2 then
+        screen.text_right("K3: set active to "..arp[_arps_.sel].conditional.A[_arps_.seq_position[_arps_.sel]]..
+        ":"..
+        arp[_arps_.sel].conditional.B[_arps_.seq_position[_arps_.sel]])
+      end
     end
   elseif page.arps.alt and _arps_.focus == "params" then
     if not key2_hold then
@@ -190,7 +200,7 @@ function _arps.draw_menu()
       screen.move(99,52)
       screen.text("style:")
       screen.move(128,62)
-      screen.text_right(snake_styles[_arps_.fill.snake])
+      screen.text_right(snake_styles[_arps_.fill.snake]..(snake_styles[_arps_.fill.snake] == "random @" and (" "..params:get("arp_"..page.arps.sel.."_rand_prob").."%") or ""))
     end
   end
 end
@@ -228,6 +238,8 @@ function _arps.process_key(n,z)
   elseif n == 3 and z == 1 and not key2_hold and key1_hold then
     if _arps_.focus == "params" then
       arps.fill(_arps_.sel,_arps_.fill.start_point[_arps_.sel],_arps_.fill.end_point[_arps_.sel],page.arps.fill.snake)
+    elseif _arps_.focus == "seq" then
+      arps.prob_fill(_arps_.sel,arp[_arps_.sel].start_point,arp[_arps_.sel].end_point,arp[_arps_.sel].prob[_arps_.seq_position[_arps_.sel]])
     end
   end
   screen_dirty = true
@@ -366,26 +378,26 @@ function _arps.index_to_grid_pos(val,columns)
   return {x,y-(4*(_arps_.seq_page[_arps_.sel]-1))}
 end
 
-function _arps.fill(style)
-  if style ~= "random" then
-    for i = arp[_arps_.sel].start_point,arp[_arps_.sel].end_point do
-      arp[_arps_.sel].notes[i] = snakes[style][wrap(i,1,16)]
-    end
-  else
-    for i = arp[_arps_.sel].start_point,arp[_arps_.sel].end_point do
-      arp[_arps_.sel].notes[i] = math.random(1,16)
-    end
-  end
-  if not arp[_arps_.sel].playing
-  and not arp[_arps_.sel].pause
-  and not arp[_arps_.sel].enabled
-  then
-    arps.enable(_arps_.sel,true)
-    arp[_arps_.sel].pause = true
-    arp[_arps_.sel].hold = true
-    grid_dirty = true
-  end
-  screen_dirty = true
-end
+-- function _arps.fill(style)
+--   if style ~= "random" then
+--     for i = arp[_arps_.sel].start_point,arp[_arps_.sel].end_point do
+--       arp[_arps_.sel].notes[i] = snakes[style][wrap(i,1,16)]
+--     end
+--   else
+--     for i = arp[_arps_.sel].start_point,arp[_arps_.sel].end_point do
+--       arp[_arps_.sel].notes[i] = math.random(1,16)
+--     end
+--   end
+--   if not arp[_arps_.sel].playing
+--   and not arp[_arps_.sel].pause
+--   and not arp[_arps_.sel].enabled
+--   then
+--     arps.enable(_arps_.sel,true)
+--     arp[_arps_.sel].pause = true
+--     arp[_arps_.sel].hold = true
+--     grid_dirty = true
+--   end
+--   screen_dirty = true
+-- end
 
 return arps_menu
