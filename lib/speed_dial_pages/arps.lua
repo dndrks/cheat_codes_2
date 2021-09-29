@@ -2,6 +2,7 @@ local sd_arp = {}
 
 sd_arp.keys_held = {}
 sd_arp.pad_focus = 0
+sd_arp.modifiers = {["start_point"] = false, ["end_point"] = false}
 
 function sd_arp.draw_grid()
   local edition = params:get("LED_style")
@@ -32,6 +33,8 @@ function sd_arp.draw_grid()
   for i = 1,4 do
     g:led(_c(i,6)[1],_c(i,6)[2],_arps_.seq_page[_arps_.sel] == i and 12 or 4)
   end
+  g:led(_c(7,6)[1],_c(7,6)[2],sd_arp.modifiers.start_point and 12 or 4)
+  g:led(_c(8,6)[1],_c(8,6)[2],sd_arp.modifiers.end_point and 12 or 4)
   for i = 1,4 do
     for j = 9,12 do
       g:led(_c(i,j)[1],_c(i,j)[2],led_maps["square_off"][edition])
@@ -58,8 +61,14 @@ function sd_arp.parse_press(x,y,z)
   if ny >=2 and ny <=5 then
     local current_batch = _arps_.seq_page[_arps_.sel]
     if z == 1 then
-      _arps_.seq_position[_arps_.sel] = nx+(8*(ny-2))+(32*(current_batch-1))
-      table.insert(sd_arp.keys_held,nx+(8*(ny-2))+(32*(current_batch-1)))
+      if sd_arp.modifiers.start_point and not sd_arp.modifiers.end_point then
+        arp[_arps_.sel].start_point = nx+(8*(ny-2))+(32*(current_batch-1))
+      elseif not sd_arp.modifiers.start_point and sd_arp.modifiers.end_point then
+        arp[_arps_.sel].end_point = nx+(8*(ny-2))+(32*(current_batch-1))
+      else
+        _arps_.seq_position[_arps_.sel] = nx+(8*(ny-2))+(32*(current_batch-1))
+        table.insert(sd_arp.keys_held,nx+(8*(ny-2))+(32*(current_batch-1)))
+      end
     elseif z == 0 then
       local removed = tab.key(sd_arp.keys_held,nx+(8*(ny-2))+(32*(current_batch-1)))
       table.remove(sd_arp.keys_held,removed)
@@ -78,6 +87,12 @@ function sd_arp.parse_press(x,y,z)
       end
     else
       sd_arp.pad_focus = 0
+    end
+  elseif ny == 6 then
+    if nx == 7 then
+      sd_arp.modifiers.start_point = z == 1 and true or false
+    elseif nx == 8 then
+      sd_arp.modifiers.end_point = z == 1 and true or false
     end
   end
 end

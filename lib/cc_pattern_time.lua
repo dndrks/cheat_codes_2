@@ -319,6 +319,9 @@ function pattern:next_event()
     if self.step >= diff and self.loop == 0 then
       self.play = 0
       self.metro:stop()
+      if self.pattern_end_callback ~= nil then
+        self.pattern_end_callback(self.name)
+      end
     else
       self.metro:start()
     end

@@ -89,6 +89,7 @@ function ps.handle_grid_pat(i,slot,command)
     target.end_point = source.end_point
     target.mode = source.mode
     target.rec_clock_time = source.rec_clock_time
+    -- target.loop = source.loop
     if command == "load" then
       target.step = 0
       target.loop = pattern_data[i].grid[slot].loop and 1 or 0

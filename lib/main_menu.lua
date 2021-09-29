@@ -6,6 +6,7 @@ _f = include 'lib/_menus/filters'
 _d = include 'lib/_menus/delays'
 _loops = include 'lib/_menus/loops'
 _arps = include 'lib/_menus/arps'
+_flow = include 'lib/_menus/flow'
 
 local dots = "."
 
@@ -31,6 +32,7 @@ function main_menu.init()
   _f.init()
   _loops.init()
   _arps.init()
+  _flow.init()
   -- page.filtering_sel = 0
   page.arc_sel = 0
   page.delay_sel = 0
@@ -110,7 +112,7 @@ function main_menu.draw()
         , " pans"
         , " filters"
         , " delays"
-        , " timing"
+        , " flow"
         , " euclid"
         , " arps"
         , " macros"
@@ -165,185 +167,187 @@ function main_menu.draw()
   elseif menu == 6 then
     _d.draw_menu()
   elseif menu == 7 then
-    screen.move(0,10)
-    screen.level(3)
-    screen.text("timing")
-    screen.move(66,10)
-    screen.text_center("bpm: "..string.format("%.4g",params:get("clock_tempo")))
-    metronome(110,10,15,3)
-    screen.level(10)
-    screen.move(10,30)
-    screen.line(123,30)
-    screen.stroke()
-    if key1_hold and (page.time_page_sel[page.time_sel] == 1 or page.time_page_sel[page.time_sel] == 5) and page.time_sel < 4 then
-      screen.level(15)
-      screen.move(5,40)
-      screen.text("*")
-    end
-    local playing = {}
-    local display_step = {}
+    _flow.draw_menu()
+  -- elseif menu == 7 then
+  --   screen.move(0,10)
+  --   screen.level(3)
+  --   screen.text("flow")
+  --   screen.move(66,10)
+  --   screen.text_center("bpm: "..string.format("%.4g",params:get("clock_tempo")))
+  --   metronome(110,10,15,3)
+  --   screen.level(10)
+  --   screen.move(10,30)
+  --   screen.line(123,30)
+  --   screen.stroke()
+  --   if key1_hold and (page.time_page_sel[page.time_sel] == 1 or page.time_page_sel[page.time_sel] == 5) and page.time_sel < 4 then
+  --     screen.level(15)
+  --     screen.move(5,40)
+  --     screen.text("*")
+  --   end
+  --   local playing = {}
+  --   local display_step = {}
 
-    local time_page = page.time_page_sel
-    local page_line = page.time_sel
+  --   local time_page = page.time_page_sel
+  --   local page_line = page.time_sel
 
-    for i = 1,3 do
-      screen.level(page_line == i and 15 or 3)
-      -- local pattern = g.device ~= nil and grid_pat[i] or midi_pat[i]
-      local pattern = get_grid_connected() and grid_pat[i] or midi_pat[i]
-      screen.move(10+(20*(i-1)),25)
-      screen.text("P"..i)
-      screen.move(5+(20*(i-1)),25)
-      screen.level(3)
-      if pattern.play == 1 then
-        screen.text(pattern.overdub == 0 and (">") or "o")
-      elseif pattern.play == 0 and pattern.count > 0 and pattern.rec == 0 then
-        screen.text("x")
-      end
-    end
+  --   for i = 1,3 do
+  --     screen.level(page_line == i and 15 or 3)
+  --     -- local pattern = g.device ~= nil and grid_pat[i] or midi_pat[i]
+  --     local pattern = get_grid_connected() and grid_pat[i] or midi_pat[i]
+  --     screen.move(10+(20*(i-1)),25)
+  --     screen.text("P"..i)
+  --     screen.move(5+(20*(i-1)),25)
+  --     screen.level(3)
+  --     if pattern.play == 1 then
+  --       screen.text(pattern.overdub == 0 and (">") or "o")
+  --     elseif pattern.play == 0 and pattern.count > 0 and pattern.rec == 0 then
+  --       screen.text("x")
+  --     end
+  --   end
     
-    if page.time_sel < 4 then
-      -- local pattern = g.device ~= nil and grid_pat[page_line] or midi_pat[page_line]
-      local pattern = get_grid_connected() and grid_pat[page_line] or midi_pat[page_line]
-      if pattern.sync_hold ~= nil and pattern.sync_hold then
-        local show_me_beats = clock.get_beats() % 4
-        local show_me_frac = math.fmod(clock.get_beats(),1)
-        if show_me_frac <= 0.25 then
-          show_me_frac = 1
-        elseif show_me_frac <= 0.5 then
-          show_me_frac = 2
-        elseif show_me_frac <= 0.75 then
-          show_me_frac = 3
-        else
-          show_me_frac = 4
-        end
-        screen.level(3)
-        screen.move(45,55)
-        screen.font_size(30)
-        screen.text_center(" -"..math.modf(4-show_me_beats).."."..math.modf(4-show_me_frac,1))
-        screen.font_size(8)
-      elseif pattern.rec == 1 then
-        screen.level(15)
-        screen.move(65,55)
-        screen.font_size(30)
-        screen.text_center("rec")
-        screen.font_size(8)
-      else
-        local state_option = pattern.play == 1 and "current step" or "rec mode"
-        local p_options = {state_option, "shuffle pat","P"..page_line.." sets bpm?","rand pat [K3]", "pat start", "pat end", "quantization","crow pulse"}
-        local p_options_rand = {"low rates", "mid rates", "hi rates", "full range", "keep rates"}
+  --   if page.time_sel < 4 then
+  --     -- local pattern = g.device ~= nil and grid_pat[page_line] or midi_pat[page_line]
+  --     local pattern = get_grid_connected() and grid_pat[page_line] or midi_pat[page_line]
+  --     if pattern.sync_hold ~= nil and pattern.sync_hold then
+  --       local show_me_beats = clock.get_beats() % 4
+  --       local show_me_frac = math.fmod(clock.get_beats(),1)
+  --       if show_me_frac <= 0.25 then
+  --         show_me_frac = 1
+  --       elseif show_me_frac <= 0.5 then
+  --         show_me_frac = 2
+  --       elseif show_me_frac <= 0.75 then
+  --         show_me_frac = 3
+  --       else
+  --         show_me_frac = 4
+  --       end
+  --       screen.level(3)
+  --       screen.move(45,55)
+  --       screen.font_size(30)
+  --       screen.text_center(" -"..math.modf(4-show_me_beats).."."..math.modf(4-show_me_frac,1))
+  --       screen.font_size(8)
+  --     elseif pattern.rec == 1 then
+  --       screen.level(15)
+  --       screen.move(65,55)
+  --       screen.font_size(30)
+  --       screen.text_center("rec")
+  --       screen.font_size(8)
+  --     else
+  --       local state_option = pattern.play == 1 and "current step" or "rec mode"
+  --       local p_options = {state_option, "shuffle pat","P"..page_line.." sets bpm?","rand pat [K3]", "pat start", "pat end", "quantization","crow pulse"}
+  --       local p_options_rand = {"low rates", "mid rates", "hi rates", "full range", "keep rates"}
 
-        if page.time_scroll[page_line] == 1 then
-          for j = 1,3 do
-            screen.level(time_page[page_line] == j and 15 or 3)
-            screen.move(10,40+(10*(j-1)))
-            screen.text(p_options[j])
-            local mode_options = {"loose","bars: "..string.format("%.4g", pattern.rec_clock_time/4),"quant","quant+trim"}
-            local show_state = pattern.play == 1 and pattern.step or mode_options[pattern.playmode]
-            local fine_options = {show_state, pattern.count > 0 and pattern.rec == 0 and "[K3]" or "(no pat!)", params:string("sync_clock_to_pattern_"..page_line)}
-            screen.move(80,40+(10*(j-1)))
-            screen.text(fine_options[j])
-          end
-        elseif page.time_scroll[page_line] == 2 then
-          for j = 4,6 do
-            screen.level(time_page[page_line] == j and 15 or 3)
-            screen.move(10,40+(10*(j-4)))
-            screen.text(p_options[j])
-            screen.move(80,40+(10*(j-4)))
-            local fine_options = {p_options_rand[pattern.random_pitch_range], pattern.count > 0 and pattern.rec == 0 and pattern.start_point or "(no pat!)", pattern.count > 0 and pattern.rec == 0 and pattern.end_point or "(no pat!)"}
-            screen.text(fine_options[j-3])
-          end
-        elseif page.time_scroll[page_line] == 3 then
-          for j = 7,8 do
-            screen.level(time_page[page_line] == j and 15 or 3)
-            screen.move(10,40+(10*(j-7)))
-            screen.text(p_options[j])
-            screen.move(80,40+(10*(j-7)))
-            local fine_options = {params:string("pattern_"..page_line.."_quantization"),bank[page_line].crow_execute == 1 and "pads" or "clk"}
-            screen.text(fine_options[j-6])
-            if bank[page_line].crow_execute ~= 1 then
-              screen.move(97,50)
-              screen.level(time_page[page_line] == 9 and 15 or 3)
-              screen.text("(/"..crow.count_execute[page_line]..")")
-            end
-          end
-        end
+  --       if page.time_scroll[page_line] == 1 then
+  --         for j = 1,3 do
+  --           screen.level(time_page[page_line] == j and 15 or 3)
+  --           screen.move(10,40+(10*(j-1)))
+  --           screen.text(p_options[j])
+  --           local mode_options = {"loose","bars: "..string.format("%.4g", pattern.rec_clock_time/4),"quant","quant+trim"}
+  --           local show_state = pattern.play == 1 and pattern.step or mode_options[pattern.playmode]
+  --           local fine_options = {show_state, pattern.count > 0 and pattern.rec == 0 and "[K3]" or "(no pat!)", params:string("sync_clock_to_pattern_"..page_line)}
+  --           screen.move(80,40+(10*(j-1)))
+  --           screen.text(fine_options[j])
+  --         end
+  --       elseif page.time_scroll[page_line] == 2 then
+  --         for j = 4,6 do
+  --           screen.level(time_page[page_line] == j and 15 or 3)
+  --           screen.move(10,40+(10*(j-4)))
+  --           screen.text(p_options[j])
+  --           screen.move(80,40+(10*(j-4)))
+  --           local fine_options = {p_options_rand[pattern.random_pitch_range], pattern.count > 0 and pattern.rec == 0 and pattern.start_point or "(no pat!)", pattern.count > 0 and pattern.rec == 0 and pattern.end_point or "(no pat!)"}
+  --           screen.text(fine_options[j-3])
+  --         end
+  --       elseif page.time_scroll[page_line] == 3 then
+  --         for j = 7,8 do
+  --           screen.level(time_page[page_line] == j and 15 or 3)
+  --           screen.move(10,40+(10*(j-7)))
+  --           screen.text(p_options[j])
+  --           screen.move(80,40+(10*(j-7)))
+  --           local fine_options = {params:string("pattern_"..page_line.."_quantization"),bank[page_line].crow_execute == 1 and "pads" or "clk"}
+  --           screen.text(fine_options[j-6])
+  --           if bank[page_line].crow_execute ~= 1 then
+  --             screen.move(97,50)
+  --             screen.level(time_page[page_line] == 9 and 15 or 3)
+  --             screen.text("(/"..crow.count_execute[page_line]..")")
+  --           end
+  --         end
+  --       end
 
-      end
-    end
+  --     end
+  --   end
 
-    screen.level(3)
-    screen.move(65,25)
-    screen.text("/")
+  --   screen.level(3)
+  --   screen.move(65,25)
+  --   screen.text("/")
 
-    for i = 4,6 do
-      local id = i-3
-      local time_page = page.time_page_sel
-      local page_line = page.time_sel
+  --   for i = 4,6 do
+  --     local id = i-3
+  --     local time_page = page.time_page_sel
+  --     local page_line = page.time_sel
       
-      screen.level(page_line == i and 15 or 3)
-      screen.move(75+(20*(id-1)),25)
-      screen.text("A"..id)
-    end
+  --     screen.level(page_line == i and 15 or 3)
+  --     screen.move(75+(20*(id-1)),25)
+  --     screen.text("A"..id)
+  --   end
 
-    if page.time_sel >= 4 then
-      if a.device == nil then
-        screen.move(10,40)
-        screen.level(15)
-        screen.text("no arc connected")
-      else
-        local id = page.time_sel-3
-        local loop_options = {"loop(w)", "loop(s)", "loop(e)"}
-        local loop_selected = loop_options[page.time_arc_loop[id]]
-        local param_options = {loop_selected, "filter", "level", "pan"}
-        for j = 1,4 do
-          local focus = page.time_page_sel[page.time_sel]
-          if key1_hold and focus <= 4 then
-            screen.level(15)
-            screen.move((focus == 1 or focus == 3) and 5 or 70, (focus == 1 or focus == 2) and 40 or 50)
-            screen.text("*")
-          end
-          screen.move((j==1 or j==3) and 10 or 75,(j==1 or j==2) and 40 or 50)
-          screen.level(focus == j and 15 or 3)
-          local pattern = arc_pat[id][j]
-          screen.text(param_options[j]..": ")
-          screen.move((j==1 or j==3) and 45 or 100,(j==1 or j==2) and 40 or 50)
-          if not key1_hold then
-            if (arc_pat[id][j].rec == 0 and arc_pat[id][j].play == 0 and arc_pat[id][j].count == 0) then
-              screen.text("none")
-            elseif arc_pat[id][j].play == 1 then
-              screen.text("active")
-            elseif arc_pat[id][j].rec == 1 then
-              screen.text("rec")
-            elseif (arc_pat[id][j].rec == 0 and arc_pat[id][j].play == 0 and arc_pat[id][j].count > 0) then
-              screen.text("idle")
-            end
-          else
-            screen.text(string.format("%.1f",arc_pat[id][j].time_factor).."x")
-          end
-        end
-        for i = 5,7 do
-          local scaled = i-4
-          screen.move(10,60)
-          screen.level(page.time_page_sel[page.time_sel]>4 and 15 or 3)
-          screen.text("all: ")
-          screen.move(30+((scaled-1)*35), 60)
-          local options = {"play", "stop", "clear"}
-          screen.level(page.time_page_sel[page.time_sel] == i and 15 or 3)
-          screen.text(options[scaled])
-        end
-      end
-    end
+  --   if page.time_sel >= 4 then
+  --     if a.device == nil then
+  --       screen.move(10,40)
+  --       screen.level(15)
+  --       screen.text("no arc connected")
+  --     else
+  --       local id = page.time_sel-3
+  --       local loop_options = {"loop(w)", "loop(s)", "loop(e)"}
+  --       local loop_selected = loop_options[page.time_arc_loop[id]]
+  --       local param_options = {loop_selected, "filter", "level", "pan"}
+  --       for j = 1,4 do
+  --         local focus = page.time_page_sel[page.time_sel]
+  --         if key1_hold and focus <= 4 then
+  --           screen.level(15)
+  --           screen.move((focus == 1 or focus == 3) and 5 or 70, (focus == 1 or focus == 2) and 40 or 50)
+  --           screen.text("*")
+  --         end
+  --         screen.move((j==1 or j==3) and 10 or 75,(j==1 or j==2) and 40 or 50)
+  --         screen.level(focus == j and 15 or 3)
+  --         local pattern = arc_pat[id][j]
+  --         screen.text(param_options[j]..": ")
+  --         screen.move((j==1 or j==3) and 45 or 100,(j==1 or j==2) and 40 or 50)
+  --         if not key1_hold then
+  --           if (arc_pat[id][j].rec == 0 and arc_pat[id][j].play == 0 and arc_pat[id][j].count == 0) then
+  --             screen.text("none")
+  --           elseif arc_pat[id][j].play == 1 then
+  --             screen.text("active")
+  --           elseif arc_pat[id][j].rec == 1 then
+  --             screen.text("rec")
+  --           elseif (arc_pat[id][j].rec == 0 and arc_pat[id][j].play == 0 and arc_pat[id][j].count > 0) then
+  --             screen.text("idle")
+  --           end
+  --         else
+  --           screen.text(string.format("%.1f",arc_pat[id][j].time_factor).."x")
+  --         end
+  --       end
+  --       for i = 5,7 do
+  --         local scaled = i-4
+  --         screen.move(10,60)
+  --         screen.level(page.time_page_sel[page.time_sel]>4 and 15 or 3)
+  --         screen.text("all: ")
+  --         screen.move(30+((scaled-1)*35), 60)
+  --         local options = {"play", "stop", "clear"}
+  --         screen.level(page.time_page_sel[page.time_sel] == i and 15 or 3)
+  --         screen.text(options[scaled])
+  --       end
+  --     end
+  --   end
 
 
-    screen.level(3)
-    if page.time_sel < 4 then
-      local show_top = page.time_scroll[page_line] ~= 1 and true or false
-      local show_bottom = page.time_scroll[page_line] < 3 and true or false
-      screen.move(0,64)
-      screen.text(show_bottom and "..." or "")
-      screen.move(0,34)
-      screen.text(show_top and "..." or "")
-    end
+  --   screen.level(3)
+  --   if page.time_sel < 4 then
+  --     local show_top = page.time_scroll[page_line] ~= 1 and true or false
+  --     local show_bottom = page.time_scroll[page_line] < 3 and true or false
+  --     screen.move(0,64)
+  --     screen.text(show_bottom and "..." or "")
+  --     screen.move(0,34)
+  --     screen.text(show_top and "..." or "")
+  --   end
 
   elseif menu == 8 then
     screen.move(0,10)
@@ -733,7 +737,8 @@ function main_menu.process_encoder(target,n,d)
     ["levels"] = _l.process_encoder,
     ["filters"] = _f.process_encoder,
     ["loops"] = _loops.process_encoder,
-    ["arps"] = _arps.process_encoder
+    ["arps"] = _arps.process_encoder,
+    ["flow"] = _flow.process_encoder,
   }
   target_to_destination[target](n,d)
 end
@@ -745,7 +750,8 @@ function main_menu.process_key(target,n,z)
     ["levels"] = _l.process_key,
     ["filters"] = _f.process_key,
     ["loops"] = _loops.process_key,
-    ["arps"] = _arps.process_key
+    ["arps"] = _arps.process_key,
+    ["flow"] = _flow.process_key
   }
   target_to_destination[target](n,z)
 end

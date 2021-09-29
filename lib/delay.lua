@@ -293,7 +293,7 @@ function delays.set_value(target,index,param)
     params:set(delay_name[target],levels[index])
   elseif param == "feedback" then
     local delay_name = {"delay L: feedback", "delay R: feedback"}
-    local feedback_levels = {100,75,50,25,0}
+    local feedback_levels = {100,66,50,33,0}
     params:set(delay_name[target],feedback_levels[index])
   elseif param == "send" or param == "send all" then
     local send_levels = {1,0.75,0.5,0.25,0}

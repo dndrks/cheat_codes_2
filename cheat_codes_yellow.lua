@@ -3430,6 +3430,8 @@ function key(n,z)
     main_menu.process_key("pans",n,z)
   elseif menu == 5 then
     main_menu.process_key("filters",n,z)
+  elseif menu == 7 then
+    main_menu.process_key("flow",n,z)
   elseif menu == 9 then
     main_menu.process_key("arps",n,z)
   else

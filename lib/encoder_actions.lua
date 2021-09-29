@@ -398,6 +398,8 @@ function encoder_actions.init(n,d)
     main_menu.process_encoder("pans",n,d)
   elseif menu == 5 then
     main_menu.process_encoder("filters",n,d)
+  elseif menu == 7 then
+    main_menu.process_encoder("flow",n,d)
   elseif menu == 9 then
     main_menu.process_encoder("arps",n,d)
     
