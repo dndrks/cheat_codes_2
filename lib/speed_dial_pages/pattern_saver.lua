@@ -113,6 +113,12 @@ function ps.handle_arp_pat(i,slot,command)
       pattern_data[i].arp.load_slot = slot
       pattern_data[i].arp[slot].dirty = true
     elseif command == "load" then
+      for k,v in pairs(arp[i].notes) do
+        if tab.contains(held_keys[i],v) then
+          -- print("<<<--->>>"..v)
+          grid_actions.kill_note(i,v)
+        end
+      end
       arp[i] = deep_copy(pattern_data[i].arp[slot].raw)
       pattern_data[i].arp.load_slot = slot
       if not arp[i].playing then

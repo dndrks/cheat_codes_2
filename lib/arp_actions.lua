@@ -132,8 +132,15 @@ function arp_actions.start_playback(i)
   if arp[i].mode == "pend" then
     arp_direction[i] = "negative"
   end
-  if not transport.is_running then
-    print("should start transport...")
+  local external_transport = false
+  for i = 1,16 do
+    if params:string("port_"..i.."_start_stop_in") == "yes" then
+      external_transport = true
+      break
+    end
+  end
+  if not transport.is_running and not external_transport then
+    print("should start transport...2")
     transport.toggle_transport()
   end
   if params:string("arp_"..i.."_hold_style") == "sequencer" then
@@ -147,7 +154,6 @@ function arp_actions.stop_playback(i)
   arp[i].playing = false
   arp[i].step = arp[i].start_point
   arp[i].conditional.cycle = 0
-  -- clock.run(function() clock.sleep(0.25) grid_dirty = true end)
   for k,v in pairs(arp[i].notes) do
     if tab.contains(held_keys[i],v) then
       -- print("<<<--->>>"..v)

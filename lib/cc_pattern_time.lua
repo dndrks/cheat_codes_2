@@ -287,37 +287,48 @@ end
 
 --- process next event
 function pattern:next_event()
+  local done = false
   local diff = nil
   self.prev_time = util.time()
-  if self.count == self.end_point then diff = self.count else diff = self.end_point end
+  if self.count == self.end_point then
+    diff = self.count
+  else
+    diff = self.end_point
+  end
   if self.step == diff and self.loop == 1 then
+    done = true
     self.step = self.start_point
   elseif self.step > diff and self.loop == 1 then
     self.step = self.start_point
   else
     self.step = self.step + 1
   end
-  self.process(self.event[self.step])
-  if self.step <= self.count then
-    self.metro.time = self.time[self.step] * self.time_factor
-    self.curr_time[self.step] = util.time()
+  if done then
+    if self.pattern_end_callback ~= nil then
+      self.pattern_end_callback(self.name)
+    end
   end
-  self:check_unloop()
-  --print("next time "..self.metro.time)
-  if self.step >= diff and self.loop == 0 then
-    -- if self.play == 1 then
+  if self.play == 1 then
+    self.process(self.event[self.step])
+    if self.step <= self.count then
+      self.metro.time = self.time[self.step] * self.time_factor
+      self.curr_time[self.step] = util.time()
+    end
+    self:check_unloop()
+    --print("next time "..self.metro.time)
+    if self.step >= diff and self.loop == 0 then
       self.play = 0
       self.metro:stop()
-    -- end
-  else
-    self.metro:start()
+    else
+      self.metro:start()
+    end
   end
 end
 
 --- stop this pattern
 function pattern:stop()
   if self.play == 1 then
-    --print("stop pattern ")
+    print("stop pattern ")
     self.play = 0
     self.overdub = 0
     if self.mode == "unquantized" then
@@ -328,15 +339,7 @@ function pattern:stop()
       end
       self.quant_clock = nil
     end
-    
-    --[[
-    if self.playmode == 2 then
-      clock.cancel(self.clock)
-    end
-    --]]
-    
   else
-    --print("not playing")
   end
 end
 

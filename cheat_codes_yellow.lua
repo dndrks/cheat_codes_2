@@ -97,6 +97,7 @@ _ps = include 'lib/speed_dial_pages/pattern_saver'
 _fs = include 'lib/speed_dial_pages/filter_saver'
 _live = include 'lib/livecode'
 _snap = include 'lib/snapshots'
+_song = include 'lib/song'
 math.randomseed(os.time())
 variable_fade_time = 0.01
 --with positive playback rates, the buffer is actually read from / written to up to (loop end + fade time).
@@ -1076,6 +1077,7 @@ function init()
   for i = 1,3 do
     grid_pat[i] = pattern_time.new("grid_pat["..i.."]")
     grid_pat[i].process = grid_pattern_execute
+    grid_pat[i].pattern_end_callback = grid_pattern_end_callback
     grid_pat[i].tightened_start = 0
     grid_pat[i].auto_snap = 0
     grid_pat[i].quantize = 0
@@ -1891,6 +1893,7 @@ function init()
   _dough.init()
   speed_dial.init()
   _snap.init()
+  _song.init()
 
   if g then grid_dirty = true end
   
@@ -2134,8 +2137,17 @@ end
 
 function start_pattern(target,state)
   if not transport.is_running then
-    print("should start transport...")
-    transport.toggle_transport()
+    local external_transport = false
+    for i = 1,16 do
+      if params:string("port_"..i.."_start_stop_in") == "yes" then
+        external_transport = true
+        break
+      end
+    end
+    if not external_transport then
+      print("should start transport...1")
+      transport.toggle_transport()
+    end
   end
   if transport.is_running then
     -- print("new start")
@@ -3964,6 +3976,15 @@ end
 
 
 --/GRID
+
+function grid_pattern_end_callback(id)
+  print("callback from "..id)
+  if id == "grid_pat[1]" then
+    if grid_pat[1].loop == 0 then
+      grid_pat[1]:stop()
+    end
+  end
+end
 
 function grid_pattern_execute(entry)
   if entry ~= nil then

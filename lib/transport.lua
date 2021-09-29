@@ -23,7 +23,7 @@ function tp.init()
   refresh_params_vports()
   params:add_group("transport settings",59)
   params:add_separator("auto-start")
-  params:add_option("start_transport_at_launch", "start at load (internal)?",{"no","yes"},2)
+  params:add_option("start_transport_at_launch", "start at load (internal)?",{"no","yes"},1)
   -- params:set_action("start_transport_at_launch", function()
   --   if all_loaded then
   --     
@@ -32,10 +32,10 @@ function tp.init()
   params:hide("start_transport_at_launch")
   local banks = {"a","b","c"}
   for i = 1,3 do
-    params:add_option("start_arp_"..i.."_at_launch", "auto-start arp "..banks[i].."?",{"no","yes"},2)
+    params:add_option("start_arp_"..i.."_at_launch", "auto-start arp "..banks[i].."?",{"no","yes"},1)
   end
   for i = 1,3 do
-    params:add_option("start_pat_"..i.."_at_launch", "auto-start pat "..banks[i].."?",{"no","yes"},2)
+    params:add_option("start_pat_"..i.."_at_launch", "auto-start pat "..banks[i].."?",{"no","yes"},1)
   end
   params:add_separator("send MIDI transport?")
   for i = 1,16 do
@@ -49,7 +49,6 @@ function tp.init()
       if x == 2 and params:get("port_"..i.."_start_stop_in") == 2 then
         params:set("port_"..i.."_start_stop_in", 1)
       end
-
     end)
   end
   params:add_separator("receive MIDI transport?")
@@ -95,7 +94,6 @@ function tp.start()
   tp.is_running = true
   transport.status_icon.status = 4
   for i = 1,3 do
-    -- if tab.count(arp[i].notes) > 0 and params:string("start_arp_"..i.."_at_launch") == "yes" then
     if params:string("start_arp_"..i.."_at_launch") == "yes" then
       arps.toggle("start",i)
     end
@@ -146,13 +144,14 @@ function tp.start_from_midi_message()
 end
 
 function tp.start_midi()
-  if params:string("clock_source") ~= "midi" then
+  -- if params:string("clock_source") ~= "midi" then
     for k,v in pairs(tp.vars.midi_transport_out) do
       if v == true then
         midi_dev[k]:start()
+        print("should start "..k)
       end
     end
-  end
+  -- end
 end
 
 function tp.send_midi_clock()
@@ -169,13 +168,13 @@ function tp.send_midi_clock()
 end
 
 function tp.stop_midi()
-  if params:string("clock_source") ~= "midi" then
+  -- if params:string("clock_source") ~= "midi" then
     for k,v in pairs(tp.vars.midi_transport_out) do
       if v == true then
         midi_dev[k]:stop()
       end
     end
-  end
+  -- end
 end
 
 function tp.stop()
@@ -286,13 +285,9 @@ end
 -- if the clock source is midi, it'll automatically try to do clock.transport.start() and ...stop()
 
 function clock.transport.start()
-  -- print(clock.get_beats())
-  -- print("starting clock...", tp.cycle)
-  if all_loaded and params:string("clock_source") ~= "midi" then
-  -- if (all_loaded and tp.cycle > 0) or (all_loaded and (params:string("clock_source") == "internal" or params:string("clock_source") == "link")) then
-    -- print("for real..")
+  -- if all_loaded and params:string("clock_source") ~= "midi" then
+  if all_loaded then
     if tp.start_clock == nil then
-      -- tp.start_clock = clock.run(tp.start)
       tp.pending = true
       tp.start()
       screen_dirty = true
@@ -325,13 +320,13 @@ function tp.toggle_transport()
   if tp.is_running then
     clock.transport.stop()
   else
+    tp.pending = true
     if params:string("clock_source") == "internal" then
       clock.internal.start(-0.1)
     else
       tp.cycle = 1
       clock.transport.start()
     end
-    tp.pending = true
   end
   grid_dirty = true
   screen_dirty = true

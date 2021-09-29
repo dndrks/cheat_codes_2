@@ -1187,8 +1187,15 @@ function grid_actions.arp_handler(i)
   if params:string("arp_"..i.."_hold_style") ~= "sequencer" then
     if not arp[i].enabled and tab.count(arp[i].notes) == 0 then
       arps.enable(i,true)
-      if not transport.is_running then
-        print("should start transport...")
+      local external_transport = false
+      for i = 1,16 do
+        if params:string("port_"..i.."_start_stop_in") == "yes" then
+          external_transport = true
+          break
+        end
+      end
+      if not transport.is_running and external_transport == false then
+        print("should start transport...3")
         transport.toggle_transport()
       end
     elseif arp[i].enabled and tab.count(arp[i].notes) == 0 then
@@ -1615,10 +1622,17 @@ function grid_actions.grid_pat_handler(i)
         elseif grid_pat[i].mode == "quantized" then
           start_pattern(grid_pat[i])
         end
-        grid_pat[i].loop = 1
+        -- grid_pat[i].loop = 1
       elseif grid_pat[i].count == 0 then
         if grid_pat[i].playmode ~= 2 then
-          if not transport.is_running then
+          local external_transport = true
+          for i = 1,16 do
+            if params:string("port_"..i.."_start_stop_in") == "yes" then
+              external_transport = true
+              break
+            end
+          end
+          if not transport.is_running and not external_transport then
             print("starting transport...")
             transport.toggle_transport()
           end
