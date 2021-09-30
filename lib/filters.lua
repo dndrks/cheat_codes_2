@@ -22,6 +22,7 @@ function filters.init()
     filter[i].bp = {["current_value"] = 0, ["target_value"] = 1, ["clock"] = nil, ["active"] = false}
     filter[i].freq = {
       ["current_value"] = 1000,
+      ["display_value"] = 1000,
       ["min"] = 1000,
       ["max"] = 7000,
       ["attack"] = 10,
@@ -259,11 +260,14 @@ local function iterate_freq_values(i,min,max,delta,style)
   end
   if filter[i].freq.max > filter[i].freq.min then
     local new_val = util.linexp(min, max, min, max, filter[i].freq.current_value)
+    filter[i].freq.display_value = new_val
     params:set("filter cutoff "..i,new_val,true)
     softcut.post_filter_fc(i+1,new_val)
+    print(">>>>> "..filter[i].freq.current_value,new_val)
     -- print("max>min",filter[i].freq.current_value, new_val)
   else
     local new_val = util.linexp(max, min, max, min, filter[i].freq.current_value)
+    filter[i].freq.display_value = new_val
     params:set("filter cutoff "..i,new_val,true)
     softcut.post_filter_fc(i+1,new_val) -- won't work for min > max tho...
     -- print("min > max",max,filter[i].freq.current_value,new_val)
@@ -284,15 +288,19 @@ function filters.freq_press(i,state)
     end
     if not filter[i].freq.sample_hold then -- only if that toggle isn't on should any of these events happen...
       local min_val,max_val;
-      if (filter[i].freq.min > filter[i].freq.max) and (filter[i].freq.current_value > filter[i].freq.max) then
-        min_val = filter[i].freq.current_value
-      elseif (filter[i].freq.min < filter[i].freq.max) and (filter[i].freq.current_value < filter[i].freq.min) then
-        min_val = filter[i].freq.current_value
-      elseif (filter[i].freq.min < filter[i].freq.max) and (filter[i].freq.current_value > filter[i].freq.min) then
-        min_val = filter[i].freq.current_value
-      else
-        min_val = filter[i].freq.min
-      end
+      -- // this was causing trouble where pickup after release would start at current value...
+      -- if (filter[i].freq.min > filter[i].freq.max) and (filter[i].freq.current_value > filter[i].freq.max) then
+      --   min_val = filter[i].freq.current_value
+      -- elseif (filter[i].freq.min < filter[i].freq.max) and (filter[i].freq.current_value < filter[i].freq.min) then
+      --   min_val = filter[i].freq.current_value
+      -- elseif (filter[i].freq.min < filter[i].freq.max) and (filter[i].freq.current_value > filter[i].freq.min) then
+      --   min_val = filter[i].freq.current_value
+      -- else
+      --   min_val = filter[i].freq.min
+      -- end
+      -- //
+      min_val = filter[i].freq.min
+      print("<><> ".. min_val,filter[i].freq.current_value)
       if (filter[i].freq.min > filter[i].freq.max) and (filter[i].freq.current_value < filter[i].freq.max) then
         max_val = filter[i].freq.current_value
       elseif (filter[i].freq.max > filter[i].freq.min) and (filter[i].freq.current_value > filter[i].freq.max) then

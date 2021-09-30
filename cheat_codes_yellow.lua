@@ -105,6 +105,8 @@ variable_fade_time = 0.01
 splash_done = true
 softcut_voices_are_paused = {false,false,false}
 
+engine.name = 'PolyPerc'
+
 function wrap(n, min, max)
   if max >= min then
     local y = n
@@ -886,6 +888,8 @@ zilch_leds =
 }
 
 function init()
+
+  engine.release(0.1)
 
   amp_in = {}
   local amp_src = {"amp_in_l","amp_in_r"}
@@ -1933,6 +1937,8 @@ function init()
     end)
     -- named_loadstate("/home/we/dust/data/cheat_codes_yellow/names/DEFAULT.cc2")
   end
+
+  clock.run(metronome_audio)
 
 end
 

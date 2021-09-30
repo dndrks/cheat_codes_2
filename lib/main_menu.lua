@@ -730,6 +730,19 @@ function metronome(x,y,hi,lo)
   end
 end
 
+function metronome_audio()
+  while true do
+    clock.sync(1)
+    if params:string("metronome_audio_state") == "on" and transport.is_running then
+      if util.round(clock.get_beats()%4,0.01) == 0 then
+        engine.hz(params:get("metronome_one_beat_pitch"))
+      else
+        engine.hz(params:get("metronome_alt_beat_pitch"))
+      end
+    end
+  end
+end
+
 function main_menu.process_encoder(target,n,d)
   local target_to_destination =
   {

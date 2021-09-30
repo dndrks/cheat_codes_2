@@ -286,7 +286,7 @@ function start_up.init()
   
   --params:add_option("zilchmo_bind_rand","bind random zilchmo?", {"no","yes"}, 1)
   
-  params:add_group("patterns + arps",38)
+  params:add_group("patterns + arps",42)
   params:add_separator("patterns")
   params:add_option("zilchmo_patterning", "grid pat style", { "classic", "rad sauce" })
   for i = 1,3 do
@@ -364,6 +364,11 @@ function start_up.init()
       end
     end
   )
+
+  params:add_separator("metronome")
+  params:add_option("metronome_audio_state","metronome audio",{"off","on"})
+  params:add_number("metronome_one_beat_pitch","1-beat pitch",30,1200,600)
+  params:add_number("metronome_alt_beat_pitch","alt pitch",30,1200,300)
   
   for i = 1,3 do
     params:add_number("grid_pat_"..i.."_playmode","grid_pat_"..i.."_playmode",1,2,1)
