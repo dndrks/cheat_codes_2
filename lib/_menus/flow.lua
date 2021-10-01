@@ -89,18 +89,21 @@ function f_m.draw_menu()
       end
       screen.level(3)
       local sel_x = 61+(_arps.index_to_grid_pos(_fm_.song_col[_fm_.bank_sel],4)[1]-1)*16
-      local sel_y = 4+(10*_fm_.song_line[_fm_.bank_sel])
+      local sel_y = 4+(10*util.wrap(_fm_.song_line[_fm_.bank_sel],1,5))
       screen.rect(sel_x,sel_y,7,7)
       screen.fill()
       screen.move(56,10)
       screen.line(128,10)
       screen.stroke()
       local bank_id = _fm_.bank_sel
-      for i = 1,4*song_atoms.bank[_fm_.bank_sel].end_point do
-        screen.level(_fm_.song_line[_fm_.bank_sel] == _arps.index_to_grid_pos(i,4)[2] and 15 or 3)
-        screen.move(64+(_arps.index_to_grid_pos(i,4)[1]-1)*16,10+(10*_arps.index_to_grid_pos(i,4)[2]))
+
+      local page = _arps.index_to_grid_pos(_fm_.song_line[_fm_.bank_sel],5)[2] - 1 -- only minus 1 cuz of reasons...
+
+      -- local min_max = {{1,20},{21,40},{41,60},{61,80}}
+      for i = 1+(20*page), 20+(20*page) do
+        screen.move(64+(_arps.index_to_grid_pos(util.wrap(i,1,20),4)[1]-1)*16,10+(10*_arps.index_to_grid_pos(util.wrap(i,1,20),4)[2]))
         screen.level((_fm_.song_col[_fm_.bank_sel] == _arps.index_to_grid_pos(i,4)[1] and _fm_.song_line[_fm_.bank_sel] == _arps.index_to_grid_pos(i,4)[2]) and 0 or 15)
-        if _arps.index_to_grid_pos(i,4)[1] == 1 then
+        if _arps.index_to_grid_pos(util.wrap(i,1,20),4)[1] == 1 then
           screen.text_center(song_atoms.bank[bank_id].lane[_arps.index_to_grid_pos(i,4)[2]].beats)
         else
           local target = song_atoms.bank[bank_id].lane[_arps.index_to_grid_pos(i,4)[2]][pattern_names[_arps.index_to_grid_pos(i,4)[1]-1]].target
@@ -108,8 +111,10 @@ function f_m.draw_menu()
         end
       end
       screen.level(15)
-      screen.move(128,10+(10*song_atoms.bank[_fm_.bank_sel].current))
-      screen.text_right("<")
+      if song_atoms.bank[_fm_.bank_sel].current > 5*page and song_atoms.bank[_fm_.bank_sel].current <= 5*(page+1) then
+        screen.move(128,10+(10*(song_atoms.bank[_fm_.bank_sel].current - 5*page)))
+        screen.text_right("<")
+      end
     end
   end
 end
@@ -130,7 +135,7 @@ function f_m.process_encoder(n,d)
       end
     elseif _fm_.main_sel == 3 then
       if n == 1 then
-        _fm_.song_line[_fm_.bank_sel] = util.clamp(_fm_.song_line[_fm_.bank_sel] + d,1,5)
+        _fm_.song_line[_fm_.bank_sel] = util.clamp(_fm_.song_line[_fm_.bank_sel] + d,1,song_atoms.bank[_fm_.bank_sel].end_point)
       elseif n == 2 then
         _fm_.song_col[_fm_.bank_sel] = util.clamp(_fm_.song_col[_fm_.bank_sel] + d,1,4)
       elseif n == 3 then

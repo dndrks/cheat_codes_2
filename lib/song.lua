@@ -38,6 +38,7 @@ song.iterate = function()
           _ps[concat_dest](i,song_atoms.bank[i].lane[_current][k].target,"load")
         else
           -- should a 0 placeholder kill the running pattern??
+          -- maybe -1??
         end
       end
       -- if song_atoms.bank[i].runner == 1 and song_atoms.bank[i].lane[_current].arp.target ~= 0 then
