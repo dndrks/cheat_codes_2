@@ -14,6 +14,7 @@ function f_m.init()
   page.flow.pads_page_sel = 1
   page.flow.song_line = {1,1,1}
   page.flow.song_col = {1,1,1}
+  page.flow.alt = false
   _fm_ = page.flow
 end
 
@@ -23,10 +24,22 @@ function f_m.draw_menu()
   screen.level(15)
   screen.text("flow")
   screen.font_size(8)
-  for i = 1,#_fm_.pages do
-    screen.move(0,20+(10*i))
-    screen.level(_fm_.main_sel == i and 15 or (_fm_.menu_layer == 1 and 3 or 1))
-    screen.text(_fm_.main_sel == i and (_fm_.menu_layer == 1 and (_fm_.pages[i])) or _fm_.pages[i])
+  if _fm_.menu_layer == 3 and _fm_.alt and _fm_.main_sel == 3 then
+    screen.level(15)
+    screen.move(0,30)
+    screen.text("K1 + K2:")
+    screen.move(0,40)
+    screen.text("DELETE")
+    screen.move(0,50)
+    screen.text("K1 + K3:")
+    screen.move(0,60)
+    screen.text("DUPLICATE")
+  else
+    for i = 1,#_fm_.pages do
+      screen.move(0,20+(10*i))
+      screen.level(_fm_.main_sel == i and 15 or (_fm_.menu_layer == 1 and 3 or 1))
+      screen.text(_fm_.main_sel == i and (_fm_.menu_layer == 1 and (_fm_.pages[i])) or _fm_.pages[i])
+    end
   end
   if _fm_.menu_layer == 2 then
     for i = 1,3 do
@@ -88,9 +101,9 @@ function f_m.draw_menu()
         screen.text_center(mode_options[i])
       end
       screen.level(3)
-      local sel_x = 61+(_arps.index_to_grid_pos(_fm_.song_col[_fm_.bank_sel],4)[1]-1)*16
+      local sel_x = 58+(_arps.index_to_grid_pos(_fm_.song_col[_fm_.bank_sel],4)[1]-1)*16
       local sel_y = 4+(10*util.wrap(_fm_.song_line[_fm_.bank_sel],1,5))
-      screen.rect(sel_x,sel_y,7,7)
+      screen.rect(sel_x,sel_y,12,7)
       screen.fill()
       screen.move(56,10)
       screen.line(128,10)
@@ -103,9 +116,9 @@ function f_m.draw_menu()
       for i = 1+(20*page), 20+(20*page) do
         screen.move(64+(_arps.index_to_grid_pos(util.wrap(i,1,20),4)[1]-1)*16,10+(10*_arps.index_to_grid_pos(util.wrap(i,1,20),4)[2]))
         screen.level((_fm_.song_col[_fm_.bank_sel] == _arps.index_to_grid_pos(i,4)[1] and _fm_.song_line[_fm_.bank_sel] == _arps.index_to_grid_pos(i,4)[2]) and 0 or 15)
-        if _arps.index_to_grid_pos(util.wrap(i,1,20),4)[1] == 1 then
+        if _arps.index_to_grid_pos(util.wrap(i,1,20),4)[1] == 1 and _arps.index_to_grid_pos(i,4)[2] <= song_atoms.bank[bank_id].end_point then
           screen.text_center(song_atoms.bank[bank_id].lane[_arps.index_to_grid_pos(i,4)[2]].beats)
-        else
+        elseif _arps.index_to_grid_pos(i,4)[2] <= song_atoms.bank[bank_id].end_point then
           local target = song_atoms.bank[bank_id].lane[_arps.index_to_grid_pos(i,4)[2]][pattern_names[_arps.index_to_grid_pos(i,4)[1]-1]].target
           screen.text_center(target == 0 and "-" or target)
         end
@@ -114,6 +127,14 @@ function f_m.draw_menu()
       if song_atoms.bank[_fm_.bank_sel].current > 5*page and song_atoms.bank[_fm_.bank_sel].current <= 5*(page+1) then
         screen.move(128,10+(10*(song_atoms.bank[_fm_.bank_sel].current - 5*page)))
         screen.text_right("<")
+      end
+      if page < _arps.index_to_grid_pos(song_atoms.bank[bank_id].end_point,5)[2]-1 then
+        screen.move(128,8)
+        screen.text_right("▼")
+      end
+      if page > _arps.index_to_grid_pos(song_atoms.bank[bank_id].start_point,5)[2]-1 then
+        screen.move(128,4)
+        screen.text_right("▲")
       end
     end
   end
@@ -155,6 +176,12 @@ function f_m.process_key(n,z)
       _fm_.menu_layer = 2
     elseif _fm_.menu_layer == 2 then
       _fm_.menu_layer = 3
+    elseif _fm_.menu_layer == 3 then
+      if not _fm_.alt then
+        _song.add_line(_fm_.bank_sel,_fm_.song_line[_fm_.bank_sel])
+      else
+        _song.duplicate_line(_fm_.bank_sel,_fm_.song_line[_fm_.bank_sel])
+      end
     end
   elseif n == 2 and z == 1 then
     if _fm_.menu_layer == 1 then
@@ -162,8 +189,14 @@ function f_m.process_key(n,z)
     elseif _fm_.menu_layer == 2 then
       _fm_.menu_layer = 1
     elseif _fm_.menu_layer == 3 then
-      _fm_.menu_layer = 2
+      if not _fm_.alt then
+        _fm_.menu_layer = 2
+      else
+        _song.remove_line(_fm_.bank_sel,_fm_.song_line[_fm_.bank_sel])
+      end
     end
+  elseif n == 1 then
+    _fm_.alt = z == 1 and true or false
   end
 end
 

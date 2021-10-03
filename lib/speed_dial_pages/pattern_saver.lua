@@ -104,6 +104,16 @@ function ps.handle_grid_pat(i,slot,command)
   grid_dirty = true
 end
 
+function ps.stop(i,source)
+  if source == "arp" then
+    arp_actions.toggle("stop",i)
+  elseif source == "grid" then
+    stop_pattern(grid_pat[i])
+  elseif source == "euclid" then
+    print("TODO: STOP EUCLID")
+  end
+end
+
 function ps.handle_arp_pat(i,slot,command)
   local target, source;
   if command ~= "delete" then

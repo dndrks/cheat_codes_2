@@ -5,7 +5,7 @@ song.init = function()
   for i = 1,3 do
     song_atoms.bank[i] = {}
     song_atoms.bank[i].lane = {}
-    for j = 1,128 do
+    for j = 1,1 do
       song_atoms.bank[i].lane[j] = {["arp"] = {}, ["grid"] = {}, ["euclid"] = {}}
       for k,v in pairs(song_atoms.bank[i].lane[j]) do
         song_atoms.bank[i].lane[j][k].target = 0
@@ -13,7 +13,7 @@ song.init = function()
       song_atoms.bank[i].lane[j].beats = 16
     end
     song_atoms.bank[i].start_point = 1
-    song_atoms.bank[i].end_point = 3
+    song_atoms.bank[i].end_point = 1
     song_atoms.bank[i].current = 1
     song_atoms.bank[i].runner = 0
   end
@@ -36,7 +36,8 @@ song.iterate = function()
           -- print(i,song_atoms.bank[i].lane[_current][k].target,"load",clock.get_beats())
           local concat_dest = "handle_"..k.."_pat"
           _ps[concat_dest](i,song_atoms.bank[i].lane[_current][k].target,"load")
-        else
+        elseif k ~= "beats" and song_atoms.bank[i].runner == 1 and song_atoms.bank[i].lane[_current][k].target == 0 then
+          -- _ps.stop(i,k)
           -- should a 0 placeholder kill the running pattern??
           -- maybe -1??
         end
@@ -64,6 +65,38 @@ song.stop = function()
   end
   song_atoms.running = false
   -- should probably kill running patterns...
+end
+
+song.add_line = function(b,loc)
+  table.insert(song_atoms.bank[b].lane,loc+1,{["arp"] = {}, ["grid"] = {}, ["euclid"] = {}})
+  for k,v in pairs(song_atoms.bank[b].lane[loc+1]) do
+    song_atoms.bank[b].lane[loc+1][k].target = 0
+  end
+  song_atoms.bank[b].lane[loc+1].beats = 16
+  song_atoms.bank[b].end_point = #song_atoms.bank[b].lane
+end
+
+song.duplicate_line = function(b,loc)
+  table.insert(song_atoms.bank[b].lane,loc+1,{["arp"] = {}, ["grid"] = {}, ["euclid"] = {}})
+  for k,v in pairs(song_atoms.bank[b].lane[loc+1]) do
+    song_atoms.bank[b].lane[loc+1][k].target = song_atoms.bank[b].lane[loc][k].target
+  end
+  song_atoms.bank[b].lane[loc+1].beats = song_atoms.bank[b].lane[loc].beats
+  song_atoms.bank[b].end_point = #song_atoms.bank[b].lane
+end
+
+song.remove_line = function(b,loc)
+  if #song_atoms.bank[b].lane ~= 1 then
+    table.remove(song_atoms.bank[b].lane,loc)
+    song_atoms.bank[b].end_point = util.clamp(song_atoms.bank[b].end_point-1,1,128)
+    if page.flow.song_line[page.flow.bank_sel] > song_atoms.bank[b].end_point then
+      page.flow.song_line[page.flow.bank_sel] = song_atoms.bank[b].end_point
+    end
+    if song_atoms.bank[b].current > song_atoms.bank[b].end_point then
+      song_atoms.bank[b].runner = 0
+      song_atoms.bank[b].current = song_atoms.bank[b].start_point
+    end
+  end
 end
 
 return song
