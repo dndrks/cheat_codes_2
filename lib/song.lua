@@ -32,14 +32,15 @@ song.iterate = function()
       _current = song_atoms.bank[i].current
       song_atoms.bank[i].runner = util.wrap(song_atoms.bank[i].runner + 1,1,song_atoms.bank[i].lane[_current].beats)
       for k,v in pairs(song_atoms.bank[i].lane[_current]) do
-        if k ~= "beats" and song_atoms.bank[i].runner == 1 and song_atoms.bank[i].lane[_current][k].target ~= 0 then
+        if k ~= "beats" and song_atoms.bank[i].runner == 1 then
+          if song_atoms.bank[i].lane[_current][k].target ~= 0 then
           -- print(i,song_atoms.bank[i].lane[_current][k].target,"load",clock.get_beats())
-          local concat_dest = "handle_"..k.."_pat"
-          _ps[concat_dest](i,song_atoms.bank[i].lane[_current][k].target,"load")
-        elseif k ~= "beats" and song_atoms.bank[i].runner == 1 and song_atoms.bank[i].lane[_current][k].target == 0 then
-          -- _ps.stop(i,k)
-          -- should a 0 placeholder kill the running pattern??
-          -- maybe -1??
+            local concat_dest = "handle_"..k.."_pat"
+            _ps[concat_dest](i,song_atoms.bank[i].lane[_current][k].target,"load")
+          elseif song_atoms.bank[i].lane[_current][k].target == 0 then
+          elseif song_atoms.bank[i].lane[_current][k].target == -1 then
+            _ps.stop(i,k)
+          end
         end
       end
       -- if song_atoms.bank[i].runner == 1 and song_atoms.bank[i].lane[_current].arp.target ~= 0 then

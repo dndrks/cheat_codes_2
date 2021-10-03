@@ -3,6 +3,7 @@ local flow_menu = {}
 local f_m = flow_menu
 local bank_names = {"a","b","c"}
 local pattern_names = {"arp","grid","euclid"}
+local pattern_banks = {"A","B","C","D","E","F","G","H"}
 
 function f_m.init()
   page.flow = {}
@@ -103,7 +104,7 @@ function f_m.draw_menu()
       screen.level(3)
       local sel_x = 58+(_arps.index_to_grid_pos(_fm_.song_col[_fm_.bank_sel],4)[1]-1)*16
       local sel_y = 4+(10*util.wrap(_fm_.song_line[_fm_.bank_sel],1,5))
-      screen.rect(sel_x,sel_y,12,7)
+      screen.rect(sel_x,sel_y,13,7)
       screen.fill()
       screen.move(56,10)
       screen.line(128,10)
@@ -120,7 +121,12 @@ function f_m.draw_menu()
           screen.text_center(song_atoms.bank[bank_id].lane[_arps.index_to_grid_pos(i,4)[2]].beats)
         elseif _arps.index_to_grid_pos(i,4)[2] <= song_atoms.bank[bank_id].end_point then
           local target = song_atoms.bank[bank_id].lane[_arps.index_to_grid_pos(i,4)[2]][pattern_names[_arps.index_to_grid_pos(i,4)[1]-1]].target
-          screen.text_center(target == 0 and "-" or target)
+          if target > 0 then
+            target = (pattern_banks[_arps.index_to_grid_pos(target,8)[2]].._arps.index_to_grid_pos(target,8)[1])
+          else
+            target = target == 0 and "-" or "xx"
+          end
+          screen.text_center(target)
         end
       end
       screen.level(15)
@@ -163,7 +169,7 @@ function f_m.process_encoder(n,d)
         if _fm_.song_col[_fm_.bank_sel] == 1 then
           song_atoms.bank[_fm_.bank_sel].lane[_fm_.song_line[_fm_.bank_sel]].beats = util.clamp(song_atoms.bank[_fm_.bank_sel].lane[_fm_.song_line[_fm_.bank_sel]].beats + d,1,128)
         else
-          song_atoms.bank[_fm_.bank_sel].lane[_fm_.song_line[_fm_.bank_sel]][pattern_names[_fm_.song_col[_fm_.bank_sel]-1]].target = util.clamp(song_atoms.bank[_fm_.bank_sel].lane[_fm_.song_line[_fm_.bank_sel]][pattern_names[_fm_.song_col[_fm_.bank_sel]-1]].target + d,0,8)
+          song_atoms.bank[_fm_.bank_sel].lane[_fm_.song_line[_fm_.bank_sel]][pattern_names[_fm_.song_col[_fm_.bank_sel]-1]].target = util.clamp(song_atoms.bank[_fm_.bank_sel].lane[_fm_.song_line[_fm_.bank_sel]][pattern_names[_fm_.song_col[_fm_.bank_sel]-1]].target + d,-1,64)
         end
       end
     end

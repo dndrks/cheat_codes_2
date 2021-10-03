@@ -6,9 +6,11 @@ local all_foci = {"arp","grid","euclid"}
 
 function ps.init()
   pattern_data = {}
+  pattern_bank = {}
   for i = 1,3 do
+    pattern_bank[i] = 1
     pattern_data[i] = { ["grid"] = {}, ["arp"] = {}, ["euclid"] = {} }
-    for j = 1,8 do
+    for j = 1,64 do
       pattern_data[i].grid[j] = {}
       pattern_data[i].arp[j] = {}
       pattern_data[i].euclid[j] = {}
@@ -215,18 +217,24 @@ function ps.draw_grid()
   local _c = speed_dial.translate
   local windows = {{1,3},{6,8},{11,13}}
   for i = 1,3 do
+    local bank_offset = (pattern_bank[i]-1) * 8
     for j = windows[i][1],windows[i][2] do
       for k = 1,8 do
         local focus = all_foci[j-(5*(i-1))]
-        local level = pattern_data[i][focus][k].dirty == true and 8 or 4
+        local level = pattern_data[i][focus][k + bank_offset].dirty == true and 8 or 4
         g:led(_c(k,j)[1],_c(k,j)[2],level)
-        if k == pattern_data[i][focus].load_slot then
+        if k + bank_offset == pattern_data[i][focus].load_slot then
           g:led(_c(k,j)[1],_c(k,j)[2],15)
         end
       end
     end
     for j = 5,15,5 do
       g:led(_c(i,j)[1],_c(i,j)[2],pattern_gate[j/5][i].active and 15 or 0)
+    end
+  end
+  for i = 4,14,5 do
+    for j = 1,8 do
+      g:led(_c(j,i)[1],_c(j,i)[2],pattern_bank[i == 4 and 1 or (i == 9 and 2 or 3)] == j and 8 or 0)
     end
   end
   for i = 5,15,5 do
@@ -274,40 +282,46 @@ function ps.parse_press(x,y,z)
     focus = all_foci[ny-10]
   end
 
+  if ny == 4 or ny == 9 or ny == 14 then
+    pattern_bank[ny == 4 and 1 or (ny == 9 and 2 or 3)] = nx
+  end
+
+
   if ny <=3 or (ny >=6 and ny<=8) or (ny >=11 and ny <=13) then
     if z == 1 then
+      local bank_offset = (pattern_bank[save_bank]-1) * 8
       if not grid_alt then
-        if not pattern_data[save_bank][focus][nx].dirty then
+        if not pattern_data[save_bank][focus][nx+bank_offset].dirty then
           pattern_data[save_bank][focus].save_clock = clock.run(
             function()
               clock.sleep(0.25)
               if focus == "arp" then
                 if tab.count(arp[save_bank].notes) > 0 then
-                  ps.handle_arp_pat(save_bank,nx,"save")
+                  ps.handle_arp_pat(save_bank,nx+bank_offset,"save")
                 end
               elseif focus == "grid" then
                 if #grid_pat[save_bank].event > 0 then
-                  ps.handle_grid_pat(save_bank,nx,"save")
+                  ps.handle_grid_pat(save_bank,nx+bank_offset,"save")
                 end
               elseif focus == "euclid" then
-                ps.handle_euclid_pat(save_bank,nx,"save")
+                ps.handle_euclid_pat(save_bank,nx+bank_offset,"save")
               end
               pattern_data[save_bank][focus].save_clock = nil
             end
           )
         else
           if focus == "arp" then
-            ps.handle_arp_pat(save_bank,nx,"load")
+            ps.handle_arp_pat(save_bank,nx+bank_offset,"load")
           elseif focus == "grid" then
-            ps.handle_grid_pat(save_bank,nx,"load")
+            ps.handle_grid_pat(save_bank,nx+bank_offset,"load")
           elseif focus == "euclid" then
-            ps.handle_euclid_pat(save_bank,nx,"load")
+            ps.handle_euclid_pat(save_bank,nx+bank_offset,"load")
           end
         end
       else
-        if pattern_data[save_bank][focus][nx].dirty then
+        if pattern_data[save_bank][focus][nx+bank_offset].dirty then
           local concat = "handle_"..focus.."_pat"
-          ps[concat](save_bank,nx,"delete")
+          ps[concat](save_bank,nx+bank_offset,"delete")
         end
       end
     elseif z == 0 then
