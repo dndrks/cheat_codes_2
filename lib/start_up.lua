@@ -234,7 +234,7 @@ function start_up.init()
   
   --params:add_option("zilchmo_bind_rand","bind random zilchmo?", {"no","yes"}, 1)
   
-  params:add_group("patterns + arps",23)
+  params:add_group("patterns + arps",27)
   params:add_separator("patterns")
   params:add_option("zilchmo_patterning", "grid pat style", { "classic", "rad sauce" })
   params:set_action("zilchmo_patterning", function() if all_loaded then persistent_state_save() end end)
@@ -301,7 +301,71 @@ function start_up.init()
       end
     end
   )
-  
+
+  params:add_separator("metronome")
+  params:add_option("metronome_audio_state","metronome audio",{"off","on"})
+  params:add_number("metronome_one_beat_pitch","1-beat pitch",30,1200,600)
+  params:add_number("metronome_alt_beat_pitch","alt pitch",30,1200,300)
+
+  params:add_group("pattern save/load",18)
+  local banks = {"(a)", "(b)", "(c)"}
+  params:add_separator("save")
+  for i = 1,3 do
+    params:add_number("pattern_save_slot_"..i, "save slot "..banks[i],1,8,1)
+    params:set_action("pattern_save_slot_"..i,
+      function(x)
+        pattern_saver[i].save_slot = x
+      end
+    )
+    params:add_trigger("pattern_save_"..i, "save (K3)")
+    params:set_action("pattern_save_"..i,
+      function()
+        quick_save_pattern(i)
+      end
+    )
+  end
+  params:add_separator("manual load")
+  for i = 1,3 do
+    params:add_number("pattern_load_slot_"..i, "load slot "..banks[i],1,8,1)
+    params:add_trigger("pattern_load_"..i, "load (K3)")
+    params:set_action("pattern_load_"..i,
+      function()
+        test_load(params:get("pattern_load_slot_"..i),i)
+      end
+    )
+  end
+  params:add_separator("iterative load")
+  for i = 1,3 do
+    params:add_trigger("pattern_load_next"..i, "load next (K3)")
+    params:set_action("pattern_load_next"..i,
+      function()
+        local saved_pool = {}
+        for j = 1,8 do
+          if pattern_saver[i].saved[j] == 1 then
+            table.insert(saved_pool,j)
+          end
+        end
+        local current_pattern;
+        if tab.count(saved_pool) > 0 and pattern_saver[i].load_slot == 0 then
+          current_pattern = saved_pool[1]
+        else
+          current_pattern = tab.key(saved_pool,pattern_saver[i].load_slot)
+        end
+        if current_pattern ~= nil then
+          local slick;
+          if tab.count(saved_pool) > 0 and pattern_saver[i].load_slot == 0 then
+            slick = saved_pool[1]
+          else
+            slick = saved_pool[util.wrap(current_pattern+1,1,#saved_pool)]
+          end
+          params:set("pattern_load_slot_"..i,slick)
+          pattern_saver[i].load_slot = slick
+          test_load(slick,i)
+        end
+      end
+    )
+  end
+
   params:add_group("mappable control",99)
 
   params:add_separator("save MIDI mappings")

@@ -327,8 +327,10 @@ function tp.key(n,z)
         tp.pending = true
         -- clock.transport.start()
       end
-    elseif page.transport.focus == "TAP-TEMPO" then
+    elseif page.transport.focus == "TAP" then
       tp.tap_tempo()
+    elseif page.transport.focus == "CLICK" then
+      params:set("metronome_audio_state",params:get("metronome_audio_state") == 1 and 2 or 1)
     end
   elseif n == 2 and z == 0 then
     menu = 1
@@ -366,12 +368,19 @@ function tp.UI()
   screen.level(page.transport.focus == "TRANSPORT" and 0 or 15)
   screen.text("TRANSPORT")
 
-  screen.level(page.transport.focus == "TRANSPORT" and 0 or 15)
-  screen.rect(50,0, screen.text_extents("TAP-TEMPO") + 4, 7)
+  screen.level(page.transport.focus == "TAP" and 15 or 0)
+  screen.rect(50,0, screen.text_extents("TAP") + 4, 7)
   screen.fill()
   screen.move(52,6)
-  screen.level(page.transport.focus == "TRANSPORT" and 15 or 0)
-  screen.text("TAP-TEMPO")
+  screen.level(page.transport.focus == "TAP" and 0 or 15)
+  screen.text("TAP")
+
+  screen.level(page.transport.focus == "CLICK" and 15 or 0)
+  screen.rect(71,0, screen.text_extents("CLICK") + 4, 7)
+  screen.fill()
+  screen.move(73,6)
+  screen.level(page.transport.focus == "CLICK" and 0 or 15)
+  screen.text("CLICK")
 
   screen.font_size(8)
   metronome(115,6,15,3)
@@ -387,7 +396,7 @@ function tp.UI()
   screen.text("K3: ")
   if page.transport.focus == "TRANSPORT" then
     screen.text(tostring(transport.is_running) == "true" and "stop" or "play")
-  elseif page.transport.focus == "TAP-TEMPO" then
+  elseif page.transport.focus == "TAP" then
     if #transport.tap_tempo_table == 0 then
       screen.text("tap")
     else
@@ -396,6 +405,8 @@ function tp.UI()
         screen.fill()
       end
     end
+  elseif page.transport.focus == "CLICK" then
+    screen.text(params:get("metronome_audio_state") == 2 and "off" or "on")
   end
   if transport.pending then
     screen.move(90,50)

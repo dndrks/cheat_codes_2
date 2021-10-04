@@ -1,6 +1,6 @@
 -- cheat codes 2
 --          a sample playground
--- rev: 210714
+-- rev: 211004
 -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
 -- need help?
 -- please visit:
@@ -49,6 +49,21 @@ end
 --   print("available instruments: ")
 --   tab.print(mxcc:list_instruments())
 -- end
+
+engine.name = 'PolyPerc'
+
+function metronome_audio()
+  while true do
+    clock.sync(1)
+    if params:string("metronome_audio_state") == "on" and transport.is_running then
+      if util.round(clock.get_beats()%4) == 0 then
+        engine.hz(params:get("metronome_one_beat_pitch"))
+      else
+        engine.hz(params:get("metronome_alt_beat_pitch"))
+      end
+    end
+  end
+end
 
 local pattern_time = include 'lib/cc_pattern_time'
 MU = require "musicutil"
@@ -860,6 +875,7 @@ zilch_leds =
 
 function init()
 
+  engine.release(0.1)
   amp_in = {}
   local amp_src = {"amp_in_l","amp_in_r"}
   for i = 1,2 do
@@ -1274,7 +1290,7 @@ function init()
   end
 
   page.transport = {}
-  page.transport.foci = {"TRANSPORT","TAP-TEMPO"}
+  page.transport.foci = {"TRANSPORT","TAP","CLICK"}
   page.transport.focus = "TRANSPORT"
   
   del.init()
@@ -1973,6 +1989,8 @@ function init()
   end
 
   speed_dial:init()
+
+  clock.run(metronome_audio)
 
 end
 
@@ -5878,31 +5896,35 @@ function named_loadstate(path)
 
 end
 
+function quick_save_pattern(i)
+  if grid_pat[i].count > 0 and grid_pat[i].rec == 0 then
+    copy_entire_pattern(i)
+    save_pattern(i,pattern_saver[i].save_slot+8*(i-1),"pattern")
+    pattern_saver[i].saved[pattern_saver[i].save_slot] = 1
+    pattern_saver[i].load_slot = pattern_saver[i].save_slot
+    g:led(math.floor((i-1)*5)+1,9-pattern_saver[i].save_slot,15)
+    -- g:refresh()
+  elseif #arp[i].notes > 0 then
+    save_pattern(i,pattern_saver[i].save_slot+8*(i-1),"arp")
+    pattern_saver[i].saved[pattern_saver[i].save_slot] = 1
+    pattern_saver[i].load_slot = pattern_saver[i].save_slot
+    g:led(math.floor((i-1)*5)+1,9-pattern_saver[i].save_slot,15)
+    -- g:refresh()
+  else
+    print("no pattern data to save")
+    g:led(math.floor((i-1)*5)+1,9-pattern_saver[i].save_slot,0)
+    -- g:refresh()
+  end
+  pattern_saver[i].clock = nil
+  grid_dirty = true
+end
+
 function test_save(i)
   pattern_saver[i].active = true
   clock.sleep(1)
   -- if pattern_saver[i].active then
     if not grid_alt then
-      if grid_pat[i].count > 0 and grid_pat[i].rec == 0 then
-        copy_entire_pattern(i)
-        save_pattern(i,pattern_saver[i].save_slot+8*(i-1),"pattern")
-        pattern_saver[i].saved[pattern_saver[i].save_slot] = 1
-        pattern_saver[i].load_slot = pattern_saver[i].save_slot
-        g:led(math.floor((i-1)*5)+1,9-pattern_saver[i].save_slot,15)
-        -- g:refresh()
-      elseif #arp[i].notes > 0 then
-        save_pattern(i,pattern_saver[i].save_slot+8*(i-1),"arp")
-        pattern_saver[i].saved[pattern_saver[i].save_slot] = 1
-        pattern_saver[i].load_slot = pattern_saver[i].save_slot
-        g:led(math.floor((i-1)*5)+1,9-pattern_saver[i].save_slot,15)
-        -- g:refresh()
-      else
-        print("no pattern data to save")
-        g:led(math.floor((i-1)*5)+1,9-pattern_saver[i].save_slot,0)
-        -- g:refresh()
-      end
-      pattern_saver[i].clock = nil
-      grid_dirty = true
+      quick_save_pattern(i)
     else
       if pattern_saver[i].saved[pattern_saver[i].save_slot] == 1 then
         delete_pattern(pattern_saver[i].save_slot+8*(i-1))
@@ -6087,7 +6109,7 @@ function one_point_two()
     if file then
       io.input(file)
       local current = math.floor((i-1)/8)+1
-      load_pattern(i,current)
+      -- load_pattern(i,current,"fromonepoint")
       io.close(file)
     end
   end
@@ -6235,7 +6257,10 @@ function meta_copy_coll(read_coll,write_coll)
   end
 end
 
-function load_pattern(slot,destination)
+function load_pattern(slot,destination,print_also)
+  if print_also then
+    print(print_also,slot,destination)
+  end
   local ignore_external_timing = false
   local file = io.open(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/patterns/"..slot..".data", "r")
   if file then

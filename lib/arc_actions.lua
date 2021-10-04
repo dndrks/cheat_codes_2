@@ -99,22 +99,37 @@ function aa.move_window(target, delta)
   local current_difference = (target.end_point - target.start_point)
   local s_p = target.mode == 1 and live[target.clip].min or clip[target.clip].min
   local reasonable_max = target.mode == 1 and live[target.clip].max or clip[target.clip].max
-  local adjusted_delta = force and (duration > 15 and (delta/25) or (delta/100)) or (delta/300)
-  if target.start_point + current_difference <= reasonable_max then
-    target.start_point = util.clamp(target.start_point + adjusted_delta, s_p, reasonable_max)
-    target.end_point = target.start_point + current_difference
+
+  if params:get("loop_enc_resolution_"..target.bank_id) > 2 then
+    arc_accum[target.bank_id] = arc_accum[target.bank_id] + delta
+
+    if math.abs(arc_accum[target.bank_id]) >= 25 then
+      local resolution = loop_enc_resolution[target.bank_id]
+      local rs = {1,2,4}
+      local rate_mod = rs[params:get("live_buff_rate")]
+      arc_accum[target.bank_id] = 0
+      encoder_actions.move_play_window(target,(1/(resolution * rate_mod)) * (delta > 0 and 1 or -1))
+    end
   else
-    target.end_point = reasonable_max
-    target.start_point = target.end_point - current_difference
-  end
-  if target.end_point > reasonable_max then
-    target.end_point = reasonable_max
-    target.start_point = target.end_point - current_difference
-  end
-  if menu == 2 and page.loops_view[target.bank_id] == 4 and key1_hold then
-    update_waveform(2,target.start_point,target.end_point,128)
+    local adjusted_delta = force and (duration > 15 and (delta/25) or (delta/100)) or (delta/300)
+    if target.start_point + current_difference <= reasonable_max then
+      target.start_point = util.clamp(target.start_point + adjusted_delta, s_p, reasonable_max)
+      target.end_point = target.start_point + current_difference
+    else
+      target.end_point = reasonable_max
+      target.start_point = target.end_point - current_difference
+    end
+    if target.end_point > reasonable_max then
+      target.end_point = reasonable_max
+      target.start_point = target.end_point - current_difference
+    end
+    if menu == 2 and page.loops_view[target.bank_id] == 4 and key1_hold then
+      update_waveform(2,target.start_point,target.end_point,128)
+    end
   end
 end
+
+arc_accum = {0,0,0}
 
 function aa.move_start(target, delta)
 
@@ -122,11 +137,24 @@ function aa.move_start(target, delta)
 
   local duration = target.mode == 1 and 8 or clip[target.clip].sample_length
   local s_p = target.mode == 1 and live[target.clip].min or clip[target.clip].min
-  local adjusted_delta = force and (delta/100) or (delta/300)
-  if adjusted_delta >= 0 and target.start_point < (target.end_point - 0.055) then
-    target.start_point = util.clamp(target.start_point+adjusted_delta,s_p,s_p+duration)
-  elseif adjusted_delta < 0 then
-    target.start_point = util.clamp(target.start_point+adjusted_delta,s_p,s_p+duration)
+
+  if params:get("loop_enc_resolution_"..target.bank_id) > 2 then
+    arc_accum[target.bank_id] = arc_accum[target.bank_id] + delta
+
+    if math.abs(arc_accum[target.bank_id]) >= 25 then
+      local resolution = loop_enc_resolution[target.bank_id]
+      local rs = {1,2,4}
+      local rate_mod = rs[params:get("live_buff_rate")]
+      arc_accum[target.bank_id] = 0
+      encoder_actions.move_start(target,(1/(resolution * rate_mod)) * (delta > 0 and 1 or -1))
+    end
+  else
+    local adjusted_delta = force and (delta/100) or (delta/300)
+    if adjusted_delta >= 0 and target.start_point < (target.end_point - 0.055) then
+      target.start_point = util.clamp(target.start_point+adjusted_delta,s_p,s_p+duration)
+    elseif adjusted_delta < 0 then
+      target.start_point = util.clamp(target.start_point+adjusted_delta,s_p,s_p+duration)
+    end
   end
   if menu == 2 and page.loops_view[target.bank_id] == 4 and key1_hold then
     update_waveform(2,target.start_point,target.end_point,128)
@@ -139,14 +167,27 @@ function aa.move_end(target, delta)
 
   local duration = target.mode == 1 and 8 or clip[target.clip].sample_length
   local s_p = target.mode == 1 and live[target.clip].min or clip[target.clip].min
-  local adjusted_delta = force and (delta/100) or (delta/300)
-  if adjusted_delta <= 0 and target.start_point < (target.end_point - 0.055) then
-    target.end_point = util.clamp(target.end_point+adjusted_delta,s_p,s_p+duration)
-  elseif adjusted_delta > 0 then
-    target.end_point = util.clamp(target.end_point+adjusted_delta,s_p,s_p+duration)
-  end
-  if menu == 2 and page.loops_view[target.bank_id] == 4 and key1_hold then
-    update_waveform(2,target.start_point,target.end_point,128)
+
+  if params:get("loop_enc_resolution_"..target.bank_id) > 2 then
+    arc_accum[target.bank_id] = arc_accum[target.bank_id] + delta
+
+    if math.abs(arc_accum[target.bank_id]) >= 25 then
+      local resolution = loop_enc_resolution[target.bank_id]
+      local rs = {1,2,4}
+      local rate_mod = rs[params:get("live_buff_rate")]
+      arc_accum[target.bank_id] = 0
+      encoder_actions.move_end(target,(1/(resolution * rate_mod)) * (delta > 0 and 1 or -1))
+    end
+  else
+    local adjusted_delta = force and (delta/100) or (delta/300)
+    if adjusted_delta <= 0 and target.start_point < (target.end_point - 0.055) then
+      target.end_point = util.clamp(target.end_point+adjusted_delta,s_p,s_p+duration)
+    elseif adjusted_delta > 0 then
+      target.end_point = util.clamp(target.end_point+adjusted_delta,s_p,s_p+duration)
+    end
+    if menu == 2 and page.loops_view[target.bank_id] == 4 and key1_hold then
+      update_waveform(2,target.start_point,target.end_point,128)
+    end
   end
 
 end
