@@ -1281,7 +1281,12 @@ function grid_actions.init(x,y,z)
       end
 
       if x == 8 and y == 1 and z == 1 then
-        grid_page_64 = 1
+        if grid_alt then
+          last_grid_page_64 = grid_page_64
+          grid_page_64 = 2
+        else
+          grid_page_64 = 1
+        end
       end
 
     elseif grid_page_64 == 1 then
@@ -1368,9 +1373,45 @@ function grid_actions.init(x,y,z)
       end
 
       if x == 8 and y == 1 and z == 1 then
-        grid_page_64 = 0
+        if grid_alt then
+          last_grid_page_64 = grid_page_64
+          grid_page_64 = 2
+        else
+          grid_page_64 = 0
+        end
       end
 
+    elseif grid_page_64 == 2 then
+      if x == 1 and y == 8 then
+        grid_alt = z == 1 and true or false
+      end
+      if x == 8 and y == 1 and z == 1 then
+        grid_page_64 = last_grid_page_64
+      end
+      if y >=2 and y<= 4 then
+        y = y-1
+        if z == 1 then
+          saved_pat = pattern_saver[y].saved[x] -- hate that this is global...
+          pattern_saver[y].source = y
+          pattern_saver[y].save_slot = x
+          if pattern_saver[y].clock ~= nil then
+            clock.cancel(pattern_saver[y].clock)
+          end
+          pattern_saver[y].clock = clock.run(test_save,y)
+          -- print("starting save "..pattern_saver[y].clock)
+        elseif z == 0 then
+          if pattern_saver[y].clock ~= nil then
+            clock.cancel(pattern_saver[y].clock)
+          end
+          pattern_saver[y].active = false
+          if not grid_alt and saved_pat == 1 then
+            if pattern_saver[y].saved[x] == 1 then
+              pattern_saver[y].load_slot = x
+              test_load(x,y)
+            end
+          end
+        end
+      end
     end
     grid_dirty = true
   end

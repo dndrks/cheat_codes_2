@@ -1,6 +1,6 @@
 -- cheat codes 2
 --          a sample playground
--- rev: 211004
+-- rev: 211005 (LTS3)
 -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
 -- need help?
 -- please visit:
@@ -935,8 +935,8 @@ function init()
     rec[i].queued = false
   end
 
-  params:add_group("GRID",5)
-  params:add_option("LED_style","LED style",{"varibright","4-step","grayscale"},1)
+  params:add_group("GRID/ARC",6)
+  params:add_option("LED_style","grid LED style",{"varibright","4-step","grayscale"},1)
   params:set_action("LED_style",
   function()
     grid_dirty = true
@@ -979,6 +979,16 @@ function init()
       persistent_state_save()
     end
   end)
+  params:add_option("arc_size","arc size (64-grid only)",{4,2},1)
+  params:set_action("arc_size",
+    function(x)
+      if x == 2 then
+        params:set("grid_size",2)
+      end
+      if all_loaded then
+        persistent_state_save()
+      end
+    end)
 
   -- params:add_separator("hotkey config")
 
@@ -4136,6 +4146,9 @@ end
 g = grid.connect()
 
 function get_grid_connected()
+  if grid.is_midigrid ~= nil and grid.is_midigrid == true then
+    params:set("midigrid?",2)
+  end
   if g.device == nil and grid == nil then
     return false
   elseif g.device ~= nil or (grid ~= nil and params:string("midigrid?") == "yes") then
@@ -5132,7 +5145,22 @@ function grid_redraw()
             end
           end
         end
+        g:led(1,8,(grid_alt and led_maps["alt_on"][edition] or led_maps["alt_off"][edition]))
 
+      elseif grid_page_64 == 2 then
+        for i = 1,8 do
+          for j = 1,3 do
+            if pattern_saver[j].saved[i] == 1 then
+              g:led(i,j+1,8)
+            else
+              g:led(i,j+1,4)
+            end
+            if pattern_saver[j].load_slot == i then
+              g:led(i,j+1,15)
+            end
+          end
+        end
+        g:led(1,8,(grid_alt and led_maps["alt_on"][edition] or led_maps["alt_off"][edition]))
       end
       
       g:refresh()
@@ -5319,38 +5347,37 @@ end
 arc_redraw = function()
   a:all(0)
   local which_pad = nil
-  for i = 1,3 do
-    if bank[arc_control[i]].focus_hold == false then
-      which_pad = bank[arc_control[i]].id
-    else
-      which_pad = bank[arc_control[i]].focus_pad
+  local this_bank;	
+  local arc_min;	
+  local arc_max;	
+  for i = 1,(params:string("arc_size") == 4 and 3 or 1) do	
+    i = (params:string("arc_size") == 4 and i or bank_64)	
+    local which_enc = params:string("arc_size") == 4 and i or 1	
+    if bank[i].focus_hold == false then	
+      which_pad = bank[i].id	
+    else	
+      which_pad = bank[i].focus_pad	
     end
 
     local duration = bank[i][which_pad].mode == 1 and 8 or clip[bank[i][which_pad].clip].sample_length
     if arc_param[i] == 1 then
-      -- if start_to_led <= end_to_led then
-      --   a:segment(i, util.linlin(0, duration, tau*(1/4), tau*1.23, start_to_led), util.linlin(0, duration, (tau*(1/4))+0.1, tau*1.249999, end_to_led), 15)
-      -- else
-      --   a:segment(i, util.linlin(0, duration, (tau*(1/4))+0.1, tau*1.23, end_to_led), util.linlin(0, duration, tau*(1/4), tau*1.249999, start_to_led), 15)
-      -- end
 
       local minimum = bank[i][which_pad].mode == 1 and live[bank[i][which_pad].clip].min or clip[bank[i][which_pad].clip].min
       local maximum = bank[i][which_pad].mode == 1 and live[bank[i][which_pad].clip].max or clip[bank[i][which_pad].clip].max
-      local start_to_led = bank[arc_control[i]][which_pad].start_point
-      local end_to_led = bank[arc_control[i]][which_pad].end_point
-      a:segment(i, util.linlin(minimum, maximum, tau*(1/4), tau*1.23, start_to_led), util.linlin(minimum, maximum, (tau*(1/4))+0.1, tau*1.249999, end_to_led), 15)
-      -- DOES THERE NEED TO BE AN ELSE CASE TO START < = END ???
+      local start_to_led = bank[i][which_pad].start_point
+      local end_to_led = bank[i][which_pad].end_point
+      a:segment(which_enc, util.linlin(minimum, maximum, tau*(1/4), tau*1.23, start_to_led), util.linlin(minimum, maximum, (tau*(1/4))+0.1, tau*1.249999, end_to_led), 15)
 
     end
     if arc_param[i] == 2 or arc_param[i] == 3 then
       local minimum = bank[i][which_pad].mode == 1 and live[bank[i][which_pad].clip].min or clip[bank[i][which_pad].clip].min
       local maximum = bank[i][which_pad].mode == 1 and live[bank[i][which_pad].clip].max or clip[bank[i][which_pad].clip].max
-      local start_to_led = math.floor(util.linlin(minimum,maximum,1,64,bank[arc_control[i]][which_pad].start_point))
-      local end_to_led = math.floor(util.linlin(minimum,maximum,1,64,bank[arc_control[i]][which_pad].end_point))
+      local start_to_led = math.floor(util.linlin(minimum,maximum,1,64,bank[i][which_pad].start_point))
+      local end_to_led = math.floor(util.linlin(minimum,maximum,1,64,bank[i][which_pad].end_point))
       local playhead_to_led = util.linlin(minimum,maximum,1,64,poll_position_new[i+1])
-      a:led(i,(math.floor(playhead_to_led))+16,5)
-      a:led(i, arc_param[i] == 2 and (start_to_led+16) or (end_to_led+17),15)
-      a:led(i, arc_param[i] == 2 and (end_to_led+17) or (start_to_led+16),8)
+      a:led(which_enc,(math.floor(playhead_to_led))+16,5)
+      a:led(which_enc, arc_param[i] == 2 and (start_to_led+16) or (end_to_led+17),15)
+      a:led(which_enc, arc_param[i] == 2 and (end_to_led+17) or (start_to_led+16),8)
 
     end
     if arc_param[i] == 4 then
@@ -5363,21 +5390,21 @@ arc_redraw = function()
       end
       if tilt_to_led == nil then
         tilt_to_led = bank[i][which_pad].tilt
-        a:led(i,47,5)
-        a:led(i,48,10)
-        a:led(i,49,15)
-        a:led(i,50,10)
-        a:led(i,51,5)
+        a:led(which_enc,47,5)
+        a:led(which_enc,48,10)
+        a:led(which_enc,49,15)
+        a:led(which_enc,50,10)
+        a:led(which_enc,51,5)
       elseif tilt_to_led >= -0.04 and tilt_to_led <=0.20 then
-        a:led(i,47,5)
-        a:led(i,48,10)
-        a:led(i,49,15)
-        a:led(i,50,10)
-        a:led(i,51,5)
+        a:led(which_enc,47,5)
+        a:led(which_enc,48,10)
+        a:led(which_enc,49,15)
+        a:led(which_enc,50,10)
+        a:led(which_enc,51,5)
       elseif tilt_to_led < -0.04 then
-        a:segment(i, tau*(1/4), util.linlin(-1, 1, (tau*(1/4))+0.1, tau*1.249999, tilt_to_led), 15)
+        a:segment(which_enc, tau*(1/4), util.linlin(-1, 1, (tau*(1/4))+0.1, tau*1.249999, tilt_to_led), 15)
       elseif tilt_to_led > 0.20 then
-        a:segment(i, util.linlin(-1, 1, (tau*(1/4)), (tau*1.24)+0.4, tilt_to_led-0.1), tau*(1/4)+0.1, 15)
+        a:segment(which_enc, util.linlin(-1, 1, (tau*(1/4)), (tau*1.24)+0.4, tilt_to_led-0.1), tau*(1/4)+0.1, 15)
       end
     end
     if arc_param[i] == 5 then
@@ -5388,21 +5415,21 @@ arc_redraw = function()
         level_to_led = bank[i][bank[i].id].level
       end
       for j = 1,17 do
-        a:led(i,(math.floor(util.linlin(0,2,5,70,(level_to_led)-(1/8*j))))+16,15)
+        a:led(which_enc,(math.floor(util.linlin(0,2,5,70,(level_to_led)-(1/8*j))))+16,15)
       end
     end
     if arc_param[i] == 6 then
       local pan_to_led = bank[i][bank[i].id].pan
-      a:led(i,(math.floor(util.linlin(-1,1,10,55,pan_to_led)))+22,4)
-      a:led(i,(math.floor(util.linlin(-1,1,10,55,pan_to_led)))+17,15)
-      a:led(i,(math.floor(util.linlin(-1,1,10,55,pan_to_led)))+12,4)
+      a:led(which_enc,(math.floor(util.linlin(-1,1,10,55,pan_to_led)))+22,4)
+      a:led(which_enc,(math.floor(util.linlin(-1,1,10,55,pan_to_led)))+17,15)
+      a:led(which_enc,(math.floor(util.linlin(-1,1,10,55,pan_to_led)))+12,4)
     end
   end
 
   arc_meta_level = {}
   for i = 1,6 do
     arc_meta_level[i] = util.round(arc_meta_focus) == i and 15 or 5
-    a:led(4,((i-1)*8)+25,arc_meta_level[i])
+    a:led((params:string("arc_size") == 4 and 4 or 2),((i-1)*8)+25,arc_meta_level[i])
   end
 
   a:refresh()
@@ -5470,6 +5497,7 @@ function persistent_state_save()
     io.write(i.."_pad_to_jf_pulse: "..params:get(i.."_pad_to_jf_pulse").."\n")
   end
   io.write("touchosc_echo: "..params:get("touchosc_echo").."\n")
+  io.write("arc_size: "..params:get("arc_size").."\n")
   io.close(file)
 end
 
@@ -5902,17 +5930,23 @@ function quick_save_pattern(i)
     save_pattern(i,pattern_saver[i].save_slot+8*(i-1),"pattern")
     pattern_saver[i].saved[pattern_saver[i].save_slot] = 1
     pattern_saver[i].load_slot = pattern_saver[i].save_slot
-    g:led(math.floor((i-1)*5)+1,9-pattern_saver[i].save_slot,15)
+    if params:string("grid_size") == "128" then
+      g:led(math.floor((i-1)*5)+1,9-pattern_saver[i].save_slot,15)
+    end
     -- g:refresh()
   elseif #arp[i].notes > 0 then
     save_pattern(i,pattern_saver[i].save_slot+8*(i-1),"arp")
     pattern_saver[i].saved[pattern_saver[i].save_slot] = 1
     pattern_saver[i].load_slot = pattern_saver[i].save_slot
-    g:led(math.floor((i-1)*5)+1,9-pattern_saver[i].save_slot,15)
+    if params:string("grid_size") == "128" then
+      g:led(math.floor((i-1)*5)+1,9-pattern_saver[i].save_slot,15)
+    end
     -- g:refresh()
   else
     print("no pattern data to save")
-    g:led(math.floor((i-1)*5)+1,9-pattern_saver[i].save_slot,0)
+    if params:string("grid_size") == "128" then
+      g:led(math.floor((i-1)*5)+1,9-pattern_saver[i].save_slot,0)
+    end
     -- g:refresh()
   end
   pattern_saver[i].clock = nil
@@ -5920,9 +5954,9 @@ function quick_save_pattern(i)
 end
 
 function test_save(i)
+  clock.sleep(0.25)
   pattern_saver[i].active = true
-  clock.sleep(1)
-  -- if pattern_saver[i].active then
+  if pattern_saver[i].active then
     if not grid_alt then
       quick_save_pattern(i)
     else
@@ -5934,7 +5968,7 @@ function test_save(i)
         print("no pattern data to delete")
       end
     end
-  -- end
+  end
   pattern_saver[i].active = false
 end
 
@@ -6266,7 +6300,7 @@ function load_pattern(slot,destination,print_also)
   if file then
     io.input(file)
     if io.read() == "stored pad pattern: collection "..selected_coll.." + slot "..slot then
-      print("loading grid pat")
+      -- print("loading grid pat")
       grid_pat[destination].event = {}
       grid_pat[destination].count = tonumber(io.read())
       for i = 1,grid_pat[destination].count do
