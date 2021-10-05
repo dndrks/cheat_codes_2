@@ -336,7 +336,7 @@ function start_up.init()
   end
   params:add_separator("iterative load")
   for i = 1,3 do
-    params:add_trigger("pattern_load_next"..i, "load next (K3)")
+    params:add_trigger("pattern_load_next"..i, "load next "..banks[i].." pattern (K3)")
     params:set_action("pattern_load_next"..i,
       function()
         local saved_pool = {}
