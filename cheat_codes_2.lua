@@ -2000,8 +2000,9 @@ function init()
 
   speed_dial:init()
 
+  audio.level_eng_cut(util.dbamp(-math.huge))
+  norns.state.mix.cut_input_eng = -math.huge
   clock.run(metronome_audio)
-
 end
 
 ---
@@ -5869,7 +5870,7 @@ function named_loadstate(path)
     if selected_coll ~= collection then
       meta_shadow(selected_coll)
     elseif selected_coll == collection then
-      cleanup()
+      cleanup("local")
     end
     one_point_two()
     -- / GRID pattern restore
@@ -5921,6 +5922,9 @@ function named_loadstate(path)
   --     end
   --   end
   -- )
+  -- pre_script_softcut_engine_level = params:get("cut_input_eng")
+  audio.level_eng_cut(util.dbamp(-math.huge))
+  norns.state.mix.cut_input_eng = -math.huge
 
 end
 
@@ -6435,9 +6439,12 @@ function load_pattern(slot,destination,print_also)
   end
 end
 
-function cleanup()
+function cleanup(is_local)
 
-  metro[31].time = 0.25
+  if is_local == nil then
+    metro[31].time = 0.25
+    print("cleaning up")
+  end
 
   for i = 1,3 do
     env_counter[i]:stop()
