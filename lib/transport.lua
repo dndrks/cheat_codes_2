@@ -406,7 +406,7 @@ function tp.UI()
       end
     end
   elseif page.transport.focus == "CLICK" then
-    screen.text(params:get("metronome_audio_state") == 2 and "off" or "on")
+    screen.text(params:get("metronome_audio_state") == 2 and "turn off" or "turn on")
   end
   if transport.pending then
     screen.move(90,50)

@@ -234,19 +234,10 @@ function start_up.init()
   
   --params:add_option("zilchmo_bind_rand","bind random zilchmo?", {"no","yes"}, 1)
   
-  params:add_group("patterns + arps",27)
-  params:add_separator("patterns")
-  params:add_option("zilchmo_patterning", "grid pat style", { "classic", "rad sauce" })
-  params:set_action("zilchmo_patterning", function() if all_loaded then persistent_state_save() end end)
-  params:add_option("arc_patterning", "arc pat style", { "passive", "active" })
-  params:set_action("arc_patterning", function() if all_loaded then persistent_state_save() end end)
-  for i = 1,3 do
-    params:add_option("sync_clock_to_pattern_"..i, "sync bpm to free pat "..i.."?", { "no", "yes" })
-    params:set_action("sync_clock_to_pattern_"..i, function() if all_loaded then persistent_state_save() end end)
-  end
+  params:add_group("timing + patterns + arps",27)
   params:add_separator("quantization")
   for i = 1,3 do
-    params:add_option("pattern_"..i.."_quantization", "quantize pads "..banks[i].."?", {"no", "yes"})
+    params:add_option("pattern_"..i.."_quantization", "live-quantize pads "..banks[i].."?", {"no", "yes"})
     params:set_action("pattern_"..i.."_quantization", function(x)
       -- grid_pat[i]:quant(x == 1 and 0 or 1)
       -- if midi_pat ~= nil then -- TODO FIXME
@@ -263,7 +254,16 @@ function start_up.init()
     end
     )
   end
-  params:add_option("launch_quantization", "pat launch quant", {"next beat", "next bar"})
+  params:add_option("launch_quantization", "patterns launch at:", {"next beat", "next bar"})
+  params:add_separator("patterns")
+  params:add_option("zilchmo_patterning", "grid pat style", { "classic", "rad sauce" })
+  params:set_action("zilchmo_patterning", function() if all_loaded then persistent_state_save() end end)
+  params:add_option("arc_patterning", "arc pat style", { "passive", "active" })
+  params:set_action("arc_patterning", function() if all_loaded then persistent_state_save() end end)
+  for i = 1,3 do
+    params:add_option("sync_clock_to_pattern_"..i, "sync bpm to free pat "..i.."?", { "no", "yes" })
+    params:set_action("sync_clock_to_pattern_"..i, function() if all_loaded then persistent_state_save() end end)
+  end
   params:add_separator("random patterns")
   for i = 1,3 do
     params:add_option("random_patterning_"..i,"rand pat "..i.." style", 
