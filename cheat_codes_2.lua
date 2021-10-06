@@ -2220,7 +2220,7 @@ end
 function synced_record_start(target,i)
   --midi_pat[i].sync_hold = true
   target.sync_hold = true
-  clock.sync(4)
+  clock.sync(4,-1/16)
   --midi_pat[i]:rec_start()
   target:rec_start()
   --midi_pat[i].sync_hold = false
@@ -2234,7 +2234,7 @@ function synced_record_start(target,i)
 end
 
 function synced_pattern_record(target)
-  clock.sleep(clock.get_beat_sec()*target.rec_clock_time)
+  clock.sleep((clock.get_beat_sec()*target.rec_clock_time)+ (clock.get_beat_sec()*1/16))
   if target.rec_clock ~= nil then
     target:rec_stop()
     -- if target is a grid pat, should do all the grid pat thing:
@@ -2267,6 +2267,7 @@ function synced_pattern_record(target)
         target:calculate_quantum(i)
       end
     end
+    target.time[1] = target.time[1] - (clock.get_beat_sec()*1/16)
     if target.count > 0 then -- just in case the recording was canceled...
       --target:start()
       print("started first run..."..clock.get_beats())
@@ -5727,6 +5728,10 @@ function named_savestate(text)
   if file then
     io.output(file)
     io.write("clock_tempo: "..params:get("clock_tempo").."\n")
+    for i = 1,3 do
+      io.write("pattern_"..i.."_playmode: "..grid_pat[i].playmode.."\n")
+      io.write("pattern_"..i.."_rec_clock_time: "..grid_pat[i].rec_clock_time.."\n")
+    end
     io.close(file)
   end
 
@@ -5909,11 +5914,31 @@ function named_loadstate(path)
       end
     end
 
-    --TODO confirm this is ok, not a namespace collision?
     local file = io.open(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/misc/misc.data", "r")
     if file then
       io.input(file)
-      params:set("clock_tempo", tonumber(string.match(io.read(), ': (.*)')))
+      local number_of_lines = 0
+      for lines in file:lines() do
+        number_of_lines = number_of_lines+1
+      end
+      io.close(file)
+      file = io.open(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/misc/misc.data", "r")
+      io.input(file)
+      if number_of_lines == 1 then
+        params:set("clock_tempo", tonumber(string.match(io.read(), ': (.*)')))
+      else
+        params:set("clock_tempo", tonumber(string.match(io.read(), ': (.*)')))
+        for i = 1,3 do
+          local playmode = tonumber(string.match(io.read(), ': (.*)'))
+          if playmode ~= nil then
+            grid_pat[i].playmode = playmode
+          end
+          local rec_clock_time = tonumber(string.match(io.read(), ': (.*)'))
+          if rec_clock_time ~= nil then
+            grid_pat[i].rec_clock_time = rec_clock_time
+          end
+        end
+      end
       io.close(file)
     end
 

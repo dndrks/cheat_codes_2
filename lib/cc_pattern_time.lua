@@ -77,7 +77,7 @@ end
 
 --- start recording
 function pattern:rec_start()
-  print("pattern rec start")
+  print("pattern rec start "..clock.get_beats())
   self.rec = 1
 end
 
