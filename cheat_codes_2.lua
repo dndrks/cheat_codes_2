@@ -882,6 +882,9 @@ function init()
   collection_loaded = false
 
   all_loaded = false
+  
+  ec4_focus = false -- to check for EC4 focus hold
+  ec4_shift = false -- to check if EC4 fine tune/secondary mode is enabled
 
   for i = 1,3 do
     norns.enc.sens(i,2)
@@ -1653,7 +1656,7 @@ function init()
         end
       elseif params:get("midi_enc_control_enabled") == 2 and j == params:get("midi_enc_control_device") then
         -- TODO: refine this, shouldn't have to call all 3...
-        if midi_dev[j].name ~= "Midi Fighter Twister" then 
+        if midi_dev[j].name ~= "Midi Fighter Twister" and midi_dev[j].name ~= "Faderfox EC4" then 
           for i = 1,3 do
             if d.ch == params:get("bank_"..i.."_midi_enc_channel") then
               if d.type == "cc" then
@@ -1670,7 +1673,7 @@ function init()
             end
           end
         
-        elseif midi_dev[j].name == "Midi Fighter Twister" then
+        elseif midi_dev[j].name == "Midi Fighter Twister" or midi_dev[j].name == "Faderfox EC4" then
           
           -- tab.print(d)
 
@@ -1683,8 +1686,15 @@ function init()
           end
 
           if d.ch == 1 or d.ch == 5 then
-            if d.cc == 0 or d.cc == 16 or d.cc == 32 then
+            if d.type == "note_on" and (d.note == 12 or d.note == 28 or d.note == 44) then
+              ec4_focus = true
+            elseif d.type == "note_on" and (d.note == 13 or d.note == 29 or d.note == 45) then
+              ec4_shift = true
+            elseif d.cc == 0 or d.cc == 16 or d.cc == 32 then
               local id = math.floor(d.cc/16)+1
+              if ec4_focus == true then
+                bank[id].focus_hold = true
+              end
               encoder_actions.change_pad(bank[id][check_focus_hold(id)].bank_id, d.val == 63 and -1 or 1)
               if bank[id].focus_hold then
                 mc.mft_redraw(bank[id][bank[id].focus_pad],"all")
@@ -1693,7 +1703,7 @@ function init()
               -- pad start point
               local id = math.floor(d.cc/16)+1
               local resolution = loop_enc_resolution[id] / 10
-              encoder_actions.move_start(bank[id][check_focus_hold(id)], (d.val == 63 and (d.ch == 1 and -0.1 or -0.01) or (d.ch == 1 and 0.1 or 0.01))/resolution)
+              encoder_actions.move_start(bank[id][check_focus_hold(id)], (d.val == 63 and ((d.ch == 1 and ec4_shift == false) and -0.1 or -0.01) or ((d.ch == 1 and ec4_shift == false) and 0.1 or 0.01))/resolution)
               mc.mft_redraw(bank[id][check_focus_hold(id)],"start_point")
               if bank[id].focus_hold == false then
                 encoder_actions.sc.move_start(id)
@@ -1702,7 +1712,7 @@ function init()
               -- pad end point
               local id = math.floor(d.cc/16)+1
               local resolution = loop_enc_resolution[id] / 10
-              encoder_actions.move_end(bank[id][check_focus_hold(id)], (d.val == 63 and (d.ch == 1 and -0.1 or -0.01) or (d.ch == 1 and 0.1 or 0.01))/resolution)
+              encoder_actions.move_end(bank[id][check_focus_hold(id)], (d.val == 63 and ((d.ch == 1 and ec4_shift == false) and -0.1 or -0.01) or ((d.ch == 1 and ec4_shift == false) and 0.1 or 0.01))/resolution)
               mc.mft_redraw(bank[id][check_focus_hold(id)],"end_point")
               if bank[id].focus_hold == false then
                 encoder_actions.sc.move_end(id)
@@ -1711,7 +1721,7 @@ function init()
               -- pad window
               local id = math.floor(d.cc/16)+1
               local resolution = loop_enc_resolution[id] / 10
-              encoder_actions.move_play_window(bank[id][check_focus_hold(id)], (d.val == 63 and (d.ch == 1 and -0.1 or -0.01) or (d.ch == 1 and 0.1 or 0.01))/resolution)
+              encoder_actions.move_play_window(bank[id][check_focus_hold(id)], (d.val == 63 and ((d.ch == 1 and ec4_shift == false) and -0.1 or -0.01) or ((d.ch == 1 and ec4_shift == false) and 0.1 or 0.01))/resolution)
               mc.mft_redraw(bank[id][check_focus_hold(id)],"start_point")
               mc.mft_redraw(bank[id][check_focus_hold(id)],"end_point")
               if bank[id].focus_hold == false then
@@ -1720,7 +1730,7 @@ function init()
             elseif d.cc == 4 or d.cc == 20 or d.cc == 36 then
               --pad level
               local id = math.floor(d.cc/16)+1
-              bank[id][check_focus_hold(id)].level = util.clamp(bank[id][check_focus_hold(id)].level+(d.val == 63 and (d.ch == 1 and -0.01 or -0.001) or (d.ch == 1 and 0.01 or 0.001)),0,2)
+              bank[id][check_focus_hold(id)].level = util.clamp(bank[id][check_focus_hold(id)].level+(d.val == 63 and ((d.ch == 1 and ec4_shift == false) and -0.01 or -0.001) or ((d.ch == 1 and ec4_shift == false) and 0.01 or 0.001)),0,2)
               if bank[id][check_focus_hold(id)].envelope_mode == 2 or bank[id][check_focus_hold(id)].enveloped == false then
                 if bank[id].focus_hold == false then
                   softcut.level_slew_time(id+1,1.0)
@@ -1733,7 +1743,7 @@ function init()
             elseif d.cc == 5 or d.cc == 21 or d.cc == 37 then
               --bank level
               local id = math.floor(d.cc/16)+1
-              bank[id].global_level = util.clamp(bank[id].global_level+(d.val == 63 and (d.ch == 1 and -0.01 or -0.001) or (d.ch == 1 and 0.01 or 0.001)),0,2)
+              bank[id].global_level = util.clamp(bank[id].global_level+(d.val == 63 and ((d.ch == 1 and ec4_shift == false) and -0.01 or -0.001) or ((d.ch == 1 and ec4_shift == false) and 0.01 or 0.001)),0,2)
               if bank[id][check_focus_hold(id)].envelope_mode == 2 or bank[id][check_focus_hold(id)].enveloped == false then
                 if bank[id].focus_hold == false then
                   softcut.level_slew_time(id+1,1.0)
@@ -1752,7 +1762,7 @@ function init()
                 current_offset = 0
               end
               bank[id][check_focus_hold(id)].offset = math.pow(0.5, -current_offset / 12)
-              if d.ch == 5 then
+              if d.ch == 5 or ec4_shift == true then
                 local this_pad = check_focus_hold(id)
                 for i = 1,16 do
                   bank[id][i].offset = bank[id][check_focus_hold(id)].offset
@@ -1775,7 +1785,7 @@ function init()
                 bank[id][check_focus_hold(id)].rate = 1
               end
               bank[id][check_focus_hold(id)].rate = rates[util.clamp(tab.key(rates,bank[id][check_focus_hold(id)].rate)+(d.val == 63 and -1 or 1),1,#rates)]
-              if d.ch == 5 then
+              if d.ch == 5 or ec4_shift == true then
                 local this_pad = check_focus_hold(id)
                 for i = 1,16 do
                   bank[id][i].rate = bank[id][check_focus_hold(id)].rate
@@ -1790,7 +1800,7 @@ function init()
             elseif d.cc == 8 or d.cc == 24 or d.cc == 40 then
               --pad / bank pan
               local id = math.floor(d.cc/16)+1
-              if d.ch == 5 then
+              if d.ch == 5 or ec4_shift == true then
                 local pre_pan = bank[id][check_focus_hold(id)].pan
                 for i = 1,16 do
                   bank[id][i].pan = util.clamp(pre_pan+(d.val == 63 and -0.01 or 0.01),-1,1)
@@ -1803,7 +1813,7 @@ function init()
             elseif d.cc == 10 or d.cc == 26 or d.cc == 42 then
               --bank / pad filter cutoff
               local id = math.floor(d.cc/16)+1
-              if d.ch == 5 then
+              if d.ch == 5 or ec4_shift == true then
                 if slew_counter[id] ~= nil then
                   slew_counter[id].prev_tilt = bank[id][check_focus_hold(id)].tilt
                 end
@@ -1874,7 +1884,14 @@ function init()
                   softcut.level_cut_cut(util.round(item/2)+1,(this_one)+4,(target[check_focus_hold(id)][prm[this_one]]*target[check_focus_hold(id)].level)*target.global_level)
                 end
               end
+            elseif d.type == "note_off" and (d.note == 13 or d.note == 29 or d.note == 45) then
+              ec4_shift = false
+            elseif d.type == "note_off" and (d.note == 12 or d.note == 28 or d.note == 44) then
+              ec4_focus = false
+              local id = math.floor(d.note/16)+1
+              bank[id].focus_hold = false
             end
+
           elseif d.ch == 2 then
             if d.cc == 0 or d.cc == 16 or d.cc == 32 then
               local id = math.floor(d.cc/16)+1
@@ -1980,16 +1997,21 @@ end
 
 function ping_midi_devices()
   mft_connected = false
+  ec4_connected = false
   local midi_dev_max;
   for k,v in pairs(midi.devices) do
     midi_dev_max = midi.devices[k].id
   end
   for i = 1,midi_dev_max do
-    if midi.devices[i] ~= nil and midi.devices[i].name == "Midi Fighter Twister" then
+    if midi.devices[i] ~= nil and (midi.devices[i].name == "Midi Fighter Twister" or midi.devices[i].name == "Faderfox EC4") then
       params:set("midi_enc_control_enabled",2)
       params:set("midi_enc_control_device",midi.devices[i].port ~= nil and midi.devices[i].port or 1)
       params:set("midi_enc_echo_enabled",2)
-      mft_connected = true
+      if midi.devices[i].name == "Midi Fighter Twister" then
+        mft_connected = true
+      else 
+        ec4_connected = true
+      end
     end
     -- if midi.devices[i] ~= nil and midi.devices[i].name == "OP-Z" then
     --   params:set("midi_control_enabled",2)
@@ -1999,7 +2021,7 @@ function ping_midi_devices()
     -- end
   end
   screen_dirty = true
-  if all_loaded and mft_connected then
+  if all_loaded and (mft_connected or ec4_connected) then
     for i = 1,3 do
       mc.mft_redraw(bank[i][bank[i].id],"all")
     end
@@ -3048,7 +3070,7 @@ function cheat(b,i)
   end
 
   if all_loaded and params:get("midi_enc_echo_enabled") == 2 then
-    if midi_dev[params:get("midi_enc_control_device")].name == "Midi Fighter Twister" then
+    if midi_dev[params:get("midi_enc_control_device")].name == "Midi Fighter Twister" or midi_dev[params:get("midi_enc_control_device")].name == "Faderfox EC4" then
       if bank[pad.bank_id].focus_hold == false then
         mc.mft_redraw(pad,"all")
       end

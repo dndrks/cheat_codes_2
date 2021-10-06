@@ -69,6 +69,11 @@ function main_menu.init()
         screen.level(3)
         screen.text_right("(MFT)")
       end
+      if ec4_connected ~= nil and ec4_connected then
+        screen.move(128,60)
+        screen.level(3)
+        screen.text_right("(EC4)")
+      end
       if selected_coll ~= 0 then
         screen.move(128,10)
         screen.level(3)
