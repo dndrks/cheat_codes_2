@@ -307,7 +307,7 @@ function start_up.init()
   params:add_number("metronome_one_beat_pitch","1-beat pitch",30,1200,600)
   params:add_number("metronome_alt_beat_pitch","alt pitch",30,1200,300)
 
-  params:add_group("pattern save/load",18)
+  params:add_group("pattern management",28)
   local banks = {"(a)", "(b)", "(c)"}
   params:add_separator("save")
   for i = 1,3 do
@@ -330,7 +330,7 @@ function start_up.init()
     params:add_trigger("pattern_load_"..i, "load (K3)")
     params:set_action("pattern_load_"..i,
       function()
-        test_load(params:get("pattern_load_slot_"..i),i)
+        test_load(params:get("pattern_load_slot_"..i)+(8*(i-1)),i)
       end
     )
   end
@@ -362,6 +362,49 @@ function start_up.init()
           pattern_saver[i].load_slot = slick
           test_load(slick,i)
         end
+      end
+    )
+    params:add_trigger("pattern_load_prev"..i, "load prev "..banks[i].." pattern (K3)")
+    params:set_action("pattern_load_prev"..i,
+      function()
+        local saved_pool = {}
+        for j = 1,8 do
+          if pattern_saver[i].saved[j] == 1 then
+            table.insert(saved_pool,j)
+          end
+        end
+        local current_pattern;
+        if tab.count(saved_pool) > 0 and pattern_saver[i].load_slot == 0 then
+          current_pattern = saved_pool[1]
+        else
+          current_pattern = tab.key(saved_pool,pattern_saver[i].load_slot)
+        end
+        if current_pattern ~= nil then
+          local slick;
+          if tab.count(saved_pool) > 0 and pattern_saver[i].load_slot == 0 then
+            slick = saved_pool[1]
+          else
+            slick = saved_pool[util.wrap(current_pattern-1,1,#saved_pool)]
+          end
+          params:set("pattern_load_slot_"..i,slick)
+          pattern_saver[i].load_slot = slick
+          test_load(slick,i)
+        end
+      end
+    )
+  end
+  params:add_separator("delete")
+  for i = 1,3 do
+    params:add_number("pattern_del_slot_"..i, "delete slot "..banks[i],1,8,1)
+    params:set_action("pattern_del_slot_"..i,
+      function(x)
+        pattern_saver[i].save_slot = x
+      end
+    )
+    params:add_trigger("pattern_del_"..i, "delete (K3)")
+    params:set_action("pattern_del_"..i,
+      function()
+        quick_delete_pattern(i)
       end
     )
   end

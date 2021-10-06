@@ -1018,7 +1018,7 @@ function init()
   
   params:add_separator("cheat codes params")
   
-  params:add_group("collections",8)
+  params:add_group("collections (load/save)",8)
   params:add_separator("load/save")
   params:add_trigger("load", "load collection")
   params:set_action("load",
@@ -5979,6 +5979,16 @@ function quick_save_pattern(i)
   grid_dirty = true
 end
 
+function quick_delete_pattern(i)
+  if pattern_saver[i].saved[pattern_saver[i].save_slot] == 1 then
+    delete_pattern(pattern_saver[i].save_slot+8*(i-1))
+    pattern_saver[i].saved[pattern_saver[i].save_slot] = 0
+    pattern_saver[i].load_slot = 0
+  else
+    print("no pattern data to delete")
+  end
+end
+
 function test_save(i)
   clock.sleep(0.25)
   pattern_saver[i].active = true
@@ -5986,13 +5996,7 @@ function test_save(i)
     if not grid_alt then
       quick_save_pattern(i)
     else
-      if pattern_saver[i].saved[pattern_saver[i].save_slot] == 1 then
-        delete_pattern(pattern_saver[i].save_slot+8*(i-1))
-        pattern_saver[i].saved[pattern_saver[i].save_slot] = 0
-        pattern_saver[i].load_slot = 0
-      else
-        print("no pattern data to delete")
-      end
+      quick_delete_pattern(i)
     end
   end
   pattern_saver[i].active = false
@@ -6000,6 +6004,9 @@ end
 
 function test_load(slot,destination)
   if pattern_saver[destination].saved[slot-((destination-1)*8)] == 1 then
+    if pattern_saver[destination].load_slot ~= slot-((destination-1)*8) then
+      pattern_saver[destination].load_slot = slot-((destination-1)*8)
+    end
     if grid_pat[destination].play == 1 then
       grid_pat[destination]:clear()
     elseif arp[destination].playing then
