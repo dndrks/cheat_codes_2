@@ -1407,7 +1407,7 @@ function grid_actions.init(x,y,z)
           if not grid_alt and saved_pat == 1 then
             if pattern_saver[y].saved[x] == 1 then
               pattern_saver[y].load_slot = x
-              test_load(x,y)
+              test_load(x+(8*(y-1)),y)
             end
           end
         end

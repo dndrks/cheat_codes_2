@@ -1,6 +1,6 @@
 -- cheat codes 2
 --          a sample playground
--- rev: 211005 (LTS3)
+-- rev: 211006 (LTS3)
 -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
 -- need help?
 -- please visit:
@@ -2570,6 +2570,16 @@ function globally_clocked()
         internal_clocking_tightened(i)
       end
     end
+    if grid_page_64 == 2 then
+      grid_blink_64 = math.fmod(clock.get_beats(),1)
+      if grid_blink_64 <= 0.25 then
+        show_me_grid_blink = true
+        grid_dirty = true
+      else
+        show_me_grid_blink = false
+        grid_dirty = true
+      end
+    end
     -- print("butts")
     -- grid_dirty = true
   end
@@ -4850,7 +4860,7 @@ function grid_redraw()
       if grid_page_64 == 0 then
 
         for x = 1,3 do
-          g:led(x,1,x == bank_64 and 12 or 4)
+          g:led(x,1,x == bank_64 and 15 or 4)
         end
 
         --arc recorders
@@ -4889,7 +4899,11 @@ function grid_redraw()
         --pattern rec
         local target = grid_pat[bank_64]
         if target.rec == 1 then
-          g:led(8,5,(9*target.led))
+          if edition == 3 then
+            g:led(8,5,(15*target.led))
+          else
+            g:led(8,5,(9*target.led))
+          end
         elseif (target.quantize == 0 and target.play == 1) or (target.quantize == 1 and target.tightened_start == 1) then
           if target.overdub == 0 then
             g:led(8,5,9)
@@ -5152,12 +5166,20 @@ function grid_redraw()
         for i = 1,8 do
           for j = 1,3 do
             if pattern_saver[j].saved[i] == 1 then
-              g:led(i,j+1,8)
+              if params:string("LED_style") == "grayscale" then
+                g:led(i,j+1,15)
+              else
+                g:led(i,j+1,8)
+              end
             else
               g:led(i,j+1,4)
             end
             if pattern_saver[j].load_slot == i then
-              g:led(i,j+1,15)
+              if params:string("LED_style") == "grayscale" then
+                g:led(i,j+1,show_me_grid_blink and 15 or 0)
+              else
+                g:led(i,j+1,15)
+              end
             end
           end
         end
