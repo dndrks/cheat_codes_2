@@ -31,6 +31,7 @@ for i = 1,3 do
 end
 
 last_global_level = {1,1,1}
+global_mute_modifier = {false,false,false}
 
 function grid_actions.init(x,y,z)
   
@@ -1431,10 +1432,12 @@ function grid_actions.init(x,y,z)
           end
         end
       elseif y == 6 and (x == 1 or x == 2 or x == 3) then
-        if z == 1 then
+        if z == 1 and not global_mute_modifier[x] then
           last_global_level[x] = params:get("bank level "..x)
           params:set("bank level "..x,0)
+          global_mute_modifier[x] = true
         elseif z == 0 then
+          global_mute_modifier[x] = false
           params:set("bank level "..x,last_global_level[x])
         end
       end

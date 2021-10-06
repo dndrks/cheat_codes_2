@@ -2097,7 +2097,7 @@ function alt_synced_loop(target,state)
   if transport.is_running then
     if state == "restart" then
       clock.sync(params:get("launch_quantization") == 1 and 1 or 4)
-      print("restarting")
+      print("restarting", clock.get_beats())
     end
     -- clear_arps_from_pattern_restart(target.event[target.count].i)
     target:start()
