@@ -1,6 +1,6 @@
 -- cheat codes 2
 --          a sample playground
--- rev: 211006 (LTS3)
+-- rev: 211006 - LTS3
 -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
 -- need help?
 -- please visit:
@@ -702,22 +702,6 @@ end
 
 function table.clone(org)
   return {table.unpack(org)}
-end
-
-function calc_rec_clock_time(target)
-  local total_time = 0
-  for i = 1,#grid_pat[target].time_beats do
-    total_time = total_time + grid_pat[target].time_beats[i]
-  end
-  grid_pat[target].rec_clock_time = util.round(total_time)
-end
-
-function unpack_quantized_table(target)
-  for i = 1,#quantized_grid_pat[target].event do
-    grid_pat[target].quantum[i] = #quantized_grid_pat[target].event[i] * 0.25
-    grid_pat[target].time_beats[i] = grid_pat[target].time[i] / clock.get_beat_sec()
-  end
-  calc_rec_clock_time(target)
 end
 
 function midi_clock_linearize(bank)
@@ -2201,7 +2185,7 @@ function synced_record_start(target,i)
   elseif target == grid_pat[i] then
     grid_pattern_watch(i, "pause")
   end
-  clock.run(synced_pattern_record,target)
+  grid_pat[i].synced_pat_clock = clock.run(synced_pattern_record,target)
 end
 
 function synced_pattern_record(target)

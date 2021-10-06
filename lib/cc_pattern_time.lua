@@ -110,6 +110,7 @@ function pattern:rec_stop()
   if self.rec_clock ~= nil then
     print("canceling record clock")
     clock.cancel(self.rec_clock)
+    clock.cancel(self.synced_pat_clock)
     self.rec_clock = nil
   end
   --/ NEW STUFF
@@ -192,7 +193,9 @@ function pattern:calculate_duration()
   for i = 1,#self.time_beats do
     total_time = total_time + self.time_beats[i]
   end
-  self.rec_clock_time = util.round(total_time)
+  -- print("when does this happen??")
+  -- self.rec_clock_time = util.round(total_time)
+  self.rec_clock_time = self.rec_clock_time
 end
 
 function pattern:print()
