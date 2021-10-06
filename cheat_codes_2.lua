@@ -345,39 +345,9 @@ for i = 1,3 do
   grid_pat_quantize_events[i] = {}
 end
 
---[[
-grid_pat_quantizer = {}
-for i = 1,3 do
-  grid_pat_quantizer[i] = {}
-  grid_pat_quantizer[i] = metro.init()
-  grid_pat_quantizer[i].time = 0.25
-  grid_pat_quantizer[i].count = -1
-  --grid_pat_quantizer[i].event = function() grid_pat_q_clock(i) end
-  grid_pat_quantizer[i].event = function() end
-  grid_pat_quantizer[i]:start()
-end
---]]
-
 function cheat_clock_synced(i)
-  if #quantize_events[i] > 0 then
-    for k,e in pairs(quantize_events[i]) do
-      cheat(i,e)
-      grid_p[i] = {}
-      grid_p[i].action = "pads"
-      grid_p[i].i = i
-      grid_p[i].id = selected[i].id
-      grid_p[i].x = selected[i].x
-      grid_p[i].y = selected[i].y
-      grid_p[i].rate = bank[i][bank[i].id].rate
-      grid_p[i].pause = bank[i][bank[i].id].pause
-      grid_p[i].start_point = bank[i][bank[i].id].start_point
-      grid_p[i].end_point = bank[i][bank[i].id].end_point
-      grid_p[i].rate_adjusted = false
-      grid_p[i].loop = bank[i][bank[i].id].loop
-      grid_p[i].mode = bank[i][bank[i].id].mode
-      grid_p[i].clip = bank[i][bank[i].id].clip
-      grid_pat[i]:watch(grid_p[i])
-    end
+  if quantize_events[i].bank ~= nil then
+    cheat(quantize_events[i].bank,quantize_events[i].pad)
     quantize_events[i] = {}
   end
 end
@@ -455,6 +425,7 @@ local snakes =
 }
 
 function random_grid_pat(which,mode)
+  print(mode)
 
   local pattern = grid_pat[which]
 
@@ -498,7 +469,7 @@ function random_grid_pat(which,mode)
   elseif mode == 3 then
     local auto_pat = params:get("random_patterning_"..which)
     if auto_pat ~= 1 then
-      params:set("pattern_"..which.."_quantization", 2)
+      -- params:set("pattern_"..which.."_quantization", 2)
       local vals_to_dur = {4,8,16,32,64,math.random(4,32)}
       local note_val = params:get("rand_pattern_"..which.."_note_length")
       pattern.rec_clock_time = vals_to_dur[note_val]
@@ -2373,7 +2344,7 @@ end
 
 function pad_clock()
   while true do
-    clock.sync(1)
+    clock.sync(1/4)
     for i = 1,3 do
       cheat_clock_synced(i)
     end
@@ -5222,7 +5193,12 @@ function grid_pattern_execute(entry)
           end
         end
         if rytm.track[i].k == 0 then
-          cheat(i,bank[i].id)
+          -- cheat(i,bank[i].id)
+          if bank[i].quantize_press == 0 then
+            cheat(i, bank[i].id)
+          else
+            quantize_events[i] = {["bank"] = i, ["pad"] = bank[i].id}
+          end
         end
       elseif string.match(entry.action, "zilchmo") then
         if params:get("zilchmo_patterning") == 2 then
@@ -5522,6 +5498,9 @@ function persistent_state_save()
   end
   io.write("touchosc_echo: "..params:get("touchosc_echo").."\n")
   io.write("arc_size: "..params:get("arc_size").."\n")
+  for i = 1,3 do
+    io.write("pattern_"..i.."_quantization: "..params:get("pattern_"..i.."_quantization").."\n")
+  end
   io.close(file)
 end
 

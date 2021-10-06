@@ -769,7 +769,11 @@ function grid_actions.init(x,y,z)
               arp[id].down = arp[id].down + 1
             else
               if rytm.track[id].k == 0 then
-                cheat(id, bank[id].id)
+                if bank[id].quantize_press == 0 then
+                  cheat(id, bank[id].id)
+                else
+                  quantize_events[id] = {["bank"] = id, ["pad"] = bank[id].id}
+                end
               end
               grid_pattern_watch(id)
             end
@@ -976,11 +980,24 @@ function grid_actions.init(x,y,z)
                 if rytm.track[bank_64].k == 0 then
                   cheat(bank_64, b.id)
                 end
-                grid_pattern_watch(bank_64)
               end
             else
-              table.insert(quantize_events[bank_64],selected[bank_64].id)
+              if arp[bank_64].enabled and grid_pat[bank_64].rec == 0 and not arp[bank_64].pause then
+                if arp[bank_64].down == 0 and params:string("arp_"..bank_64.."_hold_style") == "last pressed" then
+                  for j = #arp[bank_64].notes,1,-1 do
+                    table.remove(arp[bank_64].notes,j)
+                  end
+                end
+                arp[bank_64].time = b[b.id].arp_time
+                arps.momentary(bank_64, b.id, "on")
+                arp[bank_64].down = arp[bank_64].down + 1
+              else
+                if rytm.track[bank_64].k == 0 then
+                  quantize_events[bank_64] = {["bank"] = bank_64, ["pad"] = bank[bank_64].id}
+                end
+              end
             end
+            grid_pattern_watch(bank_64)
           else
             local released_pad = (4*(y-4))+x
             arps.momentary(i, released_pad, "off")
@@ -1495,11 +1512,24 @@ function grid_actions.pad_down(i,p)
         if rytm.track[i].k == 0 then
           cheat(i, bank[i].id)
         end
-        grid_pattern_watch(i)
       end
     else
-      table.insert(quantize_events[i],selected[i].id)
+      if arp[i].enabled and grid_pat[i].rec == 0 and not arp[i].pause then
+        if arp[i].down == 0 and params:string("arp_"..i.."_hold_style") == "last pressed" then
+          for j = #arp[i].notes,1,-1 do
+            table.remove(arp[i].notes,j)
+          end
+        end
+        arp[i].time = bank[i][bank[i].id].arp_time
+        arps.momentary(i, bank[i].id, "on")
+        arp[i].down = arp[i].down + 1
+      else
+        if rytm.track[i].k == 0 then
+          quantize_events[i] = {["bank"] = i, ["pad"] = bank[i].id}
+        end
+      end
     end
+    grid_pattern_watch(i)
   else
     local released_pad = p
     arps.momentary(i, released_pad, "off")
