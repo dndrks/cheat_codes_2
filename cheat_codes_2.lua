@@ -5156,6 +5156,9 @@ function grid_redraw()
           end
         end
         g:led(1,8,(grid_alt and led_maps["alt_on"][edition] or led_maps["alt_off"][edition]))
+        for i = 1,3 do
+          g:led(i,6,params:get("bank level "..i) > 0 and 15 or 0)
+        end
       end
       
       g:refresh()

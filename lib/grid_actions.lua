@@ -30,6 +30,8 @@ for i = 1,3 do
   end
 end
 
+last_global_level = {1,1,1}
+
 function grid_actions.init(x,y,z)
   
   if osc_communication == true then osc_communication = false end
@@ -1427,6 +1429,13 @@ function grid_actions.init(x,y,z)
               test_load(x+(8*(y-1)),y)
             end
           end
+        end
+      elseif y == 6 and (x == 1 or x == 2 or x == 3) then
+        if z == 1 then
+          last_global_level[x] = params:get("bank level "..x)
+          params:set("bank level "..x,0)
+        elseif z == 0 then
+          params:set("bank level "..x,last_global_level[x])
         end
       end
     end
