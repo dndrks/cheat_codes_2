@@ -1,6 +1,6 @@
 -- cheat codes 2
 --          a sample playground
--- rev: 211006 - LTS3
+-- rev: 211008 - LTS3
 -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
 -- need help?
 -- please visit:
@@ -5586,14 +5586,14 @@ function persistent_state_restore()
   end
   all_loaded = true
   mc.init()
-  clock.run(
-    function()
-      clock.sleep(1)
-      if (params:string("start_transport_at_launch") == "yes" and params:string("clock_source") == "internal") then
-        clock.transport.start()
-      end
-    end
-  )
+  -- clock.run(
+  --   function()
+  --     clock.sleep(1)
+  --     if (params:string("start_transport_at_launch") == "yes" and params:string("clock_source") == "internal") then
+  --       clock.transport.start()
+  --     end
+  --   end
+  -- )
   if params:get("cut_input_adc") == -inf then
     params:set("cut_input_adc",0)
   end
