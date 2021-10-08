@@ -8,7 +8,7 @@ function mc.init()
     mc.redraw(bank[i][bank[i].id])
   end
   for i = 1,16 do
-    if midi_dev[i].name == "Midi Fighter Twister" then
+    if midi_dev[i].name == "Midi Fighter Twister" or midi_dev[i].name == "Faderfox EC4" then
       mc.mft_redraw(bank[1][bank[1].id],"all")
     end
   end
@@ -127,7 +127,7 @@ end
 function mc.mft_redraw(target,parameter)
   -- TODO: these need to redraw on the right target.bank_id CCs...
   -- TODO: when the bank is changed on MFT, redraw these
-  if params:string("midi_enc_control_enabled") == "yes" and params:string("midi_enc_echo_enabled") == "yes" and midi_dev[params:get("midi_enc_control_device")].name == "Midi Fighter Twister" then
+  if params:string("midi_enc_control_enabled") == "yes" and params:string("midi_enc_echo_enabled") == "yes" and (midi_dev[params:get("midi_enc_control_device")].name == "Midi Fighter Twister" or midi_dev[params:get("midi_enc_control_device")].name == "Faderfox EC4") then
     local duration = target.mode == 1 and 8 or clip[target.clip].sample_length
     local min = target.mode == 1 and live[target.clip].min or clip[target.clip].min
     local max = target.mode == 1 and live[target.clip].max or clip[target.clip].max
