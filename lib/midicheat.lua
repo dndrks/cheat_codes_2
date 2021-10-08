@@ -1010,6 +1010,23 @@ function mc.delta_parameter_all(parameter,target,min,max,d,exclude)
   end
 end
 
+function mc.reverse_pad_notes(list)
+  local reversed_list = {}
+  for i = 1,4 do
+    reversed_list[i] = list[i+12]
+  end
+  for i = 5,8 do
+    reversed_list[i] = list[i+4]
+  end
+  for i = 9,12 do
+    reversed_list[i] = list[i-4]
+  end
+  for i = 13,16 do
+    reversed_list[i] = list[i-12]
+  end
+  return reversed_list
+end
+
 function mc.key(n,z)
   if n == 3 and z == 1 then
     if key2_hold and not key1_hold then
@@ -1038,6 +1055,9 @@ function mc.key(n,z)
       local this_exclude = mc.midi_notes[i].index
       mc.set_parameter_all(this_param,page.midi_bank,1,16,this_value,this_exclude)
       key2_hold_and_modify = true
+    elseif not key2_hold and key1_hold and page.midi_focus == "header" then
+      mc.midi_notes[page.midi_bank].entries = mc.reverse_pad_notes(mc.midi_notes[page.midi_bank].entries)
+      key1_hold = false
     else
       local d = {"header", "notes", "ccs"}
       local old_focus = tab.key(d,page.midi_focus)
@@ -1150,6 +1170,8 @@ function mc.midi_config_redraw(i)
       screen.text_center("SCALE:")
       screen.move(60,30)
       screen.text_center(string.upper(params:string(page.midi_bank.."_pad_to_midi_note_scale")))
+      screen.move(60,50)
+      screen.text_center("KEY 3: REVERSE DISTRIBUTION")
     elseif key2_hold and page.midi_focus ~= "header" and not key2_hold_and_modify then
       local view_menus =
       {

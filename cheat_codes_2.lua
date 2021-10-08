@@ -2122,7 +2122,7 @@ function alt_synced_loop(target,state,style,mod_table)
   if transport.is_running then
     if state == "restart" then
       clock.sync(params:get("launch_quantization") == 1 and 1 or 4)
-      print("restarting", clock.get_beats())
+      -- print("restarting", clock.get_beats())
     end
     if style == "delayed_load" then
       load_pattern(mod_table[1],mod_table[2])
@@ -6105,16 +6105,18 @@ function test_load(slot,destination,source)
     if not transport.is_running then
       load_pattern(slot,destination)
     else
+      -- print(type_of_pattern_loaded[destination])
       if source ~= "from_grid" then
         load_pattern(slot,destination)
         start_pattern(grid_pat[destination],"jumpstart")
       elseif params:string("launch_quantization") == "next beat" and source == "from_grid" and type_of_pattern_loaded[destination] ~= "arp" then
-        print("firs cut")
-        load_pattern(slot,destination)
+        -- print("trying to load grid")
+        start_pattern(grid_pat[destination],"restart","delayed_load",{slot,destination})
       end
       if grid_pat[destination].count > 0 and params:string("launch_quantization") ~= "next bar" then
-        start_pattern(grid_pat[destination])
+        -- start_pattern(grid_pat[destination],"restart","delayed_load",{slot,destination})
       elseif params:string("launch_quantization") == "next bar" and source == "from_grid" then
+        -- print("loading whatever...")
         start_pattern(grid_pat[destination],"restart","delayed_load",{slot,destination})
       elseif type_of_pattern_loaded[destination] == "arp" then
         if loading_arp_from_grid[destination] ~= nil then
@@ -6125,19 +6127,23 @@ function test_load(slot,destination,source)
           function()
             clock.sync(1)
             load_pattern(slot,destination)
-            print("well, arp has notes, so play 'em!"..clock.get_beats())
-            local arp_start =
-            {
-              ["fwd"] = arp[destination].start_point - 1
-            , ["bkwd"] = arp[destination].end_point + 1
-            , ["pend"] = arp[destination].start_point
-            , ["rnd"] = arp[destination].start_point - 1
-            }
-            arp[destination].step = arp_start[arp[destination].mode]
-            arp[destination].pause = false
-            arp[destination].playing = true
-            if arp[destination].mode == "pend" then
-              arp_direction[destination] = "negative"
+            if type_of_pattern_loaded[destination] == "arp" then
+              -- print("well, arp has notes, so play 'em!"..clock.get_beats())
+              local arp_start =
+              {
+                ["fwd"] = arp[destination].start_point - 1
+              , ["bkwd"] = arp[destination].end_point + 1
+              , ["pend"] = arp[destination].start_point
+              , ["rnd"] = arp[destination].start_point - 1
+              }
+              arp[destination].step = arp_start[arp[destination].mode]
+              arp[destination].pause = false
+              arp[destination].playing = true
+              if arp[destination].mode == "pend" then
+                arp_direction[destination] = "negative"
+              end
+            else
+              start_pattern(grid_pat[destination],"jumpstart")
             end
           end
         )
@@ -6283,7 +6289,6 @@ function one_point_two()
     if file then
       io.input(file)
       local current = math.floor((i-1)/8)+1
-      -- load_pattern(i,current,"fromonepoint")
       io.close(file)
     end
   end

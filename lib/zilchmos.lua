@@ -4,7 +4,6 @@ local z = zilchmos
 --[[
     which_bank is a global & being set from inside of here
     bpm
-    grid_alt should be boolean
 ]]--
 
 zilchmos.sc = {}

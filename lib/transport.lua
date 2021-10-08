@@ -23,7 +23,7 @@ function tp.init()
   refresh_params_vports()
   params:add_group("transport settings",59)
   params:add_separator("auto-start")
-  params:add_option("start_transport_at_launch", "start at load (internal)?",{"no","yes"},2)
+  params:add_option("start_transport_at_launch", "start at load (internal)?",{"no","yes"},1)
   -- params:set_action("start_transport_at_launch", function()
   --   if all_loaded then
   --     persistent_state_save()
