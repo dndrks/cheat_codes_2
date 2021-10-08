@@ -89,17 +89,14 @@ function tp.start()
   tp.is_running = true
   transport.status_icon.status = 4
   for i = 1,3 do
-    -- if tab.count(arp[i].notes) > 0 and params:string("start_arp_"..i.."_at_launch") == "yes" then
     if params:string("start_arp_"..i.."_at_launch") == "yes" then
       arps.toggle("start",i)
     end
     if #grid_pat[i].event > 0 and params:string("start_pat_"..i.."_at_launch") == "yes" then
-      -- grid_pat[i]:start()
-      -- print("100 in transport")
       start_pattern(grid_pat[i],"jumpstart")
     end
-    toggle_meta("start",i)
   end
+  toggle_meta("start")
   rytm.toggle("start")
   tp.start_midi()
   tp.send_midi_clock()
@@ -112,30 +109,6 @@ function tp.start()
   tp.start_clock = nil
   tp.pending = false
   viz_metro_advance = 1
-  -- clock.sync(4)
-  -- tp.is_running = true
-  -- transport.status_icon.status = 4
-  -- for i = 1,3 do
-  --   if #arp[i].notes > 0 and params:string("start_arp_"..i.."_at_launch") == "yes" then
-  --     arps.toggle("start",i)
-  --   end
-  --   if #grid_pat[i].event > 0 and params:string("start_pat_"..i.."_at_launch") == "yes" then
-  --     grid_pat[i]:start()
-  --   end
-  --   toggle_meta("start",i)
-  --   -- print(clock.get_beats())
-  -- end
-  -- rytm.toggle("start")
-  -- tp.start_midi()
-  -- tp.send_midi_clock()
-  -- if params:string("crow output 4") == "transport gate" then
-  --   crow.output[4].volts = 5.0
-  -- elseif params:string("crow output 4") == "transport pulse" then
-  --   crow.output[4]("{to(5,0),to(0,0.05)}")
-  -- end
-  -- grid_dirty = true
-  -- tp.start_clock = nil
-  -- tp.pending = false
 end
 
 function tp.start_from_midi_message()
@@ -146,12 +119,14 @@ function tp.start_from_midi_message()
     if #arp[i].notes > 0 and params:string("start_arp_"..i.."_at_launch") == "yes" then
       arps.toggle("start",i)
     end
-    if #grid_pat[i].event > 0 then
-      grid_pat[i]:start()
+    if #grid_pat[i].event > 0 and params:string("start_pat_"..i.."_at_launch") == "yes" then
+      -- grid_pat[i]:start()
+      -- print("100 in transport")
+      start_pattern(grid_pat[i],"jumpstart")
     end
-    toggle_meta("stop",i)
     -- print(clock.get_beats())
   end
+  toggle_meta("stop")
   rytm.toggle("start")
   if params:string("crow output 4") == "transport gate" then
     crow.output[4].volts = 5.0
@@ -198,13 +173,16 @@ end
 
 function tp.stop()
   -- kill stuff
-  -- print("stopping at "..clock.get_beats())
+  print("stopping at "..clock.get_beats())
   for i = 1,3 do
     if #arp[i].notes > 0 then
       arps.toggle("stop",i)
     end
     if #grid_pat[i].event > 0 then
       grid_pat[i]:stop()
+    end
+    if grid_pat[i].clock ~= nil then
+      clock.cancel(grid_pat[i].clock)
     end
     -- rytm.toggle("stop",i)
   end
@@ -233,6 +211,9 @@ function tp.stop_from_midi_message()
     end
     if #grid_pat[i].event > 0 then
       grid_pat[i]:stop()
+    end
+    if grid_pat[i].clock ~= nil then
+      clock.cancel(grid_pat[i].clock)
     end
     -- rytm.toggle("stop",i)
   end
@@ -274,9 +255,9 @@ function tp.crow_toggle_now()
       if #grid_pat[i].event > 0 and params:string("start_pat_"..i.."_at_launch") == "yes" then
         grid_pat[i]:start()
       end
-      toggle_meta("start",i)
       -- print(clock.get_beats())
     end
+    toggle_meta("start")
     rytm.toggle("start")
     tp.start_midi()
     tp.send_midi_clock()

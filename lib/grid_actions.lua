@@ -490,7 +490,7 @@ function grid_actions.init(x,y,z)
                   if not grid_alt and saved_pat == 1 then
                     if pattern_saver[current].saved[9-y] == 1 then
                       pattern_saver[current].load_slot = 9-y
-                      test_load((9-y)+(8*(current-1)),current)
+                      test_load((9-y)+(8*(current-1)),current,"from_grid")
                     end
                   end
                 end
@@ -554,7 +554,7 @@ function grid_actions.init(x,y,z)
           if x == 16 and y == i and z == 1 then
             if step_seq[8-i].held == 0 then
               if grid_alt then
-                clock.run(reset_step_seq,8-y)
+                clock.run(reset_step_seq,8-y,1)
                 -- step_seq[8-i].current_step = step_seq[8-i].start_point
                 -- step_seq[8-i].meta_step = 1
                 -- step_seq[8-i].meta_meta_step = 1
@@ -567,18 +567,6 @@ function grid_actions.init(x,y,z)
             else
               step_seq[8-i][step_seq[8-i].held].loop_pattern = (step_seq[8-i][step_seq[8-i].held].loop_pattern + 1)%2
             end
-          end
-        end
-
-        function reset_step_seq(i) -- TODO: funky on some...
-          step_seq[i].active = (step_seq[i].active + 1)%2
-          step_seq[i].meta_meta_step = 1
-          step_seq[i].meta_step = 1
-          step_seq[i].current_step = step_seq[i].start_point
-          clock.sync(1)
-          step_seq[i].active = (step_seq[i].active + 1)%2
-          if step_seq[i].active == 1 and step_seq[i][step_seq[i].current_step].assigned_to ~= 0 then
-            test_load(step_seq[i][step_seq[i].current_step].assigned_to+(((i)-1)*8),i)
           end
         end
         

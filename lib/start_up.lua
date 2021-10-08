@@ -339,7 +339,7 @@ function start_up.init()
     params:add_trigger("pattern_load_"..i, "load (K3)")
     params:set_action("pattern_load_"..i,
       function()
-        test_load(params:get("pattern_load_slot_"..i)+(8*(i-1)),i)
+        test_load(params:get("pattern_load_slot_"..i)+(8*(i-1)),i,"from_grid")
       end
     )
   end
@@ -369,7 +369,7 @@ function start_up.init()
           end
           params:set("pattern_load_slot_"..i,slick)
           pattern_saver[i].load_slot = slick
-          test_load(slick,i)
+          test_load(slick,i,"from_grid")
         end
       end
     )
@@ -397,7 +397,7 @@ function start_up.init()
           end
           params:set("pattern_load_slot_"..i,slick)
           pattern_saver[i].load_slot = slick
-          test_load(slick,i)
+          test_load(slick,i,"from_grid")
         end
       end
     )

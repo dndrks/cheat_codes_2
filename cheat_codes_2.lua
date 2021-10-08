@@ -830,6 +830,9 @@ zilch_leds =
 
 function init()
 
+  type_of_pattern_loaded = {"grid","grid","grid"}
+  loading_arp_from_grid = {nil,nil,nil}
+  
   engine.release(0.1)
   amp_in = {}
   local amp_src = {"amp_in_l","amp_in_r"}
@@ -856,7 +859,7 @@ function init()
   
   ec4_focus = false -- to check for EC4 focus hold
   ec4_shift = false -- to check if EC4 fine tune/secondary mode is enabled
-
+  
   for i = 1,3 do
     norns.enc.sens(i,2)
   end
@@ -1667,13 +1670,13 @@ function init()
           end
 
           if d.ch == 1 or d.ch == 5 then
-            if d.type == "note_on" and (d.note == 12 or d.note == 28 or d.note == 44) then
+            if midi_dev[j].name == "Faderfox EC4" and d.type == "note_on" and (d.note == 12 or d.note == 28 or d.note == 44) then
               ec4_focus = true
-            elseif d.type == "note_on" and (d.note == 13 or d.note == 29 or d.note == 45) then
+            elseif midi_dev[j].name == "Faderfox EC4" and d.type == "note_on" and (d.note == 13 or d.note == 29 or d.note == 45) then
               ec4_shift = true
             elseif d.cc == 0 or d.cc == 16 or d.cc == 32 then
               local id = math.floor(d.cc/16)+1
-              if ec4_focus == true then
+              if midi_dev[j].name == "Faderfox EC4" and ec4_focus == true then
                 bank[id].focus_hold = true
               end
               encoder_actions.change_pad(bank[id][check_focus_hold(id)].bank_id, d.val == 63 and -1 or 1)
@@ -1993,7 +1996,7 @@ function ping_midi_devices()
       params:set("midi_enc_echo_enabled",2)
       if midi.devices[i].name == "Midi Fighter Twister" then
         mft_connected = true
-      else 
+      elseif midi.devices[i].name == "Faderfox EC4" then
         ec4_connected = true
       end
     end
@@ -2115,38 +2118,96 @@ function synced_loop(target, state)
   end
 end
 
-function alt_synced_loop(target,state)
+function alt_synced_loop(target,state,style,mod_table)
   if transport.is_running then
     if state == "restart" then
       clock.sync(params:get("launch_quantization") == 1 and 1 or 4)
       print("restarting", clock.get_beats())
     end
-    -- clear_arps_from_pattern_restart(target.event[target.count].i)
-    target:start()
-    target.synced_loop_runner = 1
-    -- print("alt_synced",clock.get_beats(),target)
-    while true do
-      clock.sync(1/4)
-      if target.synced_loop_runner == target.rec_clock_time * 4 then
-        target.synced_loop_runner = 1
-        -- print(clock.get_beats(), target.synced_loop_runner)
-        local overdub_flag = target.overdub
-        -- target:stop()
-        stop_pattern(target,"no kill")
-        -- print("stopping")
-        if overdub_flag == 1 then
-          target.overdub = 1
+    if style == "delayed_load" then
+      load_pattern(mod_table[1],mod_table[2])
+    end
+    local name_to_id = {"grid_pat[1]","grid_pat[2]","grid_pat[3]"}
+    
+    if type_of_pattern_loaded[tab.key(name_to_id,target.name)] == "arp" then
+      -- print("arp thing")
+      if grid_pat[tab.key(name_to_id,target.name)].play == 1 then
+        grid_pat[tab.key(name_to_id,target.name)]:stop()
+        grid_pat[tab.key(name_to_id,target.name)]:clear()
+      end
+      local destination = tab.key(name_to_id,target.name)
+      local arp_start =
+      {
+        ["fwd"] = arp[destination].start_point - 1
+      , ["bkwd"] = arp[destination].end_point + 1
+      , ["pend"] = arp[destination].start_point
+      , ["rnd"] = arp[destination].start_point - 1
+      }
+      arp[destination].step = arp_start[arp[destination].mode]
+      arp[destination].pause = false
+      arp[destination].playing = true
+      if arp[destination].mode == "pend" then
+        arp_direction[destination] = "negative"
+      end
+    elseif type_of_pattern_loaded[tab.key(name_to_id,target.name)] == "grid" then
+      -- print("grid thing")
+      if arp[tab.key(name_to_id,target.name)].playing and source ~= "from_grid" then
+        arp[tab.key(name_to_id,target.name)].pause = true
+        arp[tab.key(name_to_id,target.name)].playing = false
+      end
+      target:start()
+      target.synced_loop_runner = 1
+      -- print("alt_synced",clock.get_beats(),target)
+      while true do
+        clock.sync(1/4)
+        if target.synced_loop_runner == target.rec_clock_time * 4 then
+          target.synced_loop_runner = 1
+          -- print(clock.get_beats(), target.synced_loop_runner)
+          local overdub_flag = target.overdub
+          -- target:stop()
+          stop_pattern(target,"no kill")
+          -- print("stopping")
+          if overdub_flag == 1 then
+            target.overdub = 1
+          end
+          if target.loop == 1 then
+            -- clear_arps_from_pattern_restart(target.event[target.count].i)
+            target:start()
+            -- print("and then start...")
+          end
+        else
+          target.synced_loop_runner =  target.synced_loop_runner + 1
         end
-        if target.loop == 1 then
-          -- clear_arps_from_pattern_restart(target.event[target.count].i)
-          target:start()
-          -- print("and then start...")
-        end
-      else
-        target.synced_loop_runner =  target.synced_loop_runner + 1
       end
     end
-  end
+
+
+-- clear_arps_from_pattern_restart(target.event[target.count].i)
+-- target:start()
+-- target.synced_loop_runner = 1
+-- -- print("alt_synced",clock.get_beats(),target)
+-- while true do
+--   clock.sync(1/4)
+--   if target.synced_loop_runner == target.rec_clock_time * 4 then
+--     target.synced_loop_runner = 1
+--     -- print(clock.get_beats(), target.synced_loop_runner)
+--     local overdub_flag = target.overdub
+--     -- target:stop()
+--     stop_pattern(target,"no kill")
+--     -- print("stopping")
+--     if overdub_flag == 1 then
+--       target.overdub = 1
+--     end
+--     if target.loop == 1 then
+--       -- clear_arps_from_pattern_restart(target.event[target.count].i)
+--       target:start()
+--       -- print("and then start...")
+--     end
+--   else
+--     target.synced_loop_runner =  target.synced_loop_runner + 1
+--   end
+-- end
+end
 end
 
 function stop_pattern(target,style)
@@ -2157,13 +2218,7 @@ function stop_pattern(target,style)
   target:stop()
 end
 
-function start_pattern(target)
-  -- print("new start")
-  -- if target.playmode == 2 then
-  --   target.clock = clock.run(alt_synced_loop, target, "restart")
-  -- else
-  --   target:start()
-  -- end
+function start_pattern(target,start_type,style,mod_table)
 
   if not transport.is_running then
     print("starting transport...")
@@ -2171,22 +2226,19 @@ function start_pattern(target)
       clock.transport.stop()
     else
       if params:string("clock_source") == "internal" then
-        -- clock.internal.start(3.9)
         clock.internal.start(-0.1)
-      -- elseif params:string("clock_source") == "link" then
       else
         transport.cycle = 1
         clock.transport.start()
       end
       transport.pending = true
-      -- clock.transport.start()
     end
   end
   if transport.is_running then
-    -- print("new start")
     if target.playmode == 2 then
       if target.clock ~= nil then clock.cancel(target.clock) end
-      target.clock = clock.run(alt_synced_loop, target, state == nil and "restart" or "jumpstart")
+      -- print(mod_table,style,style == nil,(style ~= nil and "delayed_load" or nil))
+      target.clock = clock.run(alt_synced_loop, target, start_type ~= nil and start_type or "restart",(style ~= nil and "delayed_load" or nil),(mod_table ~= nil and mod_table or nil))
     else
       target:start()
     end
@@ -2484,7 +2536,7 @@ function step_sequence_super_clock()
   end
 end
 
-function toggle_meta(state,target)
+function toggle_meta(state)
   if state == "start" then
     if step_sequence_clock ~= nil then
       clock.cancel(step_sequence_clock)
@@ -5945,6 +5997,10 @@ function named_loadstate(path)
       -- BUT, i want the device to be present or reassigned...
     end
   end
+
+  for i = 1,3 do
+    clock.run(reset_step_seq,i,4)
+  end
     
 
   grid_dirty = true
@@ -5961,6 +6017,20 @@ function named_loadstate(path)
   audio.level_eng_cut(util.dbamp(-math.huge))
   norns.state.mix.cut_input_eng = -math.huge
 
+end
+
+function reset_step_seq(i,val) -- TODO: funky on some...
+  step_seq[i].active = (step_seq[i].active + 1)%2
+  step_seq[i].meta_meta_step = 1
+  step_seq[i].meta_step = 1
+  step_seq[i].current_step = step_seq[i].start_point
+  if val~= nil then
+    clock.sync(val)
+  end
+  step_seq[i].active = (step_seq[i].active + 1)%2
+  if step_seq[i].active == 1 and step_seq[i][step_seq[i].current_step].assigned_to ~= 0 then
+    test_load(step_seq[i][step_seq[i].current_step].assigned_to+(((i)-1)*8),i)
+  end
 end
 
 function quick_save_pattern(i)
@@ -6015,38 +6085,62 @@ function test_save(i)
   pattern_saver[i].active = false
 end
 
-function test_load(slot,destination)
+function test_load(slot,destination,source)
   if pattern_saver[destination].saved[slot-((destination-1)*8)] == 1 then
     if pattern_saver[destination].load_slot ~= slot-((destination-1)*8) then
       pattern_saver[destination].load_slot = slot-((destination-1)*8)
     end
-    if grid_pat[destination].play == 1 then
+    if grid_pat[destination].play == 1 and source ~= "from_grid" then
       grid_pat[destination]:clear()
-    elseif arp[destination].playing then
+    elseif arp[destination].playing and source ~= "from_grid" then
       arp[destination].pause = true
       arp[destination].playing = false
     elseif grid_pat[destination].tightened_start == 1 then -- not relevant?
-      grid_pat[destination].tightened_start = 0
-      grid_pat[destination].step = grid_pat[destination].start_point-1
-      quantized_grid_pat[destination].current_step = grid_pat[destination].start_point
-      quantized_grid_pat[destination].sub_step = 1
+      print("why does this happen? tell dan it happened: 2917107")
+      -- grid_pat[destination].tightened_start = 0
+      -- grid_pat[destination].step = grid_pat[destination].start_point-1
+      -- quantized_grid_pat[destination].current_step = grid_pat[destination].start_point
+      -- quantized_grid_pat[destination].sub_step = 1
     end
-    load_pattern(slot,destination)
-    if grid_pat[destination].count > 0 then
-      start_pattern(grid_pat[destination])
-    elseif #arp[destination].notes > 0 then
-      local arp_start =
-      {
-        ["fwd"] = arp[destination].start_point - 1
-      , ["bkwd"] = arp[destination].end_point + 1
-      , ["pend"] = arp[destination].start_point
-      , ["rnd"] = arp[destination].start_point - 1
-      }
-      arp[destination].step = arp_start[arp[destination].mode]
-      arp[destination].pause = false
-      arp[destination].playing = true
-      if arp[destination].mode == "pend" then
-        arp_direction[destination] = "negative"
+    if not transport.is_running then
+      load_pattern(slot,destination)
+    else
+      if source ~= "from_grid" then
+        load_pattern(slot,destination)
+        start_pattern(grid_pat[destination],"jumpstart")
+      elseif params:string("launch_quantization") == "next beat" and source == "from_grid" and type_of_pattern_loaded[destination] ~= "arp" then
+        print("firs cut")
+        load_pattern(slot,destination)
+      end
+      if grid_pat[destination].count > 0 and params:string("launch_quantization") ~= "next bar" then
+        start_pattern(grid_pat[destination])
+      elseif params:string("launch_quantization") == "next bar" and source == "from_grid" then
+        start_pattern(grid_pat[destination],"restart","delayed_load",{slot,destination})
+      elseif type_of_pattern_loaded[destination] == "arp" then
+        if loading_arp_from_grid[destination] ~= nil then
+          clock.cancel(loading_arp_from_grid[destination])
+        end
+        loading_arp_from_grid[destination] = 
+        clock.run(
+          function()
+            clock.sync(1)
+            load_pattern(slot,destination)
+            print("well, arp has notes, so play 'em!"..clock.get_beats())
+            local arp_start =
+            {
+              ["fwd"] = arp[destination].start_point - 1
+            , ["bkwd"] = arp[destination].end_point + 1
+            , ["pend"] = arp[destination].start_point
+            , ["rnd"] = arp[destination].start_point - 1
+            }
+            arp[destination].step = arp_start[arp[destination].mode]
+            arp[destination].pause = false
+            arp[destination].playing = true
+            if arp[destination].mode == "pend" then
+              arp_direction[destination] = "negative"
+            end
+          end
+        )
       end
     end
   end
@@ -6347,6 +6441,7 @@ function load_pattern(slot,destination,print_also)
     io.input(file)
     if io.read() == "stored pad pattern: collection "..selected_coll.." + slot "..slot then
       -- print("loading grid pat")
+      type_of_pattern_loaded[destination] = "grid"
       grid_pat[destination].event = {}
       grid_pat[destination].count = tonumber(io.read())
       for i = 1,grid_pat[destination].count do
@@ -6465,8 +6560,11 @@ function load_pattern(slot,destination,print_also)
       end
       --/new stuff, quantum and time_beats!
     else
+      type_of_pattern_loaded[destination] = "arp"
       -- print("it's an arp!")
       arp[destination] = tab.load(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/patterns/"..slot..".data")
+      -- arp[destination].pause = true
+      -- arp[destination].playing = false
       -- arp[destination] = tab.load(_path.data .. "cheat_codes_2/pattern"..selected_coll.."_"..slot..".data")
       ignore_external_timing = true
     end
