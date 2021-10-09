@@ -5,6 +5,9 @@ for i = 1,3 do
   held_query[i] = 0
 end
 
+grid_clip_key_held = false
+sample_selector_active = false
+
 zilches = 
 { 
     [2] = {{},{},{}} 
@@ -243,22 +246,34 @@ function grid_actions.init(x,y,z)
       
       if y == 4 or y == 3 or y == 2 then
         if x == 1 or x == 6 or x == 11 then
-          local which_pad = nil
-          local current = util.round(math.sqrt(math.abs(x-2)))
-          if z == 1 then
-            if not bank[current].alt_lock and not grid_alt then
-              if bank[current].focus_hold == false then
-                jump_clip(current, bank[current].id, math.abs(y-5))
-              else
-                jump_clip(current, bank[current].focus_pad, math.abs(y-5))
-              end
-            elseif bank[current].alt_lock or grid_alt then
-              for j = 1,16 do
-                jump_clip(current, j, math.abs(y-5))
+          if not sample_selector_active then
+            local which_pad = nil
+            local current = util.round(math.sqrt(math.abs(x-2)))
+            if z == 1 then
+              if not bank[current].alt_lock and not grid_alt then
+                if bank[current].focus_hold == false then
+                  jump_clip(current, bank[current].id, math.abs(y-5))
+                else
+                  jump_clip(current, bank[current].focus_pad, math.abs(y-5))
+                end
+              elseif bank[current].alt_lock or grid_alt then
+                for j = 1,16 do
+                  jump_clip(current, j, math.abs(y-5))
+                end
               end
             end
           end
-          if z == 0 then
+          if grid_clip_key_held and z == 1 then
+            if not sample_selector_active then
+              local current = util.round(math.sqrt(math.abs(x-2)))
+              _norns.key(1,1)
+              _norns.key(1,0)
+              fileselect.enter(_path.audio,function(n) sample_callback(n,bank[current][bank[current].id].clip) end)
+              sample_selector_active = true
+            end
+          end
+          if z == 0 and not sample_selector_active then
+            local current = util.round(math.sqrt(math.abs(x-2)))
             if menu ~= 1 then screen_dirty = true end
             if bank[current].focus_hold == false then
               if params:string("preview_clip_change") == "yes" or bank[current][bank[current].id].loop then
@@ -271,6 +286,9 @@ function grid_actions.init(x,y,z)
       
       for i = 4,3,-1 do
         for j = 2,12,5 do
+          if x == j and y == 3 then
+            grid_clip_key_held = z == 1 and true or false
+          end
           if x == j and y == i and z == 1 then
             local which_pad = nil
             
@@ -1435,6 +1453,20 @@ function grid_actions.init(x,y,z)
 end
 
 function grid_actions.arp_handler(i)
+  if not transport.is_running then
+    print("arp enabled, starting transport...")
+    if transport.is_running then
+      clock.transport.stop()
+    else
+      if params:string("clock_source") == "internal" then
+        clock.internal.start(-0.1)
+      else
+        transport.cycle = 1
+        clock.transport.start()
+      end
+      transport.pending = true
+    end
+  end
   if not arp[i].enabled then
     arp[i].enabled = true
   elseif not arp[i].hold then

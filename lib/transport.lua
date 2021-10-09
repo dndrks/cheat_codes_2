@@ -97,7 +97,7 @@ function tp.start()
       start_pattern(grid_pat[i],"jumpstart")
     end
   end
-  toggle_meta("start")
+  -- toggle_meta("start")
   rytm.toggle("start")
   tp.start_midi()
   tp.send_midi_clock()
@@ -127,7 +127,7 @@ function tp.start_from_midi_message()
     end
     -- print(clock.get_beats())
   end
-  toggle_meta("stop")
+  -- toggle_meta("stop")
   rytm.toggle("start")
   if params:string("crow output 4") == "transport gate" then
     crow.output[4].volts = 5.0
@@ -258,7 +258,7 @@ function tp.crow_toggle_now()
       end
       -- print(clock.get_beats())
     end
-    toggle_meta("start")
+    -- toggle_meta("start")
     rytm.toggle("start")
     tp.start_midi()
     tp.send_midi_clock()

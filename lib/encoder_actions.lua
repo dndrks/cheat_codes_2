@@ -124,7 +124,8 @@ function encoder_actions.init(n,d)
     elseif menu == 6 then
       page.delay.focus = util.clamp(page.delay.focus+d,1,2)
     elseif menu == 7 then
-      page.time_sel = util.clamp(page.time_sel+d,1,6)
+      -- page.time_sel = util.clamp(page.time_sel+d,1,6)
+      _flow.process_encoder(n,d)
     elseif menu == 8 then
       rytm.track_edit = util.clamp(rytm.track_edit+d,1,3)
     elseif menu == 9 then
@@ -287,30 +288,31 @@ function encoder_actions.init(n,d)
       end
       
     elseif menu == 7 then
-      local page_line = page.time_page_sel
-      local pattern_page = page.time_sel
+      _flow.process_encoder(n,d)
+    --   local page_line = page.time_page_sel
+    --   local pattern_page = page.time_sel
 
-      if pattern_page < 4 then
-        page_line[pattern_page] = util.clamp(page_line[pattern_page]+d,1,6)
-        if page_line[pattern_page] < 4 then
-          page.time_scroll[pattern_page] = 1
-        elseif page_line[pattern_page] < 7 then
-          page.time_scroll[pattern_page] = 2
-        elseif page_line[pattern_page] >= 7 then
-          page.time_scroll[pattern_page] = 3
-        end
+    --   if pattern_page < 4 then
+    --     page_line[pattern_page] = util.clamp(page_line[pattern_page]+d,1,6)
+    --     if page_line[pattern_page] < 4 then
+    --       page.time_scroll[pattern_page] = 1
+    --     elseif page_line[pattern_page] < 7 then
+    --       page.time_scroll[pattern_page] = 2
+    --     elseif page_line[pattern_page] >= 7 then
+    --       page.time_scroll[pattern_page] = 3
+    --     end
 
-      elseif pattern_page >=4 then
-        page_line[pattern_page] = util.clamp(page_line[pattern_page]+d,1,7)
-        local target = page.time_sel-3
-        if g.device == nil and page_line[pattern_page] <= 4 then
-          if page_line[pattern_page] == 1 then
-            arc_param[target] = page.time_arc_loop[pattern_page-3]
-          else
-            arc_param[target] = page_line[pattern_page]+2
-          end
-        end
-      end
+    --   elseif pattern_page >=4 then
+    --     page_line[pattern_page] = util.clamp(page_line[pattern_page]+d,1,7)
+    --     local target = page.time_sel-3
+    --     if g.device == nil and page_line[pattern_page] <= 4 then
+    --       if page_line[pattern_page] == 1 then
+    --         arc_param[target] = page.time_arc_loop[pattern_page-3]
+    --       else
+    --         arc_param[target] = page_line[pattern_page]+2
+    --       end
+    --     end
+    --   end
     elseif menu == 8 then
       if not key1_hold then
         if rytm.screen_focus == "right" then
@@ -580,74 +582,75 @@ function encoder_actions.init(n,d)
       end
 
     elseif menu == 7 then
-      local page_line = page.time_page_sel
-      local pattern_page = page.time_sel
-      -- local pattern = g.device ~= nil and grid_pat[pattern_page] or midi_pat[pattern_page]
-      local pattern = get_grid_connected() and grid_pat[pattern_page] or midi_pat[pattern_page]
+      _flow.process_encoder(n,d)
+    --   local page_line = page.time_page_sel
+    --   local pattern_page = page.time_sel
+    --   -- local pattern = g.device ~= nil and grid_pat[pattern_page] or midi_pat[pattern_page]
+    --   local pattern = get_grid_connected() and grid_pat[pattern_page] or midi_pat[pattern_page]
       
-      if pattern_page < 4 then
-        if page_line[pattern_page] == 7 then
-          bank[pattern_page].crow_execute = util.clamp(bank[pattern_page].crow_execute+d,0,1)
-        elseif page_line[pattern_page] == 1 then
-          if pattern.rec ~= 1 then
-            if not key1_hold then
-              if pattern.play == 1 then -- actually, we won't want to allow change...
-                -- local pre_adjust_mode = pattern.playmode
-                -- pattern.playmode = util.clamp(pattern.playmode+d,1,2)
-                -- if pattern.playmode ~= pre_adjust_mode then
-                --   stop_pattern(pattern)
-                --   start_pattern(pattern)
-                -- end
-              else
-                pattern.playmode = util.clamp(pattern.playmode+d,1,2)
-              end
-            elseif key1_hold and pattern.playmode == 2 then
-              key1_hold_and_modify = true
-              pattern.rec_clock_time = util.clamp(pattern.rec_clock_time+d,1,64)
-            end
-          end
-        elseif page_line[pattern_page] == 8 and bank[pattern_page].crow_execute ~= 1 then
-          _crow.count_execute[pattern_page] = util.clamp(_crow.count_execute[pattern_page]+d,1,16)
-        elseif page_line[pattern_page] == 3 then
-          params:delta("sync_clock_to_pattern_"..pattern_page,d)
-        elseif page_line[pattern_page] == 4 then
-         pattern.random_pitch_range = util.clamp(pattern.random_pitch_range+d,1,5)
-        elseif page_line[pattern_page] == 5 then
-          if pattern.rec ~= 1 and pattern.count > 0 then
-            pattern.start_point = util.clamp(pattern.start_point+d,1,pattern.end_point)
-            --pattern_length_to_bars(pattern, "non-destructive")
-            if quantized_grid_pat[pattern_page].current_step < pattern.start_point then
-              quantized_grid_pat[pattern_page].current_step = pattern.start_point
-              quantized_grid_pat[pattern_page].sub_step = 1
-            end
-          end
-        elseif page_line[pattern_page] == 6 then
-          if pattern.rec ~= 1 and pattern.count > 0 then
-            pattern.end_point = util.clamp(pattern.end_point+d,pattern.start_point,pattern.count)
-            --pattern_length_to_bars(pattern, "non-destructive")
-            if quantized_grid_pat[pattern_page].current_step > pattern.end_point then
-              quantized_grid_pat[pattern_page].current_step = pattern.start_point
-              quantized_grid_pat[pattern_page].sub_step = 1
-            end
-          end
-        end
-      else
-        if not key1_hold then
-          if page_line[pattern_page] == 1 then
-            page.time_arc_loop[pattern_page-3] = util.clamp(page.time_arc_loop[pattern_page-3]+d,1,3)
-            -- if g.device == nil then
-              arc_param[pattern_page-3] = page.time_arc_loop[pattern_page-3]
-              grid_dirty = true
-            -- end
-          end
-        else
-          if page.time_page_sel[page.time_sel] <= 4 then
-            local id = page.time_sel-3
-            local val = page.time_page_sel[page.time_sel]
-            arc_pat[id][val].time_factor = util.clamp(arc_pat[id][val].time_factor + d/10,0.1,10)
-          end
-        end
-      end
+    --   if pattern_page < 4 then
+    --     if page_line[pattern_page] == 7 then
+    --       bank[pattern_page].crow_execute = util.clamp(bank[pattern_page].crow_execute+d,0,1)
+    --     elseif page_line[pattern_page] == 1 then
+    --       if pattern.rec ~= 1 then
+    --         if not key1_hold then
+    --           if pattern.play == 1 then -- actually, we won't want to allow change...
+    --             -- local pre_adjust_mode = pattern.playmode
+    --             -- pattern.playmode = util.clamp(pattern.playmode+d,1,2)
+    --             -- if pattern.playmode ~= pre_adjust_mode then
+    --             --   stop_pattern(pattern)
+    --             --   start_pattern(pattern)
+    --             -- end
+    --           else
+    --             pattern.playmode = util.clamp(pattern.playmode+d,1,2)
+    --           end
+    --         elseif key1_hold and pattern.playmode == 2 then
+    --           key1_hold_and_modify = true
+    --           pattern.rec_clock_time = util.clamp(pattern.rec_clock_time+d,1,64)
+    --         end
+    --       end
+    --     elseif page_line[pattern_page] == 8 and bank[pattern_page].crow_execute ~= 1 then
+    --       _crow.count_execute[pattern_page] = util.clamp(_crow.count_execute[pattern_page]+d,1,16)
+    --     elseif page_line[pattern_page] == 3 then
+    --       params:delta("sync_clock_to_pattern_"..pattern_page,d)
+    --     elseif page_line[pattern_page] == 4 then
+    --      pattern.random_pitch_range = util.clamp(pattern.random_pitch_range+d,1,5)
+    --     elseif page_line[pattern_page] == 5 then
+    --       if pattern.rec ~= 1 and pattern.count > 0 then
+    --         pattern.start_point = util.clamp(pattern.start_point+d,1,pattern.end_point)
+    --         --pattern_length_to_bars(pattern, "non-destructive")
+    --         if quantized_grid_pat[pattern_page].current_step < pattern.start_point then
+    --           quantized_grid_pat[pattern_page].current_step = pattern.start_point
+    --           quantized_grid_pat[pattern_page].sub_step = 1
+    --         end
+    --       end
+    --     elseif page_line[pattern_page] == 6 then
+    --       if pattern.rec ~= 1 and pattern.count > 0 then
+    --         pattern.end_point = util.clamp(pattern.end_point+d,pattern.start_point,pattern.count)
+    --         --pattern_length_to_bars(pattern, "non-destructive")
+    --         if quantized_grid_pat[pattern_page].current_step > pattern.end_point then
+    --           quantized_grid_pat[pattern_page].current_step = pattern.start_point
+    --           quantized_grid_pat[pattern_page].sub_step = 1
+    --         end
+    --       end
+    --     end
+    --   else
+    --     if not key1_hold then
+    --       if page_line[pattern_page] == 1 then
+    --         page.time_arc_loop[pattern_page-3] = util.clamp(page.time_arc_loop[pattern_page-3]+d,1,3)
+    --         -- if g.device == nil then
+    --           arc_param[pattern_page-3] = page.time_arc_loop[pattern_page-3]
+    --           grid_dirty = true
+    --         -- end
+    --       end
+    --     else
+    --       if page.time_page_sel[page.time_sel] <= 4 then
+    --         local id = page.time_sel-3
+    --         local val = page.time_page_sel[page.time_sel]
+    --         arc_pat[id][val].time_factor = util.clamp(arc_pat[id][val].time_factor + d/10,0.1,10)
+    --       end
+    --     end
+    --   end
 
     elseif menu == 8 then
       if not key1_hold then
