@@ -15,8 +15,15 @@ function f_m.init()
   page.flow.pads_page_sel = 1
   page.flow.song_line = {1,1,1}
   page.flow.song_col = {1,1,1}
+  page.flow.scene_pad = {1,1,1}
   page.flow.alt = false
   _fm_ = page.flow
+end
+
+function f_m.draw_square(x,y)
+  for i = 1,16 do
+    screen.pixel(x+grid_actions.index_to_grid_pos(i,4)[1],y+grid_actions.index_to_grid_pos(i,4)[2])
+  end
 end
 
 function f_m.draw_menu()
@@ -93,6 +100,14 @@ function f_m.draw_menu()
         screen.text("length -> bpm")
         screen.move(128,20)
         screen.text_right(string.upper(params:string("sync_clock_to_pattern_".._fm_.bank_sel)))
+      end
+    elseif _fm_.main_sel == 2 then
+      for i = 1,4 do
+        for j = 1,4 do
+          screen.level(_fm_.scene_pad[_fm_.bank_sel] == (i*j) and 15 or 2)
+          f_m.draw_square(58+((j-1)*6),0+((i-1)*6))
+          screen.fill()
+        end
       end
     elseif _fm_.main_sel == 3 then
       screen.level(15)

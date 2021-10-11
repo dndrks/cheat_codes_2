@@ -60,6 +60,22 @@ function metronome_audio()
   end
 end
 
+function _c(x,y)
+  if tonumber(params:string("grid_size")) == 128 then
+    return {y,9-x}
+  else
+    return {x,y}
+  end
+end
+
+function _t(x,y)
+  if tonumber(params:string("grid_size")) == 128 then
+    return {9-y,x}
+  else
+    return {x,y}
+  end
+end
+
 local pattern_time = include 'lib/cc_pattern_time'
 MU = require "musicutil"
 UI = require "ui"
@@ -289,11 +305,14 @@ for i = 1,3 do
   pattern_saver[i].save_slot = nil
   pattern_saver[i].load_slot = 0
   pattern_saver[i].saved = {}
+  pattern_saver[i].loop = {}
   pattern_saver[i].clock = nil
   for j = 1,8 do
     pattern_saver[i].saved[j] = 0
+    pattern_saver[i].loop[j] = true
   end
 end
+pattern_saver_glue = false
 
 env_counter = {}
 for i = 1,3 do
@@ -834,6 +853,7 @@ function init()
 
   type_of_pattern_loaded = {"grid","grid","grid"}
   loading_arp_from_grid = {nil,nil,nil}
+  loading_free_from_grid = {nil,nil,nil}
   
   engine.release(0.1)
   amp_in = {}
@@ -2126,8 +2146,9 @@ end
 function alt_synced_loop(target,state,style,mod_table)
   if transport.is_running then
     if state == "restart" then
-      clock.sync(params:get("launch_quantization") == 1 and 1 or 4)
-      -- print("restarting", clock.get_beats())
+      if params:get("launch_quantization") ~= 3 then
+        clock.sync(params:get("launch_quantization") == 1 and 1 or 4)
+      end
     end
     if style == "delayed_load" then
       load_pattern(mod_table[1],mod_table[2])
@@ -2243,9 +2264,34 @@ function start_pattern(target,start_type,style,mod_table)
     if target.playmode == 2 then
       if target.clock ~= nil then clock.cancel(target.clock) end
       -- print(mod_table,style,style == nil,(style ~= nil and "delayed_load" or nil))
+      print("...."..style)
       target.clock = clock.run(alt_synced_loop, target, start_type ~= nil and start_type or "restart",(style ~= nil and "delayed_load" or nil),(mod_table ~= nil and mod_table or nil))
     else
-      target:start()
+      local name_to_id = {"grid_pat[1]","grid_pat[2]","grid_pat[3]"}
+      local destination = tab.key(name_to_id,target.name)
+      if start_type ~= "jumpstart" then
+      -- print("what else can i do but start the pattern?")
+        if loading_free_from_grid[destination] ~= nil then
+          clock.cancel(loading_free_from_grid[destination])
+        end
+        loading_free_from_grid[destination] = 
+        clock.run(
+          function()
+            if params:get("launch_quantization") ~= 3 then
+              clock.sync(params:get("launch_quantization") == 1 and 1 or 4)
+            end
+            if mod_table ~= nil then
+              load_pattern(mod_table[1],mod_table[2])
+              target:start()
+            else
+              print("????")
+              target:start()
+            end
+          end
+        )
+      else
+        target:start()
+      end
     end
   end
 
@@ -4202,11 +4248,11 @@ end
 
 function get_grid_connected()
   if all_loaded then
-    if grid.is_midigrid ~= nil and grid.is_midigrid == true and g.device == nil then
-      print(grid.list)
-      print("flipping MIDIGRID on")
-      params:set("midigrid?",2)
-    end
+    -- if grid.is_midigrid ~= nil and grid.is_midigrid == true and g.device == nil then
+    --   print(grid.list)
+    --   print("flipping MIDIGRID on")
+    --   params:set("midigrid?",2)
+    -- end
     if g.device == nil and grid == nil then
       return false
     elseif g.device ~= nil or (grid ~= nil and params:string("midigrid?") == "yes") then
@@ -4610,65 +4656,20 @@ function grid_redraw()
         
         -- if we're on page 2...
         
-        for i = 1,3 do
-
-          for j = step_seq[i].start_point,step_seq[i].end_point do
-            local xval = j < 9 and (i*5)-2 or (i*5)-1
-            local yval = j < 9 and 9 or 17
-
-            g:led(xval,yval-j,led_maps["step_no_data"][edition])
-
-            if grid_loop_mod == 1 then
-              g:led(xval,yval-step_seq[i].start_point,led_maps["step_loops"][edition])
-              g:led(xval,yval-step_seq[i].end_point,led_maps["step_loops"][edition])
-            end
-
-          end
-
-          for j = 1,16 do
-            if step_seq[i][j].assigned_to ~= 0 then
-              local xval = j < 9 and (i*5)-2 or (i*5)-1
-              local yval = j < 9 and 9 or 17
-              g:led(xval,yval-j,led_maps["step_yes_data"][edition])
-            end
-          end
-
-          if step_seq[i].current_step < 9 then
-            g:led((i*5)-2,9-step_seq[i].current_step,led_maps["step_current"][edition])
-          elseif step_seq[i].current_step >=9 then
-            g:led((i*5)-1,9-(step_seq[i].current_step-8),led_maps["step_current"][edition])
-          end
-
-          if step_seq[i].held < 9 then
-            g:led((i*5)-2,9-step_seq[i].held,led_maps["step_held"][edition])
-          elseif step_seq[i].held >= 9 then
-            g:led((i*5)-1,9-(step_seq[i].held-8),led_maps["step_held"][edition])
-          end
-
-          g:led((i*5)-3, 9-step_seq[i].meta_duration,led_maps["meta_duration"][edition])
-          g:led((i*5)-3, 9-step_seq[i].meta_step,led_maps["meta_step_hi"][edition])
-
-          if step_seq[i].held == 0 then
-            g:led((i*5), 9-step_seq[i][step_seq[i].current_step].meta_meta_duration,led_maps["meta_duration"][edition])
-            g:led((i*5), 9-step_seq[i].meta_meta_step,led_maps["meta_step_hi"][edition])
-          else
-            g:led((i*5), 9-step_seq[i].meta_meta_step,led_maps["meta_step_lo"][edition])
-            g:led((i*5), 9-step_seq[i][step_seq[i].held].meta_meta_duration,led_maps["meta_duration"][edition])
-          end
-          if step_seq[i].held == 0 then
-            g:led(16,8-i,edition == 3 and (15*step_seq[i].active) or ((step_seq[i].active*6)+2))
-          else
-            g:led(16,8-i,step_seq[i][step_seq[i].held].loop_pattern*4)
-          end
-
-        end
-        
         for i = 1,11,5 do
           for j = 1,8 do
             local current = math.floor(i/5)+1
             local show = step_seq[current].held == 0 and pattern_saver[current].load_slot or step_seq[current][step_seq[current].held].assigned_to
-            g:led(i,j,edition == 3 and (15*pattern_saver[current].saved[9-j]) or ((5*pattern_saver[current].saved[9-j])+2))
-            g:led(i,j,j == (9 - show) and 15 or (edition == 3 and (15*pattern_saver[current].saved[9-j]) or ((5*pattern_saver[current].saved[9-j])+2)))
+            g:led(i,j,edition == 3 and (15*pattern_saver[current].saved[9-j]) or ((4*pattern_saver[current].saved[9-j])+4))
+            g:led(i,j,j == (9 - show) and 15 or (edition == 3 and (15*pattern_saver[current].saved[9-j]) or ((4*pattern_saver[current].saved[9-j])+4)))
+          end
+        end
+
+        for i = 2,12,5 do
+          for j = 1,8 do
+            local current = math.floor(i/5)+1
+            local led_level = bank[current].snapshot[j].saved and led_maps["slot_saved"][edition] or led_maps["slot_empty"][edition]
+            g:led(_c(j,i)[1],_c(j,i)[2],led_level)
           end
         end
         
@@ -5576,6 +5577,7 @@ function persistent_state_save()
   for i = 1,3 do
     io.write("pattern_"..i.."_quantization: "..params:get("pattern_"..i.."_quantization").."\n")
   end
+  io.write("launch_quantization: "..params:get("launch_quantization").."\n")
   io.close(file)
 end
 
@@ -6019,14 +6021,12 @@ function named_loadstate(path)
 
   grid_dirty = true
 
-  -- clock.run(
-  --   function()
-  --     clock.sleep(1)
-  --     if (params:string("start_transport_at_launch") == "yes" and params:string("clock_source") == "internal") then
-  --       clock.transport.start()
-  --     end
-  --   end
-  -- )
+  for i = 1,3 do
+    if bank[i].snapshot == nil then
+      _snap.init()
+    end
+  end
+  
   -- pre_script_softcut_engine_level = params:get("cut_input_eng")
   audio.level_eng_cut(util.dbamp(-math.huge))
   norns.state.mix.cut_input_eng = -math.huge
@@ -6100,6 +6100,7 @@ function test_save(i)
 end
 
 function test_load(slot,destination,source)
+  
   if pattern_saver[destination].saved[slot-((destination-1)*8)] == 1 then
     if pattern_saver[destination].load_slot ~= slot-((destination-1)*8) then
       pattern_saver[destination].load_slot = slot-((destination-1)*8)
@@ -6117,17 +6118,33 @@ function test_load(slot,destination,source)
       -- quantized_grid_pat[destination].sub_step = 1
     end
     if not transport.is_running then
+      print("loading while transport is not running")
       load_pattern(slot,destination)
     else
-      -- print(type_of_pattern_loaded[destination])
+      -- print("test_load is running...",slot,destination,source,pattern_saver[destination].saved[slot-((destination-1)*8)])
       if source ~= "from_grid" then
         load_pattern(slot,destination)
         start_pattern(grid_pat[destination],"jumpstart")
       elseif params:string("launch_quantization") == "next beat" and source == "from_grid" and type_of_pattern_loaded[destination] ~= "arp" then
-        -- print("trying to load grid")
+        -- print("going to start_pattern")
         start_pattern(grid_pat[destination],"restart","delayed_load",{slot,destination})
+      elseif params:string("launch_quantization") == "free" then
+        if grid_pat[destination].play == 1 then
+          grid_pat[destination]:clear()
+        elseif arp[destination].playing then
+          arp[destination].pause = true
+          arp[destination].playing = false
+        end
+        load_pattern(slot,destination)
+        start_pattern(grid_pat[destination],"jumpstart")
+        goto finish_it_up
       end
       if grid_pat[destination].count > 0 and params:string("launch_quantization") ~= "next bar" then
+        if params:string("launch_quantization") == "free" then
+          print("play it now!!")
+          load_pattern(slot,destination)
+          start_pattern(grid_pat[destination],"jumpstart")
+        end
         -- start_pattern(grid_pat[destination],"restart","delayed_load",{slot,destination})
       elseif params:string("launch_quantization") == "next bar" and source == "from_grid" then
         -- print("loading whatever...")
@@ -6163,6 +6180,7 @@ function test_load(slot,destination,source)
       end
     end
   end
+  ::finish_it_up::
 end
 
 function save_pattern(source,slot,style)
@@ -6255,14 +6273,10 @@ function save_pattern(source,slot,style)
     end
     --/new stuff, quantum and time_beats!
 
-    -- new stuff, quant or unquant + rec_clock_time
     io.write(original_pattern[source].mode.."\n")
     io.write(original_pattern[source].rec_clock_time.."\n")
 
     io.close(file)
-    --GIRAFFE
-    --save_external_timing(source,slot)
-    --/GIRAFFE
     print("saved pattern "..source.." to slot "..slot)
   elseif style == "arp" then
     tab.save(arp[source],_path.data .. "cheat_codes_2/collection-"..selected_coll.."/patterns/"..slot..".data")
@@ -6576,6 +6590,8 @@ function load_pattern(slot,destination,print_also)
         grid_pat[destination].rec_clock_time = tonumber(io.read())
         ignore_external_timing = true
       end
+      grid_pat[destination].loop = pattern_saver[destination].loop[slot-(8*(destination-1))] and 1 or 0
+      -- print("hello!"..grid_pat[destination].loop)
       --/new stuff, quantum and time_beats!
     else
       type_of_pattern_loaded[destination] = "arp"

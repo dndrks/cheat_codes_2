@@ -1,13 +1,28 @@
 local snap = {}
 
+local restorable_params = {"rate","offset","fifth","start_point","end_point","loop","mode","clip","level","pan","tilt"}
+
 snap.init = function()
   for i = 1,3 do
     bank[i].snapshot = {{},{},{},{},{},{},{},{}}
     bank[i].snapshot_fnl_active = false
+    bank[i].snapshot_saver_active = false
+    bank[i].snapshot_saver_clock = nil
     for j = 1,8 do
-      bank[i].snapshot[j] = {["pad"]= {}}
+      bank[i].snapshot[j] = {["pad"]= {},["saved"] = false}
       for k = 1,16 do
         bank[i].snapshot[j].pad[k] = {}
+        bank[i].snapshot[j].pad[k].rate_restore = true
+        bank[i].snapshot[j].pad[k].offset_restore = true
+        bank[i].snapshot[j].pad[k].fifth_restore = true
+        bank[i].snapshot[j].pad[k].start_point_restore = true
+        bank[i].snapshot[j].pad[k].end_point_restore = true
+        bank[i].snapshot[j].pad[k].loop_restore = true
+        bank[i].snapshot[j].pad[k].mode_restore = true
+        bank[i].snapshot[j].pad[k].clip_restore = true
+        bank[i].snapshot[j].pad[k].level_restore = true
+        bank[i].snapshot[j].pad[k].pan_restore = true
+        bank[i].snapshot[j].pad[k].tilt_restore = true
       end
     end
   end
@@ -18,6 +33,7 @@ snap.capture = function(b,slot)
   local src = bank[b]
   for i = 1,16 do
     shot.pad[i].rate = src[i].rate
+    shot.pad[i].offset = src[i].offset
     shot.pad[i].fifth = src[i].fifth
     shot.pad[i].start_point = src[i].start_point
     shot.pad[i].end_point = src[i].end_point
@@ -28,24 +44,68 @@ snap.capture = function(b,slot)
     shot.pad[i].pan = src[i].pan
     shot.pad[i].tilt = params:get("filter tilt "..b)
   end
+  shot.saved = true
+end
+
+snap.clear = function(b,slot)
+  local shot = bank[b].snapshot[slot]
+  for k = 1,16 do
+    shot.pad[k] = {}
+    shot.pad[k].rate_restore = true
+    shot.pad[k].offset_restore = true
+    shot.pad[k].fifth_restore = true
+    shot.pad[k].start_point_restore = true
+    shot.pad[k].end_point_restore = true
+    shot.pad[k].loop_restore = true
+    shot.pad[k].mode_restore = true
+    shot.pad[k].clip_restore = true
+    shot.pad[k].level_restore = true
+    shot.pad[k].pan_restore = true
+    shot.pad[k].tilt_restore = true
+  end
+  shot.saved = false
+end
+
+snap.save_to_slot = function(b,slot)
+  clock.sleep(0.25)
+  bank[b].snapshot_saver_active = true
+  if bank[b].snapshot_saver_active then
+    if not grid_alt then
+      print("saved snap",b,slot)
+      snap.capture(b,slot)
+    else
+      snap.clear(b,slot)
+    end
+    grid_dirty = true
+  end
+  bank[b].snapshot_saver_active = false
+end
+
+snap.check_restore = function(b,slot,prm)
+  
 end
 
 snap.restore = function(b,slot,sec)
+  print("restoring snap",b,slot)
   local shot = bank[b].snapshot[slot]
   local src = bank[b]
   local original_srcs = {}
   for i = 1,16 do
     original_srcs[i] = {}
-    original_srcs[i].rate = src[i].rate
-    original_srcs[i].fifth = src[i].fifth
-    original_srcs[i].start_point = src[i].start_point
-    original_srcs[i].end_point = src[i].end_point
-    original_srcs[i].loop = src[i].loop
-    original_srcs[i].mode = src[i].mode
-    original_srcs[i].clip = src[i].clip
-    original_srcs[i].level = src[i].level
-    original_srcs[i].pan = src[i].pan
-    original_srcs[i].tilt = src[i].tilt
+    for j = 1,#restorable_params do
+      -- print(src[i][restorable_params[j]])
+      original_srcs[i][restorable_params[j]] = src[i][restorable_params[j]]
+    end
+    -- original_srcs[i].rate = src[i].rate
+    -- original_srcs[i].fifth = src[i].fifth
+    -- original_srcs[i].start_point = src[i].start_point
+    -- original_srcs[i].end_point = src[i].end_point
+    -- original_srcs[i].loop = src[i].loop
+    -- original_srcs[i].mode = src[i].mode
+    -- original_srcs[i].clip = src[i].clip
+    -- original_srcs[i].level = src[i].level
+    -- original_srcs[i].pan = src[i].pan
+    -- original_srcs[i].tilt = src[i].tilt
   end
   if not bank[b].snapshot.fnl_active and (sec ~= nil and sec > 0.1) then
     bank[b].snapshot.fnl_active = true
@@ -62,8 +122,7 @@ snap.restore = function(b,slot,sec)
           end
         end
         if bank[b].snapshot.current_value ~= nil and util.round(bank[b].snapshot.current_value,0.001) == 1 then
-          print("snapshot funnel done")
-          bank[b].snapshot.fnl_active = false
+          snap.snapshot_funnel_done_action(b,slot)
         end
       end,
       0,
@@ -78,10 +137,10 @@ snap.restore = function(b,slot,sec)
         softcut.loop_end(b+1,src[i].end_point)
       end
     end
-    print("snapshot funnel done")
-    bank[b].snapshot.fnl_active = false
+    -- bank[b].snapshot.fnl_active = false
+    snap.snapshot_funnel_done_action(b,slot)
   else
-    print("already running!!!")
+    print("already running!!!") -- this ends up restoring from current in duration... 
     clock.cancel(bank[b].snapshot.fnl)
     bank[b].snapshot.fnl_active = false
     _snap.restore(b,slot,sec)
@@ -97,6 +156,20 @@ snap.restore = function(b,slot,sec)
     --   src[i].level = shot.pad[i].level
     --   src[i].pan = shot.pad[i].pan
     -- end
+end
+
+snap.snapshot_funnel_done_action = function(b,slot,args)
+  print("snapshot funnel done")
+  local shot = bank[b].snapshot[slot]
+  local src = bank[b]
+  bank[b].snapshot.fnl_active = false
+  for i = 1,16 do
+    src[i].rate = shot.pad[i].rate
+    src[i].offset = shot.pad[i].offset
+    if i == src.id then
+      softcut.rate(b+1,src[i].rate*src[i].offset)
+    end
+  end
 end
 
 -- we do need to keep the clips inside of the limits of the clip...
@@ -133,6 +206,7 @@ snap.fnl_crossfade = function(b,scene_a,scene_b,sec)
     0,
     {{127,sec}}
   )
+  -- TODO should still work this out:
   -- snap.fnl(
   --   function(r_val)
   --     params:set("filter tilt "..b,r_val)

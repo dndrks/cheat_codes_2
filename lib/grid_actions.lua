@@ -7,6 +7,7 @@ end
 
 grid_clip_key_held = false
 sample_selector_active = false
+last_grid_page_128 = 0
 
 zilches = 
 { 
@@ -473,192 +474,57 @@ function grid_actions.init(x,y,z)
       end
       
     elseif grid_page == 1 then
-      
-      if grid_loop_mod == 0 then
-      
-        for i = 1,11,5 do
-          for j = 1,8 do
-            if x == i and y == j then
-              local current = math.floor(x/5)+1
-              if z == 1 then
-                saved_pat = pattern_saver[current].saved[9-y] -- hate that this is global...
-                if step_seq[current].held == 0 then
-                  pattern_saver[current].source = math.floor(x/5)+1
-                  pattern_saver[current].save_slot = 9-y
-                  pattern_saver[current].clock = clock.run(test_save,current)
-                  -- print("starting save "..pattern_saver[current].clock)
-                else
-                  --if there's a pattern saved there...
-                  if pattern_saver[current].saved[9-y] == 1 then
-                    if not grid_alt then
-                      step_seq[current][step_seq[current].held].assigned_to = 9-y
-                    end
-                  end
-                end
-              elseif z == 0 then
-                if step_seq[current].held == 0 then
-                  if pattern_saver[math.floor(x/5)+1].clock then
-                    clock.cancel(pattern_saver[math.floor(x/5)+1].clock)
-                    -- TODO: FIX THIS OVERWRITING...
-                    -- clock.cancel(pattern_saver[math.floor(x/5)+1].clock-1)
-                    -- clock.cancel(pattern_saver[math.floor(x/5)+1].clock-2)
-                    -- print("killing save "..pattern_saver[math.floor(x/5)+1].clock)
-                  end
-                  pattern_saver[math.floor(x/5)+1].active = false
-                  if not grid_alt and saved_pat == 1 then
-                    if pattern_saver[current].saved[9-y] == 1 then
-                      pattern_saver[current].load_slot = 9-y
-                      test_load((9-y)+(8*(current-1)),current,"from_grid")
-                    end
-                  end
-                end
-              end
+
+      local nx = _t(x,y)[1]
+      local ny = _t(x,y)[2]
+
+      -- PATTERNS:
+      if ny == 1 or ny == 6 or ny == 11 then
+        local current = math.floor(ny/5)+1
+        if z == 1 then
+          saved_pat = pattern_saver[current].saved[nx] -- hate that this is global...
+          pattern_saver[current].source = current
+          pattern_saver[current].save_slot = nx
+          pattern_saver[current].clock = clock.run(test_save,current)
+        elseif z == 0 then
+          if pattern_saver[current].clock then
+            clock.cancel(pattern_saver[current].clock)
+          end
+          pattern_saver[current].active = false
+          if not grid_alt and saved_pat == 1 then
+            if pattern_saver[current].saved[nx] == 1 then
+              pattern_saver[current].load_slot = nx
+              test_load((nx)+(8*(current-1)),current,"from_grid")
             end
           end
         end
-        
-        for i = 2,12,5 do
-          for j = 1,8 do
-            if z == 1 and x == i and y == j then
-              local current = math.floor(x/5)+1
-              step_seq[current].meta_duration = 9-y
-            end
-          end
-        end
-        
-        for i = 3,13,5 do
-          for j = 1,8 do
-            if z == 1 and x == i and y == j then
-              local current = math.floor(x/5)+1
-              step_seq[current].held = 9-y
-              if grid_alt then
-                step_seq[current][step_seq[current].held].assigned_to = 0
-              end
-            elseif z == 0 and x == i and y == j then
-              local current = math.floor(x/5)+1
-              step_seq[current].held = 0
-            elseif z == 1 and x == i+1 and y == j then
-              local current = math.floor(x/5)+1
-              step_seq[current].held = (9-y)+8
-              if grid_alt then
-                step_seq[current][step_seq[current].held].assigned_to = 0
-              end
-            elseif z == 0 and x == i+1 and y == j then
-              local current = math.floor(x/5)+1
-              step_seq[current].held = 0
-            end
-          end
-        end
-        
-        for i = 5,15,5 do
-          for j = 1,8 do
-            if z == 1 and x == i and y == j then
-              local current = x/5
-              if step_seq[current].held == 0 then
-                step_seq[current][step_seq[current].current_step].meta_meta_duration = 9-y
-              else
-                step_seq[current][step_seq[current].held].meta_meta_duration = 9-y
-              end
-              if grid_alt then
-                for k = 1,16 do
-                  step_seq[current][k].meta_meta_duration = 9-y
-                end
-              end
-            end
-          end
-        end
-        
-        for i = 7,5,-1 do
-          if x == 16 and y == i and z == 1 then
-            if step_seq[8-i].held == 0 then
-              if grid_alt then
-                clock.run(reset_step_seq,8-y,1)
-                -- step_seq[8-i].current_step = step_seq[8-i].start_point
-                -- step_seq[8-i].meta_step = 1
-                -- step_seq[8-i].meta_meta_step = 1
-                -- if step_seq[8-i].active == 1 and step_seq[8-i][step_seq[8-i].current_step].assigned_to ~= 0 then
-                --   test_load(step_seq[8-i][step_seq[8-i].current_step].assigned_to+(((8-i)-1)*8),8-i)
-                -- end
-              else
-                step_seq[8-i].active = (step_seq[8-i].active + 1)%2
-              end
+      end
+
+      -- SNAPSHOTS:
+      if ny == 2 or ny == 7 or ny == 12 then
+        local current = math.floor(ny/5)+1
+        if z == 1 then
+          if not grid_alt then
+            if not bank[current].snapshot[nx].saved then
+              bank[current].snapshot_saver_clock = clock.run(_snap.save_to_slot,current,nx)
             else
-              step_seq[8-i][step_seq[8-i].held].loop_pattern = (step_seq[8-i][step_seq[8-i].held].loop_pattern + 1)%2
+              _snap.restore(current,nx)
             end
+          else
+            _snap.clear(current,nx)
           end
-        end
-        
-        
-        if x == 16 and y == 8 then
-          grid_alt = z == 1 and true or false
-          if menu ~= 1 then screen_dirty = true end
-          -- grid_redraw()
-        end
-      
-      elseif grid_loop_mod == 1 then
-        for i = 3,13,5 do
-          if x == i or x == i+1 then
-            local current = math.floor(x/5)+1
-            if z == 1 then
-              step_seq[current].loop_held = step_seq[current].loop_held + 1
-              if step_seq[current].loop_held == 1 then
-                if x == i then
-                  step_seq[current].start_point = 9-y
-                elseif x == i+1 then
-                  step_seq[current].start_point = 17-y
-                end
-                if step_seq[current].start_point > step_seq[current].current_step then
-                  step_seq[current].current_step = step_seq[current].start_point
-                end
-              elseif step_seq[current].loop_held == 2 then
-                if x == i then
-                  step_seq[current].end_point = 9-y
-                elseif x == i+1 then
-                  step_seq[current].end_point = 17-y
-                end
-              end
-            elseif z == 0 then
-              step_seq[current].loop_held = step_seq[current].loop_held - 1
-            end
+        else
+          if bank[current].snapshot_saver_clock ~= nil then
+            clock.cancel(bank[current].snapshot_saver_clock)
           end
         end
       end
       
-      if x == 16 and y == 2 then
-        grid_loop_mod = z
+      if nx == 1 and ny == 16 then
+        grid_alt = z == 1 and true or false
         if menu ~= 1 then screen_dirty = true end
-        -- grid_redraw()
-      end
-      
-      if menu == 11 then
-        if x == 1 or x == 6 or x == 11 then
-          help_menu = "meta: slots"
-        elseif x == 2 or x == 7 or x == 12 then
-          help_menu = "meta: clock"
-        elseif x == 3 or x == 4 or x == 8 or x == 9 or x == 13 or x == 14 then
-          if grid_loop_mod == 0 then
-            help_menu = "meta: step"
-          end
-        elseif x == 5 or x == 10 or x == 15 then
-          help_menu = "meta: duration"
-        elseif x == 16 then
-          if y == 8 then
-            if z == 1 then
-              help_menu = "meta: alt"
-            elseif z == 0 then
-              help_menu = "welcome"
-            end
-          elseif y == 7 or y == 6 or y == 5 then
-            help_menu = "meta: toggle"
-          elseif y == 2 then
-            if z == 1 then
-              help_menu = "meta: loop mod"
-            elseif z == 0 then
-              help_menu = "welcome"
-            end
-          end
-        end
-        if menu ~= 1 then screen_dirty = true end
+      elseif nx == 2 and ny == 16 then
+        pattern_saver_glue = z == 1 and true or false
       end
     
     elseif grid_page == 2 then
@@ -854,25 +720,28 @@ function grid_actions.init(x,y,z)
 
     end
     
+
     if x == 16 and y == 1 and z == 1 then
       if grid_page == 0 then
-        if not grid_alt then
+        if grid_alt then
           grid_page = 1
         else
-         
+          grid_page = 2
         end
+        last_grid_page_128 = 0
       elseif grid_page == 1 then
         if not grid_alt then
           grid_page = 2
         else
-          -- grid_page = 0
+          grid_page = last_grid_page_128
         end
       elseif grid_page == 2 then
         if not grid_alt then
           grid_page = 0
         else
-          -- grid_page = 1
+          grid_page = 1
         end
+        last_grid_page_128 = 2
       end
     end
 
