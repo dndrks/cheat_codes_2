@@ -13,10 +13,10 @@ snap.init = function()
     bank[i].snapshot_saver_active = false
     bank[i].snapshot_saver_clock = nil
     for j = 1,8 do
-      bank[i].snapshot[j] = {["pad"]= {},["saved"] = false,["rate_ramp"] = true,["rate_scaling"] = "linear"}
+      bank[i].snapshot[j] = {["pad"]= {},["saved"] = false,["rate_ramp"] = true,["rate_scaling"] = "linear"} -- maybe want rate_ramp to be bank-level????
       for k = 1,16 do
         bank[i].snapshot[j].pad[k] = {}
-        bank[i].snapshot[j].pad[k].rate_restore = true
+        bank[i].snapshot[j].pad[k].rate_restore = true 
         bank[i].snapshot[j].pad[k].offset_restore = true
         bank[i].snapshot[j].pad[k].fifth_restore = true
         bank[i].snapshot[j].pad[k].start_point_restore = true
