@@ -6,7 +6,10 @@ snap.init = function()
   for i = 1,3 do
     bank[i].snapshot = {{},{},{},{},{},{},{},{}}
     bank[i].snapshot_fnl_active = false
+    bank[i].snapshot_fnl_canceled = false
     bank[i].active_snapshot = 0
+    bank[i].restore_mod = false
+    bank[i].restore_mod_index = 1
     bank[i].snapshot_saver_active = false
     bank[i].snapshot_saver_clock = nil
     for j = 1,8 do
@@ -25,6 +28,7 @@ snap.init = function()
         bank[i].snapshot[j].pad[k].pan_restore = true
         bank[i].snapshot[j].pad[k].tilt_restore = true
       end
+      bank[i].snapshot[j].restore_times = {["beats"] = {1,2,4,8,16,32,64,128}, ["time"] = {1,2,4,8,16,32,64,128}, ["mode"] = "beats"}
     end
   end
 end
@@ -47,6 +51,7 @@ snap.capture = function(b,slot)
     shot.pad[i].tilt = params:get("filter tilt "..b)
   end
   shot.saved = true
+  bank[b].active_snapshot = slot
 end
 
 snap.clear = function(b,slot)
@@ -66,6 +71,9 @@ snap.clear = function(b,slot)
     shot.pad[k].tilt_restore = true
   end
   shot.saved = false
+  if bank[b].active_snapshot == slot then
+    bank[b].active_snapshot = 0
+  end
 end
 
 snap.save_to_slot = function(b,slot)
@@ -87,9 +95,16 @@ snap.check_restore = function(b,slot,prm)
   
 end
 
-snap.restore = function(b,slot,sec)
-  if bank[b].active_snapshot ~= slot then
-    print("restoring snap",b,slot)
+snap.restore = function(b,slot,sec,style)
+  -- print("trying to get from "..bank[b].active_snapshot.." to "..slot, bank[b].snapshot_fnl_canceled,bank[b].snapshot.fnl_active, bank[b].restore_mod )
+  if (bank[b].active_snapshot == slot and bank[b].snapshot_fnl_canceled and bank[b].snapshot.fnl_active and bank[b].restore_mod) then
+    -- print("nahhh")
+
+  elseif (bank[b].active_snapshot ~= slot and not bank[b].snapshot_fnl_canceled)
+  or (bank[b].active_snapshot == slot and bank[b].snapshot_fnl_canceled)
+  or (bank[b].active_snapshot ~= slot and bank[b].snapshot_fnl_canceled and not bank[b].snapshot.fnl_active)
+  or (bank[b].active_snapshot ~= slot and bank[b].snapshot_fnl_canceled and bank[b].snapshot.fnl_active) then
+    -- print("restoring snap",b,slot)
     bank[b].active_snapshot = slot
     local shot = bank[b].snapshot[slot]
     local src = bank[b]
@@ -111,6 +126,17 @@ snap.restore = function(b,slot,sec)
       -- original_srcs[i].tilt = src[i].tilt
     end
     if not bank[b].snapshot.fnl_active and (sec ~= nil and sec > 0.1) then
+      
+      if style ~= nil then
+        if style == "beats" then
+          sec = clock.get_beat_sec()*sec
+        elseif style == "time" then
+          sec = sec
+        end
+      end
+
+      print(sec,style)
+
       bank[b].snapshot.fnl_active = true
       bank[b].snapshot.fnl = snap.fnl(
         function(r_val)
@@ -157,13 +183,37 @@ snap.restore = function(b,slot,sec)
       end
       -- bank[b].snapshot.fnl_active = false
       snap.snapshot_funnel_done_action(b,slot)
+      bank[b].snapshot_fnl_canceled = false
     else
       -- print("already running!!!") -- this ends up restoring from current in duration... 
       print('canceling current funnel')
       clock.cancel(bank[b].snapshot.fnl)
+      bank[b].snapshot_fnl_canceled = true
       bank[b].snapshot.fnl_active = false
-      _snap.restore(b,slot,sec)
+      snap.restore(b,slot,sec,style)
     end
+  elseif (bank[b].active_snapshot == slot and bank[b].snapshot.fnl_active) then
+  -- or (bank[b].active_snapshot ~= slot and bank[b].snapshot_fnl_canceled and bank[b].snapshot.fnl_active) then
+    print('canceling current funnel 2')
+    local shot = bank[b].snapshot[slot]
+    local src = bank[b]
+    clock.cancel(bank[b].snapshot.fnl)
+    bank[b].snapshot_fnl_canceled = true
+    bank[b].snapshot.fnl_active = false
+    src.global_level = shot.pad[1].global_level
+    for i = 1,16 do
+      src[i].start_point = shot.pad[i].start_point
+      src[i].end_point = shot.pad[i].end_point
+      params:set("filter tilt "..b,shot.pad[i].tilt)
+      if i == src.id then
+        softcut.loop_start(b+1,src[i].start_point)
+        softcut.loop_end(b+1,src[i].end_point)
+        softcut.level(b+1,src[i].level*src.global_level)
+      end
+    end
+    bank[b].active_snapshot = slot
+    -- bank[b].snapshot.fnl_active = false
+    snap.snapshot_funnel_done_action(b,slot)
   end
 end
 

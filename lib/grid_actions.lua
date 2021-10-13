@@ -500,7 +500,9 @@ function grid_actions.init(x,y,z)
         end
       end
 
-      -- SNAPSHOTS:
+    -- SNAPSHOTS:
+
+      -- save:
       if ny == 2 or ny == 7 or ny == 12 then
         local current = math.floor(ny/5)+1
         if z == 1 then
@@ -508,7 +510,12 @@ function grid_actions.init(x,y,z)
             if not bank[current].snapshot[nx].saved then
               bank[current].snapshot_saver_clock = clock.run(_snap.save_to_slot,current,nx)
             else
-              _snap.restore(current,nx)
+              local modifier, style = 0,"beats"
+              if bank[current].restore_mod then
+                modifier =  bank[current].snapshot[nx].restore_times[bank[current].snapshot[nx].restore_times.mode][bank[current].restore_mod_index]
+                style = bank[current].snapshot[nx].restore_times.mode
+              end
+              _snap.restore(current,nx,modifier,style)
             end
           else
             _snap.clear(current,nx)
@@ -517,6 +524,17 @@ function grid_actions.init(x,y,z)
           if bank[current].snapshot_saver_clock ~= nil then
             clock.cancel(bank[current].snapshot_saver_clock)
           end
+        end
+      end
+
+      -- mod_time:
+      if ny == 4 or ny == 9 or ny == 14 then
+        local current = math.floor(ny/5)+1
+        if z == 1 then
+          bank[current].restore_mod = true
+          bank[current].restore_mod_index = nx
+        elseif not grid_alt then -- don't need to filter out if z == 0 cuz it always is otherwise...
+          bank[current].restore_mod = false
         end
       end
       

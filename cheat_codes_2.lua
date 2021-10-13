@@ -4672,6 +4672,7 @@ function grid_redraw()
           for j = 1,8 do
             local current = math.floor(i/5)+1
             local led_level = bank[current].snapshot[j].saved and led_maps["slot_saved"][edition] or led_maps["slot_empty"][edition]
+            led_level = bank[current].active_snapshot == j and 15 or led_level
             g:led(_c(j,i)[1],_c(j,i)[2],led_level)
           end
         end
