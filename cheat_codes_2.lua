@@ -3034,6 +3034,7 @@ function find_the_key(t,val)
 end
 
 function cheat(b,i)
+  bank[b].currently_cheating = true
   local pad = bank[b][i]
   if all_loaded then
     mc.midi_note_from_pad(util.round(b),util.round(i))
@@ -3095,9 +3096,11 @@ function cheat(b,i)
     end
   end
   --/ OH ALL THIS SUCKS TODO FIXME
-  softcut.fade_time(b+1,variable_fade_time)
-  softcut.loop_start(b+1,pad.start_point)
-  softcut.loop_end(b+1,pad.end_point)
+  -- softcut.fade_time(b+1,variable_fade_time) -- shouldn't need to happen every time...
+  if not bank[b].snapshot_mute_while_running then
+    softcut.loop_start(b+1,pad.start_point)
+    softcut.loop_end(b+1,pad.end_point)
+  end
   softcut.buffer(b+1,pad.mode)
   if pad.pause == false then
     softcut.rate(b+1,pad.rate*pad.offset)
@@ -3192,7 +3195,7 @@ function cheat(b,i)
     local max = bank[page.loops.sel][focused_pad].end_point
     update_waveform(mode,min,max,128)
   end
-
+  bank[b].currently_cheating = false
 end
 
 function envelope(i)
