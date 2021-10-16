@@ -363,7 +363,6 @@ end
 
 function cheat_clock_synced(i)
   if quantize_events[i].bank ~= nil then
-    print("executing synced "..clock.get_beats())
     cheat(quantize_events[i].bank,quantize_events[i].pad)
     quantize_events[i] = {}
   end
@@ -2357,7 +2356,6 @@ function synced_pattern_record(target)
       table.remove(target.time_beats,1)
       target.count = #target.event
       target.end_point = target.count
-      print(target.count, target.end_point)
       for i = 1,target.count do
         target:calculate_quantum(i)
       end
@@ -5637,7 +5635,6 @@ function grid_pattern_execute(entry)
             bank[i][bank[i].id].end_point = entry.end_point
           end
         end
-        print(grid_pat[i].step)
         if rytm.track[i].k == 0 then
           -- cheat(i,bank[i].id)
           if bank[i].quantize_press == 0 or (bank[i].quantize_press == 1 and (grid_pat[i].step == 0 or grid_pat[i].step == 1)) then

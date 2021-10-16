@@ -241,7 +241,7 @@ function start_up.init()
     end)
   end
 
-  params:add_option("preview_clip_change", "preview clip changes?", {"yes","no"},1)
+  params:add_option("preview_clip_change", "preview clip changes?", {"yes","no"},2)
   params:set_action("preview_clip_change", function() if all_loaded then persistent_state_save() end end)
   params:add_option("visual_metro", "visual metronome?", {"yes","no"},2)
   params:set_action("visual_metro", function() if all_loaded then persistent_state_save() end end)

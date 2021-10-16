@@ -126,6 +126,12 @@ snap.restore = function(b,slot,sec,style)
         -- original_srcs[i].pan = src[i].pan
         -- original_srcs[i].tilt = src[i].tilt
       end
+      for i = 1,16 do
+        src[i].loop = shot.pad[i].loop
+        if i == src.id then
+          softcut.loop(b+1,src[i].loop and 1 or 0)
+        end
+      end
       if not bank[b].snapshot.fnl_active and (sec ~= nil and sec > 0.1) then
         
         if style ~= nil then
