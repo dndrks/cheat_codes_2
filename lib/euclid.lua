@@ -152,11 +152,11 @@ function euclid.toggle(state)
       clock.cancel(euclid.clock)
     end
     for target = 1,3 do
-      euclid.trig(target)
       euclid.reset[target] = true
       euclid.track[target].runner = 0
       euclid.track[target].pos = 1
       euclid.reset[target] = false
+      euclid.trig(target)
     end
     euclid.clock = clock.run(euclid.super_clock)
     screen.dirty = true

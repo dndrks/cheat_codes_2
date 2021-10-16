@@ -363,16 +363,29 @@ function delays.change_rate(target,param)
       params:set(rate[target], pre_change*0.5)
     end
   elseif param == "wobble" then
-    local bump = {params:get("delay L: rate bump"), params:get("delay R: rate bump")}
-    local wobble = bump[target] == 1 and (params:get(rate[target]) * 1.5) or (params:get(rate[target])+math.random(-75,75)/1000)
-    softcut.rate(target+4,wobble)
-    delay[target].wobble_hold = true
+    if not grid_alt then
+      local bump = {params:get("delay L: rate bump"), params:get("delay R: rate bump")}
+      local wobble = bump[target] == 1 and (params:get(rate[target]) * 1.5) or (params:get(rate[target])+math.random(-75,75)/1000)
+      softcut.rate(target+4,wobble)
+      delay[target].wobble_hold = true
+    else
+      if target == 1 then
+        softcut.query_position(6)
+      else
+        softcut.query_position(5)
+      end
+    end
   elseif param == "restore" then
-    softcut.rate(target+4,params:get(rate[target]))
-    delay[target].wobble_hold = false
+    if not grid_alt then
+      softcut.rate(target+4,params:get(rate[target]))
+      delay[target].wobble_hold = false
+    end
   end
 end
 
+function delays.reset_to_start(target)
+  softcut.position(target+4,delay[target].start_point)
+end
 
 function delays.save_delay(source)
   local dirname = _path.dust.."audio/cc2_saved-delays/"
@@ -400,11 +413,37 @@ function delays.load_delay(file,destination)
     else
       sample_length = 30
     end
-    softcut.buffer_clear_region_channel(1, 41 + (30*(destination-1)), 30)
-    softcut.buffer_read_mono(file, 0, 41 + (30*(destination-1)), 30, 1, 1)
-    local delay_name = {"delay L: ", "delay R: "}
-    params:set(delay_name[destination].."global level",0)
-    params:set(delay_name[destination].."feedback",100)
+    local function clear_and_load_delays(which,mode)
+      if mode == "mono" then
+        softcut.buffer_clear_region_channel(1, 41 + (30*(which-1)), 30)
+        softcut.buffer_read_mono(file, 0, 41 + (30*(which-1)), 30, 1, 1)
+        local delay_name = {"delay L: ", "delay R: "}
+        params:set(delay_name[which].."feedback",100)
+        params:set(delay_name[which].."mode",2)
+        params:set(delay_name[which].."free length",sample_length)
+        softcut.position(which+4,delay[which].start_point)
+      elseif mode == "stereo" then
+        local delay_name = {"delay L: ", "delay R: "}
+        params:set(delay_name[1].."feedback",100)
+        params:set(delay_name[2].."feedback",100)
+        params:set(delay_name[1].."mode",2)
+        params:set(delay_name[2].."mode",2)
+        softcut.buffer_clear_region_channel(1, 41 + (30*(1-1)), 30)
+        softcut.buffer_read_mono(file, 0, 41 + (30*(1-1)), 30, 1, 1)
+        softcut.buffer_clear_region_channel(1, 41 + (30*(2-1)), 30)
+        softcut.buffer_read_mono(file, 0, 41 + (30*(2-1)), 30, 2, 1)
+        params:set(delay_name[1].."free length",sample_length)
+        params:set(delay_name[2].."free length",sample_length)
+        softcut.position(5,delay[1].start_point)
+        softcut.position(6,delay[2].start_point)
+      end
+    end
+    if destination ~= "both" then
+      clear_and_load_delays(destination,"mono")
+    else
+      clear_and_load_delays("both","stereo")
+    end
+
   end
 
 end

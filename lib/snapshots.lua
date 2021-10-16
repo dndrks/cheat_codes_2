@@ -12,7 +12,7 @@ snap.init = function()
     bank[i].restore_mod_index = 1
     bank[i].snapshot_saver_active = false
     bank[i].snapshot_saver_clock = nil
-    for j = 1,8 do
+    for j = 1,16 do
       bank[i].snapshot[j] = {["pad"]= {},["saved"] = false,["rate_ramp"] = true,["rate_scaling"] = "linear"} -- maybe want rate_ramp to be bank-level????
       for k = 1,16 do
         bank[i].snapshot[j].pad[k] = {}
@@ -96,80 +96,111 @@ snap.check_restore = function(b,slot,prm)
 end
 
 snap.restore = function(b,slot,sec,style)
+  if bank[b].snapshot[slot].saved then
   -- print("trying to get from "..bank[b].active_snapshot.." to "..slot, bank[b].snapshot_fnl_canceled,bank[b].snapshot.fnl_active, bank[b].restore_mod )
-  if (bank[b].active_snapshot == slot and bank[b].snapshot_fnl_canceled and bank[b].snapshot.fnl_active and bank[b].restore_mod) then
-    -- print("nahhh")
+    if (bank[b].active_snapshot == slot and bank[b].snapshot_fnl_canceled and bank[b].snapshot.fnl_active and bank[b].restore_mod) then
+      -- print("nahhh")
 
-  elseif (bank[b].active_snapshot ~= slot and not bank[b].snapshot_fnl_canceled)
-  or (bank[b].active_snapshot == slot and bank[b].snapshot_fnl_canceled)
-  or (bank[b].active_snapshot ~= slot and bank[b].snapshot_fnl_canceled and not bank[b].snapshot.fnl_active)
-  or (bank[b].active_snapshot ~= slot and bank[b].snapshot_fnl_canceled and bank[b].snapshot.fnl_active) then
-    -- print("restoring snap",b,slot)
-    bank[b].active_snapshot = slot
-    local shot = bank[b].snapshot[slot]
-    local src = bank[b]
-    local original_srcs = {}
-    for i = 1,16 do
-      original_srcs[i] = {}
-      for j = 1,#restorable_params do
-        -- print(src[i][restorable_params[j]])
-        original_srcs[i][restorable_params[j]] = src[i][restorable_params[j]]
-      end
-      original_srcs[i].global_level = src.global_level
-      -- original_srcs[i].rate = src[i].rate
-      -- original_srcs[i].fifth = src[i].fifth
-      -- original_srcs[i].loop = src[i].loop
-      -- original_srcs[i].mode = src[i].mode
-      -- original_srcs[i].clip = src[i].clip
-      -- original_srcs[i].level = src[i].level
-      -- original_srcs[i].pan = src[i].pan
-      -- original_srcs[i].tilt = src[i].tilt
-    end
-    if not bank[b].snapshot.fnl_active and (sec ~= nil and sec > 0.1) then
-      
-      if style ~= nil then
-        if style == "beats" then
-          sec = clock.get_beat_sec()*sec
-        elseif style == "time" then
-          sec = sec
+    elseif (bank[b].active_snapshot ~= slot and not bank[b].snapshot_fnl_canceled)
+    or (bank[b].active_snapshot == slot and bank[b].snapshot_fnl_canceled)
+    or (bank[b].active_snapshot ~= slot and bank[b].snapshot_fnl_canceled and not bank[b].snapshot.fnl_active)
+    or (bank[b].active_snapshot ~= slot and bank[b].snapshot_fnl_canceled and bank[b].snapshot.fnl_active) then
+      -- print("restoring snap",b,slot)
+      bank[b].active_snapshot = slot
+      local shot = bank[b].snapshot[slot]
+      local src = bank[b]
+      local original_srcs = {}
+      for i = 1,16 do
+        original_srcs[i] = {}
+        for j = 1,#restorable_params do
+          -- print(src[i][restorable_params[j]])
+          original_srcs[i][restorable_params[j]] = src[i][restorable_params[j]]
         end
+        original_srcs[i].global_level = src.global_level
+        -- original_srcs[i].rate = src[i].rate
+        -- original_srcs[i].fifth = src[i].fifth
+        -- original_srcs[i].loop = src[i].loop
+        -- original_srcs[i].mode = src[i].mode
+        -- original_srcs[i].clip = src[i].clip
+        -- original_srcs[i].level = src[i].level
+        -- original_srcs[i].pan = src[i].pan
+        -- original_srcs[i].tilt = src[i].tilt
       end
+      if not bank[b].snapshot.fnl_active and (sec ~= nil and sec > 0.1) then
+        
+        if style ~= nil then
+          if style == "beats" then
+            sec = clock.get_beat_sec()*sec
+          elseif style == "time" then
+            sec = sec
+          end
+        end
 
-      print(sec,style)
+        print(sec,style)
 
-      bank[b].snapshot.fnl_active = true
-      bank[b].snapshot.fnl = snap.fnl(
-        function(r_val)
-          bank[b].snapshot.current_value = r_val
-          src.global_level = util.linlin(0,1,original_srcs[1].global_level,shot.pad[1].global_level,r_val)
-          for i = 1,16 do
-            src[i].start_point = util.linlin(0,1,original_srcs[i].start_point,shot.pad[i].start_point,r_val)
-            src[i].end_point = util.linlin(0,1,original_srcs[i].end_point,shot.pad[i].end_point,r_val)
-            params:set("filter tilt "..b,util.linlin(0,1,original_srcs[i].tilt,shot.pad[i].tilt,r_val))
-            if shot.rate_ramp then
-              src[i].rate = util.linlin(0,1,original_srcs[i].rate,shot.pad[i].rate,easingFunctions[shot.rate_scaling](r_val,0,1,1))
-            end
-            if i == src.id then
-              bank[b].snapshot_mute_while_running = true
-              if src[i].loop then
-                softcut.loop_start(b+1,src[i].start_point)
-                softcut.loop_end(b+1,src[i].end_point)
-              end
-              softcut.level(b+1,src[i].level*src.global_level)
+        bank[b].snapshot.fnl_active = true
+        bank[b].snapshot.fnl = snap.fnl(
+          function(r_val)
+            bank[b].snapshot.current_value = r_val
+            src.global_level = util.linlin(0,1,original_srcs[1].global_level,shot.pad[1].global_level,r_val)
+            for i = 1,16 do
+              src[i].start_point = util.linlin(0,1,original_srcs[i].start_point,shot.pad[i].start_point,r_val)
+              src[i].end_point = util.linlin(0,1,original_srcs[i].end_point,shot.pad[i].end_point,r_val)
+              params:set("filter tilt "..b,util.linlin(0,1,original_srcs[i].tilt,shot.pad[i].tilt,r_val))
               if shot.rate_ramp then
-                softcut.rate(b+1,src[i].rate*src[i].offset)
+                src[i].rate = util.linlin(0,1,original_srcs[i].rate,shot.pad[i].rate,easingFunctions[shot.rate_scaling](r_val,0,1,1))
               end
-              bank[b].snapshot_mute_while_running = false
+              if i == src.id then
+                bank[b].snapshot_mute_while_running = true
+                if src[i].loop then
+                  softcut.loop_start(b+1,src[i].start_point)
+                  softcut.loop_end(b+1,src[i].end_point)
+                end
+                softcut.level(b+1,src[i].level*src.global_level)
+                if shot.rate_ramp then
+                  softcut.rate(b+1,src[i].rate*src[i].offset)
+                end
+                bank[b].snapshot_mute_while_running = false
+              end
             end
+            if bank[b].snapshot.current_value ~= nil and util.round(bank[b].snapshot.current_value,0.001) == 1 then
+              snap.snapshot_funnel_done_action(b,slot)
+            end
+          end,
+          0,
+          {{1,sec}}
+        )
+      elseif not bank[b].snapshot.fnl_active and (sec == nil or sec == 0) then
+        src.global_level = shot.pad[1].global_level
+        for i = 1,16 do
+          src[i].start_point = shot.pad[i].start_point
+          src[i].end_point = shot.pad[i].end_point
+          params:set("filter tilt "..b,shot.pad[i].tilt)
+          if i == src.id then
+            softcut.loop_start(b+1,src[i].start_point)
+            softcut.loop_end(b+1,src[i].end_point)
+            softcut.level(b+1,src[i].level*src.global_level)
           end
-          if bank[b].snapshot.current_value ~= nil and util.round(bank[b].snapshot.current_value,0.001) == 1 then
-            snap.snapshot_funnel_done_action(b,slot)
-          end
-        end,
-        0,
-        {{1,sec}}
-      )
-    elseif not bank[b].snapshot.fnl_active and (sec == nil or sec == 0) then
+        end
+        -- bank[b].snapshot.fnl_active = false
+        snap.snapshot_funnel_done_action(b,slot)
+        bank[b].snapshot_fnl_canceled = false
+      else
+        -- print("already running!!!") -- this ends up restoring from current in duration... 
+        print('canceling current funnel')
+        clock.cancel(bank[b].snapshot.fnl)
+        bank[b].snapshot_fnl_canceled = true
+        bank[b].snapshot.fnl_active = false
+        snap.restore(b,slot,sec,style)
+      end
+    elseif (bank[b].active_snapshot == slot and bank[b].snapshot.fnl_active) then
+    -- or (bank[b].active_snapshot ~= slot and bank[b].snapshot_fnl_canceled and bank[b].snapshot.fnl_active) then
+      print('canceling current funnel 2')
+      local shot = bank[b].snapshot[slot]
+      local src = bank[b]
+      clock.cancel(bank[b].snapshot.fnl)
+      bank[b].snapshot_fnl_canceled = true
+      bank[b].snapshot.fnl_active = false
       src.global_level = shot.pad[1].global_level
       for i = 1,16 do
         src[i].start_point = shot.pad[i].start_point
@@ -181,39 +212,10 @@ snap.restore = function(b,slot,sec,style)
           softcut.level(b+1,src[i].level*src.global_level)
         end
       end
+      bank[b].active_snapshot = slot
       -- bank[b].snapshot.fnl_active = false
       snap.snapshot_funnel_done_action(b,slot)
-      bank[b].snapshot_fnl_canceled = false
-    else
-      -- print("already running!!!") -- this ends up restoring from current in duration... 
-      print('canceling current funnel')
-      clock.cancel(bank[b].snapshot.fnl)
-      bank[b].snapshot_fnl_canceled = true
-      bank[b].snapshot.fnl_active = false
-      snap.restore(b,slot,sec,style)
     end
-  elseif (bank[b].active_snapshot == slot and bank[b].snapshot.fnl_active) then
-  -- or (bank[b].active_snapshot ~= slot and bank[b].snapshot_fnl_canceled and bank[b].snapshot.fnl_active) then
-    print('canceling current funnel 2')
-    local shot = bank[b].snapshot[slot]
-    local src = bank[b]
-    clock.cancel(bank[b].snapshot.fnl)
-    bank[b].snapshot_fnl_canceled = true
-    bank[b].snapshot.fnl_active = false
-    src.global_level = shot.pad[1].global_level
-    for i = 1,16 do
-      src[i].start_point = shot.pad[i].start_point
-      src[i].end_point = shot.pad[i].end_point
-      params:set("filter tilt "..b,shot.pad[i].tilt)
-      if i == src.id then
-        softcut.loop_start(b+1,src[i].start_point)
-        softcut.loop_end(b+1,src[i].end_point)
-        softcut.level(b+1,src[i].level*src.global_level)
-      end
-    end
-    bank[b].active_snapshot = slot
-    -- bank[b].snapshot.fnl_active = false
-    snap.snapshot_funnel_done_action(b,slot)
   end
 end
 

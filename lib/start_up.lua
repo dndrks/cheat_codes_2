@@ -33,10 +33,24 @@ function start_up.init()
     clock.sleep(0.25)
     softcut.rec(1, 1)
   end)
+  -- softcut.phase_quant(5, 0.01)
+  -- softcut.phase_quant(6, 0.01)
   
   softcut.event_phase(phase)
   softcut.poll_start_phase()
   softcut.event_render(on_render)
+
+  returns_position = function(n,x)
+    if n == 6 then
+      softcut.position(5,x-30)
+    elseif n == 5 then
+      softcut.position(6,x+30)
+    end
+  end
+
+  softcut.event_position(returns_position,n)
+  -- softcut.query_position(5)
+  -- softcut.query_position(6)
   
   softcut.level(5,1)
   softcut.pan(5,-1)
@@ -746,6 +760,8 @@ params:add_separator("ALT key")
   params:set_action("load_left_delay", function(file) del.load_delay(file,1) end)
   params:add_file("load_right_delay", "load R delay <--")
   params:set_action("load_right_delay", function(file) del.load_delay(file,2) end)
+  params:add_file("load_both_delays", "~~load both delays~~")
+  params:set_action("load_both_delays", function(file) del.load_delay(file,"both") end)
   
   
   for i = 4,5 do

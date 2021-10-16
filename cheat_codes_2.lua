@@ -363,6 +363,7 @@ end
 
 function cheat_clock_synced(i)
   if quantize_events[i].bank ~= nil then
+    print("executing synced "..clock.get_beats())
     cheat(quantize_events[i].bank,quantize_events[i].pad)
     quantize_events[i] = {}
   end
@@ -509,11 +510,11 @@ function random_grid_pat(which,mode)
       constructed.id = auto_pat == 1 and math.random(1,16) or snakes[auto_pat-1][i]
       local assigning_pad = bank[which][constructed.id]
       local new_rates = 
-      { [1] = math.pow(2,math.random(-3,-1))*((math.random(1,2)*2)-3)
-      , [2] = math.pow(2,math.random(-1,1))*((math.random(1,2)*2)-3)
-      , [3] = math.pow(2,math.random(1,2))*((math.random(1,2)*2)-3)
-      , [4] = math.pow(2,math.random(-2,2))*((math.random(1,2)*2)-3)
-      , [5] = assigning_pad.rate
+      { [1] = assigning_pad.rate
+      , [2] = math.pow(2,math.random(-3,-1))*((math.random(1,2)*2)-3)
+      , [3] = math.pow(2,math.random(-1,1))*((math.random(1,2)*2)-3)
+      , [4] = math.pow(2,math.random(1,2))*((math.random(1,2)*2)-3)
+      , [5] = math.pow(2,math.random(-2,2))*((math.random(1,2)*2)-3)
       }
       constructed.rate = new_rates[pattern.random_pitch_range]
       local pre_rate = assigning_pad.rate
@@ -853,6 +854,7 @@ function init()
 
   type_of_pattern_loaded = {"grid","grid","grid"}
   loading_arp_from_grid = {nil,nil,nil}
+  loading_euclid_from_grid = {nil,nil,nil}
   loading_free_from_grid = {nil,nil,nil}
   
   engine.release(0.1)
@@ -918,7 +920,7 @@ function init()
     rec[i].queued = false
   end
 
-  params:add_group("GRID/ARC",6)
+  params:add_group("GRID/ARC",7)
   params:add_option("LED_style","grid LED style",{"varibright","4-step","grayscale"},1)
   params:set_action("LED_style",
   function()
@@ -938,6 +940,7 @@ function init()
       persistent_state_save()
     end
   end)
+  params:add_option("128_orientation","128 orientation",{"vertical","horizontal"},1)
   params:add_option("vert rotation", "vert rotation",{"usb on top","usb on bottom"},1)
   params:set_action("vert rotation",
   function(x)
@@ -1072,7 +1075,7 @@ function init()
     grid_pat[i].auto_snap = 0
     grid_pat[i].quantize = 0
     grid_pat[i].playmode = 1
-    grid_pat[i].random_pitch_range = 5
+    grid_pat[i].random_pitch_range = 1
     grid_pat[i].rec_clock_time = 8
   end
   
@@ -1196,7 +1199,9 @@ function init()
   
   grid_page = 0
   grid_page_64 = 0
+  grid_page_128_horizontal = 0
   bank_64 = 1
+  bank_128 = 1
   
   page = {}
   page.loops = {}
@@ -1616,6 +1621,7 @@ function init()
         -- local i = received_ch
             if d.note ~= nil and i ~= nil then
               if d.note >= params:get("bank_"..i.."_pad_midi_base") and d.note <= params:get("bank_"..i.."_pad_midi_base") + (not midi_alt and 15 or 22) then
+                -- print(d.note,params:get("bank_"..i.."_pad_midi_base"))
                 if not midi_alt then
                   if d.type == "note_on" then
                     mc.cheat(i,d.note-(params:get("bank_"..i.."_pad_midi_base")-1))
@@ -1640,6 +1646,7 @@ function init()
                   end
                 end
               elseif d.note == params:get("bank_"..i.."_pad_midi_base") + 23 then
+                -- print(i.."why midi note alt??")
                 if d.type == "note_on" then
                   midi_alt = true
                 else
@@ -1928,7 +1935,7 @@ function init()
     midi_pat[i].auto_snap = 0
     midi_pat[i].quantize = 0
     midi_pat[i].playmode = 1
-    midi_pat[i].random_pitch_range = 5
+    midi_pat[i].random_pitch_range = 1
     midi_pat[i].clock_time = 4
     midi_pat[i].rec_clock_time = 8
     midi_pat[i].first_touch = false
@@ -2152,6 +2159,7 @@ function alt_synced_loop(target,state,style,mod_table)
     end
     if style == "delayed_load" then
       load_pattern(mod_table[1],mod_table[2])
+      print("delayed load...")
     end
     local name_to_id = {"grid_pat[1]","grid_pat[2]","grid_pat[3]"}
     
@@ -2182,10 +2190,11 @@ function alt_synced_loop(target,state,style,mod_table)
         arp[tab.key(name_to_id,target.name)].playing = false
       end
       target:start()
+      print("starting from alt sync "..clock.get_beats())
       target.synced_loop_runner = 1
       -- print("alt_synced",clock.get_beats(),target)
       while true do
-        clock.sync(1/4)
+        clock.sync(1/4,1/128)
         if target.synced_loop_runner == target.rec_clock_time * 4 then
           target.synced_loop_runner = 1
           -- print(clock.get_beats(), target.synced_loop_runner)
@@ -2198,13 +2207,19 @@ function alt_synced_loop(target,state,style,mod_table)
           end
           if target.loop == 1 then
             -- clear_arps_from_pattern_restart(target.event[target.count].i)
+            -- print("!!"..song_atoms.bank[tab.key(name_to_id,target.name)].lane[song_atoms.bank[tab.key(name_to_id,target.name)].current]["arp"].target, song_atoms.bank[tab.key(name_to_id,target.name)].runner)
+            -- if song_atoms.bank[tab.key(name_to_id,target.name)].lane[song_atoms.bank[tab.key(name_to_id,target.name)].current]["arp"].target == -1 then
+            --   print("heyyy should stop yeah??")
+            -- end
             target:start()
-            -- print("and then start...")
+            print("and then start "..clock.get_beats())
           end
         else
           target.synced_loop_runner =  target.synced_loop_runner + 1
         end
       end
+    elseif type_of_pattern_loaded[tab.key(name_to_id,target.name)] == "euclid" then
+      print("hi alt euclid!!")
     end
 
 
@@ -2264,7 +2279,7 @@ function start_pattern(target,start_type,style,mod_table)
     if target.playmode == 2 then
       if target.clock ~= nil then clock.cancel(target.clock) end
       -- print(mod_table,style,style == nil,(style ~= nil and "delayed_load" or nil))
-      print("...."..style)
+      print("...."..(style ~= nil and style or ""))
       target.clock = clock.run(alt_synced_loop, target, start_type ~= nil and start_type or "restart",(style ~= nil and "delayed_load" or nil),(mod_table ~= nil and mod_table or nil))
     else
       local name_to_id = {"grid_pat[1]","grid_pat[2]","grid_pat[3]"}
@@ -2300,7 +2315,7 @@ end
 function synced_record_start(target,i)
   --midi_pat[i].sync_hold = true
   target.sync_hold = true
-  clock.sync(4,-1/16)
+  clock.sync(4,-1/8)
   --midi_pat[i]:rec_start()
   target:rec_start()
   --midi_pat[i].sync_hold = false
@@ -2314,7 +2329,7 @@ function synced_record_start(target,i)
 end
 
 function synced_pattern_record(target)
-  clock.sleep((clock.get_beat_sec()*target.rec_clock_time)+ (clock.get_beat_sec()*1/16))
+  clock.sleep((clock.get_beat_sec()*target.rec_clock_time)+ (clock.get_beat_sec()*1/8))
   if target.rec_clock ~= nil then
     target:rec_stop()
     -- if target is a grid pat, should do all the grid pat thing:
@@ -2347,7 +2362,13 @@ function synced_pattern_record(target)
         target:calculate_quantum(i)
       end
     end
-    target.time[1] = target.time[1] - (clock.get_beat_sec()*1/16)
+    target.time[1] = target.time[1] - (clock.get_beat_sec()*1/8)
+    local ideal = clock.get_beat_sec()*target.rec_clock_time
+    local butts = 0
+    for i = 1,target.count do
+      butts = butts + target.time[i]
+    end
+    target.time[#target.time] = target.time[#target.time] + (ideal - butts)
     if target.count > 0 then -- just in case the recording was canceled...
       --target:start()
       print("started first run..."..clock.get_beats())
@@ -2419,11 +2440,11 @@ function random_midi_pat(target)
     constructed.target = target
     local assigning_pad = bank[target][constructed.note]
     local new_rates = 
-    { [1] = math.pow(2,math.random(-3,-1))*((math.random(1,2)*2)-3)
-    , [2] = math.pow(2,math.random(-1,1))*((math.random(1,2)*2)-3)
-    , [3] = math.pow(2,math.random(1,2))*((math.random(1,2)*2)-3)
-    , [4] = math.pow(2,math.random(-2,2))*((math.random(1,2)*2)-3)
-    , [5] = assigning_pad.rate
+    { [1] = assigning_pad.rate
+    , [2] = math.pow(2,math.random(-3,-1))*((math.random(1,2)*2)-3)
+    , [3] = math.pow(2,math.random(-1,1))*((math.random(1,2)*2)-3)
+    , [4] = math.pow(2,math.random(1,2))*((math.random(1,2)*2)-3)
+    , [5] = math.pow(2,math.random(-2,2))*((math.random(1,2)*2)-3)
     }
     assigning_pad.rate = new_rates[pattern.random_pitch_range]
     local new_levels = 
@@ -2453,7 +2474,7 @@ end
 
 function pad_clock()
   while true do
-    clock.sync(1/4)
+    clock.sync(1/4,-1/1028)
     for i = 1,3 do
       cheat_clock_synced(i)
     end
@@ -4488,12 +4509,12 @@ end
 function grid_redraw()
   -- if g.device ~= nil then
   if get_grid_connected() then
-    if params:string("grid_size") == "128" then
+    if params:string("grid_size") == "128" and params:string("128_orientation") == "vertical" then
       g:all(0)
       local edition = params:get("LED_style")
       
       if grid_page == 0 then
-        
+
         for j = 0,2 do
           for k = 1,4 do
             k = k+(5*j)
@@ -4654,7 +4675,7 @@ function grid_redraw()
         elseif rec[rec.focus].clear == 1 then
           g:led(16,8-rec.focus,rec[rec.focus].queued and 9 or led_maps["live_empty"][edition])
         end
-      
+
       elseif grid_page == 1 then
         
         -- if we're on page 2...
@@ -4676,9 +4697,25 @@ function grid_redraw()
             g:led(_c(j,i)[1],_c(j,i)[2],led_level)
           end
         end
+
+        for i = 3,13,5 do
+          for j = 1,8 do
+            local current = math.floor(i/5)+1
+            local led_level = bank[current].snapshot[j+8].saved and led_maps["slot_saved"][edition] or led_maps["slot_empty"][edition]
+            led_level = bank[current].active_snapshot == j+8 and 15 or led_level
+            g:led(_c(j,i)[1],_c(j,i)[2],led_level)
+          end
+        end
+
+        for i = 4,14,5 do
+          local current = math.floor(i/5)+1
+          local led_level = bank[current].restore_mod and 15 or 0
+          g:led(_c(bank[current].restore_mod_index,i)[1],_c(bank[current].restore_mod_index,i)[2],led_level)
+        end
         
         g:led(16,8,grid_alt and led_maps["alt_on"][edition] or led_maps["alt_off"][edition])
-        g:led(16,2,grid_loop_mod == 1 and led_maps["loop_mod_hi"][edition] or led_maps["loop_mod_lo"][edition])
+        g:led(16,2,transport.is_running and led_maps["loop_mod_hi"][edition] or led_maps["loop_mod_lo"][edition])
+        g:led(16,3, params:get("metronome_audio_state") == 2 and led_maps["loop_mod_hi"][edition] or led_maps["loop_mod_lo"][edition])
       
       elseif grid_page == 2 then
         -- delay page!
@@ -4896,10 +4933,338 @@ function grid_redraw()
       if grid_page ~= nil then
         g:led(16,1,led_maps["page_led"][grid_page+1][edition])
       end
-      
-      g:refresh()
 
-    --64 grid / grid 64
+    -- horizontal 128 grid:
+    elseif params:string("grid_size") == "128" and params:string("128_orientation") == "horizontal" then
+      g:all(0)
+      local edition = params:get("LED_style")
+      
+      for x = 1,3 do
+        g:led(x,1,x == bank_128 and 15 or 4)
+      end
+
+      --arc recorders
+      local a_p; -- this will index the arc encoder recorders
+      if arc_param[bank_128] == 1 or arc_param[bank_128] == 2 or arc_param[bank_128] == 3 then
+        a_p = 1
+      else
+        a_p = arc_param[bank_128] - 2
+      end
+      if arc_pat[bank_128][a_p].rec == 1 then
+        g:led(8,3,led_maps["arc_rec_rec"][edition])
+      elseif arc_pat[bank_128][a_p].play == 1 then
+        g:led(8,3,led_maps["arc_rec_play"][edition])
+      elseif arc_pat[bank_128][a_p].count > 0 then
+        g:led(8,3,led_maps["arc_rec_pause"][edition])
+      else
+        g:led(8,3,led_maps["arc_rec_off"][edition])
+      end
+
+        --main playable grid
+      for x = 1,4 do
+        for y = 4,7 do
+          g:led(x,y,led_maps["square_off"][edition])
+        end
+      end
+
+      --zilchmos
+      for x = 5,8 do
+        g:led(x,8,zilch_leds[4][bank_128][x-4] == 1 and led_maps["zilchmo_on"][edition] or led_maps["zilchmo_off"][edition])
+      end
+
+      for x = 6,8 do
+        g:led(x,7,zilch_leds[3][bank_128][x-5] == 1 and led_maps["zilchmo_on"][edition] or led_maps["zilchmo_off"][edition])
+      end
+
+      --pattern rec
+      local target = grid_pat[bank_128]
+      if target.rec == 1 then
+        if edition == 3 then
+          g:led(8,5,(15*target.led))
+        else
+          g:led(8,5,(9*target.led))
+        end
+      elseif (target.quantize == 0 and target.play == 1) or (target.quantize == 1 and target.tightened_start == 1) then
+        if target.overdub == 0 then
+          g:led(8,5,9)
+        else
+          g:led(8,5,15)
+        end
+      elseif target.count > 0 then
+        g:led(8,5,5)
+      else
+        g:led(8,5,3)
+      end
+      
+      --arc rec
+      -- local a_p; -- this will index the arc encoder recorders
+      -- if arc_param[bank_128] == 1 or arc_param[bank_128] == 2 or arc_param[bank_128] == 3 then
+      --   a_p = 1
+      -- else
+      --   a_p = arc_param[bank_128] - 2
+      -- end
+      -- if arc_pat[bank_128][a_p].rec == 1 then
+      --   g:led(7,8,led_maps["arc_rec_rec"][edition])
+      -- elseif arc_pat[bank_128][a_p].play == 1 then
+      --   g:led(7,8,led_maps["arc_rec_play"][edition])
+      -- elseif arc_pat[bank_128][a_p].count > 0 then
+      --   g:led(7,8,led_maps["arc_rec_pause"][edition])
+      -- else
+      --   g:led(7,8,led_maps["arc_rec_off"][edition])
+      -- end
+      
+      -- arc control
+      if a.device ~= nil then
+        g:led(6,2,arc_param[bank_128] == 1 and led_maps["arc_param_show"][edition] or 0)
+        g:led(7,2,arc_param[bank_128] == 2 and led_maps["arc_param_show"][edition] or 0)
+        g:led(8,2,arc_param[bank_128] == 3 and led_maps["arc_param_show"][edition] or 0)
+        if arc_param[bank_128] == 4 then
+          for x = 6,8 do
+            g:led(x,2,led_maps["arc_param_show"][edition])
+          end
+        elseif arc_param[bank_128] == 5 then
+          g:led(6,2,led_maps["arc_param_show"][edition])
+          g:led(7,2,led_maps["arc_param_show"][edition])
+        elseif arc_param[bank_128] == 6 then
+          g:led(7,2,led_maps["arc_param_show"][edition])
+          g:led(8,2,led_maps["arc_param_show"][edition])
+        end
+      end
+      
+      --4x4 pads
+      if bank[bank_128].focus_hold == false then
+        local x_64 = (9-selected[bank_128].y)
+        local y_64 = selected[bank_128].x - (5*(bank_128-1))
+        g:led(x_64, y_64+3, led_maps["square_selected"][edition])
+        if bank[bank_128][bank[bank_128].id].pause == true then
+          g:led(8,6,led_maps["pad_pause"][edition])
+          g:led(7,6,led_maps["pad_pause"][edition])
+        else
+          g:led(7,6,zilch_leds[2][bank_128][1] == 1 and led_maps["zilchmo_on"][edition] or led_maps["zilchmo_off"][edition])
+          g:led(8,6,zilch_leds[2][bank_128][2] == 1 and led_maps["zilchmo_on"][edition] or led_maps["zilchmo_off"][edition])
+        end
+      else
+        local x_64 = (9-selected[bank_128].y)
+        local y_64 = selected[bank_128].x - (5*(bank_128-1))
+        local focus_x_64 = bank[bank_128].focus_pad - (4*(math.ceil(bank[bank_128].focus_pad/4)-1))
+        local focus_y_64 = math.ceil(bank[bank_128].focus_pad/4)
+        g:led(x_64, y_64+3, led_maps["square_dim"][edition])
+        g:led(focus_x_64, focus_y_64+3, led_maps["square_selected"][edition])
+        if bank[bank_128][bank[bank_128].focus_pad].pause == true then
+          g:led(8,6,led_maps["square_selected"][edition])
+          g:led(7,6,led_maps["square_selected"][edition])
+        else
+          g:led(7,6,led_maps["square_off"][edition])
+          g:led(8,6,led_maps["square_off"][edition])
+        end
+      end
+      
+      -- crow pad execute
+      if bank[bank_128].focus_hold then
+        g:led(5,7,(10*bank[bank_128][bank[bank_128].focus_pad].crow_pad_execute)+5)
+      end
+      local alt = bank[bank_128].alt_lock and 1 or 0
+      g:led(4,8,15*alt)
+      
+      -- for i,e in pairs(lit) do
+      --   g:led(e.x, e.y,led_maps["zilchmo_on"][edition])
+      -- end
+      
+      --alt
+      g:led(1,8,(grid_alt and led_maps["alt_on"][edition] or led_maps["alt_off"][edition]))
+        
+      local focused = bank[bank_128].focus_hold == false and bank[bank_128][bank[bank_128].id] or bank[bank_128][bank[bank_128].focus_pad]
+      --clips + stuff
+      g:led(focused.clip+4,4,led_maps["clip"][edition])
+      g:led(focused.mode+4,5,led_maps["mode"][edition])
+      g:led(8,4,bank[bank_128].focus_hold == false and led_maps["off"][edition] or led_maps["focus_on"][edition])
+      if focused.loop == false then
+        g:led(5,6,led_maps["loop_off"][edition])
+      elseif focused.loop == true then
+        g:led(5,6,led_maps["loop_on"][edition])
+      end
+      if not arp[bank_128].enabled then
+        g:led(6,6,led_maps["off"][edition])
+      else
+        if arp[bank_128].playing and arp[bank_128].hold then
+          g:led(6,6,led_maps["arp_play"][edition])
+        elseif arp[bank_128].hold then
+          g:led(6,6,led_maps["arp_pause"][edition])
+        else
+          g:led(6,6,led_maps["arp_on"][edition])
+        end
+      end
+      
+      -- Live buffers
+      if rec[rec.focus].clear == 0 then
+        g:led(rec.focus,2,rec[rec.focus].state == 1 and led_maps["live_rec"][edition] or (rec[rec.focus].queued and 15 or led_maps["live_pause"][edition]))
+      elseif rec[rec.focus].clear == 1 then
+        g:led(rec.focus,2,rec[rec.focus].queued and 9 or led_maps["live_empty"][edition])
+      end
+
+      if grid_page_128_horizontal == 0 then
+        for i = 1,5 do
+          g:led(16,i+2,delay[2].selected_bundle == i and 15 or (delay_bundle[2][i].saved == true and led_maps["bundle_saved"][edition] or 0))
+          g:led(9,i+2,delay[1].selected_bundle == i and 15 or (delay_bundle[1][i].saved == true and led_maps["bundle_saved"][edition] or 0))
+        end
+
+        for i = 1,3 do
+          g:led(10,i,bank[i][bank[i].id].left_delay_level > 0 and led_maps["64_bank_send"][edition] or 0)
+          g:led(15,i,bank[i][bank[i].id].right_delay_level > 0 and led_maps["64_bank_send"][edition] or 0)
+        end
+
+        g:led(10,4,params:get("delay L: external input") > 0 and led_maps["64_bank_send"][edition] or 0)
+        g:led(15,4,params:get("delay R: external input") > 0 and led_maps["64_bank_send"][edition] or 0)
+
+        -- delay time modifiers
+        local time_to_led = {{},{},{},{}}
+        local time = {delay[1].modifier, delay[2].modifier}
+        for i = 1,2 do
+          time_to_led[i] = 0
+          time_to_led[i+2] = 0
+          if time[i] == 0.5 then
+            time_to_led[i+2] = led_maps["time_to_led.5"][edition]
+          elseif time[i] == 0.25 then
+            time_to_led[i+2] = led_maps["time_to_led.25"][edition]
+          elseif time[i] == 0.125 then
+            time_to_led[i+2] = led_maps["time_to_led.125"][edition]
+          elseif time[i] == 2 then
+            time_to_led[i] = led_maps["time_to_led2"][edition]
+          elseif time[i] == 4 then
+            time_to_led[i] = led_maps["time_to_led4"][edition]
+          elseif time[i] == 8 then
+            time_to_led[i] = led_maps["time_to_led8"][edition]
+          elseif time[i] == 16 then
+            time_to_led[i] = led_maps["time_to_led16"][edition]
+          end
+        end
+        g:led(14,1,time_to_led[2])
+        g:led(14,2,time_to_led[4])
+        g:led(11,1,time_to_led[1])
+        g:led(11,2,time_to_led[3])
+        g:led(14,3,delay[2].reverse and led_maps["reverse_on"][edition] or led_maps["reverse_off"][edition])
+        g:led(11,3,delay[1].reverse and led_maps["reverse_on"][edition] or led_maps["reverse_off"][edition])
+
+        rate_to_led = {{},{},{},{}}
+        local rate = {params:get("delay L: rate"), params:get("delay R: rate")}
+        for i = 1,2 do
+          rate_to_led[i] = 0
+          rate_to_led[i+2] = 0
+          for j = 1,24 do
+            if math.modf(rate[i]) >= j then
+              rate_to_led[i] = math.modf(util.linlin(0,24,3,15,j))
+            end
+          end
+          for j = 0.25,1,0.05 do
+            if rate[i] >= j then
+              rate_to_led[i+2] = math.modf(util.linlin(0.25,1,15,0,j))
+            end
+          end
+          if rate[i] == 1 then
+            rate_to_led[i+2] = 3
+          end
+        end
+        g:led(13,1,rate_to_led[2])
+        g:led(13,2,rate_to_led[4])
+        g:led(13,3,delay[2].wobble_hold and led_maps["wobble_on"][edition] or led_maps["wobble_off"][edition])
+        g:led(12,1,rate_to_led[1])
+        g:led(12,2,rate_to_led[3])
+        g:led(12,3,delay[1].wobble_hold and led_maps["wobble_on"][edition] or led_maps["wobble_off"][edition])
+        
+        -- delay levels
+        local level_to_led = {{},{}}
+        local delay_level = {params:get("delay L: global level"), params:get("delay R: global level")}
+        for i = 1,2 do
+          if delay_level[i] <= 0.125 then
+            level_to_led[i] = 0
+          elseif delay_level[i] <= 0.375 then
+            level_to_led[i] = 1
+          elseif delay_level[i] <= 0.625 then
+            level_to_led[i] = 2
+          elseif delay_level[i] <= 0.875 then
+            level_to_led[i] = 3
+          elseif delay_level[i] <= 1 then
+            level_to_led[i] = 4
+          end
+        end
+        for i = 8,4,-1 do
+          g:led(11,i,led_maps["level_lo"][edition])
+          g:led(14,i,led_maps["level_lo"][edition])
+        end
+        for i = 1,2 do
+          if not delay[i].level_mute then
+            for j = 8,4+(4-level_to_led[i]),-1 do
+              g:led(i==1 and 11 or 14,j,led_maps["level_hi"][edition])
+            end
+          else
+            if params:get(i == 1 and "delay L: global level" or "delay R: global level") == 0 then
+              for j = 8,4,-1 do
+                g:led(i==1 and 11 or 14,j,led_maps["level_hi"][edition])
+              end
+            end
+          end
+        end
+
+        -- feedback levels
+        local feed_to_led = {{},{}}
+        local feedback_level = {params:get("delay L: feedback"), params:get("delay R: feedback")}
+        for i = 1,2 do
+          if feedback_level[i] <= 12.5 then
+            feed_to_led[i] = 0
+          elseif feedback_level[i] <= 37.5 then
+            feed_to_led[i] = 1
+          elseif feedback_level[i] <= 62.5 then
+            feed_to_led[i] = 2
+          elseif feedback_level[i] <= 87.5 then
+            feed_to_led[i] = 3
+          elseif feedback_level[i] <= 100 then
+            feed_to_led[i] = 4
+          end
+        end
+        for i = 8,4,-1 do
+          g:led(12,i,led_maps["level_lo"][edition])
+          g:led(13,i,led_maps["level_lo"][edition])
+        end
+        for i = 1,2 do
+          if not delay[i].feedback_mute then
+            for j = 8,4+(4-feed_to_led[i]),-1 do
+              g:led(i==1 and 12 or 13,j,led_maps["level_hi"][edition])
+            end
+          else
+            if params:get(i == 1 and "delay L: feedback" or "delay R: feedback") == 0 then
+              for j = 8,4,-1 do
+                g:led(i==1 and 12 or 13,j,led_maps["level_hi"][edition])
+              end
+            end
+          end
+        end
+      elseif grid_page_128_horizontal == 1 then
+        for i = 9,16 do
+          for j = 1,3 do
+            if pattern_saver[j].saved[i] == 1 then
+              if params:string("LED_style") == "grayscale" then
+                g:led(i,j,15)
+              else
+                g:led(i,j,8)
+              end
+            else
+              g:led(i,j,4)
+            end
+            if pattern_saver[j].load_slot == i then
+              if params:string("LED_style") == "grayscale" then
+                g:led(i,j,show_me_grid_blink and 15 or 0)
+              else
+                g:led(i,j,15)
+              end
+            end
+          end
+        end
+        for i = 1,3 do
+          g:led(8+i,8,params:get("bank level "..i) > 0 and 15 or 0)
+        end
+      end
+
+    -- 64 grid
     elseif params:string("grid_size") == "64" then
       g:all(0)
       local edition = params:get("LED_style")
@@ -5238,9 +5603,9 @@ function grid_redraw()
         end
       end
       
-      g:refresh()
     end
   end
+  g:refresh()
 end
 --/GRID
 
@@ -5272,9 +5637,10 @@ function grid_pattern_execute(entry)
             bank[i][bank[i].id].end_point = entry.end_point
           end
         end
+        print(grid_pat[i].step)
         if rytm.track[i].k == 0 then
           -- cheat(i,bank[i].id)
-          if bank[i].quantize_press == 0 then
+          if bank[i].quantize_press == 0 or (bank[i].quantize_press == 1 and (grid_pat[i].step == 0 or grid_pat[i].step == 1)) then
             cheat(i, bank[i].id)
           else
             quantize_events[i] = {["bank"] = i, ["pad"] = bank[i].id}
@@ -5791,6 +6157,7 @@ function named_savestate(text)
     for i = 1,3 do
       io.write("pattern_"..i.."_playmode: "..grid_pat[i].playmode.."\n")
       io.write("pattern_"..i.."_rec_clock_time: "..grid_pat[i].rec_clock_time.."\n")
+      io.write("pattern_"..i.."_random_pitch_range: "..grid_pat[i].random_pitch_range.."\n")
     end
     io.close(file)
   end
@@ -5997,6 +6364,10 @@ function named_loadstate(path)
           if rec_clock_time ~= nil then
             grid_pat[i].rec_clock_time = rec_clock_time
           end
+          local random_pitch_range = tonumber(string.match(io.read(), ': (.*)'))
+          if random_pitch_range ~= nil then
+            grid_pat[i].random_pitch_range = random_pitch_range
+          end
         end
       end
       io.close(file)
@@ -6069,6 +6440,13 @@ function quick_save_pattern(i)
       g:led(math.floor((i-1)*5)+1,9-pattern_saver[i].save_slot,15)
     end
     -- g:refresh()
+  elseif rytm.track[i].k > 0 then
+    save_pattern(i,pattern_saver[i].save_slot+8*(i-1),"euclid")
+    pattern_saver[i].saved[pattern_saver[i].save_slot] = 1
+    pattern_saver[i].load_slot = pattern_saver[i].save_slot
+    if params:string("grid_size") == "128" then
+      g:led(math.floor((i-1)*5)+1,9-pattern_saver[i].save_slot,15)
+    end
   else
     print("no pattern data to save")
     if params:string("grid_size") == "128" then
@@ -6127,9 +6505,13 @@ function test_load(slot,destination,source)
     else
       -- print("test_load is running...",slot,destination,source,pattern_saver[destination].saved[slot-((destination-1)*8)])
       if source ~= "from_grid" then
+        print("this hsould load fine...")
         load_pattern(slot,destination)
-        start_pattern(grid_pat[destination],"jumpstart")
-      elseif params:string("launch_quantization") == "next beat" and source == "from_grid" and type_of_pattern_loaded[destination] ~= "arp" then
+        if type_of_pattern_loaded[destination] ~= "euclid" then
+          start_pattern(grid_pat[destination],"jumpstart")
+        end
+        print("loading "..clock.get_beats())
+      elseif params:string("launch_quantization") == "next beat" and source == "from_grid" and type_of_pattern_loaded[destination] ~= "arp" and type_of_pattern_loaded[destination] ~= "euclid" then
         -- print("going to start_pattern")
         start_pattern(grid_pat[destination],"restart","delayed_load",{slot,destination})
       elseif params:string("launch_quantization") == "free" then
@@ -6176,6 +6558,23 @@ function test_load(slot,destination,source)
               if arp[destination].mode == "pend" then
                 arp_direction[destination] = "negative"
               end
+            else
+              start_pattern(grid_pat[destination],"jumpstart")
+            end
+          end
+        )
+      elseif type_of_pattern_loaded[destination] == "euclid" and source == "from_grid" then
+        print("hi euclid!")
+        if loading_euclid_from_grid[destination] ~= nil then
+          clock.cancel(loading_euclid_from_grid[destination])
+        end
+        loading_euclid_from_grid[destination] = 
+        clock.run(
+          function()
+            clock.sync(1)
+            load_pattern(slot,destination)
+            if type_of_pattern_loaded[destination] == "euclid" then
+             
             else
               start_pattern(grid_pat[destination],"jumpstart")
             end
@@ -6285,6 +6684,22 @@ function save_pattern(source,slot,style)
   elseif style == "arp" then
     tab.save(arp[source],_path.data .. "cheat_codes_2/collection-"..selected_coll.."/patterns/"..slot..".data")
     print("saved arp "..source.." to slot "..slot)
+  elseif style == "euclid" then
+    io.write("stored euclid pattern: collection "..selected_coll.." + slot "..slot.."\n")
+    io.write("auto_pad_offset: "..rytm.track[source].auto_pad_offset.."\n")
+    io.write("k: "..rytm.track[source].k.."\n")
+    io.write("clock_div: "..rytm.track[source].clock_div.."\n")
+    io.write("pad_offset: "..rytm.track[source].pad_offset.."\n")
+    io.write("auto_rotation: "..rytm.track[source].auto_rotation.."\n")
+    io.write("n: "..rytm.track[source].n.."\n")
+    io.write("mode: "..rytm.track[source].mode.."\n")
+    io.write("rotation: "..rytm.track[source].rotation.."\n")
+    io.write("steps: "..#rytm.track[source].s.."\n")
+    for i = 1,#rytm.track[source].s do
+      io.write(i..": "..tostring(rytm.track[source].s[i]).."\n")
+    end
+    io.close(file)
+    print("saved euclid "..source.." to slot "..slot)
   end
 end
 
@@ -6475,7 +6890,8 @@ function load_pattern(slot,destination,print_also)
   local file = io.open(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/patterns/"..slot..".data", "r")
   if file then
     io.input(file)
-    if io.read() == "stored pad pattern: collection "..selected_coll.." + slot "..slot then
+    local first_line = io.read()
+    if first_line == "stored pad pattern: collection "..selected_coll.." + slot "..slot then
       -- print("loading grid pat")
       type_of_pattern_loaded[destination] = "grid"
       grid_pat[destination].event = {}
@@ -6597,6 +7013,25 @@ function load_pattern(slot,destination,print_also)
       grid_pat[destination].loop = pattern_saver[destination].loop[slot-(8*(destination-1))] and 1 or 0
       -- print("hello!"..grid_pat[destination].loop)
       --/new stuff, quantum and time_beats!
+    elseif first_line == "stored euclid pattern: collection "..selected_coll.." + slot "..slot then
+      type_of_pattern_loaded[destination] = "euclid"
+      for i = 1,8 do
+        local str = io.read()
+        local param,val = str:match("(.+): (.+)")
+        if param ~= "mode" then
+          rytm.track[destination][param] = tonumber(val)
+        else
+          rytm.track[destination][param] = tostring(val)
+        end
+      end
+      local throw_away = io.read()
+      local throwaway_steps,iters = throw_away:match("(.+): (.+)")
+      for i = 1,tonumber(iters) do
+        local str = io.read()
+        local param,val = str:match("(.+): (.+)")
+        rytm.track[destination].s[i] = val == "true" and true or false
+      end
+      ignore_external_timing = true
     else
       type_of_pattern_loaded[destination] = "arp"
       -- print("it's an arp!")
@@ -6612,6 +7047,7 @@ function load_pattern(slot,destination,print_also)
       print("see load_external_timing")
       -- load_external_timing(destination,slot)
     end
+    screen_dirty = true
   else
     print("no grid patterns to load!")
   end

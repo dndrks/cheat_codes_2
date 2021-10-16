@@ -207,13 +207,14 @@ end
 --- start this pattern
 function pattern:start()
   --if self.count > 0 then
+  print("this is me starting "..clock.get_beats())
   if self.count > 0 and self.rec == 0 then
     --print("start pattern ")
     if self.mode == "unquantized" then
       self.prev_time = util.time()
+      self.step = self.start_point
       self.process(self.event[self.start_point])
       self.play = 1
-      self.step = self.start_point
       self.metro.time = self.time[self.start_point] * self.time_factor
       self.metro:start()
     else
@@ -343,7 +344,7 @@ function pattern:restore_defaults()
     self.auto_snap = 0
     self.quantize = 0
     self.playmode = 1
-    self.random_pitch_range = 5
+    self.random_pitch_range = 1
     self.rec_clock_time = 8
     self.first_touch = false
   end

@@ -110,6 +110,7 @@ function tp.start()
   tp.start_clock = nil
   tp.pending = false
   viz_metro_advance = 1
+  _song.start()
 end
 
 function tp.start_from_midi_message()
@@ -137,6 +138,7 @@ function tp.start_from_midi_message()
   grid_dirty = true
   tp.start_clock = nil
   tp.pending = false
+  _song.start()
 end
 
 function tp.start_midi()
@@ -185,9 +187,9 @@ function tp.stop()
     if grid_pat[i].clock ~= nil then
       clock.cancel(grid_pat[i].clock)
     end
-    -- rytm.toggle("stop",i)
   end
   rytm.toggle("stop")
+  _song.stop()
   tp.stop_midi()
   if tp.midi_out_clocks ~= nil then
     clock.cancel(tp.midi_out_clocks)
@@ -219,6 +221,7 @@ function tp.stop_from_midi_message()
     -- rytm.toggle("stop",i)
   end
   rytm.toggle("stop")
+  _song.stop()
   if params:string("crow output 4") == "transport gate" then
     crow.output[4].volts = 0.0
   elseif params:string("crow output 4") == "transport pulse" then
@@ -265,6 +268,7 @@ function tp.crow_toggle_now()
     grid_dirty = true
     tp.start_clock = nil
     tp.pending = false
+    _song.start()
   end
 end
 
