@@ -5980,6 +5980,7 @@ function persistent_state_restore()
   if params:get("cut_input_adc") == -inf then
     params:set("cut_input_adc",0)
   end
+  metro.free(metro_persistent_state_restore.props.id)
 end
 
 function named_overwrite(path)

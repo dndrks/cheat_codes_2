@@ -110,6 +110,7 @@ function tp.start()
   tp.start_clock = nil
   tp.pending = false
   viz_metro_advance = 1
+  macros.reset_phase()
   _song.start()
 end
 
@@ -138,6 +139,7 @@ function tp.start_from_midi_message()
   grid_dirty = true
   tp.start_clock = nil
   tp.pending = false
+  macros.reset_phase()
   _song.start()
 end
 
@@ -268,6 +270,7 @@ function tp.crow_toggle_now()
     grid_dirty = true
     tp.start_clock = nil
     tp.pending = false
+    macros.reset_phase()
     _song.start()
   end
 end

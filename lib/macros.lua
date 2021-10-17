@@ -5,7 +5,42 @@ local Macro = {}
 Container.delay_rates = {0.25,0.5,1,2,4,8,16}
 Container.pad_rates = {-4,-2,-1,-0.5,-0.25,-0.125,0.125,0.25,0.5,1,2,4}
 Container.default_pad_rate = 1
+Container.lfos = {"macro 1","macro 2","macro 3","macro 4","macro 5","macro 6","macro 7","macro 8"}
+Container.NUM_LFOS = 8
+Container.LFO_MIN_TIME = 1 -- Secs
+Container.LFO_MAX_TIME = 60 * 60 * 24
+Container.LFO_UPDATE_FREQ = 128
+Container.LFO_RESOLUTION = 128 -- MIDI CC resolution
 --/ user-replaceable tables!
+Container.lfo_freqs = {}
+Container.lfo_progress = {}
+Container.lfo_values = {}
+
+function Container.update_freqs()
+  for i = 1, Container.NUM_LFOS do
+    Container.lfo_freqs[i] = 1 / util.linexp(1, Container.NUM_LFOS, 1, 1, i)
+  end
+end
+
+function Container.reset_phase()
+  for i = 1, Container.NUM_LFOS do
+    Container.lfo_progress[i] = math.pi * 1.5
+  end
+end
+
+function Container.lfo_update()
+  local delta = (1 / Container.LFO_UPDATE_FREQ) * 2 * math.pi
+  for i = 1, Container.NUM_LFOS do
+    Container.lfo_progress[i] = Container.lfo_progress[i] + delta * Container.lfo_freqs[i]
+    local value = util.round(util.linlin(-1, 1, 0, Container.LFO_RESOLUTION - 1, math.sin(Container.lfo_progress[i])))
+    if value ~= Container.lfo_values[i] then
+      Container.lfo_values[i] = value
+      params:set("macro "..i, value)
+      screen_dirty = true
+    end
+  end
+end
+
 
 function Container:new_macro(args)
   local ind = Macro:new()
@@ -493,11 +528,36 @@ function Container.key(n,z)
 end
 
 function Container:add_params()
-  params:add_group("macros",8)
+  params:add_group("macros",56)
   for i = 1,8 do
-    params:add_number("macro "..i, "macro "..i, 0,127,0)
+    params:add_separator("macro "..i)
+    params:add_number("macro "..i, "macro "..i.." current value", 0,127,0)
     params:set_action("macro "..i, function(x) if all_loaded then macro[i]:pass_value(x) end end)
+    params:add_option("lfo_macro "..i,"macro "..i.." lfo",{"off","on"},1)
+    params:set_action("lfo_macro "..i,function(x)
+      -- self:refresh_params()
+    end)
+    params:add_number("lfolo_macro "..i, "lfo lo", 0, 127, 0)
+    params:add_number("lfohi_macro "..i, "lfo lo", 0, 127, 127)
+   
+    params:add {
+      type='control',
+      id="lfoperiod_macro "..i,
+      name="lfo period",
+      controlspec=controlspec.new(0,60,'lin',0.1,math.random(1,60),'s',0.1/60)
+    }
+
+    params:add {
+      type='control',
+      id="lfoperiod_macro "..i,
+      name="lfo phase",
+      controlspec=controlspec.new(0,3,'lin',0.01,math.random(1,300)/100,'s',0.01/3)
+    }
   end
+  macros.reset_phase()
+  macros.update_freqs()
+  macros.lfo_update()
+  metro.init(macros.lfo_update, 1 / macros.LFO_UPDATE_FREQ):start()
 end
 
 function Container:convert(prm,trg,indx,controlspec_type)
@@ -627,6 +687,5 @@ function Container.UI()
   end
 
 end
-
 
 return Container
