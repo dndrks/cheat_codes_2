@@ -5,16 +5,18 @@ local Macro = {}
 Container.delay_rates = {0.25,0.5,1,2,4,8,16}
 Container.pad_rates = {-4,-2,-1,-0.5,-0.25,-0.125,0.125,0.25,0.5,1,2,4}
 Container.default_pad_rate = 1
+--/ user-replaceable tables!
 Container.lfos = {"macro 1","macro 2","macro 3","macro 4","macro 5","macro 6","macro 7","macro 8"}
 Container.NUM_LFOS = 8
 Container.LFO_MIN_TIME = 1 -- Secs
 Container.LFO_MAX_TIME = 60 * 60 * 24
 Container.LFO_UPDATE_FREQ = 128
 Container.LFO_RESOLUTION = 128 -- MIDI CC resolution
---/ user-replaceable tables!
 Container.lfo_freqs = {}
 Container.lfo_progress = {}
 Container.lfo_values = {}
+
+local lfo_rates = {1/4,5/16,1/3,3/8,1/2,3/4,1,1.5,2,3,4,6,8,16,32,64,128,256,512,1024}
 
 function Container.update_freqs()
   for i = 1, Container.NUM_LFOS do
@@ -22,9 +24,13 @@ function Container.update_freqs()
   end
 end
 
-function Container.reset_phase()
-  for i = 1, Container.NUM_LFOS do
-    Container.lfo_progress[i] = math.pi * 1.5
+function Container.reset_phase(which)
+  if which == nil then
+    for i = 1, Container.NUM_LFOS do
+      Container.lfo_progress[i] = math.pi * 1.5
+    end
+  else
+    Container.lfo_progress[which] = math.pi * 1.5
   end
 end
 
@@ -35,10 +41,21 @@ function Container.lfo_update()
     local value = util.round(util.linlin(-1, 1, 0, Container.LFO_RESOLUTION - 1, math.sin(Container.lfo_progress[i])))
     if value ~= Container.lfo_values[i] then
       Container.lfo_values[i] = value
-      params:set("macro "..i, value)
-      screen_dirty = true
+      if params:string("lfo_macro "..i) == "on" then
+        if params:string("lfo_shape_macro "..i) == "sine" then
+          params:set("macro "..i, value)
+        elseif params:string("lfo_shape_macro "..i) == "square" then
+          params:set("macro "..i, value >= 63 and 127 or 0)
+        elseif params:string("lfo_shape_macro "..i) == "random" then
+          local comparator = value >= 63 and 127 or 0
+          if value == 0 or value == 127 then
+            params:set("macro "..i, math.random(0,127))
+          end
+        end
+      end
     end
   end
+  screen_dirty = true
 end
 
 
@@ -213,6 +230,16 @@ default_vals =
   , target = 1
   , curve = "linear"
   }
+, ["rec_live_"] =
+  {
+    params_name = "rec_live_"
+  , enabled = false
+  , destructive = true
+  , min = 0
+  , max = 1
+  , target = 1
+  , curve = "linear"
+  }
 , ["macro"] =
   {
     params_name = "macro"
@@ -353,17 +380,28 @@ function Macro:pass_value(val)
           local target = m[i].target
           -- local name = m[i].params_name..(m[i].destructive and (" ".. target) or (" non-destructive "..target))
           local name;
-          if string.find(m[i].params_name, "w/") == nil then
-            name = m[i].params_name..(m[i].destructive and (" ".. target) or (" non-destructive "..target))
-          else
+          if string.find(m[i].params_name, "w/") ~= nil then
             name = m[i].params_name
+          elseif string.find(m[i].params_name, "rec_live_") ~= nil then
+            name = m[i].params_name..target
+          elseif string.find(m[i].params_name, "pan_lfo_rate_") ~= nil then
+            name = m[i].params_name..target
+          elseif string.find(m[i].params_name, "level_lfo_rate_") ~= nil then
+            name = m[i].params_name..target
+          else
+            name = m[i].params_name..(m[i].destructive and (" ".. target) or (" non-destructive "..target))
           end
           local min = m[i].min
           local max = m[i].max
           local eased_val = easingFunctions[m[i].curve](val/self.in_max,self.in_min,self.in_max,1)
           local new_val = util.linlin(self.in_min,self.in_max,min,max,eased_val)
           if m[i].destructive then
-            params:set(name,new_val)
+            if m[i].params_name ~= "filter dynamic freq" then
+              params:set(name,new_val)
+              if menu == 5 then screen_dirty = true end
+            else
+              params:set(name,eased_val > 64 and 1 or 0)
+            end
           else
             params:set(name.." non-destructive")
           end
@@ -411,6 +449,7 @@ local parameter_names =
 , "delay free time"
 , "delay rate"
 , "delay pan"
+, "rec_live_"
 , "macro"
 , "w/curve"
 , "w/ramp"
@@ -436,12 +475,12 @@ function Macro:cycle_entry(d,id)
     macro[p.selected_macro]:delta_target(p.param_sel[p.selected_macro],d)
   elseif id == 3 then
     local current = macro[p.selected_macro].params[p.param_sel[p.selected_macro]]
-    local params_with_fine = {"pan","filter tilt","delay pan"}
+    local params_with_fine = {"pan","filter tilt","delay pan","delay free time"}
     local div = tab.contains(params_with_fine,current.params_name) and 10 or 1
     macro[p.selected_macro]:delta_min(p.param_sel[p.selected_macro],d,div)
   elseif id ==  4 then
     local current = macro[p.selected_macro].params[p.param_sel[p.selected_macro]]
-    local params_with_fine = {"pan","filter tilt","delay pan"}
+    local params_with_fine = {"pan","filter tilt","delay pan","delay free time"}
     local div = tab.contains(params_with_fine,current.params_name) and 10 or 1
     macro[p.selected_macro]:delta_max(p.param_sel[p.selected_macro],d,div)
   elseif id == 5 then
@@ -457,27 +496,38 @@ function Container.enc(n,d)
     p.selected_macro = util.clamp(p.selected_macro+d,1,8)
   elseif n == 2 then
     if page.macros.mode == "setup" then
-      if p.section == 1 then
-        p.param_sel[p.selected_macro] = util.clamp(p.param_sel[p.selected_macro] + d,1,8)
-        p.edit_focus[p.selected_macro] = 1
-      elseif p.section == 2 then
-        if macro[p.selected_macro].params[p.param_sel[p.selected_macro]].params_name ~= "none" then
-          p.edit_focus[p.selected_macro] = util.clamp(p.edit_focus[p.selected_macro] + d,1,5)
-        end
-      elseif p.section == 3 then
-        macro[p.selected_macro].params[p.param_sel[p.selected_macro]].enabled = d > 0 and true or false
-      end
+      local reasonable_max = macro[p.selected_macro].params[p.param_sel[p.selected_macro]].params_name ~= "none" and 7 or 2
+      p.edit_focus[p.selected_macro] = util.clamp(p.edit_focus[p.selected_macro] + d,1,reasonable_max)
+    elseif page.macros.mode == "perform" then
+      p.perform_focus[p.selected_macro] = util.clamp(p.perform_focus[p.selected_macro] + d,1,5)
     end
   elseif n == 3 then
     if page.macros.mode == "perform" then
-      params:delta("macro "..p.selected_macro,d)
+      if p.perform_focus[p.selected_macro] == 1 then
+        params:delta("macro "..p.selected_macro,d)
+      else
+        local f = p.perform_focus[p.selected_macro]-1
+        local params_to_adjust =
+        {
+          "lfo_macro "..p.selected_macro,
+          "lfo_shape_macro "..p.selected_macro,
+          "lfo_mode_macro "..p.selected_macro,
+          "lfo_rate_macro "..p.selected_macro,
+        }
+        if params:string("lfo_mode_macro "..p.selected_macro) == "beats" then
+          params_to_adjust[4] = "lfo_beats_macro "..p.selected_macro
+        else
+          params_to_adjust[4] = "lfo_free_macro "..p.selected_macro
+        end
+        params:delta(params_to_adjust[f],d)
+      end
     elseif page.macros.mode == "setup" then
-      if p.section == 1 then
+      if p.edit_focus[p.selected_macro] == 1 then
         p.param_sel[p.selected_macro] = util.clamp(p.param_sel[p.selected_macro] + d,1,8)
         p.edit_focus[p.selected_macro] = 1
-      elseif p.section == 2 then
-        macro[p.selected_macro]:cycle_entry(d,current_line)
-      elseif p.section == 3 then
+      elseif p.edit_focus[p.selected_macro] > 1 and p.edit_focus[p.selected_macro] < 7  then
+        macro[p.selected_macro]:cycle_entry(d,p.edit_focus[p.selected_macro]-1)
+      elseif p.edit_focus[p.selected_macro] == 7  then
         macro[p.selected_macro].params[p.param_sel[p.selected_macro]].enabled = d > 0 and true or false
       end
     end
@@ -490,7 +540,9 @@ function Container.key(n,z)
   local p = page.macros
   if n == 1 then
     key1_hold = z == 1 and true or false
+    -- page.macros.alt_menu = z == 1 and true or false
     if z == 1 then
+      page.macros.mode = page.macros.mode == "setup" and "perform" or "setup"
       if p.mode == "setup" then
         last_section = p.section
         p.section = 3
@@ -502,12 +554,14 @@ function Container.key(n,z)
     end
   elseif n == 3 and z == 1 then
     if key1_hold then
-      page.macros.mode = page.macros.mode == "setup" and "perform" or "setup"
+      -- page.macros.mode = page.macros.mode == "setup" and "perform" or "setup"
     else
       if p.mode == "setup" then
-        p.section = util.wrap(p.section+1,1,2)
+        -- p.section = wrap(p.section+1,1,2)
       elseif p.mode == "perform" then
-        params:set("macro "..p.selected_macro,math.random(macro[p.selected_macro].in_min,macro[p.selected_macro].in_max))
+        if p.perform_focus[p.selected_macro] == 1 then
+          params:set("macro "..p.selected_macro,math.random(macro[p.selected_macro].in_min,macro[p.selected_macro].in_max))
+        end
       end
     end
   elseif n == 2 and z == 1 then
@@ -528,7 +582,7 @@ function Container.key(n,z)
 end
 
 function Container:add_params()
-  params:add_group("macros",56)
+  params:add_group("macros",8*8)
   for i = 1,8 do
     params:add_separator("macro "..i)
     params:add_number("macro "..i, "macro "..i.." current value", 0,127,0)
@@ -537,22 +591,44 @@ function Container:add_params()
     params:set_action("lfo_macro "..i,function(x)
       -- self:refresh_params()
     end)
-    params:add_number("lfolo_macro "..i, "lfo lo", 0, 127, 0)
-    params:add_number("lfohi_macro "..i, "lfo lo", 0, 127, 127)
-   
+    params:add_option("lfo_mode_macro "..i, "lfo mode", {"beats","free"},1)
+    params:set_action("lfo_mode_macro "..i,
+      function(x)
+        if x == 1 then
+          params:hide("lfo_free_macro "..i)
+          params:show("lfo_beats_macro "..i)
+        elseif x == 2 then
+          params:hide("lfo_beats_macro "..i)
+          params:show("lfo_free_macro "..i)
+        end
+        _menu.rebuild_params()
+      end
+      )
+    params:add_option("lfo_beats_macro "..i, "lfo rate", {"1/4","5/16","1/3","3/8","1/2","3/4","1","1.5","2","3","4","6","8","16","32","64","128","256","512","1024"},7)
+    params:set_action("lfo_beats_macro "..i,
+      function(x)
+        if params:string("lfo_mode_macro "..i) == "beats" then
+          Container.lfo_freqs[i] = 1/(clock.get_beat_sec() * lfo_rates[x])
+        end
+      end
+    )
     params:add {
       type='control',
-      id="lfoperiod_macro "..i,
-      name="lfo period",
-      controlspec=controlspec.new(0,60,'lin',0.1,math.random(1,60),'s',0.1/60)
+      id="lfo_free_macro "..i,
+      name="lfo rate",
+      controlspec=controlspec.new(0.001,1,'lin',0.001,0.05,'hz',0.01)
     }
-
-    params:add {
-      type='control',
-      id="lfoperiod_macro "..i,
-      name="lfo phase",
-      controlspec=controlspec.new(0,3,'lin',0.01,math.random(1,300)/100,'s',0.01/3)
-    }
+    params:set_action("lfo_free_macro "..i,
+      function(x)
+        if params:string("lfo_mode_macro "..i) == "free" then
+          Container.lfo_freqs[i] = x
+        end
+      end
+    )
+    params:add_option("lfo_shape_macro "..i, "lfo shape", {"sine","square","random"},1)
+    params:add_trigger("lfo_reset_macro "..i, "reset lfo")
+    params:set_action("lfo_reset_macro "..i, function(x) Container.reset_phase(i) end)
+    params:hide("lfo_free_macro "..i)
   end
   macros.reset_phase()
   macros.update_freqs()
@@ -566,7 +642,11 @@ function Container:convert(prm,trg,indx,controlspec_type)
   if lookup_name ~= "none" then
     local id;
     if string.find(lookup_name,"w/") == nil then
-      id = params.lookup[lookup_name.." "..trg]
+      if string.find(lookup_name,"rec_live") == nil and string.find(lookup_name,"pan_lfo_rate_") == nil and string.find(lookup_name,"level_lfo_rate_") == nil then
+        id = params.lookup[lookup_name.." "..trg]
+      else
+        id = params.lookup[lookup_name..trg]
+      end
     else
       id = params.lookup[lookup_name]
     end
@@ -584,6 +664,12 @@ function Container:convert(prm,trg,indx,controlspec_type)
       elseif controlspec_type == "maxval" then
         -- return prm.max
         return tonumber(string.format("%.4g",util.round(prm.max,0.1)))
+      end
+    elseif params.params[id].t == 9 then
+      if controlspec_type == "minval" then
+        return 0
+      elseif controlspec_type == "maxval" then
+        return 1
       end
     end
   elseif lookup_name == "none" then
@@ -606,8 +692,25 @@ function get_target_display_name(prm,trg)
     end
   elseif string.find(prm,"w/")~= nil then
     return "w/synth"
+  elseif string.find(prm,"rec_live_")~= nil then
+    return "live "..trg
   else
     return bank_names[trg]
+  end
+end
+
+function Container.UI_init()
+  page.macros = {}
+  page.macros.selected_macro = 1
+  page.macros.section = 1
+  page.macros.param_sel = {}
+  page.macros.edit_focus = {}
+  page.macros.perform_focus = {}
+  page.macros.mode = "setup"
+  for i = 1,8 do
+    page.macros.param_sel[i] = 1
+    page.macros.edit_focus[i] = 1
+    page.macros.perform_focus[i] = 1
   end
 end
 
@@ -634,14 +737,15 @@ function Container.UI()
     screen.move(0,20)
     screen.level(3)
 
-    screen.level(p.section == 1 and 15 or 3)
+    local current = macro[p.selected_macro].params[p.param_sel[p.selected_macro]]
+    local edit_focus = p.edit_focus[p.selected_macro] -- this is key!
+    screen.level(edit_focus == 1 and 15 or 3)
     screen.font_size(40)
     screen.move(0,42)
     screen.text(p.param_sel[p.selected_macro])
-    local current = macro[p.selected_macro].params[p.param_sel[p.selected_macro]]
-    local edit_focus = p.edit_focus[p.selected_macro] -- this is key!
+
     screen.font_size(8)
-    screen.level(p.section == 3 and 15 or 3)
+    screen.level(edit_focus == 7 and 15 or 3)
     screen.rect(0,54,128,7)
     screen.fill()
     screen.level(0)
@@ -653,37 +757,67 @@ function Container.UI()
     screen.level(3)
     screen.font_size(8)
     screen.move(30,21)
-    screen.level(p.section == 2 and (edit_focus == 1 and 15 or 3) or 3)
-    screen.text("param: "..current.params_name)
+    screen.level(edit_focus == 2 and 15 or 3)
+    local special_cases =
+      {
+        ["rec_live_"] = "live rec toggle",
+        ["pan_lfo_rate_"] = "pan LFO rate",
+        ["level_lfo_rate_"] = "level LFO rate",
+        ["filter dynamic freq"] = "filter dyn freq"
+      }
+    local display_name = special_cases[current.params_name] ~= nil and special_cases[current.params_name] or current.params_name
+    -- local display_name = current.params_name ~= "rec_live_" and current.params_name or "live rec toggle"
+    screen.text("param: "..display_name)
 
     screen.move(30,31)
-    screen.level(p.section == 2 and (edit_focus == 2 and 15 or 3) or 3)
+    screen.level(edit_focus == 3 and 15 or 3)
     -- screen.text("target: "..(current.params_name == "macro" and "macro "..current.target or (current.params_name == "none" and "-" or bank_names[current.target])))
     -- screen.text("target: "..current.target)
     screen.text("target: "..get_target_display_name(current.params_name,current.target))
 
     screen.move(30,41)
-    screen.level(p.section == 2 and (edit_focus == 3 and 15 or 3) or 3)
+    screen.level(edit_focus == 4 and 15 or 3)
     screen.text("min: "..Container:convert(current,current.target,current.min,"minval"))
     screen.move_rel(5,0)
-    screen.level(p.section == 2 and (edit_focus == 4 and 15 or 3) or 3)
+    screen.level(edit_focus == 5 and 15 or 3)
     screen.text("max: "..Container:convert(current,current.target,current.max,"maxval"))
 
     screen.move(30,51)
-    screen.level(p.section == 2 and (edit_focus == 5 and 15 or 3) or 3)
+    screen.level(edit_focus == 6 and 15 or 3)
     screen.text("curve: "..current.curve)
   
   elseif p.mode == "perform" then
-    screen.rect(0,18,128,13)
+    local current = macro[p.selected_macro].params[p.param_sel[p.selected_macro]]
+    local edit_focus = p.perform_focus[p.selected_macro]
+    screen.level(edit_focus == 1 and 15 or 3)
+    screen.rect(0,18,66,13)
     screen.fill()
-    screen.level(0)
-    screen.move(60,30)
+    screen.level(edit_focus == 1 and 0 or 10)
+    screen.move(33,30)
     screen.font_size(18)
-    screen.text_center("current val")
-    screen.level(15)
-    screen.move(60,60)
+    screen.text_center("value")
+    screen.level(edit_focus == 1 and 15 or 3)
+    screen.move(33,60)
     screen.font_size(40)
     screen.text_center(util.round(params:get("macro "..p.selected_macro)))
+    local lfo_section =
+    {
+      "LFO: "..(params:string("lfo_macro "..p.selected_macro)),
+      "SHP: "..(params:string("lfo_shape_macro "..p.selected_macro)),
+      -- "DPTH: "..macro[p.selected_macro].lfo.depth,
+      "MODE: "..(params:string("lfo_mode_macro "..p.selected_macro)),
+      "RATE: "..(
+        params:string("lfo_mode_macro "..p.selected_macro) == "beats" and 
+          params:get("lfo_beats_macro "..p.selected_macro) or
+          params:get("lfo_free_macro "..p.selected_macro)
+        )
+    }
+    screen.font_size(8)
+    for i = 1,#lfo_section do
+      screen.level(edit_focus == i + 1 and 15 or 3)
+      screen.move(75,15+(10*i))
+      screen.text(lfo_section[i])
+    end
   end
 
 end

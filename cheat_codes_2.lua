@@ -1275,16 +1275,18 @@ function init()
   page.midi_focus = "header"
   page.midi_bank = 1
 
-  page.macros = {}
-  page.macros.selected_macro = 1
-  page.macros.section = 1
-  page.macros.param_sel = {}
-  page.macros.edit_focus = {}
-  page.macros.mode = "setup"
-  for i = 1,8 do
-    page.macros.param_sel[i] = 1
-    page.macros.edit_focus[i] = 1
-  end
+  -- page.macros = {}
+  -- page.macros.selected_macro = 1
+  -- page.macros.section = 1
+  -- page.macros.param_sel = {}
+  -- page.macros.edit_focus = {}
+  -- page.macros.mode = "setup"
+  -- for i = 1,8 do
+  --   page.macros.param_sel[i] = 1
+  --   page.macros.edit_focus[i] = 1
+  -- end
+
+  macros.UI_init()
 
   page.transport = {}
   page.transport.foci = {"TRANSPORT","TAP","CLICK"}
