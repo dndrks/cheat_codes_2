@@ -436,6 +436,18 @@ function start_up.init()
     )
   end
 
+  params:add_group("snapshots",3*7)
+
+  for i = 1,3 do
+    params:add_separator(banks[i]..": restore values")
+    params:add_option("snapshot_restore_rate "..i,"rate",{"no","yes"},2)
+    params:add_option("snapshot_restore_start_point "..i,"start point",{"no","yes"},2)
+    params:add_option("snapshot_restore_end_point "..i,"end point",{"no","yes"},2)
+    params:add_option("snapshot_restore_level "..i,"level",{"no","yes"},2)
+    params:add_option("snapshot_restore_pan "..i,"pan",{"no","yes"},2)
+    params:add_option("snapshot_restore_filter "..i,"filter tilt",{"no","yes"},2)
+  end
+
   params:add_group("mappable control",99)
 
   params:add_separator("save MIDI mappings")
@@ -656,8 +668,9 @@ params:add_separator("ALT key")
       end
       screen_dirty = true
     end)
-    params:add_control("pan slew "..i,"pan slew "..banks[i], controlspec.new(0.01,200.,'lin',0.01,0.1))
-    params:set_action("pan slew "..i, function(x) softcut.pan_slew_time(i+1,x) end)
+    params:add_control("pan slew "..i,"pan slew "..banks[i], controlspec.new(0.01,200.,'lin',0.01,0.01))
+    params:set_action("pan slew "..i, function(x) softcut.pan_slew_time(i+1,0.01) end)
+    params:hide("pan slew "..i)
     params:add_control("level "..i, "pad level "..banks[i], controlspec.new(0,127,'lin',1,64))
     params:set_action("level "..i, function(x)
       for p = (grid_alt and 1 or bank[i].id),(grid_alt and 16 or bank[i].id) do

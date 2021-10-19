@@ -509,15 +509,19 @@ function grid_actions.init(x,y,z)
         nx = (ny == 2 or ny == 7 or ny == 12) and nx or nx+8
         if z == 1 then
           if not grid_alt then
-            if not bank[current].snapshot[nx].saved then
-              bank[current].snapshot_saver_clock = clock.run(_snap.save_to_slot,current,nx)
-            else
-              local modifier, style = 0,"beats"
-              if bank[current].restore_mod then
-                modifier =  bank[current].snapshot[nx].restore_times[bank[current].snapshot[nx].restore_times.mode][bank[current].restore_mod_index]
-                style = bank[current].snapshot[nx].restore_times.mode
+            if not bank[current].snapshot_mod then
+              if not bank[current].snapshot[nx].saved then
+                bank[current].snapshot_saver_clock = clock.run(_snap.save_to_slot,current,nx)
+              else
+                local modifier, style = 0,"beats"
+                if bank[current].restore_mod then
+                  modifier =  bank[current].snapshot[nx].restore_times[bank[current].snapshot[nx].restore_times.mode][bank[current].restore_mod_index]
+                  style = bank[current].snapshot[nx].restore_times.mode
+                end
+                _snap.restore(current,nx,modifier,style)
               end
-              _snap.restore(current,nx,modifier,style)
+            else
+              bank[current].snapshot_mod_index = nx
             end
           else
             _snap.clear(current,nx)
@@ -564,6 +568,21 @@ function grid_actions.init(x,y,z)
 
       if nx == 6 and ny == 16 and grid_alt and z == 1 then
         params:set("metronome_audio_state",params:get("metronome_audio_state") == 1 and 2 or 1)
+      end
+
+      -- mod modifier
+      if nx == 1 and (ny == 5 or ny == 10 or ny == 15) then
+        local current = math.floor(ny/5)
+        bank[current].snapshot_mod = z == 1 and true or false
+      end
+
+      -- mods to modify
+      if (nx == 4 or nx == 5 or nx == 6 or nx == 7 or nx == 8) and (ny == 5 or ny == 10 or ny == 15) and z == 1 then
+        local current = math.floor(ny/5)
+        local prms = {"rate","start_point","end_point","level","tilt"}
+        if bank[current].snapshot_mod then
+          bank[current].snapshot[bank[current].snapshot_mod_index].restore[prms[nx-3]] = not bank[current].snapshot[bank[current].snapshot_mod_index].restore[prms[nx-3]]
+        end
       end
 
     

@@ -3090,7 +3090,7 @@ function cheat(b,i)
     end
     env_counter[b]:start()
   elseif not pad.enveloped and not pad.pause then
-    softcut.level_slew_time(b+1,0.1)
+    softcut.level_slew_time(b+1,0)
     softcut.level(b+1,pad.level*bank[b].global_level)
     if not delay[1].send_mute then
       if pad.left_delay_thru then
@@ -4693,7 +4693,11 @@ function grid_redraw()
           for j = 1,8 do
             local current = math.floor(i/5)+1
             local led_level = bank[current].snapshot[j].saved and led_maps["slot_saved"][edition] or led_maps["slot_empty"][edition]
-            led_level = bank[current].active_snapshot == j and 15 or led_level
+            if not bank[current].snapshot_mod then
+              led_level = bank[current].active_snapshot == j and 15 or led_level
+            else
+              led_level = bank[current].snapshot_mod_index == j and 15 or led_level
+            end
             g:led(_c(j,i)[1],_c(j,i)[2],led_level)
           end
         end
@@ -4702,7 +4706,11 @@ function grid_redraw()
           for j = 1,8 do
             local current = math.floor(i/5)+1
             local led_level = bank[current].snapshot[j+8].saved and led_maps["slot_saved"][edition] or led_maps["slot_empty"][edition]
-            led_level = bank[current].active_snapshot == j+8 and 15 or led_level
+            if not bank[current].snapshot_mod then
+              led_level = bank[current].active_snapshot == j+8 and 15 or led_level
+            else
+              led_level = bank[current].snapshot_mod_index == j+8 and 15 or led_level
+            end
             g:led(_c(j,i)[1],_c(j,i)[2],led_level)
           end
         end
@@ -4711,6 +4719,21 @@ function grid_redraw()
           local current = math.floor(i/5)+1
           local led_level = bank[current].restore_mod and 15 or 0
           g:led(_c(bank[current].restore_mod_index,i)[1],_c(bank[current].restore_mod_index,i)[2],led_level)
+        end
+
+        local mod_prms = {"rate","start_point","end_point","level","tilt"}
+
+        for i = 5,15,5 do
+          local current = math.floor(i/5)
+          local led_level;
+          for j = 1,#mod_prms do
+            if not bank[current].snapshot_mod then
+              led_level = 0
+            else
+              led_level = bank[current].snapshot[bank[current].snapshot_mod_index].restore[mod_prms[j]] and 15 or 4
+            end
+            g:led(_c(j+3,i)[1],_c(j+3,i)[2],led_level)
+          end
         end
         
         g:led(16,8,grid_alt and led_maps["alt_on"][edition] or led_maps["alt_off"][edition])

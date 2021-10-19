@@ -597,9 +597,11 @@ function Container:add_params()
         if x == 1 then
           params:hide("lfo_free_macro "..i)
           params:show("lfo_beats_macro "..i)
+          Container.lfo_freqs[i] = 1/(clock.get_beat_sec() * lfo_rates[params:get("lfo_beats_macro "..i)])
         elseif x == 2 then
           params:hide("lfo_beats_macro "..i)
           params:show("lfo_free_macro "..i)
+          Container.lfo_freqs[i] = params:get("lfo_free_macro "..i)
         end
         _menu.rebuild_params()
       end
@@ -616,7 +618,7 @@ function Container:add_params()
       type='control',
       id="lfo_free_macro "..i,
       name="lfo rate",
-      controlspec=controlspec.new(0.001,1,'lin',0.001,0.05,'hz',0.01)
+      controlspec=controlspec.new(0.001,4,'exp',0.001,0.05,'hz',0.001)
     }
     params:set_action("lfo_free_macro "..i,
       function(x)
@@ -808,7 +810,7 @@ function Container.UI()
       "MODE: "..(params:string("lfo_mode_macro "..p.selected_macro)),
       "RATE: "..(
         params:string("lfo_mode_macro "..p.selected_macro) == "beats" and 
-          params:get("lfo_beats_macro "..p.selected_macro) or
+          params:string("lfo_beats_macro "..p.selected_macro) or
           params:get("lfo_free_macro "..p.selected_macro)
         )
     }
