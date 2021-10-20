@@ -57,6 +57,10 @@ function encoder_actions.init(n,d)
 
   end
 
+  if menu == 9 then
+    _arps.process_encoder(n,d)
+  end
+
   if n == 1 then
 
     if menu == 1 then
@@ -129,7 +133,7 @@ function encoder_actions.init(n,d)
     elseif menu == 8 then
       rytm.track_edit = util.clamp(rytm.track_edit+d,1,3)
     elseif menu == 9 then
-      page.arp_page_sel = util.clamp(page.arp_page_sel+d,1,3)
+      -- page.arp_page_sel = util.clamp(page.arp_page_sel+d,1,3)
     elseif menu == 10 then
       page.rnd_page = util.clamp(page.rnd_page+d,1,3)
     -- elseif menu == "MIDI_config" then
@@ -333,18 +337,18 @@ function encoder_actions.init(n,d)
         end
       end
     elseif menu == 9 then
-      page.arp_param[page.arp_page_sel] = util.clamp(page.arp_param[page.arp_page_sel] + d,1,5)
-    elseif menu == 10 then
-      local selected_slot = page.rnd_page_sel[page.rnd_page]
-      if page.rnd_page_section == 1 then
-        page.rnd_page_sel[page.rnd_page] = util.clamp(selected_slot+d,1,#rnd[page.rnd_page])
-        page.rnd_page_edit[page.rnd_page] = 1
-      elseif page.rnd_page_section == 2 then
-        local selected_slot = page.rnd_page_sel[page.rnd_page]
-        local current_param = rnd[page.rnd_page][selected_slot].param
-        local reasonable_max = (current_param == "semitone offset" and 5) or ((current_param == "loop" or current_param == "delay send") and 4 or 6)
-        page.rnd_page_edit[page.rnd_page] = util.clamp(page.rnd_page_edit[page.rnd_page]+d,1,reasonable_max)
-      end
+    --   page.arp_param[page.arp_page_sel] = util.clamp(page.arp_param[page.arp_page_sel] + d,1,5)
+    -- elseif menu == 10 then
+    --   local selected_slot = page.rnd_page_sel[page.rnd_page]
+    --   if page.rnd_page_section == 1 then
+    --     page.rnd_page_sel[page.rnd_page] = util.clamp(selected_slot+d,1,#rnd[page.rnd_page])
+    --     page.rnd_page_edit[page.rnd_page] = 1
+    --   elseif page.rnd_page_section == 2 then
+    --     local selected_slot = page.rnd_page_sel[page.rnd_page]
+    --     local current_param = rnd[page.rnd_page][selected_slot].param
+    --     local reasonable_max = (current_param == "semitone offset" and 5) or ((current_param == "loop" or current_param == "delay send") and 4 or 6)
+    --     page.rnd_page_edit[page.rnd_page] = util.clamp(page.rnd_page_edit[page.rnd_page]+d,1,reasonable_max)
+    --   end
     -- elseif menu == "MIDI_config" then
     --   local i = page.midi_bank
     --   if page.midi_focus == "notes" then
@@ -654,57 +658,57 @@ function encoder_actions.init(n,d)
       end
 
     elseif menu == 9 then
-      local focus_arp = arp[page.arp_page_sel]
-      local id = page.arp_page_sel
-      if page.arp_param[id] == 1 then
-        local deci_to_int =
-        { ["0.125"] = 1 --1/32
-        , ["0.1667"] = 2 --1/16T
-        , ["0.25"] = 3 -- 1/16
-        , ["0.3333"] = 4 -- 1/8T
-        , ["0.5"] = 5 -- 1/8
-        , ["0.6667"] = 6 -- 1/4T
-        , ["1.0"] = 7 -- 1/4
-        , ["1.3333"] = 8 -- 1/2T
-        , ["2.0"] = 9 -- 1/2
-        , ["2.6667"] = 10  -- 1T
-        , ["4.0"] = 11 -- 1
-        }
-        local rounded = util.round(focus_arp.time,0.0001)
-        local working = deci_to_int[tostring(rounded)]
-        working = util.clamp(working+d,1,11)
-        local int_to_deci = {0.125,1/6,0.25,1/3,0.5,2/3,1,4/3,2,8/3,4}
-        if page.arp_alt[page.arp_page_sel] then
-          bank[page.arp_page_sel][bank[page.arp_page_sel].id].arp_time = int_to_deci[working]
-          focus_arp.time = bank[page.arp_page_sel][bank[page.arp_page_sel].id].arp_time
-        else
-          focus_arp.time = int_to_deci[working]
-          for i = 1,16 do
-            bank[page.arp_page_sel][i].arp_time = focus_arp.time
-          end
-        end
-      elseif page.arp_param[id] == 2 then
-        local dir_to_int =
-        { ["fwd"] = 1
-        , ["bkwd"] = 2
-        , ["pend"] = 3
-        , ["rnd"] = 4
-        }
-        local dir = dir_to_int[focus_arp.mode]
-        dir = util.clamp(dir+d,1,4)
-        local int_to_dir = {"fwd","bkwd","pend","rnd"}
-        focus_arp.mode = int_to_dir[dir]
-      elseif page.arp_param[id] == 3 then
-        focus_arp.start_point = util.clamp(focus_arp.start_point+d,1,focus_arp.end_point)
-      elseif page.arp_param[id] == 4 then
-        if #focus_arp.notes > 0 then
-          focus_arp.end_point = util.clamp(focus_arp.end_point+d,focus_arp.start_point,#focus_arp.notes)
-        end
-      elseif page.arp_param[id] == 5 then
-        local working = arp[page.arp_page_sel].retrigger and 0 or 1
-        working = util.clamp(working+d,0,1)
-        arp[page.arp_page_sel].retrigger = (working == 0 and true or false)
-      end
+      -- local focus_arp = arp[page.arp_page_sel]
+      -- local id = page.arp_page_sel
+      -- if page.arp_param[id] == 1 then
+      --   local deci_to_int =
+      --   { ["0.125"] = 1 --1/32
+      --   , ["0.1667"] = 2 --1/16T
+      --   , ["0.25"] = 3 -- 1/16
+      --   , ["0.3333"] = 4 -- 1/8T
+      --   , ["0.5"] = 5 -- 1/8
+      --   , ["0.6667"] = 6 -- 1/4T
+      --   , ["1.0"] = 7 -- 1/4
+      --   , ["1.3333"] = 8 -- 1/2T
+      --   , ["2.0"] = 9 -- 1/2
+      --   , ["2.6667"] = 10  -- 1T
+      --   , ["4.0"] = 11 -- 1
+      --   }
+      --   local rounded = util.round(focus_arp.time,0.0001)
+      --   local working = deci_to_int[tostring(rounded)]
+      --   working = util.clamp(working+d,1,11)
+      --   local int_to_deci = {0.125,1/6,0.25,1/3,0.5,2/3,1,4/3,2,8/3,4}
+      --   if page.arp_alt[page.arp_page_sel] then
+      --     bank[page.arp_page_sel][bank[page.arp_page_sel].id].arp_time = int_to_deci[working]
+      --     focus_arp.time = bank[page.arp_page_sel][bank[page.arp_page_sel].id].arp_time
+      --   else
+      --     focus_arp.time = int_to_deci[working]
+      --     for i = 1,16 do
+      --       bank[page.arp_page_sel][i].arp_time = focus_arp.time
+      --     end
+      --   end
+      -- elseif page.arp_param[id] == 2 then
+      --   local dir_to_int =
+      --   { ["fwd"] = 1
+      --   , ["bkwd"] = 2
+      --   , ["pend"] = 3
+      --   , ["rnd"] = 4
+      --   }
+      --   local dir = dir_to_int[focus_arp.mode]
+      --   dir = util.clamp(dir+d,1,4)
+      --   local int_to_dir = {"fwd","bkwd","pend","rnd"}
+      --   focus_arp.mode = int_to_dir[dir]
+      -- elseif page.arp_param[id] == 3 then
+      --   focus_arp.start_point = util.clamp(focus_arp.start_point+d,1,focus_arp.end_point)
+      -- elseif page.arp_param[id] == 4 then
+      --   if #focus_arp.notes > 0 then
+      --     focus_arp.end_point = util.clamp(focus_arp.end_point+d,focus_arp.start_point,#focus_arp.notes)
+      --   end
+      -- elseif page.arp_param[id] == 5 then
+      --   local working = arp[page.arp_page_sel].retrigger and 0 or 1
+      --   working = util.clamp(working+d,0,1)
+      --   arp[page.arp_page_sel].retrigger = (working == 0 and true or false)
+      -- end
 
     elseif menu == 10 then
       local current = rnd[page.rnd_page][page.rnd_page_sel[page.rnd_page]]

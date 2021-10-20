@@ -1961,7 +1961,25 @@ function grid_actions.kill_arp(i)
   page.arp_page_sel = i
   arp[i].hold = false
   if not arp[i].hold then
+    if arp_clears == nil then
+      arp_clears = {nil,nil,nil}
+    end
     arps.clear(i)
+    if arp_clears[i] ~= nil then
+      local which_to_clear = arp_clears[i]
+      clock.cancel(which_to_clear)
+      arp_clears[i] = nil
+      for j = 1,128 do
+        arp[i].prob[j] = 100
+        arp[i].conditional.A[j] = 1
+        arp[i].conditional.B[j] = 1
+      end
+    else
+      arp_clears[i] = clock.run(function()
+        clock.sleep(0.25)
+        arp_clears[i] = nil
+      end)
+    end
   end
   arp[i].down = 0
   arp[i].enabled = false

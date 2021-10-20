@@ -37,6 +37,22 @@ function push_to_cc2(encoder, d)
   end
 end
 
+function wrap(n, min, max)
+  if max >= min then
+    local y = n
+    local d = max - min + 1
+    while y > max do
+      y = y - d
+    end
+    while y < min do
+      y = y + d
+    end
+    return y
+  else
+    error("max needs to be greater than min")
+  end
+end
+
 -- if util.file_exists(_path.code.."mx.samples") then
 --   mxsamples = include 'mx.samples/lib/mx.samples'
 --   engine.name = "MxSamples"
@@ -2011,6 +2027,7 @@ function init()
   norns.state.mix.cut_input_eng = -math.huge
   clock.run(metronome_audio)
   _flow.init()
+  _arps.init()
 end
 
 ---
@@ -3697,6 +3714,8 @@ function key(n,z)
       print("cancel delete")
       clock.run(canceled_delete)
     end
+  elseif menu == 9 then
+    _arps.process_key(n,z)
   else
     if n == 3 and z == 1 then
       if menu == 1 then
@@ -3944,32 +3963,6 @@ function key(n,z)
           key2_hold_and_modify = true
           grid_actions.kill_arp(page.arp_page_sel)
         end
-        -- arp[page.arp_page_sel].hold = not arp[page.arp_page_sel].hold
-        -- local id = page.arp_page_sel
-        -- if not arp[id].hold then
-        --   if not arp[id].enabled then
-        --     arp[id].enabled = true
-        --   end
-        --   if #arp[id].notes > 0 then
-        --     arp[id].hold = true
-        --   else
-        --     arp[id].enabled = false
-        --   end
-        -- else
-        --   if #arp[id].notes > 0 then
-        --     if arp[id].playing == true then
-        --       arp[id].hold = not arp[id].hold
-        --       if not arp[id].hold then
-        --         arps.clear(id)
-        --       end
-        --       arp[id].enabled = false
-        --     -- else
-        --     --   arp[id].step = arp[id].start_point-1
-        --     --   arp[id].pause = false
-        --     --   arp[id].playing = true
-        --     end
-        --   end
-        -- end
         grid_dirty = true
 
 

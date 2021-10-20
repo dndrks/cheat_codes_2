@@ -299,6 +299,22 @@ function clock.transport.stop()
   tp.stop()
 end
 
+function tp.toggle_transport()
+  if tp.is_running then
+    clock.transport.stop()
+  else
+    tp.pending = true
+    if params:string("clock_source") == "internal" then
+      clock.internal.start(-0.1)
+    else
+      tp.cycle = 1
+      clock.transport.start()
+    end
+  end
+  grid_dirty = true
+  screen_dirty = true
+end
+
 function tp.key(n,z)
   if n == 3 and z == 1 then
     if page.transport.focus == "TRANSPORT" then
