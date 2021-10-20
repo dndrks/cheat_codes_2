@@ -585,6 +585,13 @@ function grid_actions.init(x,y,z)
         end
       end
 
+      -- toggle song mode on/off
+      if nx == 8 and (ny == 5 or ny == 10 or ny == 15) and z == 1 then
+        local current = math.floor(ny/5)
+        if not bank[current].snapshot_mod and grid_alt then
+          song_atoms.bank[current].active = not song_atoms.bank[current].active
+        end
+      end
     
     elseif grid_page == 2 then
       local nx = _t(x,y)[1]

@@ -4726,13 +4726,14 @@ function grid_redraw()
         for i = 5,15,5 do
           local current = math.floor(i/5)
           local led_level;
-          for j = 1,#mod_prms do
-            if not bank[current].snapshot_mod then
-              led_level = 0
-            else
+          if not bank[current].snapshot_mod and grid_alt then
+            led_level = song_atoms.bank[current].active and 15 or 4
+            g:led(_c(8,i)[1],_c(8,i)[2],led_level)
+          elseif bank[current].snapshot_mod and not grid_alt then
+            for j = 1,#mod_prms do
               led_level = bank[current].snapshot[bank[current].snapshot_mod_index].restore[mod_prms[j]] and 15 or 4
+              g:led(_c(j+3,i)[1],_c(j+3,i)[2],led_level)
             end
-            g:led(_c(j+3,i)[1],_c(j+3,i)[2],led_level)
           end
         end
         

@@ -213,9 +213,15 @@ snap.restore = function(b,slot,sec,style)
       elseif not bank[b].snapshot.fnl_active and (sec == nil or sec == 0) then
         src.global_level = shot.pad[1].global_level
         for i = 1,16 do
-          src[i].start_point = shot.pad[i].start_point
-          src[i].end_point = shot.pad[i].end_point
-          src[i].level = shot.pad[i].level
+          if shot.restore.start_point then
+            src[i].start_point = shot.pad[i].start_point
+          end
+          if shot.restore.end_point then
+            src[i].end_point = shot.pad[i].end_point
+          end
+          if shot.restore.level then
+            src[i].level = shot.pad[i].level
+          end
           if shot.restore.tilt then
             params:set("filter tilt "..b,shot.pad[i].tilt)
           end
