@@ -461,7 +461,8 @@ function grid_actions.init(x,y,z)
                     bank[current][j].fifth = false
                   end
                 end
-                softcut.rate(current+1,1*bank[current][bank[current].id].offset)
+                -- softcut.rate(current+1,1*bank[current][bank[current].id].offset)
+                softcut.rate(current+1,_loops.get_total_pitch_offset(current,bank[current].id))
               elseif y == 4 and bank[i].focus_hold then
                 bank[i][bank[i].focus_pad].crow_pad_execute = (bank[i][bank[i].focus_pad].crow_pad_execute + 1)%2
                 for j = 1,16 do
@@ -1231,7 +1232,8 @@ function grid_actions.init(x,y,z)
               bank[i][j].fifth = false
             end
           end
-          softcut.rate(i+1,1*bank[i][bank[i].id].offset)
+          -- softcut.rate(i+1,1*bank[i][bank[i].id].offset)
+          softcut.rate(i+1,_loops.get_total_pitch_offset(i,bank[i].id))
         else
           bank[i][bank[i].focus_pad].crow_pad_execute = (bank[i][bank[i].focus_pad].crow_pad_execute + 1)%2
           for j = 1,16 do
@@ -1756,7 +1758,8 @@ function grid_actions.init(x,y,z)
                 bank[i][j].fifth = false
               end
             end
-            softcut.rate(i+1,1*bank[i][bank[i].id].offset)
+            -- softcut.rate(i+1,1*bank[i][bank[i].id].offset)
+            softcut.rate(i+1,_loops.get_total_pitch_offset(i,bank[i].id))
           else
             bank[i][bank[i].focus_pad].crow_pad_execute = (bank[i][bank[i].focus_pad].crow_pad_execute + 1)%2
             for j = 1,16 do

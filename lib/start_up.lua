@@ -89,7 +89,7 @@ function start_up.init()
   
   --params:add_separator()
   
-  params:add_group("loops + buffers", 29)
+  params:add_group("loops + buffers", 42)
 
   params:add_separator("clips")
   
@@ -194,6 +194,8 @@ function start_up.init()
   for i = 1,3 do
     params:add_control("random_rec_clock_prob_"..i, "rand rec "..i.." probability", controlspec.new(0, 100, 'lin', 1, 0, "%"))
   end
+
+  _dough.init_params()
 
   params:add_separator("global")
 

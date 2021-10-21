@@ -346,7 +346,8 @@ function zilchmos.sc.play_toggle( pad, i )
     else
       softcut.level(i+1, pad.level*bank[i].global_level)
     end
-    softcut.rate(i+1, pad.rate * pad.offset)
+    -- softcut.rate(i+1, pad.rate * pad.offset)
+    softcut.rate(i+1, pad.rate * _loops.get_total_pitch_offset(i,pad.pad_id))
   end
 end
 
@@ -370,7 +371,8 @@ end
 
 function zilchmos.sc.rate( pad, i )
   if pad.pause == false then
-    softcut.rate(i+1, pad.rate*pad.offset)
+    -- softcut.rate(i+1, pad.rate*pad.offset)
+    softcut.rate(i+1, pad.rate*_loops.get_total_pitch_offset(i,pad.pad_id))
   end
 end
 

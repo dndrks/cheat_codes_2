@@ -98,6 +98,7 @@ UI = require "ui"
 lattice = require "lattice"
 fileselect = require 'fileselect'
 textentry = require 'textentry'
+_ca = include 'lib/clip_actions'
 main_menu = include 'lib/main_menu'
 encoder_actions = include 'lib/encoder_actions'
 arc_actions = include 'lib/arc_actions'
@@ -114,6 +115,7 @@ mc = include 'lib/midicheat'
 macros = include 'lib/macros'
 transport = include 'lib/transport'
 speed_dial = include 'lib/speed_dial'
+_dough = include 'lib/doughstretch'
 _snap = include 'lib/snapshots'
 _song = include 'lib/song'
 math.randomseed(os.time())
@@ -212,7 +214,9 @@ end
 -- waveform stuff
 local interval = 0
 waveform_samples = {}
-scale = 25
+bank_waveform_scale = 20
+live_waveform_scale = 20
+waveform_scale = 25
 
 function on_render(ch, start, i, s)
   -- cursor = util.clamp(cursor, 1, #s)
@@ -240,7 +244,8 @@ function on_render(ch, start, i, s)
 end
 
 function update_waveform(buffer,winstart,winend,samples)
-  softcut.render_buffer(buffer, winstart, winend - winstart, 128)
+  -- softcut.render_buffer(buffer, winstart, winend - winstart, 128)
+  softcut.render_buffer(buffer, winstart+variable_fade_time, (winend - winstart)+variable_fade_time, 128)
 end
 
 --/ waveform stuff
@@ -267,14 +272,25 @@ arc_offset = 0 --IMPORTANT TO REVISIT
 
 clip = {}
 for i = 1,3 do
+  -- clip[i] = {}
+  -- clip[i].length = 90
+  -- clip[i].sample_length = 8
+  -- clip[i].start_point = nil
+  -- clip[i].end_point = nil
+  -- clip[i].mode = 1
+  -- clip[i].waveform_samples = {}
+  -- clip[i].waveform_rendered = false
   clip[i] = {}
   clip[i].length = 90
-  clip[i].sample_length = 8
+  clip[i].sample_length = 32
+  clip[i].sample_rate = 48000
   clip[i].start_point = nil
   clip[i].end_point = nil
   clip[i].mode = 1
   clip[i].waveform_samples = {}
   clip[i].waveform_rendered = false
+  clip[i].channel = 1
+  clip[i].collage = false
 end
 
 pre_cc2_sample = { false, false, false }
@@ -785,7 +801,13 @@ key2_hold_counter.time = 0.25
 key2_hold_counter.count = 1
 key2_hold_counter.event = function()
   key2_hold = true
-  screen_dirty = true
+  if menu == 2 then
+    _loops.key2_activate()
+  elseif menu == 9 then
+    screen_dirty = true
+  elseif menu == "MIDI_config" then
+    screen_dirty = true
+  end
 end
 
 key2_hold = false
@@ -1308,6 +1330,7 @@ function init()
   page.transport.foci = {"TRANSPORT","TAP","CLICK"}
   page.transport.focus = "TRANSPORT"
   
+  _ca.init()
   del.init()
   
   index = 0
@@ -1415,7 +1438,24 @@ function init()
   end
 
   function draw_waveform()
-    if menu == 2 then
+    -- if menu == 2 then
+    --   local rec_on = 0;
+    --   for i = 1,3 do
+    --     if rec[i].state == 1 then
+    --       rec_on = i
+    --     end
+    --   end
+    --   if rec_on ~= 0 and rec[rec_on].state == 1 then
+    --     if page.loops.sel < 4 then
+    --       local pad = bank[page.loops.sel][bank[page.loops.sel].id]
+    --       update_waveform(1,key1_hold and pad.start_point or live[rec_on].min,key1_hold and pad.end_point or live[rec_on].max,128)
+    --     elseif page.loops.sel == 4 then
+    --       update_waveform(1,key1_hold and rec[rec.focus].start_point or live[rec_on].min,key1_hold and rec[rec.focus].end_point or live[rec_on].max,128)
+    --     end
+    --   end
+    --   screen_dirty = true
+    -- end
+    if menu == 2 and page.loops.sel ~= 5 then
       local rec_on = 0;
       for i = 1,3 do
         if rec[i].state == 1 then
@@ -1430,7 +1470,28 @@ function init()
           update_waveform(1,key1_hold and rec[rec.focus].start_point or live[rec_on].min,key1_hold and rec[rec.focus].end_point or live[rec_on].max,128)
         end
       end
+      if page.loops.sel < 4 then
+        if (params:get("SOS_enabled_1") == 1 or params:get("SOS_enabled_2") == 1 or params:get("SOS_enabled_3") == 1 ) and not page.loops.zoomed_mode then
+          local pad = bank[page.loops.sel][bank[page.loops.sel].id]
+          local min = pad.mode == 1 and live[pad.clip].min or clip[pad.clip].min
+          local max = pad.mode == 1 and live[pad.clip].max or clip[pad.clip].max
+          update_waveform(1,key1_hold and pad.start_point or min,key1_hold and pad.end_point or max,128)
+        elseif (params:get("SOS_enabled_1") == 1 or params:get("SOS_enabled_2") == 1 or params:get("SOS_enabled_3") == 1 ) and page.loops.zoomed_mode then
+          local pad = bank[page.loops.sel][bank[page.loops.sel].id]
+          update_waveform(1,pad.start_point,pad.end_point or max,128)
+        end
+      -- need to draw LIVE here...
+      end
       screen_dirty = true
+    end
+  end
+
+  function force_waveform_redraw()
+    for i = 1,3 do
+      local pad = bank[i][bank[i].id]
+      local min = pad.mode == 1 and live[pad.clip].min or clip[pad.clip].min
+      local max = pad.mode == 1 and live[pad.clip].max or clip[pad.clip].max
+      update_waveform(1,min,max,128)
     end
   end
   
@@ -1449,10 +1510,6 @@ function init()
           rec.stopped = true
           grid_dirty = true
           rec_ended_callback()
-          -- if menu == 2 then
-          --   if page.loops.sel ~= 5 then screen_dirty = true end
-          --   -- print("stopped")
-          -- end
         end
       end
     end
@@ -1560,6 +1617,15 @@ function init()
   task_id = clock.run(globally_clocked)
   pad_press_quant = clock.run(pad_clock)
   random_rec = clock.run(random_rec_clock)
+
+  params:set_action("clock_tempo",
+  function(x)
+    local source = params:string("clock_source")
+    if source == "internal" then clock.internal.set_tempo(x)
+    elseif source == "link" then clock.link.set_tempo(x) end
+    norns.state.clock.tempo = x
+    update_tempo()
+  end)
   
   if params:string("clock_source") == "internal" then
     clock.internal.start(bpm)
@@ -1968,6 +2034,7 @@ function init()
 
   rytm.init()
   transport.init()
+  -- _dough.init()
 
   if g then grid_dirty = true end
   
@@ -2028,6 +2095,19 @@ function init()
   clock.run(metronome_audio)
   _flow.init()
   _arps.init()
+  _loops.init()
+  -- _l.init()
+  page.delay_sel = 0
+  -- page.delay_section = 1
+  -- page.delay_focus = 1
+  page.delay = {{},{}}
+  page.delay.section = 1
+  page.delay.focus = 1
+  for i = 1,2 do
+    page.delay[i].menu = 1
+    page.delay[i].menu_sel = {1,1,1}
+  end
+  page.delay.nav = 2
 end
 
 ---
@@ -2527,7 +2607,8 @@ function cancel_one_shot_rec_clock()
   if one_shot_rec_clock ~= nil then
     clock.cancel(one_shot_rec_clock)
   end
-  rec[rec.focus].state = 0
+  -- rec[rec.focus].state = 0
+  _ca.buff_freeze()
   rec_state_watcher:stop()
   rec.stopped = true
   grid_dirty = true
@@ -2537,6 +2618,8 @@ function cancel_one_shot_rec_clock()
     end
   end
   one_shot_rec_clock = nil
+  rec[rec.focus].end_point = poll_position_new[1]
+  update_waveform(1,key1_hold and rec[rec.focus].start_point or live[rec.focus].min,key1_hold and rec[rec.focus].end_point or live[rec.focus].max,128)
 end
 
 function one_shot_clock()
@@ -2653,11 +2736,13 @@ function globally_clocked()
     if menu == 7 or menu == "transport_config" then
       if menu ~= 1 then screen_dirty = true end
     end
+    if norns.cpu_avg > 40 then
+      print("norns CPU above 40: "..norns.cpu_avg)
+    end
     if menu == 2 then
       screen_dirty = true
     end
-    update_tempo()
-    -- step_sequence()
+    -- update_tempo()
     for i = 1,3 do
       -- step_sequence(i)
       if grid_pat[i].led == nil then
@@ -2860,26 +2945,26 @@ end
 
 poll_position_new = {}
 
+playhead_at_endpoint = {false,false,false}
+
 phase = function(n, x)
   poll_position_new[n] = x
-  -- if menu == 2 then
-    -- local rec_on = 0;
-    -- for i = 1,3 do
-    --   if rec[i].state == 1 then
-    --     rec_on = i
-    --   end
-    -- end
-    -- if rec_on ~= 0 and rec[rec_on].state == 1 then
-    --   if page.loops.sel < 4 then
-    --     local pad = bank[page.loops.sel][bank[page.loops.sel].id]
-    --     update_waveform(1,key1_hold and pad.start_point or live[rec_on].min,key1_hold and pad.end_point or live[rec_on].max,128)
-    --   elseif page.loops.sel == 4 then
-    --     update_waveform(1,key1_hold and rec[rec.focus].start_point or live[rec_on].min,key1_hold and rec[rec.focus].end_point or live[rec_on].max,128)
-    --   end
-    -- end
-    -- screen_dirty = true
-    -- if page.loops.sel ~= 5 then screen_dirty = true end
-  -- end
+  if n > 1 and n < 5 and menu == 2 then
+    -- if util.round(x,0.01) == util.round(bank[n-1][bank[n-1].id].end_point,0.01) then
+    if bank[n-1][bank[n-1].id].rate > 0 then
+      if math.modf(util.round(x,0.01)*100) == math.modf(bank[n-1][bank[n-1].id].end_point*100) then
+        playhead_at_endpoint[n-1] = true
+      else
+        playhead_at_endpoint[n-1] = false
+      end
+    elseif bank[n-1][bank[n-1].id].rate < 0 then
+      if math.modf(util.round(x,0.01)*100) == math.modf(bank[n-1][bank[n-1].id].start_point*100) then
+        playhead_at_endpoint[n-1] = true
+      else
+        playhead_at_endpoint[n-1] = false
+      end
+    end
+  end
 end
 
 function update_tempo()
@@ -2901,6 +2986,7 @@ function update_tempo()
     end
   end
   for i = 1,3 do
+    _dough.scale_sample_to_main(i)
     --quantizer[i].time = interval
     --grid_pat_quantizer[i].time = interval_pats
   end
@@ -3048,6 +3134,7 @@ function reset_all_banks( banks )
       pad.envelope_loop     = false
       pad.clock_resolution  = 4
       pad.offset            = 1.0
+      pad.new_offset        = {["semitone"] = 0, ["cent"] = 0, ["live"] = {0,0,0}}
       pad.crow_pad_execute  = 1
       pad.left_delay_thru   = false
       pad.right_delay_thru  = false
@@ -3141,7 +3228,7 @@ function cheat(b,i)
   end
   softcut.buffer(b+1,pad.mode)
   if pad.pause == false then
-    softcut.rate(b+1,pad.rate*pad.offset)
+    softcut.rate(b+1,pad.rate*_loops.get_total_pitch_offset(b,i))
   else
     softcut.rate(b+1,0)
   end
@@ -3219,7 +3306,8 @@ function cheat(b,i)
   end
 
   -- redraw waveform if it's zoomed in and the pad changes
-  if menu == 2 and page.loops.sel == b and page.loops.frame == 2 and not key2_hold and key1_hold then
+  -- if menu == 2 and page.loops.sel == b and page.loops.frame == 2 and not key2_hold and key1_hold then
+  if menu == 2 and page.loops.sel == b and key2_hold then
     local focused_pad;
     if bank[page.loops.sel].focus_hold then
       focused_pad = bank[page.loops.sel].focus_pad
@@ -3716,6 +3804,8 @@ function key(n,z)
     end
   elseif menu == 9 then
     _arps.process_key(n,z)
+  elseif menu == 2 then
+    _loops.process_key(n,z)
   else
     if n == 3 and z == 1 then
       if menu == 1 then
@@ -3726,105 +3816,104 @@ function key(n,z)
           menu = page.main_sel + 1
         end
       elseif menu == 2 then
-        -- local id = page.loops_sel
-        if key2_hold then
-          if page.loops.sel < 4 then
-            local id = page.loops.sel
-            bank[id][bank[id].id].loop = not bank[id][bank[id].id].loop
-            if bank[id][bank[id].id].loop then
-              softcut.loop(id+1,1)
-              cheat(id,bank[id].id)
-            else
-              softcut.loop(id+1,0)
-            end
-            if page.loops.frame == 1 then
-              for i = 1,16 do
-                bank[id][i].loop = bank[id][bank[id].id].loop
-              end
-            end
-          elseif page.loops.sel == 4 then
-            if rec[rec.focus].loop == 0 and params:string("one_shot_clock_div") == "threshold" and not grid_alt then
-              threshold_rec_handler()
-            else
-              toggle_buffer(rec.focus)
-            end
-          elseif page.loops.sel == 5 then
-            if page.loops.meta_sel < 4 then
-              for i = 1,16 do
-                rightangleslice.start_end_default(bank[page.loops.meta_sel][i])
-              end
-            elseif page.loops.meta_sel == 4 then
-              if rec[rec.focus].loop == 0 and params:string("one_shot_clock_div") == "threshold" and not grid_alt then
-                if rec[rec.focus].queued then
-                  amp_in[1]:stop()
-                  amp_in[2]:stop()
-                  rec[rec.focus].queued = false
-                else
-                  amp_in[1]:start()
-                  amp_in[2]:start()
-                  rec[rec.focus].queued = true
-                end
-              else
-                toggle_buffer(rec.focus)
-              end
-            end
-          end
-          grid_dirty = true
-          key2_hold_and_modify = true
-        end
-        if not key1_hold and not key2_hold then
-          page.loops.frame = (page.loops.frame%2)+1
-        elseif key1_hold and not key2_hold then
-          if page.loops.sel < 4 then
-            local id = page.loops.sel
-            if page.loops.frame == 2 then
-              local which_pad;
-              if bank[id].focus_hold then
-                which_pad = bank[id].focus_pad
-              elseif grid_pat[id].play == 0 and midi_pat[id].play == 0 and not arp[id].playing and rytm.track[id].k == 0 then
-                which_pad = bank[id].id
-              else
-                which_pad = bank[id].focus_pad
-              end
-              -- rightangleslice.init(4,id,'23')
-              rightangleslice.start_end_random(bank[id][which_pad])
-              update_waveform(bank[id][which_pad].mode,bank[id][which_pad].start_point,bank[id][which_pad].end_point,128)
-              -- if grid_pat[id].play == 1 and midi_pat[id].play == 0 and not arp[id].playing and rytm.track[id].k == 0 then
-                if bank[id].id == which_pad then
-                  rightangleslice.sc.start_end(bank[id][which_pad],id)
-                end
-              -- end
-            else
-              if bank[id][bank[id].id].mode == 2 then
-                _norns.key(1,1)
-                _norns.key(1,0)
-                fileselect.enter(_path.audio,function(n) sample_callback(n,bank[id][bank[id].id].clip) end)
-                sample_selector_active = true
-              end
-            end
-          elseif page.loops.sel == 4 and page.loops.frame == 2 then
-            -- something else
-          elseif page.loops.sel == 5 and page.loops.frame == 2 then
-            if page.loops.meta_sel < 4 then
-              -- sync to next
-              local id = page.loops.meta_sel
-              local src_bank_num = (id == 1 or id == 2) and 3 or 2
-              local src_bank     = bank[src_bank_num]
-              local src_pad      = src_bank[src_bank.id]
-              -- -- shift start/end by the difference between clips
-              local reasonable_max = bank[id][bank[id].id].mode == 1 and 8 or clip[bank[id][bank[id].id].clip].sample_length
-              if src_pad.end_point <= reasonable_max then
-                bank[id][bank[id].id].start_point = src_pad.start_point
-                bank[id][bank[id].id].end_point = src_pad.end_point
-                rightangleslice.sc.start_end( bank[id][bank[id].id], id )
-                -- maybe a risk:
-                -- print(id+1,src_pad.bank_id+1)
-                -- softcut.position(id+1,poll_position_new[src_pad.bank_id+1])
-                -- /
-              end
-            end
-          end
-        end
+        -- if key2_hold then
+        --   if page.loops.sel < 4 then
+        --     local id = page.loops.sel
+        --     bank[id][bank[id].id].loop = not bank[id][bank[id].id].loop
+        --     if bank[id][bank[id].id].loop then
+        --       softcut.loop(id+1,1)
+        --       cheat(id,bank[id].id)
+        --     else
+        --       softcut.loop(id+1,0)
+        --     end
+        --     if page.loops.frame == 1 then
+        --       for i = 1,16 do
+        --         bank[id][i].loop = bank[id][bank[id].id].loop
+        --       end
+        --     end
+        --   elseif page.loops.sel == 4 then
+        --     if rec[rec.focus].loop == 0 and params:string("one_shot_clock_div") == "threshold" and not grid_alt then
+        --       threshold_rec_handler()
+        --     else
+        --       toggle_buffer(rec.focus)
+        --     end
+        --   elseif page.loops.sel == 5 then
+        --     if page.loops.meta_sel < 4 then
+        --       for i = 1,16 do
+        --         rightangleslice.start_end_default(bank[page.loops.meta_sel][i])
+        --       end
+        --     elseif page.loops.meta_sel == 4 then
+        --       if rec[rec.focus].loop == 0 and params:string("one_shot_clock_div") == "threshold" and not grid_alt then
+        --         if rec[rec.focus].queued then
+        --           amp_in[1]:stop()
+        --           amp_in[2]:stop()
+        --           rec[rec.focus].queued = false
+        --         else
+        --           amp_in[1]:start()
+        --           amp_in[2]:start()
+        --           rec[rec.focus].queued = true
+        --         end
+        --       else
+        --         toggle_buffer(rec.focus)
+        --       end
+        --     end
+        --   end
+        --   grid_dirty = true
+        --   key2_hold_and_modify = true
+        -- end
+        -- if not key1_hold and not key2_hold then
+        --   page.loops.frame = (page.loops.frame%2)+1
+        -- elseif key1_hold and not key2_hold then
+        --   if page.loops.sel < 4 then
+        --     local id = page.loops.sel
+        --     if page.loops.frame == 2 then
+        --       local which_pad;
+        --       if bank[id].focus_hold then
+        --         which_pad = bank[id].focus_pad
+        --       elseif grid_pat[id].play == 0 and midi_pat[id].play == 0 and not arp[id].playing and rytm.track[id].k == 0 then
+        --         which_pad = bank[id].id
+        --       else
+        --         which_pad = bank[id].focus_pad
+        --       end
+        --       -- rightangleslice.init(4,id,'23')
+        --       rightangleslice.start_end_random(bank[id][which_pad])
+        --       update_waveform(bank[id][which_pad].mode,bank[id][which_pad].start_point,bank[id][which_pad].end_point,128)
+        --       -- if grid_pat[id].play == 1 and midi_pat[id].play == 0 and not arp[id].playing and rytm.track[id].k == 0 then
+        --         if bank[id].id == which_pad then
+        --           rightangleslice.sc.start_end(bank[id][which_pad],id)
+        --         end
+        --       -- end
+        --     else
+        --       if bank[id][bank[id].id].mode == 2 then
+        --         _norns.key(1,1)
+        --         _norns.key(1,0)
+        --         fileselect.enter(_path.audio,function(n) sample_callback(n,bank[id][bank[id].id].clip) end)
+        --         sample_selector_active = true
+        --       end
+        --     end
+        --   elseif page.loops.sel == 4 and page.loops.frame == 2 then
+        --     -- something else
+        --   elseif page.loops.sel == 5 and page.loops.frame == 2 then
+        --     if page.loops.meta_sel < 4 then
+        --       -- sync to next
+        --       local id = page.loops.meta_sel
+        --       local src_bank_num = (id == 1 or id == 2) and 3 or 2
+        --       local src_bank     = bank[src_bank_num]
+        --       local src_pad      = src_bank[src_bank.id]
+        --       -- -- shift start/end by the difference between clips
+        --       local reasonable_max = bank[id][bank[id].id].mode == 1 and 8 or clip[bank[id][bank[id].id].clip].sample_length
+        --       if src_pad.end_point <= reasonable_max then
+        --         bank[id][bank[id].id].start_point = src_pad.start_point
+        --         bank[id][bank[id].id].end_point = src_pad.end_point
+        --         rightangleslice.sc.start_end( bank[id][bank[id].id], id )
+        --         -- maybe a risk:
+        --         -- print(id+1,src_pad.bank_id+1)
+        --         -- softcut.position(id+1,poll_position_new[src_pad.bank_id+1])
+        --         -- /
+        --       end
+        --     end
+        --   end
+        -- end
       elseif menu == 3 then
         local level_nav = (page.levels.sel + 1)%4
         page.levels.sel = level_nav
@@ -3832,6 +3921,10 @@ function key(n,z)
         local filter_nav = (page.filters.sel + 1)%4
         page.filters.sel = filter_nav
       elseif menu == 6 then
+        if not key1_hold then
+          page.delay.focus = page.delay.focus == 1 and 2 or 1
+          screen_dirty = true
+        end
         if page.delay.section == 2 then
           if key1_hold then
             local k = page.delay[page.delay.focus].menu
@@ -3848,7 +3941,7 @@ function key(n,z)
               grid_dirty = true
             end
           else
-            page.delay.section = page.delay.section == 1 and 2 or 1
+            
           end
         elseif page.delay.section == 1 then
           if key1_hold then
@@ -3857,6 +3950,31 @@ function key(n,z)
             page.delay.section = page.delay.section == 1 and 2 or 1
           end
         end
+        -- if page.delay.section == 2 then
+        --   if key1_hold then
+        --     local k = page.delay[page.delay.focus].menu
+        --     local v = page.delay[page.delay.focus].menu_sel[page.delay[page.delay.focus].menu]
+        --     del.links(del.lookup_prm(k,v))
+        --     if k == 1 and v == 5 then
+        --       delay[page.delay.focus == 1 and 2 or 1].feedback_mute = not delay[page.delay.focus == 1 and 2 or 1].feedback_mute
+        --     elseif k == 1 and v == 4 then
+        --       delay[page.delay.focus == 1 and 2 or 1].reverse = delay[page.delay.focus].reverse
+        --     end
+        --     if delay_links[del.lookup_prm(k,v)] then
+        --       local sides = {"L","R"}
+        --       params:set("delay "..sides[page.delay.focus == 1 and 2 or 1]..": "..del.lookup_prm(k,v),params:get("delay "..sides[page.delay.focus]..": "..del.lookup_prm(k,v)))
+        --       grid_dirty = true
+        --     end
+        --   else
+        --     page.delay.section = page.delay.section == 1 and 2 or 1
+        --   end
+        -- elseif page.delay.section == 1 then
+        --   if key1_hold then
+        --     del.link_all(page.delay[page.delay.focus].menu)
+        --   else
+        --     page.delay.section = page.delay.section == 1 and 2 or 1
+        --   end
+        -- end
       elseif menu == 7 then
         _flow.process_key(n,z)
       --   local time_nav = page.time_sel
@@ -4000,31 +4118,31 @@ function key(n,z)
       elseif menu == 7 then
         _flow.process_key(n,z)
       elseif menu == 2 then
-        if page.loops.frame == 2 and key1_hold then
-          if page.loops.sel == 4 then
-            buff_flush()
-            -- print("press")
-          elseif page.loops.sel < 4 then
-            sync_clock_to_loop(bank[page.loops.sel][bank[page.loops.sel].id],"audio")
-          elseif page.loops.sel == 5 then
-            if page.loops.meta_sel < 4 then
-              -- THIS SHOULD CHECK TO SEE IF PAD LOCKED...
-              -- sync to next
-              local id = page.loops.meta_sel
-              local src_bank_num = id == 1 and 2 or 1
-              local src_bank     = bank[src_bank_num]
-              local src_pad      = src_bank[src_bank.id]
-              -- -- shift start/end by the difference between clips
-              local reasonable_max = bank[id][bank[id].id].mode == 1 and 8 or clip[bank[id][bank[id].id].clip].sample_length
-              if src_pad.end_point <= reasonable_max then
-                bank[id][bank[id].id].start_point = src_pad.start_point
-                bank[id][bank[id].id].end_point = src_pad.end_point
-                rightangleslice.sc.start_end( bank[id][bank[id].id], id )
-                -- softcut.position(id+1, bank[id][bank[id].id].start_point )
-              end
-            end
-          end
-        end
+        -- if page.loops.frame == 2 and key1_hold then
+        --   if page.loops.sel == 4 then
+        --     buff_flush()
+        --     -- print("press")
+        --   elseif page.loops.sel < 4 then
+        --     sync_clock_to_loop(bank[page.loops.sel][bank[page.loops.sel].id],"audio")
+        --   elseif page.loops.sel == 5 then
+        --     if page.loops.meta_sel < 4 then
+        --       -- THIS SHOULD CHECK TO SEE IF PAD LOCKED...
+        --       -- sync to next
+        --       local id = page.loops.meta_sel
+        --       local src_bank_num = id == 1 and 2 or 1
+        --       local src_bank     = bank[src_bank_num]
+        --       local src_pad      = src_bank[src_bank.id]
+        --       -- -- shift start/end by the difference between clips
+        --       local reasonable_max = bank[id][bank[id].id].mode == 1 and 8 or clip[bank[id][bank[id].id].clip].sample_length
+        --       if src_pad.end_point <= reasonable_max then
+        --         bank[id][bank[id].id].start_point = src_pad.start_point
+        --         bank[id][bank[id].id].end_point = src_pad.end_point
+        --         rightangleslice.sc.start_end( bank[id][bank[id].id], id )
+        --         -- softcut.position(id+1, bank[id][bank[id].id].start_point )
+        --       end
+        --     end
+        --   end
+        -- end
       end
     -- elseif n == 2 and z == 0 and key2_hold == false and (menu == 2 or menu == 7 or menu == 9) and not key1_hold then
   elseif n == 2 and z == 0 and key2_hold == false and (menu == 2 or menu == 9) and not key1_hold then
@@ -4070,14 +4188,12 @@ function key(n,z)
           menu = 1
         end
       elseif menu == 2 then
-        if page.loops.frame == 2 and key1_hold then
-          if page.loops.sel == 4 then
-            -- buff_flush()
-            -- print("release???")
-          elseif page.loops.sel < 4 then
-            sync_clock_to_loop(bank[page.loops.sel][bank[page.loops.sel].id],"audio")
-          end
-        end
+        -- if page.loops.frame == 2 and key1_hold then
+        --   if page.loops.sel == 4 then
+        --   elseif page.loops.sel < 4 then
+        --     sync_clock_to_loop(bank[page.loops.sel][bank[page.loops.sel].id],"audio")
+        --   end
+        -- end
       else
         menu = 1
       end
@@ -4116,45 +4232,45 @@ function key(n,z)
         page.arp_alt[page.arp_page_sel] = not page.arp_alt[page.arp_page_sel]
       else
         key1_hold = true
-        if menu == 2 and page.loops.sel < 4 and page.loops.frame == 2 and not key2_hold then
-          local focused_pad;
-          if bank[page.loops.sel].focus_hold then
-            focused_pad = bank[page.loops.sel].focus_pad
-          elseif grid_pat[page.loops.sel].play == 0 and midi_pat[page.loops.sel].play == 0 and not arp[page.loops.sel].playing and rytm.track[page.loops.sel].k == 0 then
-            focused_pad = bank[page.loops.sel].id
-          else
-            focused_pad = bank[page.loops.sel].focus_pad
-          end
-          local mode = bank[page.loops.sel][focused_pad].mode
-          local min = bank[page.loops.sel][focused_pad].start_point
-          local max = bank[page.loops.sel][focused_pad].end_point
-          update_waveform(mode,min,max,128)
-        elseif menu == 2 and page.loops.sel < 4 and page.loops.frame == 2 and key2_hold then
-          if bank[page.loops.sel][bank[page.loops.sel].id].mode == 2 then
-            _norns.key(1,0)
-            fileselect.enter(_path.audio,function(n) sample_callback(n,bank[page.loops.sel][bank[page.loops.sel].id].clip) end)
-            sample_selector_active = true
-            if key2_hold then key2_hold = false end
-          end
-        elseif menu == 2 and page.loops.sel == 4 and page.loops.frame == 2 then
-          update_waveform(1,rec[rec.focus].start_point,rec[rec.focus].end_point,128)
-        elseif menu == 2 and page.loops.sel == 5 and page.loops.frame == 2 then
-          if not key2_hold then
-            local id = page.loops.meta_sel
-            if id < 4 and (grid_pat[id].play == 1 or midi_pat[id].play == 1 or arp[id].playing or rytm.track[id].k ~= 0) then
-              bank[id].focus_pad = bank[id].id
-            -- page.loops.focus_hold[page.loops.meta_sel] = not page.loops.focus_hold[page.loops.meta_sel]
-            end
-          elseif key2_hold then
-            if page.loops.meta_sel < 4 then
-              for i = 1,16 do
-                rightangleslice.end_sixteenths(bank[page.loops.meta_sel][i])
-                -- rightangleslice.start_end_default(bank[page.loops.meta_sel][i])
-              end
-              key1_hold = false -- right??
-            end
-          end
-        end
+        -- if menu == 2 and page.loops.sel < 4 and page.loops.frame == 2 and not key2_hold then
+        --   local focused_pad;
+        --   if bank[page.loops.sel].focus_hold then
+        --     focused_pad = bank[page.loops.sel].focus_pad
+        --   elseif grid_pat[page.loops.sel].play == 0 and midi_pat[page.loops.sel].play == 0 and not arp[page.loops.sel].playing and rytm.track[page.loops.sel].k == 0 then
+        --     focused_pad = bank[page.loops.sel].id
+        --   else
+        --     focused_pad = bank[page.loops.sel].focus_pad
+        --   end
+        --   local mode = bank[page.loops.sel][focused_pad].mode
+        --   local min = bank[page.loops.sel][focused_pad].start_point
+        --   local max = bank[page.loops.sel][focused_pad].end_point
+        --   update_waveform(mode,min,max,128)
+        -- elseif menu == 2 and page.loops.sel < 4 and page.loops.frame == 2 and key2_hold then
+        --   if bank[page.loops.sel][bank[page.loops.sel].id].mode == 2 then
+        --     _norns.key(1,0)
+        --     fileselect.enter(_path.audio,function(n) sample_callback(n,bank[page.loops.sel][bank[page.loops.sel].id].clip) end)
+        --     sample_selector_active = true
+        --     if key2_hold then key2_hold = false end
+        --   end
+        -- elseif menu == 2 and page.loops.sel == 4 and page.loops.frame == 2 then
+        --   update_waveform(1,rec[rec.focus].start_point,rec[rec.focus].end_point,128)
+        -- elseif menu == 2 and page.loops.sel == 5 and page.loops.frame == 2 then
+        --   if not key2_hold then
+        --     local id = page.loops.meta_sel
+        --     if id < 4 and (grid_pat[id].play == 1 or midi_pat[id].play == 1 or arp[id].playing or rytm.track[id].k ~= 0) then
+        --       bank[id].focus_pad = bank[id].id
+        --     -- page.loops.focus_hold[page.loops.meta_sel] = not page.loops.focus_hold[page.loops.meta_sel]
+        --     end
+        --   elseif key2_hold then
+        --     if page.loops.meta_sel < 4 then
+        --       for i = 1,16 do
+        --         rightangleslice.end_sixteenths(bank[page.loops.meta_sel][i])
+        --         -- rightangleslice.start_end_default(bank[page.loops.meta_sel][i])
+        --       end
+        --       key1_hold = false -- right??
+        --     end
+        --   end
+        -- end
       end
       
     elseif n == 1 and z == 0 then
