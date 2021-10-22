@@ -34,6 +34,14 @@ function Container.reset_phase(which)
   end
 end
 
+function Container.sync_lfos(i)
+  if params:get("lfo_mode_macro "..i) == 1 then
+    Container.lfo_freqs[i] = 1/(get_the_beats() * lfo_rates[params:get("lfo_beats_macro "..i)] * 4)
+  else
+    Container.lfo_freqs[i] = params:get("lfo_free_macro "..i)
+  end
+end
+
 function Container.lfo_update()
   local delta = (1 / Container.LFO_UPDATE_FREQ) * 2 * math.pi
   for i = 1, Container.NUM_LFOS do
@@ -589,7 +597,7 @@ function Container:add_params()
     params:set_action("macro "..i, function(x) if all_loaded then macro[i]:pass_value(x) end end)
     params:add_option("lfo_macro "..i,"macro "..i.." lfo",{"off","on"},1)
     params:set_action("lfo_macro "..i,function(x)
-      -- self:refresh_params()
+      Container.sync_lfos(i)
     end)
     params:add_option("lfo_mode_macro "..i, "lfo mode", {"beats","free"},1)
     params:set_action("lfo_mode_macro "..i,
@@ -597,7 +605,7 @@ function Container:add_params()
         if x == 1 then
           params:hide("lfo_free_macro "..i)
           params:show("lfo_beats_macro "..i)
-          Container.lfo_freqs[i] = 1/(clock.get_beat_sec() * lfo_rates[params:get("lfo_beats_macro "..i)])
+          Container.lfo_freqs[i] = 1/(get_the_beats() * lfo_rates[params:get("lfo_beats_macro "..i)] * 4)
         elseif x == 2 then
           params:hide("lfo_beats_macro "..i)
           params:show("lfo_free_macro "..i)
@@ -610,7 +618,7 @@ function Container:add_params()
     params:set_action("lfo_beats_macro "..i,
       function(x)
         if params:string("lfo_mode_macro "..i) == "beats" then
-          Container.lfo_freqs[i] = 1/(clock.get_beat_sec() * lfo_rates[x])
+          Container.lfo_freqs[i] = 1/(get_the_beats() * lfo_rates[x] * 4)
         end
       end
     )

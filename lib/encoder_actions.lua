@@ -1176,7 +1176,7 @@ function ea.move_rec_window(target,delta)
   end
 end
 
-function ea.change_pad(target,delta)
+function ea.change_pad(target,delta,silent)
   pad = bank[target]
   if grid_pat[target].play == 0 and grid_pat[target].tightened_start == 0 and not arp[target].playing and midi_pat[target].play == 0 then
     if not pad.focus_hold then
@@ -1184,7 +1184,7 @@ function ea.change_pad(target,delta)
       pad.id = util.clamp(pad.id + delta,1,16)
       selected[target].x = (math.ceil(pad.id/4)+(5*(target-1)))
       selected[target].y = 8-((pad.id-1)%4)
-      if pre_pad ~= pad.id then
+      if pre_pad ~= pad.id and not silent then
         cheat(target,pad.id)
       end
     else
@@ -1230,17 +1230,17 @@ function ea.change_pad_clip(target,delta)
   
   if pad.mode == 1 and pad.clip + delta > 3 then
     pad.mode = 2
-    change_mode(pad,1)
+    _ca.change_mode(pad,1)
     -- pad.clip = 1
-    jump_clip(target,focused_pad,1)
+    _ca.jump_clip(target,focused_pad,1)
   elseif pad.mode == 2 and pad.clip + delta < 1 then
     pad.mode = 1
-    change_mode(pad,2)
+    _ca.change_mode(pad,2)
     -- pad.clip = 3
-    jump_clip(target,focused_pad,3)
+    _ca.jump_clip(target,focused_pad,3)
   else
     local tryit = util.clamp(pad.clip+delta,1,3)
-    jump_clip(target,focused_pad,tryit)
+    _ca.jump_clip(target,focused_pad,tryit)
   end
  
   if grid_pat[target].play == 0 and grid_pat[target].tightened_start == 0 and not arp[target].playing and midi_pat[target].play == 0 then
@@ -1248,16 +1248,6 @@ function ea.change_pad_clip(target,delta)
       cheat(target,bank[target].id)
     end
   end
-  
-  -- if focused_pad == 16 then
-  --   for i = 1,15 do
-  --     if bank[target][16].mode ~= bank[target][i].mode then
-  --       bank[target][i].mode = bank[target][16].mode
-  --       change_mode(bank[target][i],bank[target][i].mode == 2 and 1 or 2)
-  --     end
-  --     jump_clip(target,i,bank[target][16].clip)
-  --   end
-  -- end
   
   grid_dirty = true
 

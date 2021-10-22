@@ -118,11 +118,11 @@ function rnd.restore_default(t,i)
     elseif rnd[t][i].param == "delay send" then
         
     elseif rnd[t][i].param == "rate" then
-        softcut.rate(t+1,bank[t][bank[t].id].rate*bank[t][bank[t].id].offset)
+        softcut.rate(t+1,bank[t][bank[t].id].rate*_loops.get_total_pitch_offset(t,bank[t].id))
     elseif rnd[t][i].param == "loop" then
         softcut.loop(t+1,bank[t][bank[t].id].loop == true and 1 or 0)
     elseif rnd[t][i].param == "semitone offset" then
-        softcut.rate(t+1,bank[t][bank[t].id].rate*bank[t][bank[t].id].offset)
+        softcut.rate(t+1,bank[t][bank[t].id].rate*_loops.get_total_pitch_offset(t,bank[t].id))
     end
 end
 
@@ -166,7 +166,7 @@ function rnd.rate(t,i)
     if rnd[t][i].mode == "destructive" then
         bank[t][bank[t].id].rate = rand_rate*(rev == 0 and -1 or 1)
     end
-    softcut.rate(t+1,(rand_rate*(rev == 0 and -1 or 1))*bank[t][bank[t].id].offset)
+    softcut.rate(t+1,(rand_rate*(rev == 0 and -1 or 1))*_loops.get_total_pitch_offset(t,bank[t].id))
 end
 
 function rnd.loop(t)
@@ -212,7 +212,7 @@ function rnd.offset(t,i)
   if rnd[t][i].mode == "destructive" then
       bank[t][bank[t].id].offset = math.pow(0.5, -rand_offset / 12)
   end
-  softcut.rate(t+1,bank[t][bank[t].id].rate*(math.pow(0.5, -rand_offset / 12)))
+  softcut.rate(t+1,bank[t][bank[t].id].rate*_loops.get_total_pitch_offset(t,bank[t].id)* (math.pow(0.5, -rand_offset / 12)))
 end
 
 function rnd.filter_tilt(t,i)

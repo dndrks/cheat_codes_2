@@ -198,7 +198,7 @@ snap.restore = function(b,slot,sec,style)
                 end
                 softcut.level(b+1,src[i].level*src.global_level)
                 if shot.rate_ramp then
-                  softcut.rate(b+1,src[i].rate*src[i].offset)
+                  softcut.rate(b+1,src[i].rate*_loops.get_total_pitch_offset(b,i))
                 end
                 bank[b].snapshot_mute_while_running = false
               end
@@ -278,7 +278,7 @@ snap.snapshot_funnel_done_action = function(b,slot,args)
     end
     src[i].offset = shot.pad[i].offset
     if i == src.id then
-      softcut.rate(b+1,src[i].rate*src[i].offset)
+      softcut.rate(b+1,src[i].rate*_loops.get_total_pitch_offset(b,i))
       if shot.restore.tilt then
         params:set("filter tilt "..b,shot.pad[i].tilt)
       end
@@ -317,7 +317,7 @@ snap.crossfade = function(b,scene_a,scene_b,val)
       end
       softcut.level(b+1,dest[i].level*dest.global_level)
       if shot.rate_ramp then
-        softcut.rate(b+1,dest[i].rate*dest[i].offset)
+        softcut.rate(b+1,dest[i].rate*_loops.get_total_pitch_offset(b,i))
       end
       bank[b].snapshot_mute_while_running = false
       -- softcut.loop_start(b+1,dest[i].start_point)

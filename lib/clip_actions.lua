@@ -204,16 +204,16 @@ function ca.SOS_voice_overwrite(target,state)
 end
 
 function ca.SOS_save_clip(i)
-  local dirname = _path.dust.."audio/ccy_saved_SOS_clips/"
+  local dirname = _path.dust.."audio/cc2_saved_SOS_clips/"
   if os.rename(dirname, dirname) == nil then
     os.execute("mkdir " .. dirname)
   end
-  local dirname = _path.dust.."audio/ccy_saved_SOS_clips/"..os.date("%y%m%d").."/"
+  local dirname = _path.dust.."audio/cc2_saved_SOS_clips/"..os.date("%y%m%d").."/"
   if os.rename(dirname, dirname) == nil then
     os.execute("mkdir " .. dirname)
   end
-  local name = "ccy_"..os.date("%X-SOS_clip")..i..".wav"
-  softcut.buffer_write_mono(_path.dust.."/audio/ccy_saved_SOS_clips/"..os.date("%y%m%d").."/"..name,clip[i].min,clip[i].max-clip[i].min,2)
+  local name = "cc2_"..os.date("%X-SOS_clip")..i..".wav"
+  softcut.buffer_write_mono(_path.dust.."/audio/cc2_saved_SOS_clips/"..os.date("%y%m%d").."/"..name,clip[i].min,clip[i].max-clip[i].min,2)
 end
 
 function ca.SOS_toggle(i)
@@ -346,27 +346,29 @@ function ca.auto_plop(file,sample,startpoint,endpoint)
 end
 
 function ca.save_sample(i)
-  local dirname = _path.dust.."audio/ccy_saved_samples/"
+  local dirname = _path.dust.."audio/cc2_saved_samples/"
   if os.rename(dirname, dirname) == nil then
     os.execute("mkdir " .. dirname)
   end
-  local name = "ccy_"..os.date("%y%m%d_%X-buff")..i..".wav"
+  local name = "cc2_"..os.date("%y%m%d_%X-buff")..i..".wav"
   local save_pos = i - 1
-  softcut.buffer_write_mono(_path.dust.."/audio/ccy_saved_samples/"..name,1+(32*save_pos),8,1)
+  -- softcut.buffer_write_mono(_path.dust.."/audio/cc2_saved_samples/"..name,1+(32*save_pos),8,1)
+  softcut.buffer_write_mono(_path.dust.."/audio/cc2_saved_samples/"..name,1+(8*save_pos),8,1)
 end
 
 function ca.collect_samples(i,collection) -- this works!!!
-  local dirname = _path.dust.."audio/ccy_live-audio/"
+  local dirname = _path.dust.."audio/cc2_live-audio/"
   if os.rename(dirname, dirname) == nil then
     os.execute("mkdir " .. dirname)
   end
-  local dirname = _path.dust.."audio/ccy_live-audio/"..collection.."/"
+  local dirname = _path.dust.."audio/cc2_live-audio/"..collection.."/"
   if os.rename(dirname, dirname) == nil then
     os.execute("mkdir " .. dirname)
   end
-  local name = "ccy_"..collection.."-"..i..".wav"
+  local name = "cc2_"..collection.."-"..i..".wav"
   local save_pos = i - 1
-  softcut.buffer_write_mono(_path.dust.."audio/ccy_live-audio/"..collection.."/"..name,1+(32*save_pos),32,1)
+  -- softcut.buffer_write_mono(_path.dust.."audio/cc2_live-audio/"..collection.."/"..name,1+(32*save_pos),32,1)
+  softcut.buffer_write_mono(_path.dust.."audio/cc2_live-audio/"..collection.."/"..name,1+(8*save_pos),8,1)
 end
 
 function ca.reload_collected_samples(file,sample)
@@ -375,7 +377,8 @@ function ca.reload_collected_samples(file,sample)
   end
   if file ~= "-" then
     print(file)
-    softcut.buffer_read_mono(file, 0, 1+(32 * (sample-1)), 32, 1, 1)
+    -- softcut.buffer_read_mono(file, 0, 1+(32 * (sample-1)), 32, 1, 1)
+    softcut.buffer_read_mono(file, 0, 1+(8 * (sample-1)), 8, 1, 1)
     print("reloaded previous session's audio")
   end
 end

@@ -89,21 +89,21 @@ function start_up.init()
   
   --params:add_separator()
   
-  params:add_group("loops + buffers", 42)
+  params:add_group("loops + buffers", 64)
 
   params:add_separator("clips")
   
   for i = 1,3 do
     params:add_file("clip "..i.." sample", "clip "..i.." sample")
-    params:set_action("clip "..i.." sample", function(file) load_sample(file,i) end)
+    params:set_action("clip "..i.." sample", function(file) _ca.load_sample(file,i) end)
   end
 
   for i = 1,3 do
-    params:add{type = "trigger", id = "save_buffer"..i, name = "save live buffer "..i.." [K3]", action = function() save_sample(i) end}	
+    params:add{type = "trigger", id = "save_buffer"..i, name = "save live buffer "..i.." [K3]", action = function() _ca.save_sample(i) end}	
   end
 
   params:add_separator("live")
-
+  local bank_names = {"a","b","c"}
   for i = 1,3 do
     -- params:add_option("rec_loop_"..i, "live "..i.." rec behavior", {"loop","1-shot","SOS"}, 1)
     params:add_option("rec_loop_"..i, "live "..i.." rec behavior", {"loop","1-shot"}, 1)
@@ -195,6 +195,47 @@ function start_up.init()
     params:add_control("random_rec_clock_prob_"..i, "rand rec "..i.." probability", controlspec.new(0, 100, 'lin', 1, 0, "%"))
   end
 
+  params:add_separator("SOS")
+  for i = 1,3 do
+    params:add_binary("SOS_enabled_"..i,"SOS ["..bank_names[i].."]","toggle")
+    params:add{id="SOS_feedback_"..i, name="--> SOS feedback", type="control", 
+    controlspec=controlspec.new(0,1.0,'lin',0,1,""),
+    action = function(x)
+      if params:get("SOS_enabled_"..i) == 1 then
+        softcut.pre_level(i+1,x)
+      end
+    end}
+    params:add_option("SOS_L_in_"..i, "--> SOS L input", {"off","on"},2)
+    params:set_action("SOS_L_in_"..i, function(x)
+      if params:get("SOS_enabled_"..i) == 1 then
+        local good_level;
+        if x == 1 then good_level = 0 else good_level = 0.5 end
+        -- softcut.level_input_cut(1,i+1,x-1)
+        softcut.level_input_cut(1,i+1,good_level)
+      end
+    end)
+    params:add_option("SOS_R_in_"..i, "--> SOS R input", {"on","off"},1)
+    params:set_action("SOS_R_in_"..i, function(x)
+      if params:get("SOS_enabled_"..i) == 1 then
+        -- softcut.level_input_cut(1,i+1,x-1)
+        local good_level;
+        if x == 1 then good_level = 0 else good_level = 0.5 end
+        -- softcut.level_input_cut(1,i+1,x-1)
+        softcut.level_input_cut(2,i+1,good_level)
+      end
+    end)
+    params:add{id="SOS_erase_strength_"..i, name="--> SOS erase strength", type="control", 
+    controlspec=controlspec.new(0,1.0,'lin',0,1,"")}
+    params:hide("SOS_erase_strength_"..i)
+    params:add{id="SOS_erase_fade_"..i, name="--> SOS erase fade", type="control", 
+    controlspec=controlspec.new(0,1.0,'lin',0,0,"")}
+    params:hide("SOS_erase_fade_"..i)
+  end
+
+  for i = 1,3 do
+    params:add{type = "trigger", id = "SOS_save_clip"..i, name = "save clip "..i.." [K3]", action = function() _ca.SOS_save_clip(i) end}	
+  end
+
   _dough.init_params()
 
   params:add_separator("global")
@@ -207,7 +248,7 @@ function start_up.init()
           bank[i][j].offset = math.pow(0.5, -value / 12)
         end
         if bank[i][bank[i].id].pause == false then
-          softcut.rate(i+1, bank[i][bank[i].id].rate*bank[i][bank[i].id].offset)
+          softcut.rate(i+1, bank[i][bank[i].id].rate*_loops.get_total_pitch_offset(i,bank[i].id))
         end
       end
     end
@@ -557,9 +598,9 @@ params:add_separator("ALT key")
       action=function()
         if all_loaded then
           if not grid_alt then
-            toggle_buffer(i)
+            _ca.toggle_buffer(i)
           else
-            buff_flush()
+            _ca.buff_flush()
           end
         end
       end
@@ -657,7 +698,7 @@ params:add_separator("ALT key")
         bank[i][p].rate = macros.pad_rates[x]
       end
       if bank[i][bank[i].id].pause == false then
-        softcut.rate(i+1, bank[i][bank[i].id].rate*bank[i][bank[i].id].offset)
+        softcut.rate(i+1, bank[i][bank[i].id].rate*_loops.get_total_pitch_offset(i,bank[i].id))
       end
     end)
     params:add_control("rate slew time "..i, "rate slew time "..banks[i], controlspec.new(0,3,'lin',0.01,0))

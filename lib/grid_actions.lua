@@ -50,6 +50,9 @@ function grid_actions.init(x,y,z)
         if grid_alt or bank[i].alt_lock then
           if x == 1+(5*(i-1)) and y == 1 and z == 1 then
             bank[i].focus_hold = not bank[i].focus_hold
+            if menu == 2 then
+              page.loops.meta_pad[i] = bank[i].focus_pad
+            end
             mc.mft_redraw(bank[i][bank[i].focus_hold and bank[i].focus_pad or bank[i].id],"all")
           end
         end
@@ -59,42 +62,10 @@ function grid_actions.init(x,y,z)
         if z == 1 and x > 0 + (5*(i-1)) and x <= 4 + (5*(i-1)) and y >=5 then
           if bank[i].focus_hold == false then
             grid_actions.pad_down(i,(math.abs(y-9)+((x-1)*4))-(20*(i-1)))
-            -- if not grid_alt then
-            --   selected[i].x = x
-            --   selected[i].y = y
-            --   selected[i].id = (math.abs(y-9)+((x-1)*4))-(20*(i-1))
-            --   bank[i].id = selected[i].id
-            --   which_bank = i
-            --   if menu == 11 then
-            --     help_menu = "banks"
-            --   end
-            --   pad_clipboard = nil
-            --   if bank[i].quantize_press == 0 then
-            --     if arp[i].enabled and grid_pat[i].rec == 0 and not arp[i].pause then
-            --       if arp[i].down == 0 and params:string("arp_"..i.."_hold_style") == "last pressed" then
-            --         for j = #arp[i].notes,1,-1 do
-            --           table.remove(arp[i].notes,j)
-            --         end
-            --       end
-            --       arp[i].time = bank[i][bank[i].id].arp_time
-            --       arps.momentary(i, bank[i].id, "on")
-            --       arp[i].down = arp[i].down + 1
-            --     else
-            --       if rytm.track[i].k == 0 then
-            --         cheat(i, bank[i].id)
-            --       end
-            --       grid_pattern_watch(i)
-            --     end
-            --   else
-            --     table.insert(quantize_events[i],selected[i].id)
-            --   end
-            -- else
-            --   local released_pad = (math.abs(y-9)+((x-1)*4))-(20*(i-1))
-            --   arps.momentary(i, released_pad, "off")
-            -- end
           else
             if not grid_alt then
               bank[i].focus_pad = (math.abs(y-9)+((x-1)*4))-(20*(i-1))
+              page.loops.meta_pad[i] = bank[i].focus_pad
               mc.mft_redraw(bank[i][bank[i].focus_pad],"all")
             elseif grid_alt then
               if not pad_clipboard then
@@ -112,16 +83,6 @@ function grid_actions.init(x,y,z)
         elseif z == 0 and x > 0 + (5*(i-1)) and x <= 4 + (5*(i-1)) and y >=5 then
           if not bank[i].focus_hold then
             grid_actions.pad_up(i,(math.abs(y-9)+((x-1)*4))-(20*(i-1)))
-            -- local released_pad = (math.abs(y-9)+((x-1)*4))-(20*(i-1))
-            -- if bank[i][released_pad].play_mode == "momentary" then
-            --   softcut.rate(i+1,0)
-            -- end
-            -- if (arp[i].enabled and not arp[i].hold) or (menu == 9 and not arp[i].hold) then
-            --   arps.momentary(i, released_pad, "off")
-            --   arp[i].down = arp[i].down - 1
-            -- elseif (arp[i].enabled and arp[i].hold and not arp[i].pause) or (menu == 9 and arp[i].hold and not arp[i].pause) then
-            --   arp[i].down = arp[i].down - 1
-            -- end
           end
         end
       end
@@ -254,24 +215,24 @@ function grid_actions.init(x,y,z)
             if z == 1 then
               if not bank[current].alt_lock and not grid_alt then
                 if bank[current].focus_hold == false then
-                  jump_clip(current, bank[current].id, math.abs(y-5))
+                  _ca.jump_clip(current, bank[current].id, math.abs(y-5))
                 else
-                  jump_clip(current, bank[current].focus_pad, math.abs(y-5))
+                  _ca.jump_clip(current, bank[current].focus_pad, math.abs(y-5))
                 end
               elseif bank[current].alt_lock or grid_alt then
                 for j = 1,16 do
-                  jump_clip(current, j, math.abs(y-5))
+                  _ca.jump_clip(current, j, math.abs(y-5))
                 end
               end
             end
           end
           if grid_clip_key_held and z == 1 then
             if not sample_selector_active then
-              local current = util.round(math.sqrt(math.abs(x-2)))
-              _norns.key(1,1)
-              _norns.key(1,0)
-              fileselect.enter(_path.audio,function(n) sample_callback(n,bank[current][bank[current].id].clip) end)
-              sample_selector_active = true
+              -- local current = util.round(math.sqrt(math.abs(x-2)))
+              -- _norns.key(1,1)
+              -- _norns.key(1,0)
+              -- fileselect.enter(_path.audio,function(n) _ca.sample_callback(n,bank[current][bank[current].id].clip) end)
+              -- sample_selector_active = true
             end
           end
           if z == 0 and not sample_selector_active then
@@ -300,7 +261,7 @@ function grid_actions.init(x,y,z)
               local old_mode = target.mode
               target.mode = math.abs(i-5)
               if old_mode ~= target.mode then
-                change_mode(target, old_mode)
+                _ca.change_mode(target, old_mode)
               end
 
             elseif bank[math.sqrt(math.abs(x-3))].alt_lock or grid_alt then
@@ -309,7 +270,7 @@ function grid_actions.init(x,y,z)
                 local old_mode = bank[current][k].mode
                 bank[current][k].mode = math.abs(i-5)
                 if old_mode ~= bank[current][k].mode then
-                  change_mode(bank[current][k], old_mode)
+                  _ca.change_mode(bank[current][k], old_mode)
                 end
               end
             end
@@ -343,12 +304,12 @@ function grid_actions.init(x,y,z)
             rec.focus = 8-y
           else
             if rec[rec.focus].loop == 0 and params:string("one_shot_clock_div") == "threshold" and not grid_alt then
-              threshold_rec_handler()
+              _ca.threshold_rec_handler()
             elseif not grid_alt then
-              toggle_buffer(8-y)
+              _ca.toggle_buffer(8-y)
             end
             if grid_alt then
-              buff_flush()
+              _ca.buff_flush()
             end
           end
         end
@@ -1131,13 +1092,13 @@ function grid_actions.init(x,y,z)
         if z == 1 then
           if not bank[current].alt_lock and not grid_alt then
             if bank[current].focus_hold == false then
-              jump_clip(current, bank[current].id, x-4)
+              _ca.jump_clip(current, bank[current].id, x-4)
             else
-              jump_clip(current, bank[current].focus_pad, x-4)
+              _ca.jump_clip(current, bank[current].focus_pad, x-4)
             end
           elseif bank[current].alt_lock or grid_alt then
             for j = 1,16 do
-              jump_clip(current, j, x-4)
+              _ca.jump_clip(current, j, x-4)
             end
           end
         end
@@ -1161,7 +1122,7 @@ function grid_actions.init(x,y,z)
         local old_mode = target.mode
         target.mode = x-4
         if old_mode ~= target.mode then
-          change_mode(target, old_mode)
+          _ca.change_mode(target, old_mode)
         end
 
       elseif bank[current].alt_lock or grid_alt then
@@ -1169,7 +1130,7 @@ function grid_actions.init(x,y,z)
           local old_mode = bank[current][k].mode
           bank[current][k].mode = x-4
           if old_mode ~= bank[current][k].mode then
-            change_mode(bank[current][k], old_mode)
+            _ca.change_mode(bank[current][k], old_mode)
           end
         end
       end
@@ -1194,12 +1155,12 @@ function grid_actions.init(x,y,z)
         rec.focus = x
       else
         if rec[rec.focus].loop == 0 and params:string("one_shot_clock_div") == "threshold" and not grid_alt then
-          threshold_rec_handler()
+          _ca.threshold_rec_handler()
         elseif not grid_alt then
-          toggle_buffer(x)
+          _ca.toggle_buffer(x)
         end
         if grid_alt then
-          buff_flush()
+          _ca.buff_flush()
         end
       end
     end
@@ -1657,13 +1618,13 @@ function grid_actions.init(x,y,z)
           if z == 1 then
             if not bank[current].alt_lock and not grid_alt then
               if bank[current].focus_hold == false then
-                jump_clip(current, bank[current].id, x-4)
+                _ca.jump_clip(current, bank[current].id, x-4)
               else
-                jump_clip(current, bank[current].focus_pad, x-4)
+                _ca.jump_clip(current, bank[current].focus_pad, x-4)
               end
             elseif bank[current].alt_lock or grid_alt then
               for j = 1,16 do
-                jump_clip(current, j, x-4)
+                _ca.jump_clip(current, j, x-4)
               end
             end
           end
@@ -1687,7 +1648,7 @@ function grid_actions.init(x,y,z)
           local old_mode = target.mode
           target.mode = x-4
           if old_mode ~= target.mode then
-            change_mode(target, old_mode)
+            _ca.change_mode(target, old_mode)
           end
 
         elseif bank[current].alt_lock or grid_alt then
@@ -1695,7 +1656,7 @@ function grid_actions.init(x,y,z)
             local old_mode = bank[current][k].mode
             bank[current][k].mode = x-4
             if old_mode ~= bank[current][k].mode then
-              change_mode(bank[current][k], old_mode)
+              _ca.change_mode(bank[current][k], old_mode)
             end
           end
         end
@@ -1720,12 +1681,12 @@ function grid_actions.init(x,y,z)
           rec.focus = x
         else
           if rec[rec.focus].loop == 0 and params:string("one_shot_clock_div") == "threshold" and not grid_alt then
-            threshold_rec_handler()
+            _ca.threshold_rec_handler()
           elseif not grid_alt then
-            toggle_buffer(x)
+            _ca.toggle_buffer(x)
           end
           if grid_alt then
-            buff_flush()
+            _ca.buff_flush()
           end
         end
       end
@@ -2010,11 +1971,12 @@ function grid_actions.index_to_grid_pos(val,columns,i)
 end
 
 function grid_actions.pad_down(i,p)
-  if not grid_alt then
+  if (not grid_alt and not _live.enabled) or _live.enabled then
     selected[i].x = grid_actions.index_to_grid_pos(p,4,i)[2] + (5*(i-1))
     selected[i].y = 9 - grid_actions.index_to_grid_pos(p,4,i)[1]
     selected[i].id = p
     bank[i].id = selected[i].id
+    page.loops.meta_pad[i] = bank[i].id
     which_bank = i
     if menu == 11 then
       help_menu = "banks"
