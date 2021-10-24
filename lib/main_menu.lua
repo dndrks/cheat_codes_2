@@ -3,6 +3,7 @@ _flow = include 'lib/flow'
 _arps = include 'lib/_menus/arps'
 _d = include 'lib/_menus/delays'
 _l = include 'lib/_menus/levels'
+_f = include 'lib/_menus/filters'
 _loops = include 'lib/_menus/loops'
 
 local dots = "."
@@ -853,65 +854,66 @@ function main_menu.init()
       end
     end
   elseif menu == 5 then
-    screen.move(0,10)
-    screen.level(3)
-    screen.text("filters")
+    _f.draw_menu()
+    -- screen.move(0,10)
+    -- screen.level(3)
+    -- screen.text("filters")
     
-    for i = 1,3 do
-      screen.move(17+((i-1)*45),20)
-      screen.level(15)
-      local filters_to_screen_options = {"a", "b", "c"}
-      if key1_hold or grid_alt then
-        screen.text_center(filters_to_screen_options[i]..""..bank[i].id)
-      else
-        screen.text_center("("..filters_to_screen_options[i]..")")
-      end
-      screen.move(17+((i-1)*45),30)
+    -- for i = 1,3 do
+    --   screen.move(17+((i-1)*45),20)
+    --   screen.level(15)
+    --   local filters_to_screen_options = {"a", "b", "c"}
+    --   if key1_hold or grid_alt then
+    --     screen.text_center(filters_to_screen_options[i]..""..bank[i].id)
+    --   else
+    --     screen.text_center("("..filters_to_screen_options[i]..")")
+    --   end
+    --   screen.move(17+((i-1)*45),30)
       
-      screen.level(page.filters.sel+1 == 1 and 15 or 3)
-      if slew_counter[i].slewedVal ~= nil then
-        if slew_counter[i].slewedVal >= -0.04 and slew_counter[i].slewedVal <=0.04 then
-        screen.text_center(".....|.....")
-        elseif slew_counter[i].slewedVal < -0.04 then
-          if slew_counter[i].slewedVal > -0.3 then
-            screen.text_center("....||.....")
-          elseif slew_counter[i].slewedVal > -0.45 then
-            screen.text_center("...|||.....")
-          elseif slew_counter[i].slewedVal > -0.65 then
-            screen.text_center("..||||.....")
-          elseif slew_counter[i].slewedVal > -0.8 then
-            screen.text_center(".|||||.....")
-          elseif slew_counter[i].slewedVal >= -1.01 then
-            screen.text_center("||||||.....")
-          end
-        elseif slew_counter[i].slewedVal > 0 then
-          if slew_counter[i].slewedVal < 0.5 then
-            screen.text_center(".....||....")
-          elseif slew_counter[i].slewedVal < 0.65 then
-            screen.text_center(".....|||...")
-          elseif slew_counter[i].slewedVal < 0.8 then
-            screen.text_center(".....||||..")
-          elseif slew_counter[i].slewedVal < 0.85 then
-            screen.text_center(".....|||||.")
-          elseif slew_counter[i].slewedVal <= 1.01 then
-            screen.text_center(".....||||||")
-          end
-        end
-      end
-      screen.move(17+((i-1)*45),40)
-      screen.level(page.filters.sel+1 == 2 and 15 or 3)
-      local ease_time_to_screen = bank[i][bank[i].id].tilt_ease_time
-      screen.text_center(string.format("%.2f",ease_time_to_screen/100).."s")
-      screen.move(17+((i-1)*45),50)
-      screen.level(page.filters.sel+1 == 3 and 15 or 3)
-      local q_scaled = util.linlin(0.0005,4,100,0,params:get("filter "..i.." q"))
-      screen.text_center(string.format("%.4g",q_scaled).."%")
-      screen.move(17+((i-1)*45),60)
-      screen.level(page.filters.sel+1 == 4 and 15 or 3)
-      local ease_type_to_screen = bank[i][bank[i].id].tilt_ease_type
-      local ease_types = {"cont","jumpy"}
-      screen.text_center(ease_types[ease_type_to_screen])
-    end
+    --   screen.level(page.filters.sel+1 == 1 and 15 or 3)
+    --   if slew_counter[i].slewedVal ~= nil then
+    --     if slew_counter[i].slewedVal >= -0.04 and slew_counter[i].slewedVal <=0.04 then
+    --     screen.text_center(".....|.....")
+    --     elseif slew_counter[i].slewedVal < -0.04 then
+    --       if slew_counter[i].slewedVal > -0.3 then
+    --         screen.text_center("....||.....")
+    --       elseif slew_counter[i].slewedVal > -0.45 then
+    --         screen.text_center("...|||.....")
+    --       elseif slew_counter[i].slewedVal > -0.65 then
+    --         screen.text_center("..||||.....")
+    --       elseif slew_counter[i].slewedVal > -0.8 then
+    --         screen.text_center(".|||||.....")
+    --       elseif slew_counter[i].slewedVal >= -1.01 then
+    --         screen.text_center("||||||.....")
+    --       end
+    --     elseif slew_counter[i].slewedVal > 0 then
+    --       if slew_counter[i].slewedVal < 0.5 then
+    --         screen.text_center(".....||....")
+    --       elseif slew_counter[i].slewedVal < 0.65 then
+    --         screen.text_center(".....|||...")
+    --       elseif slew_counter[i].slewedVal < 0.8 then
+    --         screen.text_center(".....||||..")
+    --       elseif slew_counter[i].slewedVal < 0.85 then
+    --         screen.text_center(".....|||||.")
+    --       elseif slew_counter[i].slewedVal <= 1.01 then
+    --         screen.text_center(".....||||||")
+    --       end
+    --     end
+    --   end
+    --   screen.move(17+((i-1)*45),40)
+    --   screen.level(page.filters.sel+1 == 2 and 15 or 3)
+    --   local ease_time_to_screen = bank[i][bank[i].id].tilt_ease_time
+    --   screen.text_center(string.format("%.2f",ease_time_to_screen/100).."s")
+    --   screen.move(17+((i-1)*45),50)
+    --   screen.level(page.filters.sel+1 == 3 and 15 or 3)
+    --   local q_scaled = util.linlin(0.0005,4,100,0,params:get("filter "..i.." q"))
+    --   screen.text_center(string.format("%.4g",q_scaled).."%")
+    --   screen.move(17+((i-1)*45),60)
+    --   screen.level(page.filters.sel+1 == 4 and 15 or 3)
+    --   local ease_type_to_screen = bank[i][bank[i].id].tilt_ease_type
+    --   local ease_types = {"cont","jumpy"}
+    --   screen.text_center(ease_types[ease_type_to_screen])
+    -- end
 
   elseif menu == 6 then
     _d.draw_menu()

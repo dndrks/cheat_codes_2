@@ -61,6 +61,8 @@ function encoder_actions.init(n,d)
     _arps.process_encoder(n,d)
   elseif menu == 2 then
     _loops.process_encoder(n,d)
+  elseif menu == 5 then
+    _f.process_encoder(n,d)
   end
 
   if n == 1 then
@@ -1073,47 +1075,47 @@ function encoder_actions.init(n,d)
     end
     softcut.pan(n+1, bank[n][bank[n].id].pan)
   elseif menu == 5 then
-    local filt_page = page.filters.sel + 1
-    if filt_page == 1 then
-      if bank[n][bank[n].id].filter_type == 4 then
-        if key1_hold or grid_alt then
-          if slew_counter[n] ~= nil then
-            slew_counter[n].prev_tilt = bank[n][bank[n].id].tilt
-          end
-          bank[n][bank[n].id].tilt = util.clamp(bank[n][bank[n].id].tilt+(d/100),-1,1)
-          if d < 0 then
-            if util.round(bank[n][bank[n].id].tilt*100) < 0 and util.round(bank[n][bank[n].id].tilt*100) > -9 then
-              bank[n][bank[n].id].tilt = -0.10
-            elseif util.round(bank[n][bank[n].id].tilt*100) > 0 and util.round(bank[n][bank[n].id].tilt*100) < 32 then
-              bank[n][bank[n].id].tilt = 0.0
-            end
-          elseif d > 0 and util.round(bank[n][bank[n].id].tilt*100) > 0 and util.round(bank[n][bank[n].id].tilt*100) < 32 then
-            bank[n][bank[n].id].tilt = 0.32
-          end
-          slew_filter(n,slew_counter[n].prev_tilt,bank[n][bank[n].id].tilt,bank[n][bank[n].id].q,bank[n][bank[n].id].q,15)
-        else
-          ea.set_filter_cutoff(n,d)
-        end
-      end
-    elseif filt_page == 2 then
-      if key1_hold or grid_alt then
-        bank[n][bank[n].id].tilt_ease_time = util.clamp(bank[n][bank[n].id].tilt_ease_time+(d/1), 5, 15000)
-      else
-        for j = 1,16 do
-          bank[n][j].tilt_ease_time = util.clamp(bank[n][j].tilt_ease_time+(d/1), 5, 15000)
-        end
-      end
-    elseif filt_page == 3 then
-      params:delta("filter "..n.." q",d*-1)
-    elseif filt_page == 4 then
-      if key1_hold or grid_alt then
-        bank[n][bank[n].id].tilt_ease_type = util.clamp(bank[n][bank[n].id].tilt_ease_type+d, 1, 2)
-      else
-        for j = 1,16 do
-          bank[n][j].tilt_ease_type = util.clamp(bank[n][j].tilt_ease_type+d, 1, 2)
-        end
-      end
-    end
+    -- local filt_page = page.filters.sel + 1
+    -- if filt_page == 1 then
+    --   if bank[n][bank[n].id].filter_type == 4 then
+    --     if key1_hold or grid_alt then
+    --       if slew_counter[n] ~= nil then
+    --         slew_counter[n].prev_tilt = bank[n][bank[n].id].tilt
+    --       end
+    --       bank[n][bank[n].id].tilt = util.clamp(bank[n][bank[n].id].tilt+(d/100),-1,1)
+    --       if d < 0 then
+    --         if util.round(bank[n][bank[n].id].tilt*100) < 0 and util.round(bank[n][bank[n].id].tilt*100) > -9 then
+    --           bank[n][bank[n].id].tilt = -0.10
+    --         elseif util.round(bank[n][bank[n].id].tilt*100) > 0 and util.round(bank[n][bank[n].id].tilt*100) < 32 then
+    --           bank[n][bank[n].id].tilt = 0.0
+    --         end
+    --       elseif d > 0 and util.round(bank[n][bank[n].id].tilt*100) > 0 and util.round(bank[n][bank[n].id].tilt*100) < 32 then
+    --         bank[n][bank[n].id].tilt = 0.32
+    --       end
+    --       slew_filter(n,slew_counter[n].prev_tilt,bank[n][bank[n].id].tilt,bank[n][bank[n].id].q,bank[n][bank[n].id].q,15)
+    --     else
+    --       ea.set_filter_cutoff(n,d)
+    --     end
+    --   end
+    -- elseif filt_page == 2 then
+    --   if key1_hold or grid_alt then
+    --     bank[n][bank[n].id].tilt_ease_time = util.clamp(bank[n][bank[n].id].tilt_ease_time+(d/1), 5, 15000)
+    --   else
+    --     for j = 1,16 do
+    --       bank[n][j].tilt_ease_time = util.clamp(bank[n][j].tilt_ease_time+(d/1), 5, 15000)
+    --     end
+    --   end
+    -- elseif filt_page == 3 then
+    --   params:delta("filter "..n.." q",d*-1)
+    -- elseif filt_page == 4 then
+    --   if key1_hold or grid_alt then
+    --     bank[n][bank[n].id].tilt_ease_type = util.clamp(bank[n][bank[n].id].tilt_ease_type+d, 1, 2)
+    --   else
+    --     for j = 1,16 do
+    --       bank[n][j].tilt_ease_type = util.clamp(bank[n][j].tilt_ease_type+d, 1, 2)
+    --     end
+    --   end
+    -- end
   end
   screen_dirty = true
 end

@@ -1104,23 +1104,29 @@ params:add_separator("ALT key")
   end
   
   --params:add_separator()
-  
-  params:add_group("ignore",18)
-  params:hide("ignore")
-  
-  --params:add{type = "trigger", id = "ignore", name = "ignore, data only:"}
-  
+
+  params:add_group("filters",10*3)
+  local banks = {"(a)", "(b)", "(c)"}
+
   for i = 1,3 do
-    local banks = {"(a)", "(b)", "(c)"}
-    params:add_control("filter "..i.." cutoff", "filter "..banks[i].." cutoff", controlspec.new(10,12000,'lin',1,12000,"Hz"))
-    params:set_action("filter "..i.." cutoff", function(x) softcut.post_filter_fc(i+1,x) bank[i][bank[i].id].fc = x end)
-    params:add_control("filter "..i.." q", "filter "..banks[i].." q", controlspec.new(0.0005, 2.0, 'exp', 0, 0.32, ""))
+    params:add_separator(banks[i])
+    params:add_option("filter "..i.." style","filter style", {"dj","multi-mode"},1)
+    params:add_control("filter "..i.." dj tilt","dj tilt",controlspec.new(-1,1,'lin',0.01,0))
+    params:set_action("filter "..i.." dj tilt",
+    function(x)
+      params:set("filter tilt "..i,x)
+    end)
+    params:add_control("filter "..i.." q", "reciprocal q", controlspec.new(0.0005, 2.0, 'exp', 0, 0.32, ""))
     params:set_action("filter "..i.." q", function(x)
       softcut.post_filter_rq(i+1,x)
       for j = 1,16 do
         bank[i][j].q = x
       end
+      params:set("filter "..i.." percent q", util.round(util.linlin(0.0005,4,100,0,x)).."%")
     end)
+    params:add_text("filter "..i.." percent q", "(informational: rq as q)",util.round(util.linlin(0.0005,4,100,0,params:get("filter "..i.." q"))).."%" )
+    params:add_control("filter "..i.." cutoff", "filter "..banks[i].." cutoff", controlspec.new(10,12000,'lin',1,12000,"Hz"))
+    params:set_action("filter "..i.." cutoff", function(x) softcut.post_filter_fc(i+1,x) bank[i][bank[i].id].fc = x end)
     params:add_control("filter "..i.." lp", "filter "..banks[i].." lp", controlspec.new(0, 1, 'lin', 0, 1, ""))
     params:set_action("filter "..i.." lp", function(x) softcut.post_filter_lp(i+1,x) bank[i][bank[i].id].lp = x end)
     params:add_control("filter "..i.." hp", "filter "..banks[i].." hp", controlspec.new(0, 1, 'lin', 0, 0, ""))
@@ -1130,6 +1136,25 @@ params:add_separator("ALT key")
     params:add_control("filter "..i.." dry", "filter "..banks[i].." dry", controlspec.new(0, 1, 'lin', 0, 0, ""))
     params:set_action("filter "..i.." dry", function(x) softcut.post_filter_dry(i+1,x) bank[i][bank[i].id].fd = x end)
   end
+  
+  -- params:add_group("ignore",15)
+  -- params:hide("ignore")
+  
+  -- --params:add{type = "trigger", id = "ignore", name = "ignore, data only:"}
+  
+  -- for i = 1,3 do
+  --   local banks = {"(a)", "(b)", "(c)"}
+  --   -- params:add_control("filter "..i.." cutoff", "filter "..banks[i].." cutoff", controlspec.new(10,12000,'lin',1,12000,"Hz"))
+  --   -- params:set_action("filter "..i.." cutoff", function(x) softcut.post_filter_fc(i+1,x) bank[i][bank[i].id].fc = x end)
+  --   -- params:add_control("filter "..i.." lp", "filter "..banks[i].." lp", controlspec.new(0, 1, 'lin', 0, 1, ""))
+  --   -- params:set_action("filter "..i.." lp", function(x) softcut.post_filter_lp(i+1,x) bank[i][bank[i].id].lp = x end)
+  --   -- params:add_control("filter "..i.." hp", "filter "..banks[i].." hp", controlspec.new(0, 1, 'lin', 0, 0, ""))
+  --   -- params:set_action("filter "..i.." hp", function(x) softcut.post_filter_hp(i+1,x) bank[i][bank[i].id].hp = x end)
+  --   -- params:add_control("filter "..i.." bp", "filter "..banks[i].." bp", controlspec.new(0, 1, 'lin', 0, 0, ""))
+  --   -- params:set_action("filter "..i.." bp", function(x) softcut.post_filter_bp(i+1,x) bank[i][bank[i].id].bp = x end)
+  --   -- params:add_control("filter "..i.." dry", "filter "..banks[i].." dry", controlspec.new(0, 1, 'lin', 0, 0, ""))
+  --   -- params:set_action("filter "..i.." dry", function(x) softcut.post_filter_dry(i+1,x) bank[i][bank[i].id].fd = x end)
+  -- end
   
 end
 

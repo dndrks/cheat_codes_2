@@ -536,9 +536,57 @@ function Container.enc(n,d)
       elseif p.edit_focus[p.selected_macro] > 1 and p.edit_focus[p.selected_macro] < 7  then
         macro[p.selected_macro]:cycle_entry(d,p.edit_focus[p.selected_macro]-1)
       elseif p.edit_focus[p.selected_macro] == 7  then
+        local pre_change = macro[p.selected_macro].params[p.param_sel[p.selected_macro]].enabled
         macro[p.selected_macro].params[p.param_sel[p.selected_macro]].enabled = d > 0 and true or false
+        if pre_change ~= macro[p.selected_macro].params[p.param_sel[p.selected_macro]].enabled then
+          Container.check_for_pans_lfo()
+        end
       end
     end
+  end
+end
+
+function Container.check_for_pans_lfo()
+  for b = 1,3 do
+    if not bank[b].pan_lfo then
+      for i = 1,8 do
+        for j = 1,8 do
+          if macro[i].params[j].params_name == "pan"
+          and macro[i].params[j].enabled
+          and macro[i].params[j].target == b
+          and params:string("lfo_macro "..i) == "on" then
+            bank[b].pan_lfo = true
+            goto done
+          end
+        end
+      end
+      ::done::
+    elseif bank[b].pan_lfo then
+      local how_many_pans = 0
+      local all_off = 0
+      for i = 1,8 do
+        for j = 1,8 do
+          if macro[i].params[j].params_name == "pan" then
+            how_many_pans = how_many_pans + 1
+          end
+        end
+      end
+      for i = 1,8 do
+        for j = 1,8 do
+          if macro[i].params[j].params_name == "pan"
+          and params:string("lfo_macro "..i) ~= "on"
+          and macro[i].params[j].target == b
+          then
+            all_off = all_off + 1
+          end
+        end
+      end
+      -- print(all_off,how_many_pans)
+      if all_off == how_many_pans then
+        bank[b].pan_lfo = false
+      end
+    end
+    -- print(bank[b].pan_lfo)
   end
 end
 
@@ -598,6 +646,7 @@ function Container:add_params()
     params:add_option("lfo_macro "..i,"macro "..i.." lfo",{"off","on"},1)
     params:set_action("lfo_macro "..i,function(x)
       Container.sync_lfos(i)
+      Container.check_for_pans_lfo()
     end)
     params:add_option("lfo_mode_macro "..i, "lfo mode", {"beats","free"},1)
     params:set_action("lfo_mode_macro "..i,

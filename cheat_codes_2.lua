@@ -2081,6 +2081,7 @@ function init()
   _flow.init()
   _arps.init()
   _loops.init()
+  _f.init()
   -- _l.init()
   page.delay_sel = 0
   -- page.delay_section = 1
@@ -3075,6 +3076,7 @@ function reset_all_banks( banks )
     b.quantize_press_div = 1
     b.alt_lock = false
     b.global_level = 1.0
+    b.pan_lfo = false
     for k = 1,16 do
 -- TODO suggest nesting tables for delay,filter,tilt etc
       b[k] = {}
@@ -3256,7 +3258,9 @@ function cheat(b,i,silent)
       slew_filter(util.round(b),slew_counter[b].prev_tilt,slew_counter[b].next_tilt,slew_counter[b].prev_q,slew_counter[b].next_q,pad.tilt_ease_time)
     end
   end
-  softcut.pan(b+1,pad.pan)
+  if not bank[b].pan_lfo then
+    softcut.pan(b+1,pad.pan)
+  end
   update_delays()
   if slew_counter[b] ~= nil then
     slew_counter[b].prev_tilt = pad.tilt
@@ -3807,6 +3811,8 @@ function key(n,z)
     _arps.process_key(n,z)
   elseif menu == 2 then
     _loops.process_key(n,z)
+  elseif menu == 5 then
+    _f.process_key(n,z)
   else
     if n == 3 and z == 1 then
       if menu == 1 then
