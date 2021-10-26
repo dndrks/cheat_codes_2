@@ -29,23 +29,11 @@ snap.init = function()
           ["clip"] = true,
           ["global_level"] = true,
           ["pan"] = true,
-          ["tilt"] = true
+          ["filter"] = true
         }
       for k = 1,16 do
         bank[i].snapshot[j].pad[k] = {}
       end
-      --   bank[i].snapshot[j].pad[k].rate_restore = true 
-      --   bank[i].snapshot[j].pad[k].offset_restore = true
-      --   bank[i].snapshot[j].pad[k].fifth_restore = true
-      --   bank[i].snapshot[j].pad[k].start_point_restore = true
-      --   bank[i].snapshot[j].pad[k].end_point_restore = true
-      --   bank[i].snapshot[j].pad[k].loop_restore = true
-      --   bank[i].snapshot[j].pad[k].mode_restore = true
-      --   bank[i].snapshot[j].pad[k].clip_restore = true
-      --   bank[i].snapshot[j].pad[k].level_restore = true
-      --   bank[i].snapshot[j].pad[k].pan_restore = true
-      --   bank[i].snapshot[j].pad[k].tilt_restore = true
-      -- end
       bank[i].snapshot[j].restore_times = {["beats"] = {1,2,4,8,16,32,64,128}, ["time"] = {1,2,4,8,16,32,64,128}, ["mode"] = "beats"}
     end
   end
@@ -66,7 +54,22 @@ snap.capture = function(b,slot)
     shot.pad[i].level = src[i].level
     shot.pad[i].global_level = src.global_level
     shot.pad[i].pan = src[i].pan
-    shot.pad[i].tilt = params:get("filter tilt "..b)
+    shot.pad[i].tilt = params:get("filter "..b.." dj tilt")
+    shot.pad[i].filter =
+    {
+      ["style"] = params:get("filter "..b.." style"),
+      ["dj tilt"] = params:get("filter "..b.." dj tilt"),
+      ["cutoff"] = params:get("filter "..b.." cutoff"),
+      ["q"] = params:get("filter "..b.." q"),
+      ["lp"] = params:get("filter "..b.." lp"),
+      ["hp"] = params:get("filter "..b.." hp"),
+      ["bp"] = params:get("filter "..b.." bp"),
+      ["dry"] = params:get("filter "..b.." dry"),
+      ["lp mute"] = params:get("filter "..b.." lp mute"),
+      ["hp mute"] = params:get("filter "..b.." hp mute"),
+      ["bp mute"] = params:get("filter "..b.." bp mute"),
+      ["dry mute"] = params:get("filter "..b.." dry mute")
+    }
   end
   shot.saved = true
   bank[b].active_snapshot = slot
@@ -74,20 +77,6 @@ end
 
 snap.clear = function(b,slot)
   local shot = bank[b].snapshot[slot]
-  -- for k = 1,16 do
-  --   shot.pad[k] = {}
-  --   shot.pad[k].rate_restore = true
-  --   shot.pad[k].offset_restore = true
-  --   shot.pad[k].fifth_restore = true
-  --   shot.pad[k].start_point_restore = true
-  --   shot.pad[k].end_point_restore = true
-  --   shot.pad[k].loop_restore = true
-  --   shot.pad[k].mode_restore = true
-  --   shot.pad[k].clip_restore = true
-  --   shot.pad[k].level_restore = true
-  --   shot.pad[k].pan_restore = true
-  --   shot.pad[k].tilt_restore = true
-  -- end
   shot.saved = false
   if bank[b].active_snapshot == slot then
     bank[b].active_snapshot = 0
@@ -182,8 +171,8 @@ snap.restore = function(b,slot,sec,style)
               if shot.restore.level then
                 src[i].level = util.linlin(0,1,original_srcs[i].level,shot.pad[i].level,r_val)
               end
-              if shot.restore.tilt then
-                params:set("filter tilt "..b,util.linlin(0,1,original_srcs[i].tilt,shot.pad[i].tilt,r_val))
+              if shot.restore.filter then
+                params:set("filter "..b.." dj tilt",util.linlin(0,1,original_srcs[i].tilt,shot.pad[i].tilt,r_val))
               end
               if shot.restore.rate then
                 if shot.rate_ramp then
@@ -222,8 +211,8 @@ snap.restore = function(b,slot,sec,style)
           if shot.restore.level then
             src[i].level = shot.pad[i].level
           end
-          if shot.restore.tilt then
-            params:set("filter tilt "..b,shot.pad[i].tilt)
+          if shot.restore.filter then
+            params:set("filter "..b.." dj tilt",shot.pad[i].tilt)
           end
           if i == src.id then
             softcut.loop_start(b+1,src[i].start_point)
@@ -253,7 +242,7 @@ snap.restore = function(b,slot,sec,style)
       for i = 1,16 do
         src[i].start_point = shot.pad[i].start_point
         src[i].end_point = shot.pad[i].end_point
-        params:set("filter tilt "..b,shot.pad[i].tilt)
+        params:set("filter "..b.." dj tilt",shot.pad[i].tilt)
         if i == src.id then
           softcut.loop_start(b+1,src[i].start_point)
           softcut.loop_end(b+1,src[i].end_point)
@@ -279,8 +268,8 @@ snap.snapshot_funnel_done_action = function(b,slot,args)
     src[i].offset = shot.pad[i].offset
     if i == src.id then
       softcut.rate(b+1,src[i].rate*_loops.get_total_pitch_offset(b,i))
-      if shot.restore.tilt then
-        params:set("filter tilt "..b,shot.pad[i].tilt)
+      if shot.restore.filter then
+        params:set("filter "..b.." dj tilt",shot.pad[i].tilt)
       end
     end
   end
@@ -322,13 +311,13 @@ snap.crossfade = function(b,scene_a,scene_b,val)
       bank[b].snapshot_mute_while_running = false
       -- softcut.loop_start(b+1,dest[i].start_point)
       -- softcut.loop_end(b+1,dest[i].end_point)
-      params:set("filter tilt "..b,dest[i].tilt)
+      params:set("filter "..b.." dj tilt",dest[i].tilt)
     end
   end
 end
 
 snap.fnl_crossfade = function(b,scene_a,scene_b,sec)
-  local filter_current = params:get("filter tilt "..b)
+  local filter_current = params:get("filter "..b.." dj tilt")
   bank[b].snapshot.crossfade_fnl = snap.fnl(
     function(r_val)
       snap.crossfade(b,scene_a,scene_b,r_val)

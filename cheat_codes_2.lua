@@ -4700,7 +4700,7 @@ function grid_redraw()
           g:led(_c(bank[current].restore_mod_index,i)[1],_c(bank[current].restore_mod_index,i)[2],led_level)
         end
 
-        local mod_prms = {"rate","start_point","end_point","level","tilt"}
+        local mod_prms = {"rate","start_point","end_point","level","filter"}
 
         for i = 5,15,5 do
           local current = math.floor(i/5)
