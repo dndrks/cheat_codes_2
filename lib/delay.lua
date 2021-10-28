@@ -27,7 +27,7 @@ function delays.init(target)
     delay[i].arc_rate_tracker = 7
     delay[i].arc_rate = 7
     delay[i].rate = 1
-    delay[i].start_point = 41 + (30*(i-1))
+    delay[i].start_point = 290
     delay[i].end_point = delay[i].start_point + clock.get_beat_sec()
     delay[i].clocked_index = nil
     delay[i].clocked_length = clocked_delays[7]
@@ -247,7 +247,7 @@ function delays.quick_action(target,param,state)
   elseif param == "clear" then
     softcut.level(target+4,0)
     local duration = delay[target].mode == "clocked" and delay[target].end_point-delay[target].start_point or delay[target].free_end_point-delay[target].start_point
-    softcut.buffer_clear_region_channel(1, 41 + (30*(target-1)), duration+ params:get(target == 1 and "delay L: fade time" or "delay R: fade time"))
+    softcut.buffer_clear_region_channel(target, 290, duration+ params:get(target == 1 and "delay L: fade time" or "delay R: fade time"))
     softcut.level(target+4,params:get(target == 1 and "delay L: global level" or "delay R: global level"))
   elseif param == "reverse" then
     delay[target].reverse = not delay[target].reverse
@@ -415,8 +415,8 @@ function delays.load_delay(file,destination)
     end
     local function clear_and_load_delays(which,mode)
       if mode == "mono" then
-        softcut.buffer_clear_region_channel(1, 41 + (30*(which-1)), 30)
-        softcut.buffer_read_mono(file, 0, 41 + (30*(which-1)), 30, 1, 1)
+        softcut.buffer_clear_region_channel(which, 290, 30)
+        softcut.buffer_read_mono(file, 0, 290, 30, 1, 1)
         local delay_name = {"delay L: ", "delay R: "}
         params:set(delay_name[which].."feedback",100)
         params:set(delay_name[which].."mode",2)
@@ -428,10 +428,10 @@ function delays.load_delay(file,destination)
         params:set(delay_name[2].."feedback",100)
         params:set(delay_name[1].."mode",2)
         params:set(delay_name[2].."mode",2)
-        softcut.buffer_clear_region_channel(1, 41 + (30*(1-1)), 30)
-        softcut.buffer_read_mono(file, 0, 41 + (30*(1-1)), 30, 1, 1)
-        softcut.buffer_clear_region_channel(1, 41 + (30*(2-1)), 30)
-        softcut.buffer_read_mono(file, 0, 41 + (30*(2-1)), 30, 2, 1)
+        softcut.buffer_clear_region_channel(1, 290, 30)
+        softcut.buffer_read_mono(file, 0, 290, 30, 1, 1)
+        softcut.buffer_clear_region_channel(2, 290, 30)
+        softcut.buffer_read_mono(file, 0, 290, 30, 2, 1)
         params:set(delay_name[1].."free length",sample_length)
         params:set(delay_name[2].."free length",sample_length)
         softcut.position(5,delay[1].start_point)

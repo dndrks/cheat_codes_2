@@ -10,10 +10,10 @@ function ca.clip_table()
   clip[1].min = 1
   clip[1].max = clip[1].min + clip[1].sample_length
   --clip[2].min = clip[1].max
-  clip[2].min = 33
+  clip[2].min = 97
   clip[2].max = clip[2].min + clip[2].sample_length
   --clip[3].min = clip[2].max
-  clip[3].min = 65
+  clip[3].min = 193
   clip[3].max = clip[3].min + clip[3].sample_length
 end
 
@@ -262,17 +262,17 @@ function ca.load_sample(file,sample)
     if clip[sample].sample_rate ~= 48000 then
       print("sample rate needs to be 48khz!")
     end
-    if len/48000 < 32 then
+    if len/48000 < 96 then
       clip[sample].sample_length = len/48000
     else
-      clip[sample].sample_length = 32
+      clip[sample].sample_length = 96
     end
     clip[sample].original_length = len/48000
     clip[sample].original_bpm = _dough.derive_bpm(clip[sample])
     clip[sample].original_samplerate = rate/1000
     local im_ch = ch == 2 and clip[sample].channel or 1
-    softcut.buffer_clear_region_channel(2,1+(32*(sample-1)),32)
-    softcut.buffer_read_mono(file, 0, 1+(32*(sample-1)),clip[sample].sample_length + 0.05, im_ch, 2)
+    softcut.buffer_clear_region_channel(2,1+(96*(sample-1)),96)
+    softcut.buffer_read_mono(file, 0, 1+(96*(sample-1)),clip[sample].sample_length + 0.05, im_ch, 2)
     ca.clip_table()
     for p = 1,16 do
       for b = 1,3 do
@@ -397,13 +397,13 @@ end
 function ca.sample_to_pad(file,dest,p)
   if bank[dest][p].mode == 2 and bank[dest][p].clip == dest then
     if file ~= "-" then
-      print(file,0, 1+(32*(dest-1))+((p-1)*2)+variable_fade_time,2, 1, 2)
-      softcut.buffer_clear_region_channel(2,1+(32*(dest-1))+((p-1)*2)+variable_fade_time,bank[dest][p].end_point-bank[dest][p].start_point)
-      softcut.buffer_read_mono(file, 0, 1+(32*(dest-1))+((p-1)*2)+variable_fade_time,bank[dest][p].end_point-bank[dest][p].start_point, 1, 2)
+      print(file,0, 1+(96*(dest-1))+((p-1)*2)+variable_fade_time,2, 1, 2)
+      softcut.buffer_clear_region_channel(2,1+(96*(dest-1))+((p-1)*2)+variable_fade_time,bank[dest][p].end_point-bank[dest][p].start_point)
+      softcut.buffer_read_mono(file, 0, 1+(96*(dest-1))+((p-1)*2)+variable_fade_time,bank[dest][p].end_point-bank[dest][p].start_point, 1, 2)
     end
-    clip[dest].sample_length = 32
+    clip[dest].sample_length = 96
     ca.clip_table()
-    clip[dest].original_length = 32
+    clip[dest].original_length = 96
     clip[dest].original_bpm = 120
     clip[dest].original_samplerate = 48
     update_waveform(2,clip[dest].min,clip[dest].max,128)
@@ -445,14 +445,14 @@ function ca.collage(folder,dest,style)
   if style == 1 then
     for i = 1,(sample_id <=16 and sample_id or 16) do
       local samp = folder .. clean_wavs[i]
-      softcut.buffer_clear_region_channel(2,1+(32*(dest-1))+((i-1)*2)+variable_fade_time,2)
-      softcut.buffer_read_mono(samp, 0, 1+(32*(dest-1))+((i-1)*2)+variable_fade_time,2, 1, 2)
-      print(samp,i,1+(32*(dest-1))+((i-1)*2))
+      softcut.buffer_clear_region_channel(2,1+(96*(dest-1))+((i-1)*2)+variable_fade_time,2)
+      softcut.buffer_read_mono(samp, 0, 1+(96*(dest-1))+((i-1)*2)+variable_fade_time,2, 1, 2)
+      print(samp,i,1+(96*(dest-1))+((i-1)*2))
     end
   end
-  clip[dest].sample_length = 32
+  clip[dest].sample_length = 96
   ca.clip_table()
-  clip[dest].original_length = 32
+  clip[dest].original_length = 96
   clip[dest].original_bpm = 120
   clip[dest].original_samplerate = 48
   clip[dest].collage = true

@@ -226,9 +226,9 @@ function on_render(ch, start, i, s)
   interval = i
   -- if menu ~= 1 then screen_dirty = true end
   if ch == 2 then
-    if start < 33 then
+    if start < 97 then
       clip[1].waveform_samples = s
-    elseif start < 65 then
+    elseif start < 193 then
       clip[2].waveform_samples = s
     else
       clip[3].waveform_samples = s
@@ -274,17 +274,9 @@ arc_offset = 0 --IMPORTANT TO REVISIT
 
 clip = {}
 for i = 1,3 do
-  -- clip[i] = {}
-  -- clip[i].length = 90
-  -- clip[i].sample_length = 8
-  -- clip[i].start_point = nil
-  -- clip[i].end_point = nil
-  -- clip[i].mode = 1
-  -- clip[i].waveform_samples = {}
-  -- clip[i].waveform_rendered = false
   clip[i] = {}
   clip[i].length = 90
-  clip[i].sample_length = 32
+  clip[i].sample_length = 96
   clip[i].sample_rate = 48000
   clip[i].start_point = nil
   clip[i].end_point = nil
@@ -297,12 +289,18 @@ end
 
 pre_cc2_sample = { false, false, false }
 
+-- clip[1].min = 1
+-- clip[1].max = 1 + clip[1].sample_length
+-- clip[2].min = 33
+-- clip[2].max = clip[2].min + clip[2].sample_length
+-- clip[3].min = 65
+-- clip[3].max = clip[3].min + clip[3].sample_length
 clip[1].min = 1
-clip[1].max = 1 + clip[1].sample_length
-clip[2].min = 33
-clip[2].max = clip[2].min + clip[2].sample_length
-clip[3].min = 65
-clip[3].max = clip[3].min + clip[3].sample_length
+clip[1].max = 97
+clip[2].min = 97
+clip[2].max = 193
+clip[3].min = 193
+clip[3].max = 289
 
 live = {}
 for i = 1,3 do
@@ -3644,7 +3642,7 @@ function update_delays()
   for i = 1,2 do
     if delay[i].mode == "clocked" then
       local delay_rate_to_time = clock.get_beat_sec() * delay[i].clocked_length * delay[i].modifier
-      local delay_time = delay_rate_to_time + (41 + (30*(i-1)))
+      local delay_time = delay_rate_to_time + 290
       delay[i].end_point = delay_time
       softcut.loop_end(i+4,delay[i].end_point)
     else
@@ -3661,43 +3659,6 @@ function sample_callback(path,i)
   _norns.key(1,0)
   sample_selector_active = false
   key1_hold = false
-end
-
-function load_sample(file,sample)
-  local old_min = clip[sample].min
-  local old_max = clip[sample].max
-  if file ~= "-" then
-    local ch, len = audio.file_info(file)
-    if len/48000 < 32 then
-      clip[sample].sample_length = len/48000
-    else
-      clip[sample].sample_length = 32
-    end
-    softcut.buffer_clear_region_channel(2,1+(32*(sample-1)),32)
-    softcut.buffer_read_mono(file, 0, 1+(32*(sample-1)),clip[sample].sample_length + 0.05, 1, 2)
-    -- softcut.buffer_read_mono(file, 0, 1+(32*(sample-1)),clip[sample].sample_length, 1, 2)
-    clip_table()
-    for p = 1,16 do
-      for b = 1,3 do
-        if bank[b][p].mode == 2 and bank[b][p].clip == sample and pre_cc2_sample[b] == false then
-          scale_loop_points(bank[b][p], old_min, old_max, clip[sample].min, clip[sample].max)
-        end
-      end
-    end
-  end
-  for i = 1,3 do
-    pre_cc2_sample[i] = false
-  end
-  update_waveform(2,clip[sample].min,clip[sample].max,128)
-  clip[sample].waveform_samples = waveform_samples
-  if params:get("clip "..sample.." sample") ~= file then
-    params:set("clip "..sample.." sample", file, 1)
-  end
-  -- for i = 1,3 do
-  --   if bank[i][bank[i].id].mode == 2 and bank[i][bank[i].id].clip == sample then
-  --     softcut.position(i+1,bank[i][bank[i].id].start_point)
-  --   end
-  -- end
 end
 
 function save_sample(i)
@@ -4316,17 +4277,6 @@ function jump_live(i,s,y,z)
     which_bank = i
     help_menu = "buffer jump"
   end
-end
-
-function clip_table()
-  clip[1].min = 1
-  clip[1].max = clip[1].min + clip[1].sample_length
-  --clip[2].min = clip[1].max
-  clip[2].min = 33
-  clip[2].max = clip[2].min + clip[2].sample_length
-  --clip[3].min = clip[2].max
-  clip[3].min = 65
-  clip[3].max = clip[3].min + clip[3].sample_length
 end
 
 -- length mods
