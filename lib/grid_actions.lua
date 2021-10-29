@@ -1435,6 +1435,20 @@ function grid_actions.init(x,y,z)
 end
 
 function grid_actions.arp_handler(i)
+  if not transport.is_running then
+    print("arp enabled, starting transport...")
+    if transport.is_running then
+      clock.transport.stop()
+    else
+      if params:string("clock_source") == "internal" then
+        clock.internal.start(-0.1)
+      else
+        transport.cycle = 1
+        clock.transport.start()
+      end
+      transport.pending = true
+    end
+  end
   if not arp[i].enabled then
     arp[i].enabled = true
   elseif not arp[i].hold then

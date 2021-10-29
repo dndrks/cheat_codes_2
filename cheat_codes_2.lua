@@ -1,6 +1,6 @@
 -- cheat codes 2
 --          a sample playground
--- rev: 211008 - LTS3
+-- rev: 211029 - LTS3
 -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
 -- need help?
 -- please visit:
@@ -832,6 +832,8 @@ function init()
 
   type_of_pattern_loaded = {"grid","grid","grid"}
   loading_arp_from_grid = {nil,nil,nil}
+  loading_euclid_from_grid = {nil,nil,nil}
+  loading_free_from_grid = {nil,nil,nil}
   
   engine.release(0.1)
   amp_in = {}
@@ -2121,11 +2123,13 @@ end
 function alt_synced_loop(target,state,style,mod_table)
   if transport.is_running then
     if state == "restart" then
-      clock.sync(params:get("launch_quantization") == 1 and 1 or 4)
-      -- print("restarting", clock.get_beats())
+      if params:get("launch_quantization") ~= 3 then
+        clock.sync(params:get("launch_quantization") == 1 and 1 or 4)
+      end
     end
     if style == "delayed_load" then
       load_pattern(mod_table[1],mod_table[2])
+      print("delayed load...")
     end
     local name_to_id = {"grid_pat[1]","grid_pat[2]","grid_pat[3]"}
     
@@ -2156,10 +2160,11 @@ function alt_synced_loop(target,state,style,mod_table)
         arp[tab.key(name_to_id,target.name)].playing = false
       end
       target:start()
+      print("starting from alt sync "..clock.get_beats())
       target.synced_loop_runner = 1
       -- print("alt_synced",clock.get_beats(),target)
       while true do
-        clock.sync(1/4)
+        clock.sync(1/4,1/128)
         if target.synced_loop_runner == target.rec_clock_time * 4 then
           target.synced_loop_runner = 1
           -- print(clock.get_beats(), target.synced_loop_runner)
@@ -2172,42 +2177,21 @@ function alt_synced_loop(target,state,style,mod_table)
           end
           if target.loop == 1 then
             -- clear_arps_from_pattern_restart(target.event[target.count].i)
+            -- print("!!"..song_atoms.bank[tab.key(name_to_id,target.name)].lane[song_atoms.bank[tab.key(name_to_id,target.name)].current]["arp"].target, song_atoms.bank[tab.key(name_to_id,target.name)].runner)
+            -- if song_atoms.bank[tab.key(name_to_id,target.name)].lane[song_atoms.bank[tab.key(name_to_id,target.name)].current]["arp"].target == -1 then
+            --   print("heyyy should stop yeah??")
+            -- end
             target:start()
-            -- print("and then start...")
+            -- print("and then start "..clock.get_beats())
           end
         else
           target.synced_loop_runner =  target.synced_loop_runner + 1
         end
       end
+    elseif type_of_pattern_loaded[tab.key(name_to_id,target.name)] == "euclid" then
+      print("hi alt euclid!!")
     end
-
-
--- clear_arps_from_pattern_restart(target.event[target.count].i)
--- target:start()
--- target.synced_loop_runner = 1
--- -- print("alt_synced",clock.get_beats(),target)
--- while true do
---   clock.sync(1/4)
---   if target.synced_loop_runner == target.rec_clock_time * 4 then
---     target.synced_loop_runner = 1
---     -- print(clock.get_beats(), target.synced_loop_runner)
---     local overdub_flag = target.overdub
---     -- target:stop()
---     stop_pattern(target,"no kill")
---     -- print("stopping")
---     if overdub_flag == 1 then
---       target.overdub = 1
---     end
---     if target.loop == 1 then
---       -- clear_arps_from_pattern_restart(target.event[target.count].i)
---       target:start()
---       -- print("and then start...")
---     end
---   else
---     target.synced_loop_runner =  target.synced_loop_runner + 1
---   end
--- end
-end
+  end 
 end
 
 function stop_pattern(target,style)
@@ -2238,9 +2222,34 @@ function start_pattern(target,start_type,style,mod_table)
     if target.playmode == 2 then
       if target.clock ~= nil then clock.cancel(target.clock) end
       -- print(mod_table,style,style == nil,(style ~= nil and "delayed_load" or nil))
+      -- print("...."..(style ~= nil and style or ""))
       target.clock = clock.run(alt_synced_loop, target, start_type ~= nil and start_type or "restart",(style ~= nil and "delayed_load" or nil),(mod_table ~= nil and mod_table or nil))
     else
-      target:start()
+      local name_to_id = {"grid_pat[1]","grid_pat[2]","grid_pat[3]"}
+      local destination = tab.key(name_to_id,target.name)
+      if start_type ~= "jumpstart" then
+      -- print("what else can i do but start the pattern?")
+        if loading_free_from_grid[destination] ~= nil then
+          clock.cancel(loading_free_from_grid[destination])
+        end
+        loading_free_from_grid[destination] = 
+        clock.run(
+          function()
+            if params:get("launch_quantization") ~= 3 then
+              clock.sync(params:get("launch_quantization") == 1 and 1 or 4)
+            end
+            if mod_table ~= nil then
+              load_pattern(mod_table[1],mod_table[2])
+              target:start()
+            else
+              print("????")
+              target:start()
+            end
+          end
+        )
+      else
+        target:start()
+      end
     end
   end
 
@@ -2263,19 +2272,9 @@ function synced_record_start(target,i)
 end
 
 function synced_pattern_record(target)
-  clock.sleep((clock.get_beat_sec()*target.rec_clock_time)+ (clock.get_beat_sec()*1/16))
+  clock.sleep((clock.get_beat_sec()*target.rec_clock_time)+ (clock.get_beat_sec()*1/8))
   if target.rec_clock ~= nil then
     target:rec_stop()
-    -- if target is a grid pat, should do all the grid pat thing:
-    --[[
-      midi_clock_linearize(i)
-      if grid_pat[i].auto_snap == 1 then
-        print("auto-snap")
-        snap_to_bars(i,how_many_bars(i))
-      end
-      grid_pat[i]:start()
-      grid_pat[i].loop = 1
-    --]]
     pattern_length_to_bars(target, "destructive")
     if target.time[1] ~= nil and target.time[1] < clock.get_beat_sec()/4 and target.event[1] == "pause" then
       print("we could lose the first event..."..target.count, target.end_point)
@@ -2291,12 +2290,17 @@ function synced_pattern_record(target)
       table.remove(target.time_beats,1)
       target.count = #target.event
       target.end_point = target.count
-      print(target.count, target.end_point)
       for i = 1,target.count do
         target:calculate_quantum(i)
       end
     end
-    target.time[1] = target.time[1] - (clock.get_beat_sec()*1/16)
+    target.time[1] = target.time[1] - (clock.get_beat_sec()*1/8)
+    local ideal = clock.get_beat_sec()*target.rec_clock_time
+    local butts = 0
+    for i = 1,target.count do
+      butts = butts + target.time[i]
+    end
+    target.time[#target.time] = target.time[#target.time] + (ideal - butts)
     if target.count > 0 then -- just in case the recording was canceled...
       --target:start()
       print("started first run..."..clock.get_beats())
@@ -6103,17 +6107,37 @@ function test_load(slot,destination,source)
       -- quantized_grid_pat[destination].sub_step = 1
     end
     if not transport.is_running then
+      print("loading while transport is not running")
       load_pattern(slot,destination)
     else
-      -- print(type_of_pattern_loaded[destination])
+      -- print("test_load is running...",slot,destination,source,pattern_saver[destination].saved[slot-((destination-1)*8)])
       if source ~= "from_grid" then
+        -- print("this hsould load fine...")
+        load_pattern(slot,destination)
+        if type_of_pattern_loaded[destination] ~= "euclid" then
+          start_pattern(grid_pat[destination],"jumpstart")
+        end
+        -- print("loading "..clock.get_beats())
+      elseif params:string("launch_quantization") == "next beat" and source == "from_grid" and type_of_pattern_loaded[destination] ~= "arp" and type_of_pattern_loaded[destination] ~= "euclid" then
+        -- print("going to start_pattern")
+        start_pattern(grid_pat[destination],"restart","delayed_load",{slot,destination})
+      elseif params:string("launch_quantization") == "free" then
+        if grid_pat[destination].play == 1 then
+          grid_pat[destination]:clear()
+        elseif arp[destination].playing then
+          arp[destination].pause = true
+          arp[destination].playing = false
+        end
         load_pattern(slot,destination)
         start_pattern(grid_pat[destination],"jumpstart")
-      elseif params:string("launch_quantization") == "next beat" and source == "from_grid" and type_of_pattern_loaded[destination] ~= "arp" then
-        -- print("trying to load grid")
-        start_pattern(grid_pat[destination],"restart","delayed_load",{slot,destination})
+        goto finish_it_up
       end
       if grid_pat[destination].count > 0 and params:string("launch_quantization") ~= "next bar" then
+        if params:string("launch_quantization") == "free" then
+          -- print("play it now!!")
+          load_pattern(slot,destination)
+          start_pattern(grid_pat[destination],"jumpstart")
+        end
         -- start_pattern(grid_pat[destination],"restart","delayed_load",{slot,destination})
       elseif params:string("launch_quantization") == "next bar" and source == "from_grid" then
         -- print("loading whatever...")
@@ -6128,7 +6152,6 @@ function test_load(slot,destination,source)
             clock.sync(1)
             load_pattern(slot,destination)
             if type_of_pattern_loaded[destination] == "arp" then
-              -- print("well, arp has notes, so play 'em!"..clock.get_beats())
               local arp_start =
               {
                 ["fwd"] = arp[destination].start_point - 1
@@ -6147,9 +6170,27 @@ function test_load(slot,destination,source)
             end
           end
         )
+      elseif type_of_pattern_loaded[destination] == "euclid" and source == "from_grid" then
+        print("hi euclid!")
+        if loading_euclid_from_grid[destination] ~= nil then
+          clock.cancel(loading_euclid_from_grid[destination])
+        end
+        loading_euclid_from_grid[destination] = 
+        clock.run(
+          function()
+            clock.sync(1)
+            load_pattern(slot,destination)
+            if type_of_pattern_loaded[destination] == "euclid" then
+             
+            else
+              start_pattern(grid_pat[destination],"jumpstart")
+            end
+          end
+        )
       end
     end
   end
+  ::finish_it_up::
 end
 
 function save_pattern(source,slot,style)

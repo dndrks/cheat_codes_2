@@ -254,7 +254,7 @@ function start_up.init()
     end
     )
   end
-  params:add_option("launch_quantization", "patterns launch at:", {"next beat", "next bar"})
+  params:add_option("launch_quantization", "patterns launch at:", {"next beat", "next bar","free"},3)
   -- params:hide("launch_quantization")
   params:add_separator("patterns")
   params:add_option("zilchmo_patterning", "grid pat style", { "classic", "rad sauce" })
