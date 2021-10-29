@@ -611,7 +611,7 @@ function _loops.draw_menu()
 
       if page.loops.zoomed_mode then
         local off = pad.mode == 1 and live[pad.clip].min or clip[pad.clip].min
-        local display_end = pad.mode == 1 and (pad.end_point == 8.99 and 9 or pad.end_point) or pad.end_point
+        local display_end = pad.mode == 1 and (pad.end_point == (rec.base_length+0.99) and (rec.base_length+1) or pad.end_point) or pad.end_point
         screen.move(0,54)
         screen.text("start: "..string.format("%.4g",(util.round(pad.start_point,0.0001))-off).."s")
         screen.move(128,54)
@@ -919,7 +919,7 @@ function _loops.draw_menu()
           end
 
           local off = bank[i][id].mode == 1 and clip[bank[i][id].clip].min or clip[bank[i][id].clip].min
-          local display_end = bank[i][id].mode == 1 and (bank[i][id].end_point == 8.99 and 9 or bank[i][id].end_point) or bank[i][id].end_point
+          local display_end = bank[i][id].mode == 1 and (bank[i][id].end_point == (rec.base_length+0.99) and (rec.base_length+1) or bank[i][id].end_point) or bank[i][id].end_point
 
 
           screen.level(page.loops.meta_control and (page.loops.meta_sel == i and 15 or 3) or 3)

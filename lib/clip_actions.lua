@@ -307,42 +307,17 @@ function ca.load_sample_into_live_window(file,sample,startpoint,endpoint)
 end
 
 function ca.auto_plop(file,sample,startpoint,endpoint)
-  -- local old_min = rec[sample].start_point
-  -- local old_max = live[sample].end_point
   local old_min = startpoint
   local old_max = endpoint
   if file ~= "-" then
     local ch, len, rate = audio.file_info(file)
     if rate ~= 48000 then print("sample rate needs to be 48khz!") end
-    -- if len/48000 < 32 then
-    --   clip[sample].sample_length = len/48000
-    -- else
-    --   clip[sample].sample_length = 32
-    -- end
-    -- clip[sample].original_length = len/48000
-    -- clip[sample].original_bpm = _dough.derive_bpm(clip[sample])
-    -- clip[sample].original_samplerate = rate/1000
-    -- local im_ch = ch == 2 and clip[sample].channel or 1
     local im_ch = 1
     softcut.buffer_clear_region_channel(1,startpoint,endpoint-startpoint)
     softcut.buffer_read_mono(file, 0, startpoint,endpoint-startpoint, im_ch, 1)
-    -- ca.clip_table()
-    -- for p = 1,16 do
-    --   for b = 1,3 do
-    --     if bank[b][p].mode == 2 and bank[b][p].clip == sample and pre_cc2_sample[b] == false then
-    --       ca.scale_loop_points(bank[b][p], old_min, old_max, clip[sample].min, clip[sample].max)
-    --     end
-    --   end
-    -- end
   end
-  -- for i = 1,3 do
-  --   pre_cc2_sample[i] = false
-  -- end
   update_waveform(1,live[sample].min,live[sample].max,128)
   rec[sample].waveform_samples = waveform_samples
-  -- if params:get("clip "..sample.." sample") ~= file then
-  --   params:set("clip "..sample.." sample", file, 1)
-  -- end
 end
 
 function ca.save_sample(i)
@@ -352,8 +327,7 @@ function ca.save_sample(i)
   end
   local name = "cc2_"..os.date("%y%m%d_%X-buff")..i..".wav"
   local save_pos = i - 1
-  -- softcut.buffer_write_mono(_path.dust.."/audio/cc2_saved_samples/"..name,1+(32*save_pos),8,1)
-  softcut.buffer_write_mono(_path.dust.."/audio/cc2_saved_samples/"..name,1+(8*save_pos),8,1)
+  softcut.buffer_write_mono(_path.dust.."/audio/cc2_saved_samples/"..name,1+(rec.base_length*save_pos),rec.base_length,1)
 end
 
 function ca.collect_samples(i,collection) -- this works!!!
@@ -368,7 +342,7 @@ function ca.collect_samples(i,collection) -- this works!!!
   local name = "cc2_"..collection.."-"..i..".wav"
   local save_pos = i - 1
   -- softcut.buffer_write_mono(_path.dust.."audio/cc2_live-audio/"..collection.."/"..name,1+(32*save_pos),32,1)
-  softcut.buffer_write_mono(_path.dust.."audio/cc2_live-audio/"..collection.."/"..name,1+(8*save_pos),8,1)
+  softcut.buffer_write_mono(_path.dust.."audio/cc2_live-audio/"..collection.."/"..name,1+(rec.base_length*save_pos),rec.base_length,1)
 end
 
 function ca.reload_collected_samples(file,sample)
@@ -378,7 +352,7 @@ function ca.reload_collected_samples(file,sample)
   if file ~= "-" then
     print(file)
     -- softcut.buffer_read_mono(file, 0, 1+(32 * (sample-1)), 32, 1, 1)
-    softcut.buffer_read_mono(file, 0, 1+(8 * (sample-1)), 8, 1, 1)
+    softcut.buffer_read_mono(file, 0, 1+(rec.base_length * (sample-1)), rec.base_length, 1, 1)
     print("reloaded previous session's audio")
   end
 end
@@ -397,9 +371,9 @@ end
 function ca.sample_to_pad(file,dest,p)
   if bank[dest][p].mode == 2 and bank[dest][p].clip == dest then
     if file ~= "-" then
-      print(file,0, 1+(96*(dest-1))+((p-1)*2)+variable_fade_time,2, 1, 2)
-      softcut.buffer_clear_region_channel(2,1+(96*(dest-1))+((p-1)*2)+variable_fade_time,bank[dest][p].end_point-bank[dest][p].start_point)
-      softcut.buffer_read_mono(file, 0, 1+(96*(dest-1))+((p-1)*2)+variable_fade_time,bank[dest][p].end_point-bank[dest][p].start_point, 1, 2)
+      print(file,0, 1+(96*(dest-1))+((p-1)*6)+variable_fade_time,2, 1, 2)
+      softcut.buffer_clear_region_channel(2,bank[dest][p].start_point+variable_fade_time,bank[dest][p].end_point-bank[dest][p].start_point)
+      softcut.buffer_read_mono(file, 0, bank[dest][p].start_point+variable_fade_time,bank[dest][p].end_point-bank[dest][p].start_point, 1, 2)
     end
     clip[dest].sample_length = 96
     ca.clip_table()
@@ -445,9 +419,9 @@ function ca.collage(folder,dest,style)
   if style == 1 then
     for i = 1,(sample_id <=16 and sample_id or 16) do
       local samp = folder .. clean_wavs[i]
-      softcut.buffer_clear_region_channel(2,1+(96*(dest-1))+((i-1)*2)+variable_fade_time,2)
-      softcut.buffer_read_mono(samp, 0, 1+(96*(dest-1))+((i-1)*2)+variable_fade_time,2, 1, 2)
-      print(samp,i,1+(96*(dest-1))+((i-1)*2))
+      softcut.buffer_clear_region_channel(2,1+(96*(dest-1))+((i-1)*6)+variable_fade_time,6)
+      softcut.buffer_read_mono(samp, 0, 1+(96*(dest-1))+((i-1)*6)+variable_fade_time,6, 1, 2)
+      print(samp,i,1+(96*(dest-1))+((i-1)*6))
     end
   end
   clip[dest].sample_length = 96

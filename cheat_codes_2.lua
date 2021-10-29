@@ -308,11 +308,11 @@ for i = 1,3 do
   live[i].waveform_samples = {}
 end
 live[1].min = 1
-live[1].max = 9
-live[2].min = 9
-live[2].max = 17
-live[3].min = 17
-live[3].max = 25
+live[1].max = 33
+live[2].min = 33
+live[2].max = 65
+live[3].min = 65
+live[3].max = 97
 
 help_menu = "welcome"
 
@@ -943,13 +943,17 @@ function init()
 
   rec.focus = 1
 
+  rec.base_length = 32
+
   for i = 1,3 do
     rec[i] = {}
     rec[i].state = 0
     rec[i].pause = false
     rec[i].clip = 1
-    rec[i].start_point = 1+(8*(i-1))
-    rec[i].end_point = 9+(8*(i-1))
+    -- rec[i].start_point = 1+(8*(i-1)) -- TODO CONFIRM FOR rec.base_length
+    -- rec[i].end_point = 9+(8*(i-1)) -- TODO CONFIRM FOR rec.base_length
+    rec[i].start_point = 1 + (rec.base_length*(i-1))
+    rec[i].end_point = (rec.base_length+1) + (rec.base_length*(i-1))
     rec[i].loop = 1
     rec[i].clear = 1
     rec[i].rate_offset = 1.0
@@ -2803,7 +2807,7 @@ osc_in = function(path, args, from)
     elseif path == "/randomize_this_bank_"..i then
       random_grid_pat(i,3)
       for j = 2,16 do
-        bank[i][j].start_point = (math.random(10,30)/10)+(8*(bank[i][j].clip-1))
+        bank[i][j].start_point = (math.random(10,30)/10)+(8*(bank[i][j].clip-1)) -- TODO CONFIRM FOR rec.base_length
         bank[i][j].end_point = bank[i][j].start_point + (math.random(10,60)/10)
         bank[i][j].pan = math.random(-100,100)/100
       end
@@ -2841,7 +2845,7 @@ osc_in = function(path, args, from)
     elseif path == "/sixteenths_"..i then
       for j = 1,16 do
         local pad = bank[i][j]
-        local duration = pad.mode == 1 and 8 or clip[pad.clip].sample_length
+        local duration = pad.mode == 1 and rec.base_length or clip[pad.clip].sample_length
         local s_p = pad.mode == 1 and live[pad.clip].min or clip[pad.clip].min
         pad.end_point = pad.start_point + (clock.get_beat_sec()/4)
       end
@@ -2854,11 +2858,11 @@ osc_in = function(path, args, from)
         if pad.mode == 1 then
           --slice within bounds
           duration = rec[rec.focus].end_point-rec[rec.focus].start_point
-          local s_p = rec[rec.focus].start_point+(8*(pad.clip-1))
+          local s_p = rec[rec.focus].start_point+(rec.base_length*(pad.clip-1))
           pad.start_point = (s_p+(duration/16) * (pad.pad_id-1))
           pad.end_point = (s_p+((duration/16) * (pad.pad_id)))
         else
-          duration = pad.mode == 1 and 8 or clip[pad.clip].sample_length
+          duration = pad.mode == 1 and rec.base_length or clip[pad.clip].sample_length
           pad.start_point = ((duration/16)*(pad.pad_id-1)) + clip[pad.clip].min
           pad.end_point = pad.start_point + (duration/16)
         end
@@ -2881,7 +2885,7 @@ osc_in = function(path, args, from)
           max_end = math.floor(pad.end_point * 100)
           min_start = math.floor(clip[pad.clip].min * 100)
         else
-          duration = pad.mode == 1 and 8 or math.modf(clip[pad.clip].sample_length)
+          duration = pad.mode == 1 and rec.base_length or math.modf(clip[pad.clip].sample_length) 
           max_end = math.floor(pad.end_point * 100)
           min_start = math.floor(((duration*(pad.clip-1))+1) * 100)
         end
@@ -3049,10 +3053,10 @@ end
 
 function pad_to_rec(b)
   local pad = bank[b][bank[b].id]
-  local s_p = pad.start_point-(8*(pad.clip-1))
-  local e_p = pad.end_point-(8*(pad.clip-1))
-  rec[rec.focus].start_point = s_p+(8*(rec.focus-1))
-  rec[rec.focus].end_point = e_p+(8*(rec.focus-1))
+  local s_p = pad.start_point-(rec.base_length*(pad.clip-1))
+  local e_p = pad.end_point-(rec.base_length*(pad.clip-1))
+  rec[rec.focus].start_point = s_p+(rec.base_length*(rec.focus-1))
+  rec[rec.focus].end_point = e_p+(rec.base_length*(rec.focus-1))
   softcut.loop_start(1,rec[rec.focus].start_point)
   softcut.loop_end(1,rec[rec.focus].end_point-0.01)
   softcut.position(1,rec[rec.focus].start_point)
@@ -3084,9 +3088,8 @@ function reset_all_banks( banks )
       pad.clip              = 1 -- TODO make this a table with length for start/end calculation
       pad.mode              = 1
         -- TODO these are both identical to zilchmos.start_end_default()
-      pad.start_point       = 1+((8/16) * (pad.pad_id-1))
-      pad.end_point         = 1+((8/16) *  pad.pad_id)
-      pad.sample_end        = 8
+      pad.start_point       = 1+((32/16) * (pad.pad_id-1))
+      pad.end_point         = 1+((32/16) *  pad.pad_id)
       pad.rate              = 1.0
       pad.left_delay_time   = 0.5 -- [delay] controls these
       pad.right_delay_time  = 0.5 -- [delay] controls these
@@ -3668,7 +3671,7 @@ function save_sample(i)
   end
   local name = "cc2_"..os.date("%y%m%d_%X-buff")..i..".wav"
   local save_pos = i - 1
-  softcut.buffer_write_mono(_path.dust.."/audio/cc2_saved_samples/"..name,1+(8*save_pos),8,1)
+  softcut.buffer_write_mono(_path.dust.."/audio/cc2_saved_samples/"..name,1+(rec.base_length*save_pos),rec.base_length,1)
 end
 
 function collect_samples(i,collection) -- this works!!!
@@ -3682,7 +3685,7 @@ function collect_samples(i,collection) -- this works!!!
   end
   local name = "cc2_"..collection.."-"..i..".wav"
   local save_pos = i - 1
-  softcut.buffer_write_mono(_path.dust.."audio/cc2_live-audio/"..collection.."/"..name,1+(8*save_pos),8,1)
+  softcut.buffer_write_mono(_path.dust.."audio/cc2_live-audio/"..collection.."/"..name,1+(rec.base_length*save_pos),rec.base_length,1)
 end
 
 function reload_collected_samples(file,sample)
@@ -3690,7 +3693,7 @@ function reload_collected_samples(file,sample)
     _ca.buff_freeze()
   end
   if file ~= "-" then
-    softcut.buffer_read_mono(file, 0, 1+(8 * (sample-1)), 8, 1, 1)
+    softcut.buffer_read_mono(file, 0, 1+(rec.base_length * (sample-1)), rec.base_length, 1, 1)
     print("reloaded previous session's audio")
   end
 end
@@ -4235,13 +4238,13 @@ function jump_live(i,s,y,z)
 
   local pad = bank[i][s]
 
-  local old_duration = pad.mode == 1 and 8 or clip[pad.clip].sample_length
+  local old_duration = pad.mode == 1 and rec.base_length or clip[pad.clip].sample_length
   local old_clip = pad.clip
   local old_min = (1+(old_duration*(old_clip-1)))
   local old_max = ((old_duration+1)+(old_duration*(old_clip-1)))
   local old_range = old_min - old_max
   pad.clip = math.abs(y-5)
-  local new_duration = pad.mode == 1 and 8 or clip[pad.clip].sample_length
+  local new_duration = pad.mode == 1 and rec.base_length or clip[pad.clip].sample_length
   local new_clip = pad.clip
   --local new_min = (1+(new_duration*(pad.clip-1)))
   if pad.mode == 1 then
@@ -5677,11 +5680,11 @@ function new_arc_pattern_execute(entry)
     end
     
     if entry.param == 1 or entry.param == 2 or entry.param == 3 then
-      bank[id][which_pad].start_point = (entry.start_point + (8*(bank[id][which_pad].clip-1)) + arc_offset)
-      bank[id][which_pad].end_point = (entry.end_point + (8*(bank[id][which_pad].clip-1)) + arc_offset)
+      bank[id][which_pad].start_point = (entry.start_point + (8*(bank[id][which_pad].clip-1)) + arc_offset) -- TODO CONFIRM FOR rec.base_length
+      bank[id][which_pad].end_point = (entry.end_point + (8*(bank[id][which_pad].clip-1)) + arc_offset) -- TODO CONFIRM FOR rec.base_length
       if bank[id].id == which_pad then
-        softcut.loop_start(id+1, (entry.start_point + (8*(bank[id][which_pad].clip-1))) + arc_offset)
-        softcut.loop_end(id+1, (entry.end_point + (8*(bank[id][which_pad].clip-1))) + arc_offset)
+        softcut.loop_start(id+1, (entry.start_point + (8*(bank[id][which_pad].clip-1))) + arc_offset) -- TODO CONFIRM FOR rec.base_length
+        softcut.loop_end(id+1, (entry.end_point + (8*(bank[id][which_pad].clip-1))) + arc_offset) -- TODO CONFIRM FOR rec.base_length
       end
     elseif entry.param == 5 then
       bank[id][which_pad].level = (entry.level + arc_offset)
@@ -5757,7 +5760,7 @@ arc_redraw = function()
       which_pad = bank[i].focus_pad	
     end
 
-    local duration = bank[i][which_pad].mode == 1 and 8 or clip[bank[i][which_pad].clip].sample_length
+    local duration = bank[i][which_pad].mode == 1 and rec.base_length or clip[bank[i][which_pad].clip].sample_length -- TODO CONFIRM FOR rec.base_length
     if arc_param[i] == 1 then
 
       local minimum = bank[i][which_pad].mode == 1 and live[bank[i][which_pad].clip].min or clip[bank[i][which_pad].clip].min

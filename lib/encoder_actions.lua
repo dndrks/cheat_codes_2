@@ -382,98 +382,6 @@ function encoder_actions.init(n,d)
     
     if menu == 2 then
 
-      -- local focused_pad;
-      -- local id = page.loops.sel
-
-      -- if id < 4 then -- if banks
-
-      --   if bank[page.loops.sel].focus_hold then
-      --     focused_pad = bank[id].focus_pad
-      --   elseif grid_pat[page.loops.sel].play == 0 and midi_pat[page.loops.sel].play == 0 and not arp[page.loops.sel].playing and rytm.track[page.loops.sel].k == 0 then
-      --     focused_pad = bank[id].id
-      --   else
-      --     focused_pad = bank[id].focus_pad
-      --   end
-
-      --   if page.loops.frame == 1 then
-      --     if page.loops.top_option_set[page.loops.sel] == 1 then
-      --       local current_offset = (math.log(bank[id][focused_pad].offset)/math.log(0.5))*-12
-      --       current_offset = util.clamp(current_offset+d/32,-36,24)
-      --       if current_offset > -0.0001 and current_offset < 0.0001 then
-      --         current_offset = 0
-      --       end
-      --       bank[id][focused_pad].offset = math.pow(0.5, -current_offset / 12)
-      --       if grid_pat[id].play == 0 and grid_pat[id].tightened_start == 0 and not arp[id].playing and midi_pat[id].play == 0 then
-      --         -- if params:get("preview_clip_change") == 1 then
-      --           -- cheat(id,bank[id].id)
-      --           softcut.rate(id+1, bank[id][focused_pad].rate*bank[id][focused_pad].offset)
-      --         -- end
-      --       end
-      --       -- if key1_hold then
-      --         for i = 1,16 do
-      --           if i ~= focused_pad then
-      --             bank[id][i].offset = bank[id][focused_pad].offset
-      --           end
-      --         end
-      --       -- end
-      --     elseif page.loops.top_option_set[page.loops.sel] == 2 then
-      --       bank[id][focused_pad].rate_slew = util.clamp(bank[id][focused_pad].rate_slew+d/10,0,4)
-      --       softcut.rate_slew_time(id+1,bank[id][focused_pad].rate_slew)
-      --       -- if key1_hold then
-      --         for i = 1,16 do
-      --           if i ~= focused_pad then
-      --             bank[id][i].rate_slew = bank[id][focused_pad].rate_slew
-      --           end
-      --         end
-      --       -- end
-      --     end
-
-      --   elseif page.loops.frame == 2 then
-      --     if key2_hold then
-      --       if page.loops.top_option_set[page.loops.sel] == 1 then
-      --         local current_offset = (math.log(bank[id][focused_pad].offset)/math.log(0.5))*-12
-      --         current_offset = util.clamp(current_offset+d/32,-36,24)
-      --         if current_offset > -0.0001 and current_offset < 0.0001 then
-      --           current_offset = 0
-      --         end
-      --         bank[id][focused_pad].offset = math.pow(0.5, -current_offset / 12)
-      --         if grid_pat[id].play == 0 and grid_pat[id].tightened_start == 0 and not arp[id].playing and midi_pat[id].play == 0 then
-      --           -- if params:get("preview_clip_change") == 1 then
-      --             -- cheat(id,bank[id].id)
-      --           -- end
-      --           softcut.rate(id+1, bank[id][focused_pad].rate*bank[id][focused_pad].offset)
-      --         end
-      --       elseif page.loops.top_option_set[page.loops.sel] == 2 then
-      --         bank[id][focused_pad].rate_slew = util.clamp(bank[id][focused_pad].rate_slew+d/10,0,4)
-      --         softcut.rate_slew_time(id+1,bank[id][focused_pad].rate_slew)
-      --       end
-      --     else
-      --       local resolution = loop_enc_resolution[id] * (key1_hold and 10 or 1)
-      --       local rs = {1,2,4}
-      --       local rate_mod = rs[params:get("live_buff_rate")]
-      --       ea.move_end(bank[id][focused_pad],d/(resolution*rate_mod))
-      --       if bank[id].focus_hold == false then
-      --         ea.sc.move_end(id)
-      --       end
-      --     end
-      --   end
-
-      -- elseif id == 4 then
-      --   if page.loops.frame == 1 and page.loops.top_option_set[id] == 1 then
-      --     params:delta("random_rec_clock_prob_"..rec.focus,d)
-      --   elseif page.loops.frame == 1 and page.loops.top_option_set[id] == 2 then
-      --     params:delta("live_buff_rate",d)
-      --   elseif page.loops.frame == 2 then
-      --     ea.move_rec_end(d)
-      --     if key1_hold then
-      --       update_waveform(1,rec[rec.focus].start_point,rec[rec.focus].end_point,128)
-      --     end
-      --   end
-      
-      -- elseif id == 5 then
-      --   adjust_loops(d,"move_end")
-      -- end
-
     elseif menu == 6 then
 
       local item = page.delay[page.delay.focus].menu_sel[page.delay[page.delay.focus].menu]
@@ -1121,7 +1029,7 @@ function encoder_actions.init(n,d)
 end
 
 function ea.move_play_window(target,delta)
-  local duration = target.mode == 1 and 8 or clip[target.clip].sample_length
+  local duration = target.mode == 1 and rec.base_length or clip[target.clip].sample_length
   local current_difference = (target.end_point - target.start_point)
   local s_p = target.mode == 1 and live[target.clip].min or clip[target.clip].min
   local current_clip = duration*(target.clip-1)
@@ -1212,7 +1120,7 @@ function ea.change_buffer(target,delta)
   else
     rec.focus = util.clamp(rec.focus+delta,1,3)
   end
-  target.start_point = target.start_point - ((pre_adjust - target.clip)*8)
+  target.start_point = target.start_point - ((pre_adjust - target.clip)*8) -- TODO CONFIRM FOR rec.base_length
   target.end_point = target.start_point + current_difference
   grid_dirty = true
 end
@@ -1256,7 +1164,7 @@ function ea.change_pad_clip(target,delta)
 end
 
 function ea.move_start(target,delta)
-  local duration = target.mode == 1 and 8 or clip[target.clip].sample_length
+  local duration = target.mode == 1 and rec.base_length or clip[target.clip].sample_length
   local s_p = target.mode == 1 and live[target.clip].min or clip[target.clip].min
   if target.start_point+delta < (target.end_point - 0.04) then
     target.start_point = util.clamp(target.start_point+delta,s_p,s_p+duration)
@@ -1275,9 +1183,9 @@ function ea.move_rec_start(d)
     res = d/rec_loop_enc_resolution
   end
   if d >= 0 and util.round(rec[rec.focus].start_point + ((res)/lbr[params:get("live_buff_rate")]),0.01) < util.round(rec[rec.focus].end_point,0.01) then
-    rec[rec.focus].start_point = util.clamp(rec[rec.focus].start_point+((res)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.focus-1))),(8.9+(8*(rec.focus-1))))
+    rec[rec.focus].start_point = util.clamp(rec[rec.focus].start_point+((res)/lbr[params:get("live_buff_rate")]),(1+(rec.base_length*(rec.focus-1))),((rec.base_length+0.9)+(rec.base_length*(rec.focus-1))))
   elseif d < 0 then
-    rec[rec.focus].start_point = util.clamp(rec[rec.focus].start_point+((res)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.focus-1))),(8.9+(8*(rec.focus-1))))
+    rec[rec.focus].start_point = util.clamp(rec[rec.focus].start_point+((res)/lbr[params:get("live_buff_rate")]),(1+(rec.base_length*(rec.focus-1))),((rec.base_length+0.9)+(rec.base_length*(rec.focus-1))))
   end
   if rec.play_segment == rec.focus then
     softcut.loop_start(1, rec[rec.focus].start_point)
@@ -1311,13 +1219,13 @@ function ea.move_rec_end(d)
     res = d/rec_loop_enc_resolution
   end
   if d <= 0 and util.round(rec[rec.focus].start_point,0.01) < util.round(rec[rec.focus].end_point + ((res)/lbr[params:get("live_buff_rate")]),0.01) then
-    rec[rec.focus].end_point = util.clamp(rec[rec.focus].end_point+((res)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.focus-1))),(9+(8*(rec.focus-1))))
+    rec[rec.focus].end_point = util.clamp(rec[rec.focus].end_point+((res)/lbr[params:get("live_buff_rate")]),(1+(rec.base_length*(rec.focus-1))),((rec.base_length+1)+(rec.base_length*(rec.focus-1))))
   elseif d > 0 then
-    if rec[rec.focus].end_point+((res)/lbr[params:get("live_buff_rate")]) <= 9+(8*(rec.focus-1)) then -- FIXME: weak point?
-      rec[rec.focus].end_point = util.clamp(rec[rec.focus].end_point+((res)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.focus-1))),(9+(8*(rec.focus-1))))
+    if rec[rec.focus].end_point+((res)/lbr[params:get("live_buff_rate")]) <= (rec.base_length+1)+(rec.base_length*(rec.focus-1)) then -- FIXME: weak point?
+      rec[rec.focus].end_point = util.clamp(rec[rec.focus].end_point+((res)/lbr[params:get("live_buff_rate")]),(1+(rec.base_length*(rec.focus-1))),((rec.base_length+1)+(rec.base_length*(rec.focus-1))))
     else
       if params:get("rec_loop_enc_resolution") < 3 then
-        rec[rec.focus].end_point = 9+(8*(rec.focus-1))
+        rec[rec.focus].end_point = (rec.base_length+1)+(rec.base_length*(rec.focus-1))
       end
     end
   end

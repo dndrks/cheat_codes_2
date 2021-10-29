@@ -74,8 +74,8 @@ function aa.new_pattern_watch(enc)
   else
     arc_p[enc][a_p].pad = bank[id].focus_pad
   end
-  arc_p[enc][a_p].start_point = bank[id][arc_p[enc][a_p].pad].start_point - (8*(bank[id][arc_p[enc][a_p].pad].clip-1))
-  arc_p[enc][a_p].end_point = bank[id][arc_p[enc][a_p].pad].end_point - (8*(bank[id][arc_p[enc][a_p].pad].clip-1))
+  arc_p[enc][a_p].start_point = bank[id][arc_p[enc][a_p].pad].start_point - (8*(bank[id][arc_p[enc][a_p].pad].clip-1)) -- TODO CONFIRM FOR rec.base_length
+  arc_p[enc][a_p].end_point = bank[id][arc_p[enc][a_p].pad].end_point - (8*(bank[id][arc_p[enc][a_p].pad].clip-1)) -- TODO CONFIRM FOR rec.base_length
   arc_p[enc][a_p].prev_tilt = slew_counter[id].prev_tilt
   arc_p[enc][a_p].tilt = bank[id][bank[id].id].tilt
   --new new!
@@ -109,7 +109,7 @@ end
 
 function aa.move_window(target, delta)
   local force = math.abs(delta) >= 5 and true or false
-  local duration = target.mode == 1 and 8 or clip[target.clip].sample_length
+  local duration = target.mode == 1 and rec.base_length or clip[target.clip].sample_length
   local current_difference = (target.end_point - target.start_point)
   local s_p = target.mode == 1 and live[target.clip].min or clip[target.clip].min
   local reasonable_max = target.mode == 1 and live[target.clip].max or clip[target.clip].max
@@ -119,7 +119,7 @@ function aa.move_window(target, delta)
 
     if math.abs(arc_accum[target.bank_id]) >= 25 then
       local resolution = loop_enc_resolution[target.bank_id]
-      local rs = {1,2,4}
+      local rs = {1,2,4,8}
       local rate_mod = rs[params:get("live_buff_rate")]
       arc_accum[target.bank_id] = 0
       encoder_actions.move_play_window(target,(1/(resolution * rate_mod)) * (delta > 0 and 1 or -1))
@@ -149,7 +149,7 @@ function aa.move_start(target, delta)
 
   local force = math.abs(delta) >= 5 and true or false
 
-  local duration = target.mode == 1 and 8 or clip[target.clip].sample_length
+  local duration = target.mode == 1 and rec.base_length or clip[target.clip].sample_length
   local s_p = target.mode == 1 and live[target.clip].min or clip[target.clip].min
 
   if params:get("loop_enc_resolution_"..target.bank_id) > 2 then
@@ -157,7 +157,7 @@ function aa.move_start(target, delta)
 
     if math.abs(arc_accum[target.bank_id]) >= 25 then
       local resolution = loop_enc_resolution[target.bank_id]
-      local rs = {1,2,4}
+      local rs = {1,2,4,8}
       local rate_mod = rs[params:get("live_buff_rate")]
       arc_accum[target.bank_id] = 0
       encoder_actions.move_start(target,(1/(resolution * rate_mod)) * (delta > 0 and 1 or -1))
@@ -179,7 +179,7 @@ function aa.move_end(target, delta)
 
   local force = math.abs(delta) >= 5 and true or false
 
-  local duration = target.mode == 1 and 8 or clip[target.clip].sample_length
+  local duration = target.mode == 1 and rec.base_length or clip[target.clip].sample_length
   local s_p = target.mode == 1 and live[target.clip].min or clip[target.clip].min
 
   if params:get("loop_enc_resolution_"..target.bank_id) > 2 then
@@ -187,7 +187,7 @@ function aa.move_end(target, delta)
 
     if math.abs(arc_accum[target.bank_id]) >= 25 then
       local resolution = loop_enc_resolution[target.bank_id]
-      local rs = {1,2,4}
+      local rs = {1,2,4,8}
       local rate_mod = rs[params:get("live_buff_rate")]
       arc_accum[target.bank_id] = 0
       encoder_actions.move_end(target,(1/(resolution * rate_mod)) * (delta > 0 and 1 or -1))

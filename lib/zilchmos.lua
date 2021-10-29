@@ -136,14 +136,14 @@ function zilchmos.start_end_default( pad )
     pad.start_point = (s_p+(duration/16) * (pad.pad_id-1))
     pad.end_point = (s_p+((duration/16) * (pad.pad_id)))
   else
-    duration = pad.mode == 1 and 8 or clip[pad.clip].sample_length
+    duration = pad.mode == 1 and rec.base_length or clip[pad.clip].sample_length
     pad.start_point = ((duration/16)*(pad.pad_id-1)) + clip[pad.clip].min
     pad.end_point = pad.start_point + (duration/16)
   end
 end
 
 function zilchmos.end_sixteenths( pad )
-  local duration = pad.mode == 1 and 8 or clip[pad.clip].sample_length
+  local duration = pad.mode == 1 and rec.base_length or clip[pad.clip].sample_length
   local s_p = pad.mode == 1 and live[pad.clip].min or clip[pad.clip].min
   pad.end_point   = pad.start_point + (clock.get_beat_sec()/4)
 end
@@ -180,7 +180,7 @@ function zilchmos.start_random( pad )
     min_start = math.floor(clip[pad.clip].min * 100)
   else
     --duration = math.modf(clip[pad.clip].sample_length)
-    duration = pad.mode == 1 and 8 or math.modf(clip[pad.clip].sample_length)
+    duration = pad.mode == 1 and rec.base_length or math.modf(clip[pad.clip].sample_length)
     max_end = math.floor(pad.end_point * 100)
     min_start = math.floor(((duration*(pad.clip-1))+1) * 100)
   end
@@ -239,10 +239,10 @@ function zilchmos.start_end_random( pad )
         if current_difference * 2 < (rec[rec.focus].end_point - rec[rec.focus].start_point) then
           case1(rec[rec.focus].end_point-rec[rec.focus].start_point)
         else
-          case2(8)
+          case2(rec.base_length)
         end
       else
-        case2(8)
+        case2(rec.base_length)
       end
     end
   elseif pad.mode == 2 then
@@ -257,12 +257,12 @@ function zilchmos.start_end_random( pad )
       pad.end_point = pad.start_point + current_difference
     end
   else
-    case2(pad.mode == 1 and 8 or math.modf(clip[pad.clip].sample_length))
+    case2(pad.mode == 1 and rec.base_length or math.modf(clip[pad.clip].sample_length))
   end
 end
 
 function zilchmos.loop_double( pad )
-  local duration = pad.mode == 1 and 8 or clip[pad.clip].sample_length
+  local duration = pad.mode == 1 and rec.base_length or clip[pad.clip].sample_length
   local double = pad.end_point - pad.start_point
   local maximum_val = duration + (pad.mode == 1 and live[pad.clip].min or clip[pad.clip].min)
   if pad.end_point + double <= maximum_val then
