@@ -505,6 +505,24 @@ function _l.get_global_level(id)
   end
 end
 
+function _l.get_pad_level(b,p)
+  if bank[b][p].level_envelope.active then
+    if bank[b][p].level_lfo.active then
+      return util.linlin(-1,1,0,levels.return_current_funnel_value(id),bank[b][p].level_lfo.slope)
+    else
+      return levels.return_current_funnel_value(id)
+    end
+  else
+    if bank[b][p].level_lfo.active and not bank[b][p].level_envelope.mute_active then
+      return util.linlin(-1,1,0,bank[b][p].global_level,bank[b][p].level_lfo.slope)
+    elseif not bank[b][p].level_envelope.mute_active then
+      return bank[b][p].global_level
+    elseif bank[b][p].level_envelope.mute_active then
+      return 0
+    end
+  end
+end
+
 function _l.calc_delay_sends(b,p,side_table)
   for i = 1,#side_table do
     if side_table[i] == "L" then

@@ -1,6 +1,6 @@
--- cheat codes 2
+-- cheat codes: yellow
 --          a sample playground
--- rev: 211008 - LTS3
+-- final revision
 -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
 -- need help?
 -- please visit:
@@ -119,6 +119,7 @@ _dough = include 'lib/doughstretch'
 _live = include 'lib/livecode'
 _snap = include 'lib/snapshots'
 _song = include 'lib/song'
+_levels = include 'lib/levels'
 math.randomseed(os.time())
 variable_fade_time = 0.01
 splash_done = true
@@ -345,18 +346,6 @@ for i = 1,3 do
   end
 end
 pattern_saver_glue = false
-
-env_counter = {}
-for i = 1,3 do
-  env_counter[i] = metro.init()
-  env_counter[i].time = 0.01
-  env_counter[i].butt = 1
-  env_counter[i].l_del_butt = 0
-  env_counter[i].r_del_butt = 0
-  env_counter[i].stage = nil
-  -- env_counter[i].mode = 1 -- this needs to be per pad!!
-  env_counter[i].event = function() envelope(i) end
-end
 
 slew_counter = {}
 
@@ -2307,34 +2296,7 @@ function alt_synced_loop(target,state,style,mod_table)
     elseif type_of_pattern_loaded[tab.key(name_to_id,target.name)] == "euclid" then
       print("hi alt euclid!!")
     end
-
-
--- clear_arps_from_pattern_restart(target.event[target.count].i)
--- target:start()
--- target.synced_loop_runner = 1
--- -- print("alt_synced",clock.get_beats(),target)
--- while true do
---   clock.sync(1/4)
---   if target.synced_loop_runner == target.rec_clock_time * 4 then
---     target.synced_loop_runner = 1
---     -- print(clock.get_beats(), target.synced_loop_runner)
---     local overdub_flag = target.overdub
---     -- target:stop()
---     stop_pattern(target,"no kill")
---     -- print("stopping")
---     if overdub_flag == 1 then
---       target.overdub = 1
---     end
---     if target.loop == 1 then
---       -- clear_arps_from_pattern_restart(target.event[target.count].i)
---       target:start()
---       -- print("and then start...")
---     end
---   else
---     target.synced_loop_runner =  target.synced_loop_runner + 1
---   end
--- end
-end
+  end 
 end
 
 function stop_pattern(target,style)
@@ -2418,16 +2380,6 @@ function synced_pattern_record(target)
   clock.sleep((clock.get_beat_sec()*target.rec_clock_time)+ (clock.get_beat_sec()*1/8))
   if target.rec_clock ~= nil then
     target:rec_stop()
-    -- if target is a grid pat, should do all the grid pat thing:
-    --[[
-      midi_clock_linearize(i)
-      if grid_pat[i].auto_snap == 1 then
-        print("auto-snap")
-        snap_to_bars(i,how_many_bars(i))
-      end
-      grid_pat[i]:start()
-      grid_pat[i].loop = 1
-    --]]
     pattern_length_to_bars(target, "destructive")
     if target.time[1] ~= nil and target.time[1] < clock.get_beat_sec()/4 and target.event[1] == "pause" then
       print("we could lose the first event..."..target.count, target.end_point)
@@ -2685,37 +2637,6 @@ function compare_loop_resolution(target,x)
   softcut.loop_start(target+1,bank[target][bank[target].id].start_point)
   softcut.loop_end(target+1,bank[target][bank[target].id].end_point)
   if menu ~= 1 then screen_dirty = true end
-end
-
-function step_sequence_super_clock()
-  while true do
-    clock.sync(1/4)
-    for i = 1,3 do
-      step_sequence(i)
-    end
-  end
-end
-
-function toggle_meta(state)
-  if state == "start" then
-    if step_sequence_clock ~= nil then
-      clock.cancel(step_sequence_clock)
-    end
-    for target = 1,3 do
-      step_seq[target].meta_meta_step = 1
-      step_seq[target].meta_step = 1
-      step_seq[target].current_step = step_seq[target].start_point
-      if step_seq[target].active == 1 and step_seq[target][step_seq[target].current_step].assigned_to ~= 0 then
-        test_load(step_seq[target][step_seq[target].current_step].assigned_to+(((target)-1)*8),target)
-      end
-    end
-    step_sequence_clock = clock.run(step_sequence_super_clock)
-    screen.dirty = true
-  elseif state == "stop" then
-    if step_sequence_clock ~= nil then
-      clock.cancel(step_sequence_clock)
-    end
-  end
 end
 
 function globally_clocked()
@@ -3132,6 +3053,20 @@ function reset_all_banks( banks )
       pad.right_delay_thru  = false
       pad.rate_slew         = 0
       pad.arp_time          = 1/4
+
+      pad.level_envelope = {
+        ["fnl"] = nil,
+        ["current_value"] = 1.0,
+        ["active"] = false,
+        ["start_val"] = 1.0,
+        ["end_val"] = 0.0,
+        ["direction"] = "falling",
+        ["mute_active"] = false,
+        ["rise_stage_active"] = true,
+        ["fall_stage_active"] = true,
+        ["rise_stage_time"] = 1,
+        ["fall_stage_time"] = 1
+      }
     end
     cross_filter[i]         = {}
     cross_filter[i].fc      = 12000
@@ -3152,41 +3087,19 @@ end
 
 function cheat(b,i,silent)
   bank[b].currently_cheating = true
+  softcut.level_slew_time(b+1,0.4) -- TODO: is this how much is needed? dang...
   local pad = bank[b][i]
   if all_loaded and silent == nil then
     mc.midi_note_from_pad(util.round(b),util.round(i))
     mc.route_midi_mod(b,i)
   end
-  if env_counter[b].is_running then
-    env_counter[b]:stop()
-  end
+  -- if env_counter[b].is_running then
+  --   env_counter[b]:stop() -- TODO: replace this for funnels...
+  -- end
   softcut.rate_slew_time(b+1,pad.rate_slew)
   if pad.enveloped and not pad.pause then
-    if pad.envelope_mode == 1 then
-      env_counter[b].butt = pad.level
-      env_counter[b].l_del_butt = pad.left_delay_level
-      env_counter[b].r_del_butt = pad.right_delay_level
-      softcut.level_slew_time(b+1,0.05)
-      softcut.level(b+1,pad.level*bank[b].global_level)
-      softcut.level_cut_cut(b+1,5,(pad.level*bank[b].global_level)*pad.left_delay_level)
-      softcut.level_cut_cut(b+1,6,(pad.level*bank[b].global_level)*pad.right_delay_level)
-    elseif pad.envelope_mode == 2 or pad.envelope_mode == 3 then
-      softcut.level_slew_time(b+1,0.01)
-      softcut.level(b+1,0*bank[b].global_level)
-      softcut.level_cut_cut(b+1,5,0)
-      softcut.level_cut_cut(b+1,6,0)
-      env_counter[b].butt = 0
-      env_counter[b].l_del_butt = 0
-      env_counter[b].r_del_butt = 0
-      if pad.envelope_mode == 3 then env_counter[b].stage = "rising" end
-    end
-    if pad.level > 0.05 then
-    -- if (pad.envelope_time/(pad.level/0.05)) ~= inf then
-      env_counter[b].time = (pad.envelope_time/(pad.level/0.05)) -- buggy, what am i trying to do here??
-    end
-    env_counter[b]:start()
+    _levels.rise(b,i)
   elseif not pad.enveloped and not pad.pause then
-    softcut.level_slew_time(b+1,0)
     softcut.level(b+1,pad.level*bank[b].global_level)
     if not delay[1].send_mute then
       if pad.left_delay_thru then
@@ -3326,124 +3239,6 @@ function cheat(b,i,silent)
   if all_loaded and silent == nil then
     if softcut_voices_are_paused[b] == true then
       softcut.play(b+1,1)
-    end
-  end
-end
-
-function envelope(i)
-  -- softcut.level_slew_time(i+1,0.1)
-  if bank[i][bank[i].id].envelope_mode == 1 then
-    falling_envelope(i)
-  elseif bank[i][bank[i].id].envelope_mode == 2 then
-    rising_envelope(i)
-  elseif bank[i][bank[i].id].envelope_mode == 3 then
-    if env_counter[i].stage == nil then env_counter[i].stage = "rising" end
-    if env_counter[i].stage == "rising" then
-      rising_envelope(i)
-    elseif env_counter[i].stage == "falling" then
-      falling_envelope(i)
-    end
-  end
-end
-
-function falling_envelope(i)
-  if env_counter[i].butt > 0.05 then
-    env_counter[i].butt = env_counter[i].butt - 0.05
-  else
-    env_counter[i].butt = 0
-  end
-  if env_counter[i].butt > 0 and bank[i][bank[i].id].level > 0 then
-    softcut.level_slew_time(i+1,0.05)
-    softcut.level(i+1,env_counter[i].butt*bank[i].global_level)
-    -- softcut.level_cut_cut(i+1,5,(env_counter[i].butt*bank[i].global_level)*bank[i][bank[i].id].left_delay_level)
-    -- softcut.level_cut_cut(i+1,6,(env_counter[i].butt*bank[i].global_level)*bank[i][bank[i].id].right_delay_level)
-    if delay[1].send_mute then
-      if bank[i][bank[i].id].left_delay_level == 0 then
-        softcut.level_cut_cut(i+1,5,(env_counter[i].butt*bank[i].global_level)*1)
-      else
-        softcut.level_cut_cut(i+1,5,(env_counter[i].butt*bank[i].global_level)*0)
-      end
-    else
-      softcut.level_cut_cut(i+1,5,(env_counter[i].butt*bank[i].global_level)*bank[i][bank[i].id].left_delay_level)
-    end
-    if delay[2].send_mute then
-      if bank[i][bank[i].id].right_delay_level == 0 then
-        softcut.level_cut_cut(i+1,6,(env_counter[i].butt*bank[i].global_level)*1)
-      else
-        softcut.level_cut_cut(i+1,6,(env_counter[i].butt*bank[i].global_level)*0)
-      end
-    else
-      softcut.level_cut_cut(i+1,6,(env_counter[i].butt*bank[i].global_level)*bank[i][bank[i].id].right_delay_level)
-    end
-  else
-    env_counter[i]:stop()
-    softcut.level_slew_time(i+1,1.0)
-    softcut.level(i+1,0*bank[i].global_level)
-    env_counter[i].butt = bank[i][bank[i].id].level
-    softcut.level_cut_cut(i+1,5,0)
-    softcut.level_cut_cut(i+1,6,0)
-    if bank[i][bank[i].id].envelope_mode == 3 then
-      env_counter[i].stage = nil
-      env_counter[i].butt = 0
-    end
-    if bank[i][bank[i].id].envelope_loop == true then
-      env_counter[i]:start()
-    end
-  end
-end
-
-function rising_envelope(i)
-  env_counter[i].butt = env_counter[i].butt + 0.05
-  if env_counter[i].butt < bank[i][bank[i].id].level then
-    softcut.level_slew_time(i+1,0.1)
-    softcut.level(i+1,env_counter[i].butt*bank[i].global_level)
-    -- softcut.level_cut_cut(i+1,5,env_counter[i].butt*(bank[i][bank[i].id].left_delay_level*bank[i].global_level))
-    -- softcut.level_cut_cut(i+1,6,env_counter[i].butt*(bank[i][bank[i].id].right_delay_level*bank[i].global_level))
-    if delay[1].send_mute then
-      if bank[i][bank[i].id].left_delay_level == 0 then
-        softcut.level_cut_cut(i+1,5,(env_counter[i].butt*bank[i].global_level)*1)
-      else
-        softcut.level_cut_cut(i+1,5,(env_counter[i].butt*bank[i].global_level)*0)
-      end
-    else
-      softcut.level_cut_cut(i+1,5,(env_counter[i].butt*bank[i].global_level)*bank[i][bank[i].id].left_delay_level)
-    end
-    if delay[2].send_mute then
-      if bank[i][bank[i].id].right_delay_level == 0 then
-        softcut.level_cut_cut(i+1,6,(env_counter[i].butt*bank[i].global_level)*1)
-      else
-        softcut.level_cut_cut(i+1,6,(env_counter[i].butt*bank[i].global_level)*0)
-      end
-    else
-      softcut.level_cut_cut(i+1,6,(env_counter[i].butt*bank[i].global_level)*bank[i][bank[i].id].right_delay_level)
-    end
-  else
-    env_counter[i]:stop()
-    softcut.level(i+1,bank[i][bank[i].id].level*bank[i].global_level)
-    env_counter[i].butt = 0
-    if bank[i][bank[i].id].left_delay_thru then
-      softcut.level_cut_cut(i+1,5,bank[i][bank[i].id].left_delay_level)
-    else
-      softcut.level_cut_cut(i+1,5,(bank[i][bank[i].id].left_delay_level*bank[i][bank[i].id].level)*bank[i].global_level)
-    end
-    if bank[i][bank[i].id].right_delay_thru then
-      softcut.level_cut_cut(i+1,6,bank[i][bank[i].id].left_delay_level)
-    else
-      softcut.level_cut_cut(i+1,6,(bank[i][bank[i].id].left_delay_level*bank[i][bank[i].id].level)*bank[i].global_level)
-    end
-    softcut.level_slew_time(i+1,1.0)
-    if bank[i][bank[i].id].envelope_mode == 3 then
-      env_counter[i].stage = "falling"
-      softcut.level_slew_time(i+1,0.05)
-      env_counter[i].butt = bank[i][bank[i].id].level
-      if bank[i][bank[i].id].level > 0.05 then
-      -- if bank[i][bank[i].id].envelope_time/(bank[i][bank[i].id].level/0.05) ~= inf then
-        env_counter[i].time = (bank[i][bank[i].id].envelope_time/(bank[i][bank[i].id].level/0.05))
-      end
-      env_counter[i]:start()
-    end
-    if bank[i][bank[i].id].envelope_loop == true then
-      env_counter[i]:start()
     end
   end
 end
@@ -7016,9 +6811,9 @@ function cleanup(is_local)
     print("cleaning up")
   end
 
-  for i = 1,3 do
-    env_counter[i]:stop()
-  end
+  -- for i = 1,3 do
+  --   env_counter[i]:stop() -- TODO: do i need to replace this for funnels?
+  -- end
 
   clear_zero()
   for i = 1,3 do
