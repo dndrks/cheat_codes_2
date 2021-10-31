@@ -301,6 +301,34 @@ function delays.set_value(target,index,param)
   end
 end
 
+function delays.freeze(target)
+  local delay_name = {"delay L: ", "delay R: "}
+  local t = delay_name[target]
+  params:set(t.."feedback",100)
+  local banks = {"(a)","(b)","(c)"}
+  if params:get(t.."(a) send") ~= 0 then
+    params:set(t.."(a) send",0)
+  end
+  params:set(t.."(b) send",0)
+  params:set(t.."(c) send",0)
+
+  for i = 1,3 do
+    if params:get(t..banks[i].." send") ~= 0 then
+      params:set(t..banks[i].." send",0)
+    else
+      if bank[i][bank[i].id].enveloped == false then
+        softcut.level_cut_cut(i+1,target+4,0)
+      end
+      local which = target == 1 and "left_delay_level" or "right_delay_level"
+      for j = 1,16 do
+        bank[i][j][which] = 0
+      end
+    end
+  end
+  grid_dirty = true
+
+end
+
 function delays.change_duration(target,source,param)
   if param == "sync" then
     local mode = {"delay L: mode","delay R: mode"}

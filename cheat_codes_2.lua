@@ -123,7 +123,7 @@ _levels = include 'lib/levels'
 math.randomseed(os.time())
 variable_fade_time = 0.01
 splash_done = true
-softcut_voices_are_paused = {false,false,false}
+softcut_voices_are_paused = {true,true,true}
 
 macro = {}
 for i = 1,8 do
@@ -2073,7 +2073,7 @@ function init()
   _arps.init()
   _loops.init()
   _f.init()
-  -- _l.init()
+  _l.init()
   page.delay_sel = 0
   -- page.delay_section = 1
   -- page.delay_focus = 1
@@ -2852,7 +2852,7 @@ function osc_redraw(i)
   end
 end
 
-poll_position_new = {}
+poll_position_new = {1,1,1,1}
 
 playhead_at_endpoint = {false,false,false}
 
@@ -3000,6 +3000,19 @@ function reset_all_banks( banks )
     b.alt_lock = false
     b.global_level = 1.0
     b.pan_lfo = false
+    b.level_envelope = {
+      ["fnl"] = nil,
+      ["current_value"] = 1.0,
+      ["active"] = false,
+      ["start_val"] = 1.0,
+      ["end_val"] = 0.0,
+      ["direction"] = "falling",
+      ["mute_active"] = false,
+      ["rise_stage_active"] = true,
+      ["fall_stage_active"] = true,
+      ["rise_stage_time"] = 1,
+      ["fall_stage_time"] = 1
+    }
     for k = 1,16 do
 -- TODO suggest nesting tables for delay,filter,tilt etc
       b[k] = {}
@@ -3045,6 +3058,7 @@ function reset_all_banks( banks )
       pad.envelope_mode     = 0
       pad.envelope_time     = 3.0
       pad.envelope_loop     = false
+      pad.envelope_rate_index = 15
       pad.clock_resolution  = 4
       pad.offset            = 1.0
       pad.new_offset        = {["semitone"] = 0, ["cent"] = 0, ["live"] = {0,0,0}}
@@ -3065,7 +3079,10 @@ function reset_all_banks( banks )
         ["rise_stage_active"] = true,
         ["fall_stage_active"] = true,
         ["rise_stage_time"] = 1,
-        ["fall_stage_time"] = 1
+        ["rise_time_index"] = 15,
+        ["fall_stage_time"] = 1,
+        ["fall_time_index"] = 15,
+        ["loop"] = false
       }
     end
     cross_filter[i]         = {}
@@ -3093,12 +3110,25 @@ function cheat(b,i,silent)
     mc.midi_note_from_pad(util.round(b),util.round(i))
     mc.route_midi_mod(b,i)
   end
+  -- print(bank[b].level_envelope.active)
+  if bank[b].level_envelope.active then
+    -- print("should cancel the level clock")
+    clock.cancel(bank[b].level_envelope.fnl)
+    bank[b].level_envelope.active = false
+    softcut.level(b+1,bank[b][i].level*bank[b].global_level)
+    softcut.level_cut_cut(b+1,5,(bank[b][i].left_delay_level*bank[b][i].level)*bank[b].global_level)
+    softcut.level_cut_cut(b+1,6,(bank[b][i].right_delay_level*bank[b][i].level)*bank[b].global_level)
+  end
   -- if env_counter[b].is_running then
   --   env_counter[b]:stop() -- TODO: replace this for funnels...
   -- end
   softcut.rate_slew_time(b+1,pad.rate_slew)
   if pad.enveloped and not pad.pause then
-    _levels.rise(b,i)
+    if pad.level_envelope.rise_stage_active then
+      _levels.rise(b,i)
+    elseif pad.level_envelope.fall_stage_active then
+      _levels.fall(b,i)
+    end
   elseif not pad.enveloped and not pad.pause then
     softcut.level(b+1,pad.level*bank[b].global_level)
     if not delay[1].send_mute then
@@ -3181,12 +3211,6 @@ function cheat(b,i,silent)
     slew_counter[b].prev_q = pad.q
   end
   previous_pad = bank[b].id
-  -- if bank[b].crow_execute == 1 then
-  --   if pad.crow_pad_execute == 1 then
-  --     crow.output[b]()
-  --   end
-  -- end
-  --dangerous??
   local rate_array = {-4.0,-2.0,-1.0,-0.5,-0.25,-0.125,0.125,0.25,0.5,1.0,2.0,4.0}
   local s = {}
   for k,v in pairs(rate_array) do
@@ -3235,12 +3259,15 @@ function cheat(b,i,silent)
     local max = bank[page.loops.sel][focused_pad].end_point
     update_waveform(mode,min,max,128)
   end
-  bank[b].currently_cheating = false
+  
   if all_loaded and silent == nil then
     if softcut_voices_are_paused[b] == true then
       softcut.play(b+1,1)
+      softcut_voices_are_paused[b] = false
     end
   end
+  
+  bank[b].currently_cheating = false
 end
 
 function slew_filter(i,prevVal,nextVal,prevQ,nextQ,count)
@@ -3572,6 +3599,8 @@ function key(n,z)
     _loops.process_key(n,z)
   elseif menu == 5 then
     _f.process_key(n,z)
+  elseif menu == 3 then
+    _l.process_key(n,z)
   else
     if n == 3 and z == 1 then
       if menu == 1 then
@@ -5961,6 +5990,11 @@ end
 function named_loadstate(path)
   local file = io.open(path, "r")
   if file then
+    softcut_voices_are_paused = {}
+    for i = 1,3 do
+      softcut.play(i+1,0)
+      softcut_voices_are_paused[i] = true
+    end
     splash_done = false
     print("loading...")
     for j = 1,3 do
