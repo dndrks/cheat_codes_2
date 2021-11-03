@@ -12,7 +12,9 @@ function start_up.init()
     softcut.buffer(i, 1)
     audio.level_adc_cut(1)
     softcut.fade_time(i, 0.01)
-    softcut.play(1, 1)
+    if i == 1 then
+      softcut.play(1, 1)
+    end
     softcut.rate(i, 1)
     softcut.loop_start(i, 1)
     softcut.loop_end(i, 9)

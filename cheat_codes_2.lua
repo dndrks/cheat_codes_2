@@ -370,6 +370,15 @@ for i = 1,3 do
   slew_counter[i].next_q = 0
 end
 
+level_envelope_metro = {}
+for i = 1,3 do
+  level_envelope_metro[i] = metro.init()
+  -- level_envelope_metro[i].time = 1/60
+  level_envelope_metro[i].time = 0.01
+  -- bank[i].level_envelope.fnl_metro.count = 
+  level_envelope_metro[i].event = function() print("hello",util.time() ) end
+end
+
 quantize = 1
 quantize_events = {}
 for i = 1,3 do
@@ -3008,8 +3017,8 @@ function reset_all_banks( banks )
       ["end_val"] = 0.0,
       ["direction"] = "falling",
       ["mute_active"] = false,
-      ["rise_stage_active"] = true,
-      ["fall_stage_active"] = true,
+      ["rise_stage_active"] = false,
+      ["fall_stage_active"] = false,
       ["rise_stage_time"] = 1,
       ["fall_stage_time"] = 1
     }
@@ -3076,8 +3085,8 @@ function reset_all_banks( banks )
         ["end_val"] = 0.0,
         ["direction"] = "falling",
         ["mute_active"] = false,
-        ["rise_stage_active"] = true,
-        ["fall_stage_active"] = true,
+        ["rise_stage_active"] = false,
+        ["fall_stage_active"] = false,
         ["rise_stage_time"] = 1,
         ["rise_time_index"] = 15,
         ["fall_stage_time"] = 1,
@@ -3113,7 +3122,7 @@ function cheat(b,i,silent)
   -- print(bank[b].level_envelope.active)
   if bank[b].level_envelope.active then
     -- print("should cancel the level clock")
-    clock.cancel(bank[b].level_envelope.fnl)
+    -- clock.cancel(bank[b].level_envelope.fnl)
     bank[b].level_envelope.active = false
     softcut.level(b+1,bank[b][i].level*bank[b].global_level)
     softcut.level_cut_cut(b+1,5,(bank[b][i].left_delay_level*bank[b][i].level)*bank[b].global_level)
@@ -3125,9 +3134,12 @@ function cheat(b,i,silent)
   softcut.rate_slew_time(b+1,pad.rate_slew)
   if pad.enveloped and not pad.pause then
     if pad.level_envelope.rise_stage_active then
-      _levels.rise(b,i)
+      -- _levels.rise(b,i)
+      -- print("should go, yeah?")
+      _levels.set_up_rise(b,i)
     elseif pad.level_envelope.fall_stage_active then
-      _levels.fall(b,i)
+      -- _levels.fall(b,i)
+      _levels.set_up_fall(b,i)
     end
   elseif not pad.enveloped and not pad.pause then
     softcut.level(b+1,pad.level*bank[b].global_level)

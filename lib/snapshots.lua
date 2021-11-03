@@ -129,14 +129,21 @@ snap.restore = function(b,slot,sec,style)
           original_srcs[i][restorable_params[j]] = src[i][restorable_params[j]]
         end
         original_srcs[i].global_level = src.global_level
-        -- original_srcs[i].rate = src[i].rate
-        -- original_srcs[i].fifth = src[i].fifth
-        -- original_srcs[i].loop = src[i].loop
-        -- original_srcs[i].mode = src[i].mode
-        -- original_srcs[i].clip = src[i].clip
-        -- original_srcs[i].level = src[i].level
-        -- original_srcs[i].pan = src[i].pan
-        -- original_srcs[i].tilt = src[i].tilt
+        original_srcs[i].filter =
+          {
+            ["style"] = params:get("filter "..b.." style"),
+            ["dj tilt"] = params:get("filter "..b.." dj tilt"),
+            ["cutoff"] = params:get("filter "..b.." cutoff"),
+            ["q"] = params:get("filter "..b.." q"),
+            ["lp"] = params:get("filter "..b.." lp"),
+            ["hp"] = params:get("filter "..b.." hp"),
+            ["bp"] = params:get("filter "..b.." bp"),
+            ["dry"] = params:get("filter "..b.." dry"),
+            ["lp mute"] = params:get("filter "..b.." lp mute"),
+            ["hp mute"] = params:get("filter "..b.." hp mute"),
+            ["bp mute"] = params:get("filter "..b.." bp mute"),
+            ["dry mute"] = params:get("filter "..b.." dry mute")
+          }
       end
       for i = 1,16 do
         src[i].loop = shot.pad[i].loop
@@ -161,6 +168,28 @@ snap.restore = function(b,slot,sec,style)
           function(r_val)
             bank[b].snapshot.current_value = r_val
             src.global_level = util.linlin(0,1,original_srcs[1].global_level,shot.pad[1].global_level,r_val)
+            if shot.restore.filter then
+              if original_srcs[1].filter.style == 1 then
+                if shot.pad[1].filter.style ~= 1 then
+                  params:set("filter "..b.." style",2)
+                else
+                  params:set("filter "..b.." dj tilt",util.linlin(0,1,original_srcs[1].tilt,shot.pad[1].tilt,r_val))
+                end
+              elseif original_srcs[1].filter.style == 2 then
+                if shot.pad[1].filter.style ~= 2 then
+                  params:set("filter "..b.." style",1)
+                  params:set("filter "..b.." dj tilt",util.linlin(0,1,original_srcs[1].tilt,shot.pad[1].tilt,r_val))
+                  params:set("filter "..b.." q",util.linlin(0,1,original_srcs[1].filter["q"],shot.pad[1].filter["q"],r_val))
+                else
+                  params:set("filter "..b.." cutoff",util.linlin(0,1,original_srcs[1].filter["cutoff"],shot.pad[1].filter["cutoff"],r_val))
+                  params:set("filter "..b.." q",util.linlin(0,1,original_srcs[1].filter["q"],shot.pad[1].filter["q"],r_val))
+                  params:set("filter "..b.." lp",util.linlin(0,1,original_srcs[1].filter["lp"],shot.pad[1].filter["lp"],r_val))
+                  params:set("filter "..b.." hp",util.linlin(0,1,original_srcs[1].filter["hp"],shot.pad[1].filter["hp"],r_val))
+                  params:set("filter "..b.." bp",util.linlin(0,1,original_srcs[1].filter["bp"],shot.pad[1].filter["bp"],r_val))
+                  params:set("filter "..b.." dry",util.linlin(0,1,original_srcs[1].filter["dry"],shot.pad[1].filter["dry"],r_val))
+                end
+              end
+            end
             for i = 1,16 do
               if shot.restore.start_point then
                 src[i].start_point = util.linlin(0,1,original_srcs[i].start_point,shot.pad[i].start_point,r_val)
@@ -170,9 +199,6 @@ snap.restore = function(b,slot,sec,style)
               end
               if shot.restore.level then
                 src[i].level = util.linlin(0,1,original_srcs[i].level,shot.pad[i].level,r_val)
-              end
-              if shot.restore.filter then
-                params:set("filter "..b.." dj tilt",util.linlin(0,1,original_srcs[i].tilt,shot.pad[i].tilt,r_val))
               end
               if shot.restore.rate then
                 if shot.rate_ramp then
@@ -185,7 +211,9 @@ snap.restore = function(b,slot,sec,style)
                   softcut.loop_start(b+1,src[i].start_point)
                   softcut.loop_end(b+1,src[i].end_point)
                 end
-                softcut.level(b+1,src[i].level*src.global_level)
+                if shot.restore.level then
+                  softcut.level(b+1,src[i].level*src.global_level)
+                end
                 if shot.rate_ramp then
                   softcut.rate(b+1,src[i].rate*_loops.get_total_pitch_offset(b,i))
                 end
@@ -197,7 +225,8 @@ snap.restore = function(b,slot,sec,style)
             end
           end,
           0,
-          {{1,sec}}
+          {{1,sec}},
+          60
         )
       elseif not bank[b].snapshot.fnl_active and (sec == nil or sec == 0) then
         src.global_level = shot.pad[1].global_level
@@ -212,12 +241,36 @@ snap.restore = function(b,slot,sec,style)
             src[i].level = shot.pad[i].level
           end
           if shot.restore.filter then
-            params:set("filter "..b.." dj tilt",shot.pad[i].tilt)
+            if original_srcs[1].filter.style == 1 then
+              if shot.pad[1].filter.style ~= 1 then
+                params:set("filter "..b.." style",2)
+              else
+                params:set("filter "..b.." dj tilt",shot.pad[1].tilt)
+              end
+            elseif original_srcs[1].filter.style == 2 then
+              if shot.pad[1].filter.style ~= 2 then
+                params:set("filter "..b.." style",1)
+                params:set("filter "..b.." dj tilt",shot.pad[1].tilt)
+                params:set("filter "..b.." q",shot.pad[1].filter["q"])
+              else
+                params:set("filter "..b.." cutoff",shot.pad[1].filter["cutoff"])
+                params:set("filter "..b.." q",shot.pad[1].filter["q"],r_val)
+                params:set("filter "..b.." lp",shot.pad[1].filter["lp"],r_val)
+                params:set("filter "..b.." hp",shot.pad[1].filter["hp"],r_val)
+                params:set("filter "..b.." bp",shot.pad[1].filter["bp"],r_val)
+                params:set("filter "..b.." dry",shot.pad[1].filter["dry"],r_val)
+              end
+            end
           end
+          -- if shot.restore.filter then
+          --   params:set("filter "..b.." dj tilt",shot.pad[i].tilt)
+          -- end
           if i == src.id then
             softcut.loop_start(b+1,src[i].start_point)
             softcut.loop_end(b+1,src[i].end_point)
-            softcut.level(b+1,src[i].level*src.global_level)
+            if shot.restore.level then
+              softcut.level(b+1,src[i].level*src.global_level)
+            end
           end
         end
         snap.snapshot_funnel_done_action(b,slot)

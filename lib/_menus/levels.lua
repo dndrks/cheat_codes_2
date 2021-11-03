@@ -132,7 +132,7 @@ function _l.draw_alt_view()
   local data_to_display =
   {
     bank[_l_.bank][f].enveloped == true and (shapes[bank[_l_.bank][f].envelope_mode]) or "off",
-    bank[_l_.bank][f].envelope_loop == true and "on" or "off",
+    bank[_l_.bank][f].level_envelope.loop == true and "on" or "off",
     lfo_rates.names[bank[_l_.bank][f].level_envelope.fall_time_index]
   }
   for i = 1,3 do
@@ -249,7 +249,7 @@ end
 function _l.draw_repeat()
   screen.level(_l_.selected_region == "pad_repeat" and 15 or 3)
   screen.move(84,26)
-  if bank[_l_.bank][focused_pad[_l_.bank]].envelope_loop then
+  if bank[_l_.bank][focused_pad[_l_.bank]].level_envelope.loop then
     screen.text("LOOP: on")
   else
     screen.text("LOOP: off")
@@ -353,14 +353,14 @@ function _l.process_encoder(n,d)
           end
           if _l_.selected_region == "pad_level" then
             if b[f].enveloped and not b[f].pause and b.focus_hold == false then
-              if b.level_envelope.active then
-                if b.level_envelope.direction == "rising" then
-                  b.level_envelope.end_val = b[f].level
-                  print("changing rise")
-                elseif b.level_envelope.direction == "falling" then
-                  b.level_envelope.start_val = b[f].level
-                end
-              end
+              -- if b.level_envelope.active then
+              --   if b.level_envelope.direction == "rising" then
+              --     b.level_envelope.end_val = b[f].level
+              --     print("changing rise")
+              --   elseif b.level_envelope.direction == "falling" then
+              --     b.level_envelope.start_val = b[f].level
+              --   end
+              -- end
             end
           end
         end
@@ -426,19 +426,19 @@ function _l.process_encoder(n,d)
           _l.pass_to_all(_l_.bank,f,{"level_envelope","fall_time_index"})
         end
       elseif _l_.selected_region == "pad_repeat" then
-        local pre_loop = b[f].envelope_loop
+        local pre_loop = b[f].level_envelope.loop
         if d>0 then
-          b[f].envelope_loop = true
-          if pre_loop ~= b[f].envelope_loop then
+          b[f].level_envelope.loop = true
+          if pre_loop ~= b[f].level_envelope.loop then
             if bank[_l_.bank].focus_hold == false and b[f].enveloped then
               -- cheat(_l_.bank, bank[_l_.bank].id)
             end
           end
         else
-          b[f].envelope_loop = false
+          b[f].level_envelope.loop = false
         end
         if bank[_l_.bank].focus_hold == false then
-          _l.pass_to_all(_l_.bank,f,{"envelope_loop"})
+          _l.pass_to_all(_l_.bank,f,{"level_envelope","loop"})
         end
       elseif _l_.selected_region == "rise_time" then
         b[f].level_envelope.rise_time_index = util.clamp(b[f].level_envelope.rise_time_index + d,1,#lfo_rates.values)
@@ -505,12 +505,7 @@ function _l.process_meta_encoder(n,d)
         b[_f].level = util.clamp(b[_f].level+d/20,0,2)
       end
       if _f == f then
-        if b[f].enveloped and not b[f].pause then
-          if b[f].level > 0.05 then
-            env_counter[n].time = (b[f].envelope_time/(b[f].level/0.05))
-          end
-        end
-        if b[f].envelope_mode == 2 or b[f].enveloped == false then
+        if b[f].enveloped == false then
           softcut.level_slew_time(_l_.bank+1,1.0)
           softcut.level(_l_.bank+1,b[f].level*_l.get_global_level(_l_.bank))
           softcut.level_cut_cut(_l_.bank+1,5,(b[f].left_delay_level*b[f].level)*_l.get_global_level(_l_.bank))
@@ -524,29 +519,38 @@ function _l.process_meta_encoder(n,d)
       
       if b[_f].envelope_mode == 0 then
         b[_f].enveloped = false
-      else
-        b[_f].enveloped = true
-        if pre_enveloped ~= b[_f].enveloped and _f == f then
-          if bank[_l_.bank].focus_hold == false then
-            -- cheat(_l_.bank, f)
-          end
-        elseif pre_mode ~= b[_f].envelope_mode and _f == f then
-          if bank[_l_.bank].focus_hold == false then
-            -- cheat(_l_.bank, f)
-          end
+        b[_f].level_envelope.rise_stage_active = false
+        b[_f].level_envelope.fall_stage_active = false
+        if b.id == f then
+          softcut.level_slew_time(_l_.bank+1,1.0)
+          softcut.level(_l_.bank+1,b[b.id].level*_l.get_global_level(_l_.bank))
+          softcut.level_cut_cut(_l_.bank+1,5,(b[b.id].left_delay_level*b[b.id].level)*_l.get_global_level(_l_.bank))
+          softcut.level_cut_cut(_l_.bank+1,6,(b[b.id].right_delay_level*b[b.id].level)*_l.get_global_level(_l_.bank))
         end
+      else
+        if b[_f].envelope_mode == 1 then
+          b[_f].level_envelope.fall_stage_active = true
+          b[_f].level_envelope.rise_stage_active = false
+        elseif b[_f].envelope_mode == 2 then
+          b[_f].level_envelope.rise_stage_active = true
+          b[_f].level_envelope.fall_stage_active = false
+        elseif b[_f].envelope_mode == 3 then
+          b[_f].level_envelope.rise_stage_active = true
+          b[_f].level_envelope.fall_stage_active = true
+        end
+        b[_f].enveloped = true
       end
     elseif _l_.alt_view_sel == 4 then
-      local pre_loop = b[_f].envelope_loop
+      local pre_loop = b[_f].level_envelope.loop
       if d>0 then
-        b[_f].envelope_loop = true
-        if pre_loop ~= b[f].envelope_loop and f == _f then
+        b[_f].level_envelope.loop = true
+        if pre_loop ~= b[f].level_envelope.loop and f == _f then
           if bank[_l_.bank].focus_hold == false and b[f].enveloped then
             -- cheat(_l_.bank, f)
           end
         end
       else
-        b[_f].envelope_loop = false
+        b[_f].level_envelope.loop = false
       end
     elseif _l_.alt_view_sel == 5 then
       b[_f].envelope_rate_index = util.clamp(b[_f].envelope_rate_index + d,1,#lfo_rates.values)
@@ -570,9 +574,13 @@ function _l.pass_to_all(bank_id,f,param)
   end
 end
 
+function _l.send_to_softcut(b,i,param)
+
+end
+
 function _l.get_global_level(id)
   if bank[id].level_envelope.active then
-    return levels.return_current_funnel_value(id)
+    return _levels.return_current_funnel_value(id)
   else
     if not bank[id].level_envelope.mute_active then
       return bank[id].global_level
@@ -585,9 +593,9 @@ end
 function _l.get_pad_level(b,p)
   if bank[b][p].level_envelope.active then
     if bank[b][p].level_lfo.active then
-      return util.linlin(-1,1,0,levels.return_current_funnel_value(id),bank[b][p].level_lfo.slope)
+      return util.linlin(-1,1,0,_levels.return_current_funnel_value(id),bank[b][p].level_lfo.slope)
     else
-      return levels.return_current_funnel_value(id)
+      return _levels.return_current_funnel_value(id)
     end
   else
     if bank[b][p].level_lfo.active and not bank[b][p].level_envelope.mute_active then
