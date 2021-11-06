@@ -541,7 +541,7 @@ function grid_actions.init(x,y,z)
       -- mods to modify
       if (nx == 4 or nx == 5 or nx == 6 or nx == 7 or nx == 8) and (ny == 5 or ny == 10 or ny == 15) and z == 1 then
         local current = math.floor(ny/5)
-        local prms = {"rate","start_point","end_point","level","tilt"}
+        local prms = {"rate","start_point","end_point","level","filter"}
         if bank[current].snapshot_mod then
           bank[current].snapshot[bank[current].snapshot_mod_index].restore[prms[nx-3]] = not bank[current].snapshot[bank[current].snapshot_mod_index].restore[prms[nx-3]]
         end

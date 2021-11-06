@@ -125,6 +125,14 @@ variable_fade_time = 0.01
 splash_done = true
 softcut_voices_are_paused = {true,true,true}
 
+easing_plots = {
+  ["linear"] = {0,1,2,3,4,5,6,7}
+}
+easing_plots["inQuad"] = {}
+for i = 0,11 do
+  easing_plots["inQuad"][i+1] = easingFunctions["inQuad"](i,0,11,11)
+end
+
 macro = {}
 for i = 1,8 do
   macro[i] = macros.new_macro()
@@ -378,6 +386,53 @@ for i = 1,3 do
   -- bank[i].level_envelope.fnl_metro.count = 
   level_envelope_metro[i].event = function() print("hello",util.time() ) end
 end
+envelope_rates = {["names"] = {}, ["values"] = {}}
+envelope_rates.names = {
+  "1/32",
+  "1/16",
+  "1/12",
+  "1/8",
+  "1/6",
+  "3/16",
+  "1/4",
+  "5/16",
+  "1/3",
+  "3/8",
+  "1/2",
+  "3/4",
+  "1",
+  "1.5",
+  "2",
+  "3",
+  "4",
+  "6",
+  "8",
+  "16",
+  "32"
+}
+envelope_rates.values = {
+  1/32,
+  1/16,
+  1/12,
+  1/8,
+  1/6,
+  3/16,
+  1/4,
+  5/16,
+  1/3,
+  3/8,
+  1/2,
+  3/4,
+  1,
+  1.5,
+  2,
+  3,
+  4,
+  6,
+  8,
+  16,
+  32
+}
 
 quantize = 1
 quantize_events = {}
@@ -3087,10 +3142,14 @@ function reset_all_banks( banks )
         ["mute_active"] = false,
         ["rise_stage_active"] = false,
         ["fall_stage_active"] = false,
-        ["rise_stage_time"] = 1,
         ["rise_time_index"] = 15,
-        ["fall_stage_time"] = 1,
+        ["rise_stage_time"] = (clock.get_beat_sec() * envelope_rates.values[15] * 4),
+        ["rise_stage_shape"] = "linear",
+        ["rise_stage_shape_index"] = 1,
         ["fall_time_index"] = 15,
+        ["fall_stage_time"] = (clock.get_beat_sec() * envelope_rates.values[15] * 4),
+        ["fall_stage_shape"] = "inExpo",
+        ["fall_stage_shape_index"] = 1,
         ["loop"] = false
       }
     end

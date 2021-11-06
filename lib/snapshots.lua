@@ -1,6 +1,7 @@
 local snap = {}
 
 local restorable_params = {"rate","offset","level","fifth","start_point","end_point","loop","mode","clip","global_level","pan","tilt"}
+local level_envelope_params = {"active","rise_stage_active","fall_stage_active","rise_stage_time","rise_time_index","fall_stage_time","fall_time_index","loop"}
 
 snap.init = function()
   for i = 1,3 do
@@ -53,6 +54,14 @@ snap.capture = function(b,slot)
     shot.pad[i].clip = src[i].clip
     shot.pad[i].level = src[i].level
     shot.pad[i].global_level = src.global_level
+
+    shot.pad[i].enveloped = src[i].enveloped
+    shot.pad[i].envelope_mode = src[i].envelope_mode
+    shot.pad[i].level_envelope = {}
+    for j = 1,#level_envelope_params do
+      shot.pad[i].level_envelope[level_envelope_params[j]] = src[i].level_envelope[level_envelope_params[j]]
+    end
+
     shot.pad[i].pan = src[i].pan
     shot.pad[i].tilt = params:get("filter "..b.." dj tilt")
     shot.pad[i].filter =
@@ -144,11 +153,27 @@ snap.restore = function(b,slot,sec,style)
             ["bp mute"] = params:get("filter "..b.." bp mute"),
             ["dry mute"] = params:get("filter "..b.." dry mute")
           }
+
+        original_srcs[i].enveloped = src[i].enveloped
+        original_srcs[i].envelope_mode = src[i].envelope_mode
+        original_srcs[i].level_envelope = {}
+        for j = 1,#level_envelope_params do
+          original_srcs[i].level_envelope[level_envelope_params[j]] = src[i].level_envelope[level_envelope_params[j]]
+        end
+
       end
       for i = 1,16 do
-        src[i].loop = shot.pad[i].loop
-        if i == src.id then
-          softcut.loop(b+1,src[i].loop and 1 or 0)
+        -- src[i].loop = shot.pad[i].loop
+        -- if i == src.id then
+        --   softcut.loop(b+1,src[i].loop and 1 or 0)
+        -- end
+        if shot.restore.level then
+          src[i].enveloped = shot.pad[i].enveloped
+          src[i].envelope_mode = shot.pad[i].envelope_mode
+          -- src[i].level_envelope = {}
+          for j = 1,#level_envelope_params do
+            src[i].level_envelope[level_envelope_params[j]] = shot.pad[i].level_envelope[level_envelope_params[j]]
+          end
         end
       end
       if not bank[b].snapshot.fnl_active and (sec ~= nil and sec > 0.1) then
@@ -212,7 +237,9 @@ snap.restore = function(b,slot,sec,style)
                   softcut.loop_end(b+1,src[i].end_point)
                 end
                 if shot.restore.level then
-                  softcut.level(b+1,src[i].level*src.global_level)
+                  if not src[i].enveloped then
+                    softcut.level(b+1,src[i].level*src.global_level)
+                  end
                 end
                 if shot.rate_ramp then
                   softcut.rate(b+1,src[i].rate*_loops.get_total_pitch_offset(b,i))
@@ -230,6 +257,28 @@ snap.restore = function(b,slot,sec,style)
         )
       elseif not bank[b].snapshot.fnl_active and (sec == nil or sec == 0) then
         src.global_level = shot.pad[1].global_level
+        if shot.restore.filter then
+          if original_srcs[1].filter.style == 1 then
+            if shot.pad[1].filter.style ~= 1 then
+              params:set("filter "..b.." style",2)
+            else
+              params:set("filter "..b.." dj tilt",shot.pad[1].tilt)
+            end
+          elseif original_srcs[1].filter.style == 2 then
+            if shot.pad[1].filter.style ~= 2 then
+              params:set("filter "..b.." style",1)
+              params:set("filter "..b.." dj tilt",shot.pad[1].tilt)
+              params:set("filter "..b.." q",shot.pad[1].filter["q"])
+            else
+              params:set("filter "..b.." cutoff",shot.pad[1].filter["cutoff"])
+              params:set("filter "..b.." q",shot.pad[1].filter["q"])
+              params:set("filter "..b.." lp",shot.pad[1].filter["lp"])
+              params:set("filter "..b.." hp",shot.pad[1].filter["hp"])
+              params:set("filter "..b.." bp",shot.pad[1].filter["bp"])
+              params:set("filter "..b.." dry",shot.pad[1].filter["dry"])
+            end
+          end
+        end
         for i = 1,16 do
           if shot.restore.start_point then
             src[i].start_point = shot.pad[i].start_point
@@ -240,35 +289,13 @@ snap.restore = function(b,slot,sec,style)
           if shot.restore.level then
             src[i].level = shot.pad[i].level
           end
-          if shot.restore.filter then
-            if original_srcs[1].filter.style == 1 then
-              if shot.pad[1].filter.style ~= 1 then
-                params:set("filter "..b.." style",2)
-              else
-                params:set("filter "..b.." dj tilt",shot.pad[1].tilt)
-              end
-            elseif original_srcs[1].filter.style == 2 then
-              if shot.pad[1].filter.style ~= 2 then
-                params:set("filter "..b.." style",1)
-                params:set("filter "..b.." dj tilt",shot.pad[1].tilt)
-                params:set("filter "..b.." q",shot.pad[1].filter["q"])
-              else
-                params:set("filter "..b.." cutoff",shot.pad[1].filter["cutoff"])
-                params:set("filter "..b.." q",shot.pad[1].filter["q"],r_val)
-                params:set("filter "..b.." lp",shot.pad[1].filter["lp"],r_val)
-                params:set("filter "..b.." hp",shot.pad[1].filter["hp"],r_val)
-                params:set("filter "..b.." bp",shot.pad[1].filter["bp"],r_val)
-                params:set("filter "..b.." dry",shot.pad[1].filter["dry"],r_val)
-              end
-            end
-          end
           -- if shot.restore.filter then
           --   params:set("filter "..b.." dj tilt",shot.pad[i].tilt)
           -- end
           if i == src.id then
             softcut.loop_start(b+1,src[i].start_point)
             softcut.loop_end(b+1,src[i].end_point)
-            if shot.restore.level then
+            if shot.restore.level and not shot.enveloped then
               softcut.level(b+1,src[i].level*src.global_level)
             end
           end
