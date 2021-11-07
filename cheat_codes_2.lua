@@ -2198,6 +2198,8 @@ function sync_clock_to_loop(source,style)
         dur = dur + source.time[i]
       end
     end
+  elseif style == "imported_sample" then
+    params:set("clock_tempo",source.original_bpm)
   end
   if dur > 0 then
     local quarter = dur/4
@@ -3148,7 +3150,7 @@ function reset_all_banks( banks )
         ["rise_stage_shape_index"] = 1,
         ["fall_time_index"] = 15,
         ["fall_stage_time"] = (clock.get_beat_sec() * envelope_rates.values[15] * 4),
-        ["fall_stage_shape"] = "inExpo",
+        ["fall_stage_shape"] = "linear",
         ["fall_stage_shape_index"] = 1,
         ["loop"] = false
       }
@@ -3191,7 +3193,7 @@ function cheat(b,i,silent)
   --   env_counter[b]:stop() -- TODO: replace this for funnels...
   -- end
   softcut.rate_slew_time(b+1,pad.rate_slew)
-  if pad.enveloped and not pad.pause then
+  if pad.enveloped and not pad.pause and bank[b][i].level > 0 then
     if pad.level_envelope.rise_stage_active then
       -- _levels.rise(b,i)
       -- print("should go, yeah?")

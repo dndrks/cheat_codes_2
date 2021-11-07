@@ -379,6 +379,8 @@ function _l.process_encoder(n,d)
           _l.pass_to_all(_l_.bank,f,{"level_envelope","fall_stage_active"})
           _l.pass_to_all(_l_.bank,f,{"level_envelope","rise_stage_time"})
           _l.pass_to_all(_l_.bank,f,{"level_envelope","fall_stage_time"})
+          _l.pass_to_all(_l_.bank,f,{"level_envelope","rise_stage_shape_index"})
+          _l.pass_to_all(_l_.bank,f,{"level_envelope","fall_stage_shape_index"})
           _l.pass_to_all(_l_.bank,f,{"level_envelope","rise_time_index"})
           _l.pass_to_all(_l_.bank,f,{"level_envelope","fall_time_index"})
         end
@@ -404,14 +406,14 @@ function _l.process_encoder(n,d)
         --   env_counter[b[f].bank_id].time = (b[f].envelope_time/(b[f].level/0.05))
         -- end
         if bank[_l_.bank].focus_hold == false then
-          _l.pass_to_all(_l_.bank,f,{"envelope_rate_index"})
-          _l.pass_to_all(_l_.bank,f,{"envelope_time"})
-          _l.pass_to_all(_l_.bank,f,{"level_envelope","rise_stage_active"})
-          _l.pass_to_all(_l_.bank,f,{"level_envelope","fall_stage_active"})
+          -- _l.pass_to_all(_l_.bank,f,{"envelope_rate_index"})
+          -- _l.pass_to_all(_l_.bank,f,{"envelope_time"})
+          -- _l.pass_to_all(_l_.bank,f,{"level_envelope","rise_stage_active"})
+          -- _l.pass_to_all(_l_.bank,f,{"level_envelope","fall_stage_active"})
           _l.pass_to_all(_l_.bank,f,{"level_envelope","rise_stage_time"})
-          _l.pass_to_all(_l_.bank,f,{"level_envelope","fall_stage_time"})
+          -- _l.pass_to_all(_l_.bank,f,{"level_envelope","fall_stage_time"})
           _l.pass_to_all(_l_.bank,f,{"level_envelope","rise_time_index"})
-          _l.pass_to_all(_l_.bank,f,{"level_envelope","fall_time_index"})
+          -- _l.pass_to_all(_l_.bank,f,{"level_envelope","fall_time_index"})
         end
       elseif _l_.selected_region == "fall_time" then
         b[f].level_envelope.fall_time_index = util.clamp(b[f].level_envelope.fall_time_index + d,1,#envelope_rates.values)
@@ -420,17 +422,23 @@ function _l.process_encoder(n,d)
         --   env_counter[b[f].bank_id].time = (b[f].envelope_time/(b[f].level/0.05))
         -- end
         if bank[_l_.bank].focus_hold == false then
-          _l.pass_to_all(_l_.bank,f,{"envelope_rate_index"})
-          _l.pass_to_all(_l_.bank,f,{"envelope_time"})
-          _l.pass_to_all(_l_.bank,f,{"level_envelope","rise_stage_active"})
-          _l.pass_to_all(_l_.bank,f,{"level_envelope","fall_stage_active"})
-          _l.pass_to_all(_l_.bank,f,{"level_envelope","rise_stage_time"})
+          -- _l.pass_to_all(_l_.bank,f,{"envelope_rate_index"})
+          -- _l.pass_to_all(_l_.bank,f,{"envelope_time"})
+          -- _l.pass_to_all(_l_.bank,f,{"level_envelope","rise_stage_active"})
+          -- _l.pass_to_all(_l_.bank,f,{"level_envelope","fall_stage_active"})
+          -- _l.pass_to_all(_l_.bank,f,{"level_envelope","rise_stage_time"})
           _l.pass_to_all(_l_.bank,f,{"level_envelope","fall_stage_time"})
-          _l.pass_to_all(_l_.bank,f,{"level_envelope","rise_time_index"})
+          -- _l.pass_to_all(_l_.bank,f,{"level_envelope","rise_stage_shape_index"})
+          -- _l.pass_to_all(_l_.bank,f,{"level_envelope","fall_stage_shape_index"})
+          -- _l.pass_to_all(_l_.bank,f,{"level_envelope","rise_time_index"})
           _l.pass_to_all(_l_.bank,f,{"level_envelope","fall_time_index"})
         end
       elseif _l_.selected_region == "rise_shape" then
         b[f].level_envelope.rise_stage_shape_index = util.clamp(b[f].level_envelope.rise_stage_shape_index + d,1,#easingFunctions.easingNames)
+        _l.pass_to_all(_l_.bank,f,{"level_envelope","rise_stage_shape_index"})
+      elseif _l_.selected_region == "fall_shape" then
+        b[f].level_envelope.fall_stage_shape_index = util.clamp(b[f].level_envelope.fall_stage_shape_index + d,1,#easingFunctions.easingNames)
+        _l.pass_to_all(_l_.bank,f,{"level_envelope","fall_stage_shape_index"})
       elseif _l_.selected_region == "bank_lfo_active" then
         -- b.level_lfo.active = d > 0 and true or false
         params:set("level_lfo_active_".._l_.bank,d > 0 and 2 or 1)

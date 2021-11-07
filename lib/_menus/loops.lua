@@ -140,6 +140,7 @@ function _loops.process_key(n,z)
       end
     elseif page.loops.sel == 5 then
       if clip[page.loops.selected_clip_control].original_samplerate == 48 then
+        print("hello???")
         sync_clock_to_loop(clip[page.loops.selected_clip_control],"imported_sample")
       end
     end
@@ -867,7 +868,8 @@ function _loops.draw_menu()
       end
       if key1_hold and params:get("clip "..page.loops.selected_clip_control.." sample") ~= "-" then
         screen.level(8)
-        screen.rect(0,14,128,7)
+        -- screen.rect(0,14,128,7)
+        screen.rect(0,12,128,57)
         screen.fill()
         screen.level(0)
         screen.move(2,20)
@@ -880,19 +882,21 @@ function _loops.draw_menu()
         screen.text_center("CH: "..chs[clip[page.loops.selected_clip_control].channel])
         screen.move(126,20)
         screen.text_right("BPM: "..clip[page.loops.selected_clip_control].original_bpm)
+        screen.font_size(20)
+        screen.move(64,41)
+        screen.text_center("CLIP "..page.loops.selected_clip_control)
+        screen.font_size(8)
         if clip[page.loops.selected_clip_control].original_samplerate == 48 then
-          screen.level(8)
-          screen.rect(0,54,128,7)
-          screen.fill()
           screen.level(0)
-          screen.move(64,60)
-          screen.text_center("K3: set project BPM to "..clip[page.loops.selected_clip_control].original_bpm)
+          screen.move(64,59)
+          if clip[page.loops.selected_clip_control].original_bpm ~= params:get("clock_tempo") then
+            screen.text_center("K3: set project BPM to "..clip[page.loops.selected_clip_control].original_bpm)
+          else
+            screen.text_center("project BPM matches clip bpm!")
+          end
         else
-          screen.level(8)
-          screen.rect(0,54,128,7)
-          screen.fill()
           screen.level(0)
-          screen.move(64,60)
+          screen.move(64,59)
           screen.text_center("sample rate is not 48khz :(")
         end
       end
