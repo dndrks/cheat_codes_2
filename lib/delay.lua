@@ -301,16 +301,23 @@ function delays.set_value(target,index,param)
   end
 end
 
+local freeze_params = {[1] = {["active"] = false,["bank"] = {[1]={},[2]={},[3]={}}}, [2] = {["active"] = false["bank"] = {[1]={},[2]={},[3]={}}} }
+
+
 function delays.freeze(target)
   local delay_name = {"delay L: ", "delay R: "}
   local t = delay_name[target]
   params:set(t.."feedback",100)
   local banks = {"(a)","(b)","(c)"}
-  if params:get(t.."(a) send") ~= 0 then
-    params:set(t.."(a) send",0)
-  end
-  params:set(t.."(b) send",0)
-  params:set(t.."(c) send",0)
+  -- if params:get(t.."(a) send") ~= 0 then
+  --   params:set(t.."(a) send",0)
+  -- end
+  -- if params:get(t.."(b) send") ~= 0 then
+  --   params:set(t.."(b) send",0)
+  -- end
+  -- if params:get(t.."(c) send") ~= 0 then
+  --   params:set(t.."(c) send",0)
+  -- end
 
   for i = 1,3 do
     if params:get(t..banks[i].." send") ~= 0 then
@@ -326,6 +333,10 @@ function delays.freeze(target)
     end
   end
   grid_dirty = true
+
+end
+
+function delays.unfreeze(target)
 
 end
 

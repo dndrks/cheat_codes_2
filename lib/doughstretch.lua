@@ -168,6 +168,9 @@ function dough.toggle(i) -- this shouldn't call/cancel clock, it should gate it.
   if dough_stretch[i].clock ~= nil then
     clock.cancel(dough_stretch[i].clock)
     dough_stretch[i].enabled = false
+    for j = 1,16 do
+      bank[i][j].dough_stretch = false
+    end
     dough_stretch[i].clock = nil
     softcut.fade_time(i+1,variable_fade_time)
   else
@@ -175,6 +178,9 @@ function dough.toggle(i) -- this shouldn't call/cancel clock, it should gate it.
     dough_stretch[i].pos = bank[i][bank[i].id].start_point
     dough_stretch[i].clock = clock.run(dough.stretch,i)
     dough_stretch[i].enabled = true
+    for j = 1,16 do
+      bank[i][j].dough_stretch = true
+    end
   end
 end
 

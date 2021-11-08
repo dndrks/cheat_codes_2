@@ -3232,11 +3232,9 @@ function cheat(b,i,silent)
   -- softcut.fade_time(b+1,variable_fade_time) -- shouldn't need to happen every time...
   if not bank[b].snapshot_mute_while_running then
     softcut.loop_start(b+1,pad.start_point)
-    if dough_stretch~=nil then
-      if params:string("doughstretch_mode_"..b) ~= "off" then
-        dough_stretch[b].pos = pad.start_point
-        dough_stretch[b].enabled = pad.dough_stretch
-      end
+    if params:string("doughstretch_mode_"..b) ~= "off" then
+      dough_stretch[b].pos = pad.start_point
+      dough_stretch[b].enabled = pad.dough_stretch
     end
     softcut.loop_end(b+1,pad.end_point)
   end
