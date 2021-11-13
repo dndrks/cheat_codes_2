@@ -2455,6 +2455,8 @@ function cancel_one_shot_rec_clock()
 end
 
 function one_shot_clock()
+  softcut.level_slew_time(1,0)
+  softcut.fade_time(1,0)
   rec[rec.focus].queued = true
   if rec[rec.focus].state == 1 and rec_state_watcher.is_running then
     rec_state_watcher:stop()
@@ -3048,7 +3050,7 @@ function cheat(b,i)
     end
   end
   --/ OH ALL THIS SUCKS TODO FIXME
-  softcut.fade_time(b+1,variable_fade_time)
+  softcut.fade_time(b+1,params:get("loop_fade_time_"..b)/1000)
   softcut.loop_start(b+1,pad.start_point)
   softcut.loop_end(b+1,pad.end_point)
   softcut.buffer(b+1,pad.mode)
@@ -3064,10 +3066,10 @@ function cheat(b,i)
   end
   if pad.rate > 0 then
       -- softcut.position(b+1,pad.start_point+0.05)
-      softcut.position(b+1,pad.start_point+variable_fade_time)
+      softcut.position(b+1,pad.start_point+params:get("loop_fade_time_"..b)/1000)
   elseif pad.rate < 0 then
-      -- softcut.position(b+1,pad.end_point-variable_fade_time-0.05)
-      softcut.position(b+1,pad.end_point-variable_fade_time)
+      -- softcut.position(b+1,pad.end_point-params:get("loop_fade_time_"..b)/1000-0.05)
+      softcut.position(b+1,pad.end_point-params:get("loop_fade_time_"..b)/1000)
   end
   if slew_counter[b] ~= nil then
     slew_counter[b].next_tilt = pad.tilt

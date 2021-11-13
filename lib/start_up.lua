@@ -75,7 +75,7 @@ function start_up.init()
   
   --params:add_separator()
   
-  params:add_group("loops + buffers", 29)
+  params:add_group("loops + buffers", 33)
 
   params:add_separator("clips")
   
@@ -181,26 +181,11 @@ function start_up.init()
     params:add_control("random_rec_clock_prob_"..i, "rand rec "..i.." probability", controlspec.new(0, 100, 'lin', 1, 0, "%"))
   end
 
-  params:add_separator("global")
-
-  params:add_control("offset", "global pitch offset", controlspec.new(-24, 24, 'lin', 1, 0, "st"))
-  params:set_action("offset",
-    function(value)
-      for i=1,3 do
-        for j = 1,16 do
-          bank[i][j].offset = math.pow(0.5, -value / 12)
-        end
-        if bank[i][bank[i].id].pause == false then
-          softcut.rate(i+1, bank[i][bank[i].id].rate*bank[i][bank[i].id].offset)
-        end
-      end
-    end
-  )
-  
-  loop_enc_resolution = {}
   local banks = {"(a)","(b)","(c)"}
+
+  params:add_separator("banks")
   for i = 1,3 do
-    params:add_option("loop_enc_resolution_"..i, "loops enc resolution "..banks[i], {"0.1","0.01","1/16","1/8","1/4","1/2","1 bar"}, 1)
+    params:add_option("loop_enc_resolution_"..i, "enc resolution "..banks[i], {"0.1","0.01","1/16","1/8","1/4","1/2","1 bar"}, 1)
     params:set_action("loop_enc_resolution_"..i, function(x)
       local resolutions =
       { [1] = 10
@@ -226,6 +211,27 @@ function start_up.init()
       end
     end)
   end
+  for i = 1,3 do
+    params:add_control("loop_fade_time_"..i, "fade time "..banks[i], controlspec.new(0, 10, 'lin', 0.1, 10, "ms"))
+  end
+
+
+  params:add_separator("global")
+  loop_enc_resolution = {}
+
+  params:add_control("offset", "global pitch offset", controlspec.new(-24, 24, 'lin', 1, 0, "st"))
+  params:set_action("offset",
+    function(value)
+      for i=1,3 do
+        for j = 1,16 do
+          bank[i][j].offset = math.pow(0.5, -value / 12)
+        end
+        if bank[i][bank[i].id].pause == false then
+          softcut.rate(i+1, bank[i][bank[i].id].rate*bank[i][bank[i].id].offset)
+        end
+      end
+    end
+  )
 
   params:add_option("preview_clip_change", "preview clip changes?", {"yes","no"},1)
   params:set_action("preview_clip_change", function() if all_loaded then persistent_state_save() end end)
