@@ -301,7 +301,7 @@ function delays.set_value(target,index,param)
   end
 end
 
-local freeze_params = {[1] = {["active"] = false,["bank"] = {[1]={},[2]={},[3]={}}}, [2] = {["active"] = false["bank"] = {[1]={},[2]={},[3]={}}} }
+-- local freeze_params = {[1] = {["active"] = false,["bank"] = {[1]={},[2]={},[3]={}}}, [2] = {["active"] = false["bank"] = {[1]={},[2]={},[3]={}}} }
 
 
 function delays.freeze(target)

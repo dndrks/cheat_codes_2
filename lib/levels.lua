@@ -83,7 +83,7 @@ function levels.set_up_fall(b,p)
   local step_size = (e.end_val - g_lvl) / count
   local passing_val = easingFunctions[shape](g_lvl,0,frozen_target,frozen_target)*bank[b].global_level
   if passing_val == passing_val and not bank[b][p].pause then -- avoids nan
-    print("FALL",b+1,easingFunctions[shape](g_lvl,0,frozen_target,frozen_target)*bank[b].global_level)
+    print(">>>FALL",b+1,easingFunctions[shape](g_lvl,0,frozen_target,frozen_target)*bank[b].global_level)
     -- print(easingFunctions[shape](g_lvl,0,bank[b][p].level,1),util.time()) -- do the action
     softcut.level(b+1,easingFunctions[shape](g_lvl,0,frozen_target,frozen_target)*bank[b].global_level)
     softcut.level_cut_cut(b+1,5,(bank[b][bank[b].id].left_delay_level*frozen_target)*easingFunctions[shape](g_lvl,0,frozen_target,frozen_target)*bank[b].global_level)
@@ -95,10 +95,11 @@ function levels.set_up_fall(b,p)
     else
       local passing_val = easingFunctions[shape](g_lvl,0,frozen_target,frozen_target)*bank[b].global_level
       if passing_val == passing_val and not bank[b][p].pause then -- avoids nan
-        print("FALL",b+1,easingFunctions[shape](g_lvl,0,frozen_target,frozen_target)*bank[b].global_level)
-        softcut.level(b+1,easingFunctions[shape](g_lvl,0,frozen_target,frozen_target)*bank[b].global_level)
-        softcut.level_cut_cut(b+1,5,(bank[b][bank[b].id].left_delay_level*frozen_target)*easingFunctions[shape](g_lvl,0,frozen_target,frozen_target)*bank[b].global_level)
-        softcut.level_cut_cut(b+1,6,(bank[b][bank[b].id].right_delay_level*frozen_target)*easingFunctions[shape](g_lvl,0,frozen_target,frozen_target)*bank[b].global_level)
+        if passing_val < 0 then passing_val = 0 end
+        print("<<<<FALL",b+1,passing_val)
+        softcut.level(b+1,passing_val)
+        softcut.level_cut_cut(b+1,5,(bank[b][bank[b].id].left_delay_level*frozen_target)*passing_val*bank[b].global_level)
+        softcut.level_cut_cut(b+1,6,(bank[b][bank[b].id].right_delay_level*frozen_target)*passing_val*bank[b].global_level)
       end
     end
     e.current_value = util.round(g_lvl,0.0001)

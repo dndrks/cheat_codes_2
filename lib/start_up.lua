@@ -91,7 +91,7 @@ function start_up.init()
   
   --params:add_separator()
   
-  params:add_group("loops + buffers", 64)
+  params:add_group("loops + buffers", 68)
 
   params:add_separator("clips")
   
@@ -195,6 +195,43 @@ function start_up.init()
     params:add_control("random_rec_clock_prob_"..i, "rand rec "..i.." probability", controlspec.new(0, 100, 'lin', 1, 0, "%"))
   end
 
+  params:add_separator("banks")
+  loop_enc_resolution = {}
+  local banks = {"(a)","(b)","(c)"}
+  for i = 1,3 do
+    params:add_option("loop_enc_resolution_"..i, "loops enc resolution "..banks[i], {"0.1","0.01","1/16","1/8","1/4","1/2","1 bar"}, 1)
+    params:set_action("loop_enc_resolution_"..i, function(x)
+      local resolutions =
+      { [1] = 10
+      , [2] = 100
+      , [3] = 1/(clock.get_beat_sec()/4)
+      , [4] = 1/(clock.get_beat_sec()/2)
+      , [5] = 1/(clock.get_beat_sec())
+      , [6] = (1/(clock.get_beat_sec()))/2
+      , [7] = (1/(clock.get_beat_sec()))/4
+      }
+      loop_enc_resolution[i] = resolutions[x]
+      for j = 1,16 do
+        local pad = bank[i][j]
+        if x > 2 then
+          pad.end_point = pad.start_point + (((1/loop_enc_resolution[pad.bank_id])))
+          if menu ~= 1 then screen_dirty = true end
+        end
+      end
+      softcut.loop_start(i+1,bank[i][bank[i].id].start_point)
+      softcut.loop_end(i+1,bank[i][bank[i].id].end_point)
+      if all_loaded then
+        mc.mft_redraw(bank[i][bank[i].id],"all")
+      end
+    end)
+  end
+  for i = 1,3 do
+    params:add_control("loop_fade_time_"..i, "fade time "..banks[i], controlspec.new(0, 10, 'lin', 0.1, 10, "ms"))
+    params:set_action("loop_fade_time_"..i, function(x)
+      softcut.fade_time(i+1,x/1000)
+    end)
+  end
+
   params:add_separator("SOS")
   for i = 1,3 do
     params:add_binary("SOS_enabled_"..i,"SOS ["..bank_names[i].."]","toggle")
@@ -253,36 +290,6 @@ function start_up.init()
       end
     end
   )
-  
-  loop_enc_resolution = {}
-  local banks = {"(a)","(b)","(c)"}
-  for i = 1,3 do
-    params:add_option("loop_enc_resolution_"..i, "loops enc resolution "..banks[i], {"0.1","0.01","1/16","1/8","1/4","1/2","1 bar"}, 1)
-    params:set_action("loop_enc_resolution_"..i, function(x)
-      local resolutions =
-      { [1] = 10
-      , [2] = 100
-      , [3] = 1/(clock.get_beat_sec()/4)
-      , [4] = 1/(clock.get_beat_sec()/2)
-      , [5] = 1/(clock.get_beat_sec())
-      , [6] = (1/(clock.get_beat_sec()))/2
-      , [7] = (1/(clock.get_beat_sec()))/4
-      }
-      loop_enc_resolution[i] = resolutions[x]
-      for j = 1,16 do
-        local pad = bank[i][j]
-        if x > 2 then
-          pad.end_point = pad.start_point + (((1/loop_enc_resolution[pad.bank_id])))
-          if menu ~= 1 then screen_dirty = true end
-        end
-      end
-      softcut.loop_start(i+1,bank[i][bank[i].id].start_point)
-      softcut.loop_end(i+1,bank[i][bank[i].id].end_point)
-      if all_loaded then
-        mc.mft_redraw(bank[i][bank[i].id],"all")
-      end
-    end)
-  end
 
   params:add_option("preview_clip_change", "preview clip changes?", {"yes","no"},2)
   params:set_action("preview_clip_change", function() if all_loaded then persistent_state_save() end end)
