@@ -59,6 +59,7 @@ function _l.draw_header()
 end
 
 function _l.draw_alt_view()
+  local shapes = {"\\","/","/\\"}
   screen.level(15)
   screen.move(128,6)
   screen.text_right("PER-PAD VALUES")
@@ -67,41 +68,58 @@ function _l.draw_alt_view()
   screen.move(26,20)
   screen.text("PAD: "..f)
   screen.level(_l_.alt_view_sel == 2 and 15 or 3)
-  screen.move(26,30)
+  screen.move(80,20)
   screen.text("LEVEL: "..util.round(bank[_l_.bank][f].level,(#arc.devices > 0 and 0.001 or 0.01)))
-  local x_positions = {33,60,88}
+  screen.level(_l_.alt_view_sel == 3 and 15 or 3)
+  screen.move(26,30)
+  screen.text("ENV: "..((bank[_l_.bank][f].enveloped) and (shapes[bank[_l_.bank][f].envelope_mode]) or "-"))
+  screen.level(_l_.alt_view_sel == 4 and 15 or 3)
+  screen.move(80,30)
+  screen.text("LOOP: "..((bank[_l_.bank][f].level_envelope.loop == true) and "on" or "off"))
+  screen.level(_l_.alt_view_sel == 5 and 15 or 3)
+  screen.move(26,40)
+  screen.text("RISE: "..envelope_rates.names[bank[_l_.bank][f].level_envelope.rise_time_index])
+  screen.level(_l_.alt_view_sel == 6 and 15 or 3)
+  screen.move(80,40)
+  screen.text(easingFunctions.easingNames[bank[_l_.bank][focused_pad[_l_.bank]].level_envelope.rise_stage_shape_index])
+  screen.level(_l_.alt_view_sel == 7 and 15 or 3)
+  screen.move(26,50)
+  screen.text("FALL: "..envelope_rates.names[bank[_l_.bank][f].level_envelope.fall_time_index])
+  screen.level(_l_.alt_view_sel == 8 and 15 or 3)
+  screen.move(80,50)
+  screen.text(easingFunctions.easingNames[bank[_l_.bank][focused_pad[_l_.bank]].level_envelope.fall_stage_shape_index])
+  local x_positions = {33,60,88,115}
 
-  local shapes = {"\\","/","/\\"}
-
-  local text_to_display =
-  {
-    "ENV",
-    "LOOP",
-    "RISE",
-    "shape",
-    "FALL",
-    "shape"
-  }
-  local data_to_display =
-  {
-    bank[_l_.bank][f].enveloped == true and (shapes[bank[_l_.bank][f].envelope_mode]) or "off",
-    bank[_l_.bank][f].level_envelope.loop == true and "on" or "off",
-    envelope_rates.names[bank[_l_.bank][f].level_envelope.fall_time_index]
-  }
-  for i = 1,3 do
-    screen.level(_l_.alt_view_sel == i+2 and 15 or 3)
-    screen.move(x_positions[i],40)
-    screen.text_center(text_to_display[i])
-    screen.move(x_positions[i],50)
-    screen.text_center(data_to_display[i])
-  end
-  screen.level(_l_.alt_view_sel == 6 and 15 or (_l_.alt_view_sel == 7 and 15 or 3))
+  -- local text_to_display =
+  -- {
+  --   "ENV",
+  --   "LOOP",
+  --   "RISE",
+  --   "shape",
+  --   "FALL",
+  --   "shape"
+  -- }
+  -- local data_to_display =
+  -- {
+  --   bank[_l_.bank][f].enveloped == true and (shapes[bank[_l_.bank][f].envelope_mode]) or "-",
+  --   bank[_l_.bank][f].level_envelope.loop == true and "on" or "off",
+  --   envelope_rates.names[bank[_l_.bank][f].level_envelope.rise_time_index],
+  --   envelope_rates.names[bank[_l_.bank][f].level_envelope.fall_time_index]
+  -- }
+  -- for i = 1,4 do
+  --   screen.level(_l_.alt_view_sel == i+2 and 15 or 3)
+  --   screen.move(x_positions[i],40)
+  --   screen.text_center(text_to_display[i])
+  --   screen.move(x_positions[i],50)
+  --   screen.text_center(data_to_display[i])
+  -- end
+  screen.level(_l_.alt_view_sel == 9 and 15 or (_l_.alt_view_sel == 10 and 15 or 3))
   screen.move(26,60)
   screen.text("RANDOMIZE: ")
-  screen.level(_l_.alt_view_sel == 6 and 15 or 3)
+  screen.level(_l_.alt_view_sel == 9 and 15 or 3)
   screen.move(80,60)
   screen.text("pad")
-  screen.level(_l_.alt_view_sel == 7 and 15 or 3)
+  screen.level(_l_.alt_view_sel == 10 and 15 or 3)
   screen.move(122,60)
   screen.text_right("bank")
 end
@@ -195,9 +213,9 @@ end
 function _l.draw_env()
   screen.level(_l_.selected_region == "pad_env" and 15 or 3)
   screen.move(78,18)
-  local shapes = {"FALL","RISE","RISE/FALL"}
+  local shapes = {"\\","/","/\\"}
   if bank[_l_.bank][focused_pad[_l_.bank]].enveloped then
-    screen.text(shapes[bank[_l_.bank][focused_pad[_l_.bank]].envelope_mode])
+    screen.text("ENV: "..shapes[bank[_l_.bank][focused_pad[_l_.bank]].envelope_mode])
   else
     screen.text("ENV: NONE")
   end
@@ -281,7 +299,7 @@ function _l.process_encoder(n,d)
     _l_.bank = util.clamp(_l_.bank + d,1,3)
   elseif n == 2 then
     if _l_.alt_view then
-      _l_.alt_view_sel = util.clamp(_l_.alt_view_sel+d,1,7)
+      _l_.alt_view_sel = util.clamp(_l_.alt_view_sel+d,1,10)
     else
       local current_area = tab.key(_l_.regions,_l_.selected_region)
       current_area = util.clamp(current_area+d,1,#_l_.regions)
@@ -310,24 +328,13 @@ function _l.process_encoder(n,d)
           end
           if _l_.selected_region == "pad_level" then
             if b[f].enveloped and not b[f].pause and b.focus_hold == false then
-              -- if b.level_envelope.active then
-              --   if b.level_envelope.direction == "rising" then
-              --     b.level_envelope.end_val = b[f].level
-              --     print("changing rise")
-              --   elseif b.level_envelope.direction == "falling" then
-              --     b.level_envelope.start_val = b[f].level
-              --   end
-              -- end
             end
           end
         end
         if b[b.id].envelope_mode == 2 or b[b.id].enveloped == false then
           if b.focus_hold == false then
             softcut.level_slew_time(_l_.bank+1,1.0)
-            -- softcut.level(_l_.bank+1,b[b.id].level*b.global_level)
             softcut.level(_l_.bank+1,b[b.id].level*_l.get_global_level(_l_.bank))
-            -- softcut.level_cut_cut(_l_.bank+1,5,(b[b.id].left_delay_level*b[b.id].level)*b.global_level)
-            -- softcut.level_cut_cut(_l_.bank+1,6,(b[b.id].right_delay_level*b[b.id].level)*b.global_level)
             softcut.level_cut_cut(_l_.bank+1,5,(b[b.id].left_delay_level*b[b.id].level)*_l.get_global_level(_l_.bank))
             softcut.level_cut_cut(_l_.bank+1,6,(b[b.id].right_delay_level*b[b.id].level)*_l.get_global_level(_l_.bank))
           end
@@ -351,7 +358,6 @@ function _l.process_encoder(n,d)
           end
         else
           if b[f].envelope_mode == 1 then
-            print(f)
             b[f].level_envelope.fall_stage_active = true
             b[f].level_envelope.rise_stage_active = false
           elseif b[f].envelope_mode == 2 then
@@ -402,35 +408,15 @@ function _l.process_encoder(n,d)
       elseif _l_.selected_region == "rise_time" then
         b[f].level_envelope.rise_time_index = util.clamp(b[f].level_envelope.rise_time_index + d,1,#envelope_rates.values)
         b[f].level_envelope.rise_stage_time = (clock.get_beat_sec() * envelope_rates.values[b[f].level_envelope.rise_time_index]) * 4
-        -- if b.id == f and b[f].level > 0.05 then
-        --   env_counter[b[f].bank_id].time = (b[f].envelope_time/(b[f].level/0.05))
-        -- end
         if bank[_l_.bank].focus_hold == false then
-          -- _l.pass_to_all(_l_.bank,f,{"envelope_rate_index"})
-          -- _l.pass_to_all(_l_.bank,f,{"envelope_time"})
-          -- _l.pass_to_all(_l_.bank,f,{"level_envelope","rise_stage_active"})
-          -- _l.pass_to_all(_l_.bank,f,{"level_envelope","fall_stage_active"})
           _l.pass_to_all(_l_.bank,f,{"level_envelope","rise_stage_time"})
-          -- _l.pass_to_all(_l_.bank,f,{"level_envelope","fall_stage_time"})
           _l.pass_to_all(_l_.bank,f,{"level_envelope","rise_time_index"})
-          -- _l.pass_to_all(_l_.bank,f,{"level_envelope","fall_time_index"})
         end
       elseif _l_.selected_region == "fall_time" then
         b[f].level_envelope.fall_time_index = util.clamp(b[f].level_envelope.fall_time_index + d,1,#envelope_rates.values)
         b[f].level_envelope.fall_stage_time = (clock.get_beat_sec() * envelope_rates.values[b[f].level_envelope.fall_time_index]) * 4
-        -- if b.id == f and b[f].level > 0.05 then
-        --   env_counter[b[f].bank_id].time = (b[f].envelope_time/(b[f].level/0.05))
-        -- end
         if bank[_l_.bank].focus_hold == false then
-          -- _l.pass_to_all(_l_.bank,f,{"envelope_rate_index"})
-          -- _l.pass_to_all(_l_.bank,f,{"envelope_time"})
-          -- _l.pass_to_all(_l_.bank,f,{"level_envelope","rise_stage_active"})
-          -- _l.pass_to_all(_l_.bank,f,{"level_envelope","fall_stage_active"})
-          -- _l.pass_to_all(_l_.bank,f,{"level_envelope","rise_stage_time"})
           _l.pass_to_all(_l_.bank,f,{"level_envelope","fall_stage_time"})
-          -- _l.pass_to_all(_l_.bank,f,{"level_envelope","rise_stage_shape_index"})
-          -- _l.pass_to_all(_l_.bank,f,{"level_envelope","fall_stage_shape_index"})
-          -- _l.pass_to_all(_l_.bank,f,{"level_envelope","rise_time_index"})
           _l.pass_to_all(_l_.bank,f,{"level_envelope","fall_time_index"})
         end
       elseif _l_.selected_region == "rise_shape" then
@@ -464,13 +450,7 @@ function _l.process_meta_encoder(n,d)
     if _l_.alt_view_sel == 1 then
       _l_.meta_pad[_l_.bank] = util.clamp(_l_.meta_pad[_l_.bank]+d,1,16)
     elseif _l_.alt_view_sel == 2 then
-      if b[_f].level < 0.4 then
-        b[_f].level = util.clamp(b[_f].level+d/50,0,2)
-      elseif b[_f].level >= 1.3 then
-        b[_f].level = util.clamp(b[_f].level+d/25,0,2)
-      else
-        b[_f].level = util.clamp(b[_f].level+d/20,0,2)
-      end
+      b[_f].level = util.clamp(b[_f].level+d/100,0,2)
       if _f == f then
         if b[f].enveloped == false then
           softcut.level_slew_time(_l_.bank+1,1.0)
@@ -520,11 +500,15 @@ function _l.process_meta_encoder(n,d)
         b[_f].level_envelope.loop = false
       end
     elseif _l_.alt_view_sel == 5 then
-      b[_f].envelope_rate_index = util.clamp(b[_f].envelope_rate_index + d,1,#envelope_rates.values)
-      b[_f].envelope_time = (clock.get_beat_sec() * envelope_rates.values[b[_f].envelope_rate_index]) * 4
-      if b.id == f and b[f].level > 0.05 and f == _f then
-        env_counter[b[f].bank_id].time = (b[f].envelope_time/(b[f].level/0.05))
-      end
+      b[_f].level_envelope.rise_time_index = util.clamp(b[_f].level_envelope.rise_time_index + d,1,#envelope_rates.values)
+      b[_f].level_envelope.rise_stage_time = (clock.get_beat_sec() * envelope_rates.values[b[_f].level_envelope.rise_time_index]) * 4
+    elseif _l_.alt_view_sel == 6 then
+      b[_f].level_envelope.rise_stage_shape_index = util.clamp(b[_f].level_envelope.rise_stage_shape_index + d,1,#easingFunctions.easingNames)
+    elseif _l_.alt_view_sel == 7 then
+      b[_f].level_envelope.fall_time_index = util.clamp(b[_f].level_envelope.fall_time_index + d,1,#envelope_rates.values)
+      b[_f].level_envelope.fall_stage_time = (clock.get_beat_sec() * envelope_rates.values[b[_f].level_envelope.fall_time_index]) * 4
+    elseif _l_.alt_view_sel == 8 then
+      b[_f].level_envelope.fall_stage_shape_index = util.clamp(b[_f].level_envelope.fall_stage_shape_index + d,1,#easingFunctions.easingNames)
     end
   end
 end
@@ -549,7 +533,7 @@ function _l.get_global_level(id)
   if bank[id].level_envelope.active then
     return _levels.return_current_funnel_value(id)
   else
-    if not bank[id].level_envelope.mute_active then
+    if not bank[id].level_envelope.mute_active or not bank[id][bank[id].id].enveloped then
       return bank[id].global_level
     else
       return 0
@@ -591,17 +575,66 @@ function _l.process_key(n,z)
   if n == 1 and z == 1 then
     _l_.alt_view = not _l_.alt_view
     if _l_.alt_view then
-      -- _l_.meta_pad[_l_.bank] = focused_pad[_l_.bank]
+      _l_.meta_pad[_l_.bank] = bank[_l_.bank].id
     end
   elseif n == 3 and z == 1 and _l_.alt_view then
-    if _l_.alt_view_sel == 6 then
-      _l.meta_actions("randomize_this_pad")
-    elseif _l_.alt_view_sel == 7 then
-      _l.meta_actions("randomize_this_bank")
+    if _l_.alt_view_sel == 9 then
+      _l.meta_actions("randomize_this_pad",_l_.bank,_l_.meta_pad[_l_.bank])
+    elseif _l_.alt_view_sel == 10 then
+      _l.meta_actions("randomize_this_bank",_l_.bank)
     end
   elseif n == 2 and z == 1 then
     menu = 1
   end
+end
+
+function _l.meta_actions(action,b,p)
+  if action == "randomize_this_pad" then
+    _l.randomize(b,p)
+  elseif action == "randomize_this_bank" then
+    for i = 1,16 do
+      _l.randomize(b,i)
+    end
+  end
+end
+
+function _l.randomize(i,j)
+  local b = bank[i]
+  local _f = j
+  local f = focused_pad[i]
+  b[_f].envelope_mode = math.random(0,3) 
+  if b[_f].envelope_mode == 0 then
+    b[_f].enveloped = false
+    b[_f].level_envelope.rise_stage_active = false
+    b[_f].level_envelope.fall_stage_active = false
+    if b.id == f then
+      softcut.level_slew_time(_l_.bank+1,1.0)
+      softcut.level(_l_.bank+1,b[b.id].level*_l.get_global_level(_l_.bank))
+      softcut.level_cut_cut(_l_.bank+1,5,(b[b.id].left_delay_level*b[b.id].level)*_l.get_global_level(_l_.bank))
+      softcut.level_cut_cut(_l_.bank+1,6,(b[b.id].right_delay_level*b[b.id].level)*_l.get_global_level(_l_.bank))
+    end
+  else
+    if b[_f].envelope_mode == 1 then
+      b[_f].level_envelope.fall_stage_active = true
+      b[_f].level_envelope.rise_stage_active = false
+    elseif b[_f].envelope_mode == 2 then
+      b[_f].level_envelope.rise_stage_active = true
+      b[_f].level_envelope.fall_stage_active = false
+    elseif b[_f].envelope_mode == 3 then
+      b[_f].level_envelope.rise_stage_active = true
+      b[_f].level_envelope.fall_stage_active = true
+    end
+    b[_f].enveloped = true
+  end
+
+  b[_f].level_envelope.loop = math.random(0,1) == 0 and false or true
+
+  b[_f].level_envelope.rise_time_index = math.random(1,#envelope_rates.values)
+  b[_f].level_envelope.rise_stage_time = (clock.get_beat_sec() * envelope_rates.values[b[_f].level_envelope.rise_time_index]) * 4
+  b[_f].level_envelope.rise_stage_shape_index = math.random(1,#easingFunctions.easingNames)
+  b[_f].level_envelope.fall_time_index = math.random(1,#envelope_rates.values)
+  b[_f].level_envelope.fall_stage_time = (clock.get_beat_sec() * envelope_rates.values[b[_f].level_envelope.fall_time_index]) * 4
+  b[_f].level_envelope.fall_stage_shape_index = math.random(1,#easingFunctions.easingNames)
 end
 
 return levels_menu

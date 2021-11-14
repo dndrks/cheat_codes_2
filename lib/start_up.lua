@@ -724,13 +724,17 @@ params:add_separator("ALT key")
     params:add_control("level "..i, "pad level "..banks[i], controlspec.new(0,127,'lin',1,64))
     params:set_action("level "..i, function(x)
       for p = (grid_alt and 1 or bank[i].id),(grid_alt and 16 or bank[i].id) do
-        mc.adjust_pad_level(bank[i][p],x)
+        if all_loaded then
+          mc.adjust_pad_level(bank[i][p],x)
+        end
       end
       if all_loaded then mc.redraw(bank[i][bank[i].id]) end
       end)
     params:add_control("bank level "..i, "bank level "..banks[i], controlspec.new(0,127,'lin',1,64))
     params:set_action("bank level "..i, function(x)
-      mc.adjust_bank_level(bank[i][bank[i].id],x)
+      if all_loaded then
+        mc.adjust_bank_level(bank[i][bank[i].id],x)
+      end
       if all_loaded then mc.redraw(bank[i][bank[i].id]) end
       end)
     params:add_control("start point "..i, "start point "..banks[i], controlspec.new(0,127,'lin',1,0))

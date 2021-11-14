@@ -125,13 +125,7 @@ variable_fade_time = 0.01
 splash_done = true
 softcut_voices_are_paused = {true,true,true}
 
-easing_plots = {
-  ["linear"] = {0,1,2,3,4,5,6,7}
-}
-easing_plots["inQuad"] = {}
-for i = 0,11 do
-  easing_plots["inQuad"][i+1] = easingFunctions["inQuad"](i,0,11,11)
-end
+level_curves = {"linear","inSine","inExpo"}
 
 macro = {}
 for i = 1,8 do
@@ -3175,6 +3169,7 @@ function find_the_key(t,val)
 end
 
 function cheat(b,i,silent)
+  b = math.floor(b)
   bank[b].currently_cheating = true
   softcut.level_slew_time(b+1,0.4) -- TODO: is this how much is needed? dang...
   local pad = bank[b][i]
@@ -3182,29 +3177,24 @@ function cheat(b,i,silent)
     mc.midi_note_from_pad(util.round(b),util.round(i))
     mc.route_midi_mod(b,i)
   end
-  -- print(bank[b].level_envelope.active)
   if bank[b].level_envelope.active then
-    -- print("should cancel the level clock")
-    -- clock.cancel(bank[b].level_envelope.fnl)
     bank[b].level_envelope.active = false
     softcut.level(b+1,bank[b][i].level*bank[b].global_level)
     softcut.level_cut_cut(b+1,5,(bank[b][i].left_delay_level*bank[b][i].level)*bank[b].global_level)
     softcut.level_cut_cut(b+1,6,(bank[b][i].right_delay_level*bank[b][i].level)*bank[b].global_level)
   end
-  -- if env_counter[b].is_running then
-  --   env_counter[b]:stop() -- TODO: replace this for funnels...
-  -- end
   softcut.rate_slew_time(b+1,pad.rate_slew)
   if pad.enveloped and not pad.pause and bank[b][i].level > 0 then
     if pad.level_envelope.rise_stage_active then
-      -- _levels.rise(b,i)
-      -- print("should go, yeah?")
       _levels.set_up_rise(b,i)
     elseif pad.level_envelope.fall_stage_active then
-      -- _levels.fall(b,i)
       _levels.set_up_fall(b,i)
     end
   elseif not pad.enveloped and not pad.pause then
+    if level_envelope_metro[b].is_running then
+      -- level_envelope_metro[b]:stop()
+      _levels.kill_envelope(b)
+    end
     softcut.level(b+1,pad.level*bank[b].global_level)
     if not delay[1].send_mute then
       if pad.left_delay_thru then
@@ -3221,16 +3211,11 @@ function cheat(b,i,silent)
       end
     end
   end
-  -- OH ALL THIS SUCKS TODO FIXME
-  -- if pad.end_point - pad.start_point < 0.11 then
-  --   pad.end_point = pad.start_point + 0.1
-  -- end
   if pad.mode == 1 then
     if pad.end_point == 9 or pad.end_point == 17 or pad.end_point == 25 then
       pad.end_point = pad.end_point-0.01
     end
   end
-  --/ OH ALL THIS SUCKS TODO FIXME
   softcut.fade_time(b+1,params:get("loop_fade_time_"..b)/1000)
   -- softcut.fade_time(b+1,variable_fade_time) -- shouldn't need to happen every time...
   if not bank[b].snapshot_mute_while_running then

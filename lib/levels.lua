@@ -11,7 +11,7 @@ function levels.set_up_rise(b,p)
   e.end_val = bank[b][p].level
   e.direction = "rising"
   
-  if bank[b][p].level_envelope.rise_stage_time == 0 then
+  if bank[b][p].level_envelope.rise_stage_time == 0 or not bank[b][p].level_envelope.rise_stage_active then
     softcut.level(b+1,bank[b][p].level*bank[b].global_level)
     softcut.level_cut_cut(b+1,5,(bank[b][bank[b].id].left_delay_level*bank[b][bank[b].id].level)*bank[b].global_level)
     softcut.level_cut_cut(b+1,6,(bank[b][bank[b].id].right_delay_level*bank[b][bank[b].id].level)*bank[b].global_level)
@@ -28,7 +28,7 @@ function levels.set_up_rise(b,p)
     local step_size = (e.end_val - g_lvl) / count
     local passing_val = easingFunctions[shape](g_lvl,0,frozen_target,frozen_target)*bank[b].global_level
     if passing_val == passing_val and not bank[b][p].pause then -- avoids nan
-      print(b+1,easingFunctions[shape](g_lvl,0,frozen_target,frozen_target)*bank[b].global_level)
+      -- print("W<W>W<W>W>W"..b+1,easingFunctions[shape](g_lvl,0,frozen_target,frozen_target)*bank[b].global_level)
       softcut.level(b+1,easingFunctions[shape](g_lvl,0,frozen_target,frozen_target)*bank[b].global_level)
       softcut.level_cut_cut(b+1,5,(bank[b][bank[b].id].left_delay_level*frozen_target)*easingFunctions[shape](g_lvl,0,frozen_target,frozen_target)*bank[b].global_level)
       softcut.level_cut_cut(b+1,6,(bank[b][bank[b].id].right_delay_level*frozen_target)*easingFunctions[shape](g_lvl,0,frozen_target,frozen_target)*bank[b].global_level)
@@ -39,7 +39,7 @@ function levels.set_up_rise(b,p)
       else
         local passing_val = easingFunctions[shape](g_lvl,0,frozen_target,frozen_target)*bank[b].global_level
         if passing_val == passing_val and not bank[b][p].pause then -- avoids nan
-          print(b+1,easingFunctions[shape](g_lvl,0,frozen_target,frozen_target)*bank[b].global_level) -- do the action
+          -- print(b+1,easingFunctions[shape](g_lvl,0,frozen_target,frozen_target)*bank[b].global_level) -- do the action
           softcut.level(b+1,easingFunctions[shape](g_lvl,0,frozen_target,frozen_target)*bank[b].global_level)
           softcut.level_cut_cut(b+1,5,(bank[b][bank[b].id].left_delay_level*frozen_target)*easingFunctions[shape](g_lvl,0,frozen_target,frozen_target)*bank[b].global_level)
           softcut.level_cut_cut(b+1,6,(bank[b][bank[b].id].right_delay_level*frozen_target)*easingFunctions[shape](g_lvl,0,frozen_target,frozen_target)*bank[b].global_level)
@@ -52,9 +52,11 @@ function levels.set_up_rise(b,p)
         e.mute_active = false
         if bank[b][p].level_envelope.fall_stage_active and e.active then
           levels.set_up_fall(b,p)
-          -- print("should be falling...")
         else
           e.active = false
+          if bank[b][p].level_envelope.loop then
+            levels.set_up_rise(b,p)
+          end
         end
       end
     end
@@ -83,7 +85,7 @@ function levels.set_up_fall(b,p)
   local step_size = (e.end_val - g_lvl) / count
   local passing_val = easingFunctions[shape](g_lvl,0,frozen_target,frozen_target)*bank[b].global_level
   if passing_val == passing_val and not bank[b][p].pause then -- avoids nan
-    print(">>>FALL",b+1,easingFunctions[shape](g_lvl,0,frozen_target,frozen_target)*bank[b].global_level)
+    -- print(">>>FALL",b+1,easingFunctions[shape](g_lvl,0,frozen_target,frozen_target)*bank[b].global_level)
     -- print(easingFunctions[shape](g_lvl,0,bank[b][p].level,1),util.time()) -- do the action
     softcut.level(b+1,easingFunctions[shape](g_lvl,0,frozen_target,frozen_target)*bank[b].global_level)
     softcut.level_cut_cut(b+1,5,(bank[b][bank[b].id].left_delay_level*frozen_target)*easingFunctions[shape](g_lvl,0,frozen_target,frozen_target)*bank[b].global_level)
@@ -96,7 +98,7 @@ function levels.set_up_fall(b,p)
       local passing_val = easingFunctions[shape](g_lvl,0,frozen_target,frozen_target)*bank[b].global_level
       if passing_val == passing_val and not bank[b][p].pause then -- avoids nan
         if passing_val < 0 then passing_val = 0 end
-        print("<<<<FALL",b+1,passing_val)
+        -- print("<<<<FALL",b+1,passing_val)
         softcut.level(b+1,passing_val)
         softcut.level_cut_cut(b+1,5,(bank[b][bank[b].id].left_delay_level*frozen_target)*passing_val*bank[b].global_level)
         softcut.level_cut_cut(b+1,6,(bank[b][bank[b].id].right_delay_level*frozen_target)*passing_val*bank[b].global_level)
@@ -107,9 +109,10 @@ function levels.set_up_fall(b,p)
       -- print("FALL LEVEL FUNNEL DONE",e.current_value)
       e.active = false
       e.mute_active = true
-      if bank[b][p].level_envelope.loop then
+      if bank[b][p].level_envelope.loop and bank[b][p].enveloped then
         levels.set_up_rise(b,p)
-      else
+      elseif bank[b][p].level_envelope.loop and not bank[b][p].enveloped then
+        _levels.kill_envelope(b)
       end
     end
   end
@@ -125,6 +128,14 @@ function levels.return_current_funnel_value(i)
   local b = bank[i].level_envelope
   -- local shape = params:string("bank "..i.." fnl shape")
   return(b.current_value)
+end
+
+function levels.kill_envelope(b)
+  level_envelope_metro[b]:stop()
+  local p = bank[b].id
+  softcut.level(b+1,bank[b][p].level*bank[b].global_level)
+  softcut.level_cut_cut(b+1,5,(bank[b][p].left_delay_level*bank[b][p].level)*bank[b].global_level)
+  softcut.level_cut_cut(b+1,6,(bank[b][p].right_delay_level*bank[b][p].level)*bank[b].global_level)
 end
 
 return levels
