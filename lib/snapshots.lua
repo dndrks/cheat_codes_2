@@ -16,7 +16,7 @@ snap.init = function()
     bank[i].snapshot_saver_active = false
     bank[i].snapshot_saver_clock = nil
     for j = 1,16 do
-      bank[i].snapshot[j] = {["pad"]= {},["saved"] = false,["rate_ramp"] = true,["rate_scaling"] = "linear"} -- maybe want rate_ramp to be bank-level????
+      bank[i].snapshot[j] = {["pad"]= {},["saved"] = false,["rate_ramp"] = true,["rate_scaling"] = "linear",["partial_restore"] = false} -- maybe want rate_ramp to be bank-level????
       bank[i].snapshot[j].restore =
         {
           ["rate"] = true,
@@ -124,6 +124,7 @@ snap.restore = function(b,slot,sec,style)
 
     elseif (bank[b].active_snapshot ~= slot and not bank[b].snapshot_fnl_canceled)
     or (bank[b].active_snapshot == slot and bank[b].snapshot_fnl_canceled)
+    or (bank[b].active_snapshot == slot and bank[b].snapshot.partial_restore)
     or (bank[b].active_snapshot ~= slot and bank[b].snapshot_fnl_canceled and not bank[b].snapshot.fnl_active)
     or (bank[b].active_snapshot ~= slot and bank[b].snapshot_fnl_canceled and bank[b].snapshot.fnl_active) then
       -- print("restoring snap",b,slot)
@@ -353,6 +354,9 @@ snap.snapshot_funnel_done_action = function(b,slot,args)
       end
     end
   end
+  if src.snapshot.partial_restore then
+    bank[b].snapshot.partial_restore = false
+  end
 end
 
 -- we do need to keep the clips inside of the limits of the clip...
@@ -368,14 +372,10 @@ snap.crossfade = function(b,scene_a,scene_b,val)
     -- new_val[i].fifth = util.linlin(0,127,min_fade[i].fifth,max_fade[i].fifth,val)
     dest[i].start_point = util.linlin(0,127,min_fade[i].start_point,max_fade[i].start_point,val)
     dest[i].end_point = util.linlin(0,127,min_fade[i].end_point,max_fade[i].end_point,val)
-    dest[i].level = util.linlin(0,1,min_fade[i].level,max_fade[i].level,r_val)
+    dest[i].level = util.linlin(0,2,min_fade[i].level,max_fade[i].level,val)
     if shot.rate_ramp then
       dest[i].rate = util.linlin(0,127,min_fade[i].rate,max_fade[i].rate,easingFunctions[shot.rate_scaling](val,0,127,127))
     end
-    -- new_val[i].loop = src[i].loop
-    -- new_val[i].mode = src[i].mode
-    -- new_val[i].clip = src[i].clip
-    -- new_val[i].level = src[i].level
     dest[i].pan = util.linlin(0,127,min_fade[i].pan,max_fade[i].pan,val)
     dest[i].tilt = util.linlin(0,127,min_fade[i].tilt,max_fade[i].tilt,val)
     if i == dest.id then
@@ -393,6 +393,11 @@ snap.crossfade = function(b,scene_a,scene_b,val)
       -- softcut.loop_end(b+1,dest[i].end_point)
       params:set("filter "..b.." dj tilt",dest[i].tilt)
     end
+  end
+  if val > 0 and val < 127 then
+    bank[b].snapshot.partial_restore = true
+  else
+    bank[b].snapshot.partial_restore = false
   end
 end
 

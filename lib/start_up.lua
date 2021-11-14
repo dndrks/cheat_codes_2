@@ -1,4 +1,5 @@
 start_up = {}
+local Formatters = require 'formatters'
 
 function start_up.init()
   
@@ -486,7 +487,70 @@ function start_up.init()
     )
   end
 
-  params:add_group("snapshots",3*7)
+  params:add_group("snapshots",(3*4)+(3*7))
+  
+  local function format(param, value, units)
+    return value.." "..(units or param.controlspec.units or "")
+  end
+  
+  function try_bipolar_as_pan_widget(param)
+    local dots_per_side = 8
+    local widget
+    local function add_dots(num_dots)
+      for i=1,num_dots do widget = (widget or "").."." end
+    end
+    local function add_bar()
+      widget = (widget or "").."|"
+    end
+  
+    local value = param:get()
+    local pan_side = math.abs(value)
+    local pan_side_percentage = util.round(pan_side*100)
+    local descr
+    local dots_left
+    local dots_right
+  
+    if value > 0 then
+      dots_left = dots_per_side+util.round(pan_side*dots_per_side)
+      dots_right = util.round((1-pan_side)*dots_per_side)
+      if pan_side_percentage >= 1 then
+        descr = "R"..pan_side_percentage
+      end
+    elseif value < 0 then
+      dots_left = util.round((1-pan_side)*dots_per_side)
+      dots_right = dots_per_side+util.round(pan_side*dots_per_side)
+      if pan_side_percentage >= 1 then
+       descr = "L"..pan_side_percentage
+      end
+    else
+      dots_left = dots_per_side
+      dots_right = dots_per_side
+    end
+  
+    if descr == nil then
+      descr = "C"
+    end
+  
+    add_bar()
+    add_dots(dots_left)
+    add_bar()
+    add_dots(dots_right)
+    add_bar()
+  
+    return format(param, descr.." "..widget, "")
+  end
+
+  for i = 1,3 do
+    params:add_separator(banks[i]..": crossfade")
+    params:add_number("snapshot_crossfade_left "..i, "crossfade left",1,16,1)
+    params:add_number("snapshot_crossfade_right "..i, "crossfade right",1,16,1)
+    params:add_control("snapshot_crossfade_value "..i, "crossfade", controlspec.PAN, try_bipolar_as_pan_widget)
+    params:set_action("snapshot_crossfade_value "..i,function(x)
+      if all_loaded then
+        _snap.crossfade(i,params:get("snapshot_crossfade_left "..i),params:get("snapshot_crossfade_right "..i),util.linlin(-1,1,0,127,x))
+      end
+    end)
+  end
 
   for i = 1,3 do
     params:add_separator(banks[i]..": restore values")
