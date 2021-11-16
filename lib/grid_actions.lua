@@ -474,6 +474,7 @@ function grid_actions.init(x,y,z)
             if not bank[current].snapshot_mod then
               if not bank[current].snapshot[nx].saved then
                 bank[current].snapshot_saver_clock = clock.run(_snap.save_to_slot,current,nx)
+                bank[current].snapshot_mod_index = nx
               else
                 local modifier, style = 0,"beats"
                 if bank[current].restore_mod then
@@ -481,6 +482,7 @@ function grid_actions.init(x,y,z)
                   style = bank[current].snapshot[nx].restore_times.mode
                 end
                 _snap.restore(current,nx,modifier,style)
+                bank[current].snapshot_mod_index = nx
               end
             else
               bank[current].snapshot_mod_index = nx

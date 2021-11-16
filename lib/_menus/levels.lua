@@ -583,6 +583,8 @@ function _l.process_key(n,z)
     elseif _l_.alt_view_sel == 10 then
       _l.meta_actions("randomize_this_bank",_l_.bank)
     end
+  elseif n == 3 and z == 1 and not _l_.alt_view then
+    _levels.seed_envelopes(_l_.bank,bank[_l_.bank].id)
   elseif n == 2 and z == 1 then
     menu = 1
   end

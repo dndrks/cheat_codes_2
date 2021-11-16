@@ -2964,6 +2964,9 @@ function update_tempo()
     -- print(clock.get_beat_sec(),get_the_beats(),params:get("clock_tempo"))
     _dough.scale_sample_to_main(i)
     macros.sync_lfos(i)
+    for j = 1,16 do
+      _levels.adjust_timing(i,j)
+    end
   end
 end
 
@@ -3184,33 +3187,34 @@ function cheat(b,i,silent)
     softcut.level_cut_cut(b+1,6,(bank[b][i].right_delay_level*bank[b][i].level)*bank[b].global_level)
   end
   softcut.rate_slew_time(b+1,pad.rate_slew)
-  if pad.enveloped and not pad.pause and bank[b][i].level > 0 then
-    if pad.level_envelope.rise_stage_active then
-      _levels.set_up_rise(b,i)
-    elseif pad.level_envelope.fall_stage_active then
-      _levels.set_up_fall(b,i)
-    end
-  elseif not pad.enveloped and not pad.pause then
-    if level_envelope_metro[b].is_running then
-      -- level_envelope_metro[b]:stop()
-      _levels.kill_envelope(b)
-    end
-    softcut.level(b+1,pad.level*bank[b].global_level)
-    if not delay[1].send_mute then
-      if pad.left_delay_thru then
-        softcut.level_cut_cut(b+1,5,pad.left_delay_level)
-      else
-        softcut.level_cut_cut(b+1,5,(pad.left_delay_level*pad.level)*bank[b].global_level)
-      end
-    end
-    if not delay[2].send_mute then
-      if pad.right_delay_thru then
-        softcut.level_cut_cut(b+1,6,pad.right_delay_level)
-      else
-        softcut.level_cut_cut(b+1,6,(pad.right_delay_level*pad.level)*bank[b].global_level)
-      end
-    end
-  end
+  _levels.seed_envelopes(b,i)
+  -- if pad.enveloped and not pad.pause and bank[b][i].level > 0 then
+  --   if pad.level_envelope.rise_stage_active then
+  --     _levels.set_up_rise(b,i)
+  --   elseif pad.level_envelope.fall_stage_active then
+  --     _levels.set_up_fall(b,i)
+  --   end
+  -- elseif not pad.enveloped and not pad.pause then
+  --   if level_envelope_metro[b].is_running then
+  --     -- level_envelope_metro[b]:stop()
+  --     _levels.kill_envelope(b)
+  --   end
+  --   softcut.level(b+1,pad.level*bank[b].global_level)
+  --   if not delay[1].send_mute then
+  --     if pad.left_delay_thru then
+  --       softcut.level_cut_cut(b+1,5,pad.left_delay_level)
+  --     else
+  --       softcut.level_cut_cut(b+1,5,(pad.left_delay_level*pad.level)*bank[b].global_level)
+  --     end
+  --   end
+  --   if not delay[2].send_mute then
+  --     if pad.right_delay_thru then
+  --       softcut.level_cut_cut(b+1,6,pad.right_delay_level)
+  --     else
+  --       softcut.level_cut_cut(b+1,6,(pad.right_delay_level*pad.level)*bank[b].global_level)
+  --     end
+  --   end
+  -- end
   if pad.mode == 1 then
     if pad.end_point == 9 or pad.end_point == 17 or pad.end_point == 25 then
       pad.end_point = pad.end_point-0.01

@@ -138,4 +138,40 @@ function levels.kill_envelope(b)
   softcut.level_cut_cut(b+1,6,(bank[b][p].right_delay_level*bank[b][p].level)*bank[b].global_level)
 end
 
+function levels.seed_envelopes(b,i)
+  local pad = bank[b][i]
+  if pad.enveloped and not pad.pause and bank[b][i].level > 0 then
+    if pad.level_envelope.rise_stage_active then
+      _levels.set_up_rise(b,i)
+    elseif pad.level_envelope.fall_stage_active then
+      _levels.set_up_fall(b,i)
+    end
+  elseif not pad.enveloped and not pad.pause then
+    if level_envelope_metro[b].is_running then
+      -- level_envelope_metro[b]:stop()
+      _levels.kill_envelope(b)
+    end
+    softcut.level(b+1,pad.level*bank[b].global_level)
+    if not delay[1].send_mute then
+      if pad.left_delay_thru then
+        softcut.level_cut_cut(b+1,5,pad.left_delay_level)
+      else
+        softcut.level_cut_cut(b+1,5,(pad.left_delay_level*pad.level)*bank[b].global_level)
+      end
+    end
+    if not delay[2].send_mute then
+      if pad.right_delay_thru then
+        softcut.level_cut_cut(b+1,6,pad.right_delay_level)
+      else
+        softcut.level_cut_cut(b+1,6,(pad.right_delay_level*pad.level)*bank[b].global_level)
+      end
+    end
+  end
+end
+
+function levels.adjust_timing(b,i)
+  bank[b][i].level_envelope.rise_stage_time = (clock.get_beat_sec() * envelope_rates.values[bank[b][i].level_envelope.rise_time_index]) * 4
+  bank[b][i].level_envelope.fall_stage_time = (clock.get_beat_sec() * envelope_rates.values[bank[b][i].level_envelope.fall_time_index]) * 4
+end
+
 return levels

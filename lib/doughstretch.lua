@@ -33,11 +33,17 @@ function dough.init_params()
           dough_stretch[i].enabled = false
           dough_stretch[i].clock = nil
           softcut.fade_time(i+1,variable_fade_time)
+          for j = 1,16 do
+            bank[i][j].dough_stretch = false
+          end
         end
       elseif x > 1 then
         if dough_stretch[i].clock == nil then
           dough_stretch[i].clock = clock.run(dough.stretch,i)
           dough_stretch[i].enabled = true
+          for j = 1,16 do
+            bank[i][j].dough_stretch = true
+          end
         end
       end
       if x == 2 then
