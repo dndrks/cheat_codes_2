@@ -340,20 +340,22 @@ function encoder_actions.init(n,d)
     elseif menu == 8 then
       if not key1_hold then
         if rytm.screen_focus == "right" then
-          rytm.track[rytm.track_edit].rotation = util.clamp(rytm.track[rytm.track_edit].rotation + d, 0, 16)
-          rytm.track[rytm.track_edit].s = rytm.rotate_pattern(rytm.track[rytm.track_edit].s, rytm.track[rytm.track_edit].rotation)
+          params:delta("euclid_rotation_"..rytm.track_edit,d)
         else
-          rytm.track[rytm.track_edit].k = util.clamp(rytm.track[rytm.track_edit].k+d,0,rytm.track[rytm.track_edit].n)
+          params:delta("euclid_pulses_"..rytm.track_edit,d)
+          -- rytm.track[rytm.track_edit].k = util.clamp(rytm.track[rytm.track_edit].k+d,0,rytm.track[rytm.track_edit].n)
         end
       elseif key1_hold then
         if rytm.screen_focus == "left" then
-          if d > 0 then
-            rytm.track[rytm.track_edit].mode = "span"
-          elseif d < 0 then
-            rytm.track[rytm.track_edit].mode = "single"
-          end
+          -- if d > 0 then
+          --   rytm.track[rytm.track_edit].mode = "span"
+          -- elseif d < 0 then
+          --   rytm.track[rytm.track_edit].mode = "single"
+          -- end
+          params:delta("euclid_mode_"..rytm.track_edit,d)
         else
-          rytm.track[rytm.track_edit].auto_rotation = util.clamp(rytm.track[rytm.track_edit].auto_rotation + d, 0, 16)
+          params:delta("euclid_auto_rotation_"..rytm.track_edit,d)
+          -- rytm.track[rytm.track_edit].auto_rotation = util.clamp(rytm.track[rytm.track_edit].auto_rotation + d, 0, 16)
         end
       end
     elseif menu == 9 then
@@ -708,20 +710,24 @@ function encoder_actions.init(n,d)
     elseif menu == 8 then
       if not key1_hold then
         if rytm.screen_focus == "right" then
-          rytm.track[rytm.track_edit].pad_offset = util.clamp(rytm.track[rytm.track_edit].pad_offset+d,-15,15)
+          -- rytm.track[rytm.track_edit].pad_offset = util.clamp(rytm.track[rytm.track_edit].pad_offset+d,-15,15)
+          params:delta("euclid_pad_offset_"..rytm.track_edit,d)
         else
-          rytm.track[rytm.track_edit].n = util.clamp(rytm.track[rytm.track_edit].n+d,1,16)
-          rytm.track[rytm.track_edit].k = util.clamp(rytm.track[rytm.track_edit].k,0,rytm.track[rytm.track_edit].n)
+          -- rytm.track[rytm.track_edit].n = util.clamp(rytm.track[rytm.track_edit].n+d,1,16)
+          -- rytm.track[rytm.track_edit].k = util.clamp(rytm.track[rytm.track_edit].k,0,rytm.track[rytm.track_edit].n)
+          params:delta("euclid_duration_"..rytm.track_edit,d)
         end
       elseif key1_hold then
         if rytm.screen_focus == "left" then
-          local deci = {"0.25","0.5","1","2","4"}
-          local lookup = string.format("%.4g",rytm.track[rytm.track_edit].clock_div)
-          local current = (tab.key(deci, lookup))
-          local new_value = util.clamp(current+d,1,#deci)
-          rytm.track[rytm.track_edit].clock_div = tonumber(deci[new_value])
+          -- local deci = {"0.25","0.5","1","2","4"}
+          -- local lookup = string.format("%.4g",rytm.track[rytm.track_edit].clock_div)
+          -- local current = (tab.key(deci, lookup))
+          -- local new_value = util.clamp(current+d,1,#deci)
+          -- rytm.track[rytm.track_edit].clock_div = tonumber(deci[new_value])
+          params:delta("euclid_clock_div_"..rytm.track_edit,d)
         else
-          rytm.track[rytm.track_edit].auto_pad_offset = util.clamp(rytm.track[rytm.track_edit].auto_pad_offset+d,-15,15)
+          -- rytm.track[rytm.track_edit].auto_pad_offset = util.clamp(rytm.track[rytm.track_edit].auto_pad_offset+d,-15,15)
+          params:delta("euclid_auto_offset_"..rytm.track_edit,d)
         end
       end
 
@@ -867,7 +873,7 @@ function encoder_actions.init(n,d)
   end
 
   if menu == 8 then
-    rytm.reer(rytm.track_edit)
+    -- rytm.reer(rytm.track_edit)
   end
 
   -- if menu == 3 then

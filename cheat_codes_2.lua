@@ -2962,7 +2962,9 @@ function update_tempo()
   end
   for i = 1,3 do
     -- print(clock.get_beat_sec(),get_the_beats(),params:get("clock_tempo"))
-    _dough.scale_sample_to_main(i)
+    if params:get("doughstretch_mode_"..i) == 3 then
+      _dough.scale_sample_to_main(i)
+    end
     macros.sync_lfos(i)
     for j = 1,16 do
       _levels.adjust_timing(i,j)
@@ -3188,40 +3190,14 @@ function cheat(b,i,silent)
   end
   softcut.rate_slew_time(b+1,pad.rate_slew)
   _levels.seed_envelopes(b,i)
-  -- if pad.enveloped and not pad.pause and bank[b][i].level > 0 then
-  --   if pad.level_envelope.rise_stage_active then
-  --     _levels.set_up_rise(b,i)
-  --   elseif pad.level_envelope.fall_stage_active then
-  --     _levels.set_up_fall(b,i)
-  --   end
-  -- elseif not pad.enveloped and not pad.pause then
-  --   if level_envelope_metro[b].is_running then
-  --     -- level_envelope_metro[b]:stop()
-  --     _levels.kill_envelope(b)
-  --   end
-  --   softcut.level(b+1,pad.level*bank[b].global_level)
-  --   if not delay[1].send_mute then
-  --     if pad.left_delay_thru then
-  --       softcut.level_cut_cut(b+1,5,pad.left_delay_level)
-  --     else
-  --       softcut.level_cut_cut(b+1,5,(pad.left_delay_level*pad.level)*bank[b].global_level)
-  --     end
-  --   end
-  --   if not delay[2].send_mute then
-  --     if pad.right_delay_thru then
-  --       softcut.level_cut_cut(b+1,6,pad.right_delay_level)
-  --     else
-  --       softcut.level_cut_cut(b+1,6,(pad.right_delay_level*pad.level)*bank[b].global_level)
-  --     end
-  --   end
-  -- end
   if pad.mode == 1 then
     if pad.end_point == 9 or pad.end_point == 17 or pad.end_point == 25 then
       pad.end_point = pad.end_point-0.01
     end
   end
-  softcut.fade_time(b+1,params:get("loop_fade_time_"..b)/1000)
-  -- softcut.fade_time(b+1,variable_fade_time) -- shouldn't need to happen every time...
+  if params:string("doughstretch_mode_"..b) == "off" then
+    softcut.fade_time(b+1,params:get("loop_fade_time_"..b)/1000)
+  end
   if not bank[b].snapshot_mute_while_running then
     softcut.loop_start(b+1,pad.start_point)
     if params:string("doughstretch_mode_"..b) ~= "off" then
@@ -6536,14 +6512,14 @@ function save_pattern(source,slot,style)
     print("saved arp "..source.." to slot "..slot)
   elseif style == "euclid" then
     io.write("stored euclid pattern: collection "..selected_coll.." + slot "..slot.."\n")
-    io.write("auto_pad_offset: "..rytm.track[source].auto_pad_offset.."\n")
-    io.write("k: "..rytm.track[source].k.."\n")
-    io.write("clock_div: "..rytm.track[source].clock_div.."\n")
-    io.write("pad_offset: "..rytm.track[source].pad_offset.."\n")
-    io.write("auto_rotation: "..rytm.track[source].auto_rotation.."\n")
-    io.write("n: "..rytm.track[source].n.."\n")
-    io.write("mode: "..rytm.track[source].mode.."\n")
-    io.write("rotation: "..rytm.track[source].rotation.."\n")
+    io.write("euclid_pulses_: "..params:get("euclid_pulses_"..source).."\n")
+    io.write("euclid_duration_: "..params:get("euclid_duration_"..source).."\n")
+    io.write("euclid_rotation_: "..params:get("euclid_rotation_"..source).."\n")
+    io.write("euclid_pad_offset_: "..params:get("euclid_pad_offset_"..source).."\n")
+    io.write("euclid_mode_: "..params:get("euclid_mode_"..source).."\n")
+    io.write("euclid_clock_div_: "..params:get("euclid_clock_div_"..source).."\n")
+    io.write("euclid_auto_rotation_: "..params:get("euclid_auto_rotation_"..source).."\n")
+    io.write("euclid_auto_offset_: "..params:get("euclid_auto_offset_"..source).."\n")
     io.write("steps: "..#rytm.track[source].s.."\n")
     for i = 1,#rytm.track[source].s do
       io.write(i..": "..tostring(rytm.track[source].s[i]).."\n")
@@ -6868,11 +6844,7 @@ function load_pattern(slot,destination,print_also)
       for i = 1,8 do
         local str = io.read()
         local param,val = str:match("(.+): (.+)")
-        if param ~= "mode" then
-          rytm.track[destination][param] = tonumber(val)
-        else
-          rytm.track[destination][param] = tostring(val)
-        end
+        params:set(param..destination,tonumber(val))
       end
       local throw_away = io.read()
       local throwaway_steps,iters = throw_away:match("(.+): (.+)")

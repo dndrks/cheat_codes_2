@@ -261,6 +261,7 @@ function ca.load_sample(file,sample)
     clip[sample].sample_rate = rate
     if clip[sample].sample_rate ~= 48000 then
       print("sample rate needs to be 48khz!")
+      print(len/48000, len/rate)
     end
     if len/48000 < 96 then
       clip[sample].sample_length = len/48000

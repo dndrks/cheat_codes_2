@@ -218,12 +218,17 @@ end
 
 function dough.scale_sample_to_main(i)
   -- print("stretching to time...")
-  if bank[i][bank[i].id].mode == 2 and bank[i][bank[i].id].clip == i then
-    local sample_tempo = dough.derive_bpm(clip[i])
+  if bank[i][bank[i].id].mode == 2 then
+    local sample_tempo = dough.derive_bpm(clip[bank[i][bank[i].id].clip])
     local proj_tempo = clock.get_tempo()
     local scale = util.round(sample_tempo/proj_tempo * 100,0.01)
-    dough_stretch[i].time = 100
-    dough_stretch[i].inc = scale
+    if clip[bank[i][bank[i].id].clip].sample_rate == 41000 then
+      scale = scale / ((scale * (48000/41000))/100)
+    end
+    params:set("doughstretch_duration_"..i, 100)
+    params:set("doughstretch_step_"..i, scale)
+    -- dough_stretch[i].time = 100
+    -- dough_stretch[i].inc = scale
     dough_stretch[i].fade_time = params:get("doughstretch_fade_"..i)
     softcut.fade_time(i+1,dough_stretch[i].fade_time/100)
   end

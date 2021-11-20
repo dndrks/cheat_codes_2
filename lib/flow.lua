@@ -190,7 +190,7 @@ end
 
 function f_m.process_encoder(n,d)
   if _fm_.menu_layer == 1 then
-    if n == 2 then
+    if n == 2 or n == 1 then
       page.flow.main_sel = util.clamp(page.flow.main_sel + d,1,#_fm_.pages)
     end
   -- elseif _fm_.menu_layer == 2 then

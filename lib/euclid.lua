@@ -88,6 +88,78 @@ function euclid.super_clock()
   end
 end
 
+function euclid.add_params()
+  params:add_group("euclid",3*9)
+  local banks = {"[a]","[b]","[c]"}
+  for i = 1,3 do
+    params:add_separator("bank "..banks[i])
+    params:add_number("euclid_pulses_"..i,"pulses",0,16,0)
+    params:set_action("euclid_pulses_"..i,function(x)
+      if all_loaded then
+        if x > rytm.track[i].n then
+          params:set("euclid_pulses_"..i,rytm.track[i].n)
+        end
+        rytm.track[i].k = params:get("euclid_pulses_"..i)
+        rytm.reer(i)
+      end
+    end)
+    params:add_number("euclid_duration_"..i,"duration",1,16,8)
+    params:set_action("euclid_duration_"..i,function(x)
+      if all_loaded then
+        if x < rytm.track[i].k then
+          params:set("euclid_pulses_"..i,x)
+        end
+        rytm.track[i].n = x
+        rytm.reer(i)
+      end
+    end)
+    params:add_number("euclid_rotation_"..i,"rotation",0,16,0)
+    params:set_action("euclid_rotation_"..i,function(x)
+      if all_loaded then
+        rytm.track[i].rotation = x
+        rytm.track[i].s = rytm.rotate_pattern(rytm.track[i].s, rytm.track[i].rotation)
+        rytm.reer(i)
+      end
+    end)
+    params:add_number("euclid_pad_offset_"..i,"offset",-15,15,0)
+    params:set_action("euclid_pad_offset_"..i,function(x)
+      if all_loaded then
+        rytm.track[i].pad_offset = x
+        rytm.reer(i)
+      end
+    end)
+    params:add_option("euclid_mode_"..i,"mode",{"single","span"},1)
+    params:set_action("euclid_mode_"..i,function(x)
+      if all_loaded then
+        rytm.track[i].mode = params:string("euclid_mode_"..i)
+        rytm.reer(i)
+      end
+    end)
+    params:add_option("euclid_clock_div_"..i,"clock rate",{"1/16","1/8","1/4","1/2","1"},2)
+    params:set_action("euclid_clock_div_"..i,function(x)
+      if all_loaded then
+        local translate_times = {0.25,0.5,1,2,4}
+        rytm.track[i].clock_div = translate_times[x]
+        rytm.reer(i)
+      end
+    end)
+    params:add_number("euclid_auto_rotation_"..i,"auto rotation step",0,16,0)
+    params:set_action("euclid_auto_rotation_"..i,function(x)
+      if all_loaded then
+        rytm.track[i].auto_rotation = x
+        rytm.reer(i)
+      end
+    end)
+    params:add_number("euclid_auto_offset_"..i,"auto offset step",-15,15,0)
+    params:set_action("euclid_auto_offset_"..i,function(x)
+      if all_loaded then
+        rytm.track[i].auto_pad_offset = x
+        rytm.reer(i)
+      end
+    end)
+  end
+end
+
 function euclid.iter(target)
   euclid.track[target].runner = euclid.track[target].runner + 1
   if euclid.track[target].runner > 32 * euclid.track[target].clock_div then
