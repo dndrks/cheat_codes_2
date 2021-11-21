@@ -197,6 +197,7 @@ function ca.SOS_voice_overwrite(target,state)
     softcut.level_input_cut(1,target.bank_id+1,l_in*0.5)
     softcut.level_input_cut(2,target.bank_id+1,r_in*0.5)
     softcut.rec(target.bank_id+1,1)
+    print("should rec..."..target.bank_id+1)
   else
     softcut.pre_level(target.bank_id+1,1)
     softcut.rec_level(target.bank_id+1,0)
@@ -219,8 +220,8 @@ end
 function ca.SOS_toggle(i)
   local current_state = params:get("SOS_enabled_"..i)
   params:set("SOS_enabled_"..i, current_state == 1 and 0 or 1)
-  ca.SOS_voice_overwrite(bank[i][bank[i].id],params:get("SOS_enabled_"..i) == 1 and true or false)
-  force_waveform_redraw()
+  -- ca.SOS_voice_overwrite(bank[i][bank[i].id],params:get("SOS_enabled_"..i) == 1 and true or false)
+  -- force_waveform_redraw()
 end
 
 function ca.SOS_erase(i)

@@ -44,6 +44,7 @@ song.check_step = function(i)
   local _current = song_atoms.bank[i].current
   for k,v in pairs(song_atoms.bank[i].lane[_current]) do
     if k ~= "beats" and k ~= "snapshot_restore_mod_index" and k ~= "snapshot" and song_atoms.bank[i].runner == 1 then
+      print("new step"..clock.get_beats()) -- this goes negative for Link...
       if song_atoms.bank[i].lane[_current][k].target > 0 then
         test_load(song_atoms.bank[i].lane[_current][k].target+(8*(i-1)),i)
         print(clock.get_beats())

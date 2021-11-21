@@ -5384,7 +5384,7 @@ end
 
 function pad_copy(destination, source)
   for k,v in pairs(source) do
-    if k ~= bank_id and k ~= pad_id then
+    if k ~= "bank_id" and k ~= "pad_id" then
       destination[k] = v
     end
   end

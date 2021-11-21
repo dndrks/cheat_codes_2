@@ -236,6 +236,12 @@ function start_up.init()
   params:add_separator("SOS")
   for i = 1,3 do
     params:add_binary("SOS_enabled_"..i,"SOS ["..bank_names[i].."]","toggle")
+    params:set_action("SOS_enabled_"..i, function(x)
+      if all_loaded then
+        _ca.SOS_voice_overwrite(bank[i][bank[i].id],x == 1 and true or false)
+        force_waveform_redraw()
+      end
+    end)
     params:add{id="SOS_feedback_"..i, name="--> SOS feedback", type="control", 
     controlspec=controlspec.new(0,1.0,'lin',0,1,""),
     action = function(x)
