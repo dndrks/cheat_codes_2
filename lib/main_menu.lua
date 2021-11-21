@@ -5,6 +5,7 @@ _d = include 'lib/_menus/delays'
 _l = include 'lib/_menus/levels'
 _f = include 'lib/_menus/filters'
 _loops = include 'lib/_menus/loops'
+_rnd = include 'lib/_menus/rnd'
 
 local dots = "."
 
@@ -365,11 +366,7 @@ function main_menu.init()
     screen.text(tostring(current.playing) == "true" and "active" or "")
     screen.level(3)
     screen.move(0,20)
-    if page.rnd_page_section == 1 then
-      screen.text(tostring(current.playing) == "false" and "E2: sel / K3: edit / K1+K3: run" or "K1+K3: kill / K3: edit / E2: sel")
-    elseif page.rnd_page_section == 2 then
-      screen.text("E2: nav / E3: mod / K3: <-")
-    end
+    screen.text("E2: nav | E3: mod | "..(tostring(current.playing) == "false" and "K1+K3: run" or "K1+K3: kill"))
     screen.font_size(8)
     screen.move(30,30)
     screen.level(page.rnd_page_section == 2 and (edit_line == 1 and 15 or 3) or 3)

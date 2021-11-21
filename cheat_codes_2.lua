@@ -3688,122 +3688,8 @@ function key(n,z)
             page.delay.section = page.delay.section == 1 and 2 or 1
           end
         end
-        -- if page.delay.section == 2 then
-        --   if key1_hold then
-        --     local k = page.delay[page.delay.focus].menu
-        --     local v = page.delay[page.delay.focus].menu_sel[page.delay[page.delay.focus].menu]
-        --     del.links(del.lookup_prm(k,v))
-        --     if k == 1 and v == 5 then
-        --       delay[page.delay.focus == 1 and 2 or 1].feedback_mute = not delay[page.delay.focus == 1 and 2 or 1].feedback_mute
-        --     elseif k == 1 and v == 4 then
-        --       delay[page.delay.focus == 1 and 2 or 1].reverse = delay[page.delay.focus].reverse
-        --     end
-        --     if delay_links[del.lookup_prm(k,v)] then
-        --       local sides = {"L","R"}
-        --       params:set("delay "..sides[page.delay.focus == 1 and 2 or 1]..": "..del.lookup_prm(k,v),params:get("delay "..sides[page.delay.focus]..": "..del.lookup_prm(k,v)))
-        --       grid_dirty = true
-        --     end
-        --   else
-        --     page.delay.section = page.delay.section == 1 and 2 or 1
-        --   end
-        -- elseif page.delay.section == 1 then
-        --   if key1_hold then
-        --     del.link_all(page.delay[page.delay.focus].menu)
-        --   else
-        --     page.delay.section = page.delay.section == 1 and 2 or 1
-        --   end
-        -- end
       elseif menu == 7 then
         _flow.process_key(n,z)
-      --   local time_nav = page.time_sel
-      --   local id = time_nav
-      --   if key2_hold then
-      --     key2_hold_and_modify = true
-      --   else
-      --     if time_nav >= 1 and time_nav < 4 then
-      --       if g.device == nil and grid_pat[time_nav].count == 0 then
-      --         if page.time_page_sel[time_nav] == 1 then
-      --           if midi_pat[time_nav].playmode < 3 then
-      --             if midi_pat[time_nav].rec == 0 then
-      --               if midi_pat[time_nav].count == 0 and not key1_hold then
-      --                 midi_pattern_recording(time_nav,"start")
-      --               elseif midi_pat[time_nav].count ~= 0 and not key1_hold then
-      --                 toggle_midi_pattern_overdub(time_nav)
-      --               end
-      --             elseif midi_pat[time_nav].rec == 1 then
-      --               midi_pattern_recording(time_nav,"stop")
-      --             end
-      --           end
-      --         end
-      --       end
-      --       if page.time_page_sel[time_nav] == 2 then
-      --         -- if g.device ~= nil then
-      --         if get_grid_connected() then
-      --           random_grid_pat(id,2)
-      --         else
-      --           shuffle_midi_pat(id)
-      --         end
-      --       elseif page.time_page_sel[time_nav] == 4 then
-      --         if not key1_hold then
-      --           -- if g.device ~= nil then
-      --           if get_grid_connected() then
-      --             random_grid_pat(id,3)
-      --           else
-      --             random_midi_pat(id)
-      --           end
-      --         end
-      --       end
-      --       if key1_hold then
-      --         if grid_pat[id].count > 0 then
-      --           grid_pat[id]:rec_stop()
-      --           grid_pat[id]:stop()
-      --           grid_pat[id].tightened_start = 0
-      --           grid_pat[id]:clear()
-      --           pattern_saver[id].load_slot = 0
-      --         end
-      --         if midi_pat[id].count > 0 then
-      --           midi_pat[id]:rec_stop()
-      --           if midi_pat[id].clock ~= nil then
-      --             print("clearing clock: "..midi_pat[id].clock)
-      --             clock.cancel(midi_pat[id].clock)
-      --           end
-      --           midi_pat[id]:clear()
-      --         end
-      --       end
-      --     elseif time_nav >= 4 then
-      --       if a.device ~= nil then
-      --         local pattern = arc_pat[time_nav-3][page.time_page_sel[time_nav]]
-      --         if page.time_page_sel[page.time_sel] <= 4 then
-      --           if not key1_hold then
-      --             if pattern.rec == 0 and pattern.play == 0 and pattern.count == 0 then
-      --               pattern:rec_start()
-      --             elseif pattern.rec == 1 then
-      --               pattern:rec_stop()
-      --               pattern:start()
-      --             elseif pattern.play == 1 then
-      --               pattern:stop()
-      --             elseif (pattern.rec == 0 and pattern.play == 0 and pattern.count > 0) then
-      --               pattern:start()
-      --             end
-      --           else
-      --             pattern:clear()
-      --           end
-      --         else
-      --           for i = 1,4 do
-      --             if page.time_page_sel[page.time_sel] == 5 then
-      --               if arc_pat[time_nav-3][i].count > 0 then
-      --                 arc_pat[time_nav-3][i]:start()
-      --               end
-      --             elseif page.time_page_sel[page.time_sel] == 6 then
-      --               arc_pat[time_nav-3][i]:stop()
-      --             elseif page.time_page_sel[page.time_sel] == 7 then
-      --               arc_pat[time_nav-3][i]:clear()
-      --             end
-      --           end
-      --         end
-      --       end
-      --     end
-      --   end
       elseif menu == 8 then
 
         if key1_hold then
@@ -3821,22 +3707,8 @@ function key(n,z)
         end
         grid_dirty = true
 
-
-        -- if not arp[page.arp_page_sel].hold then
-        --   arps.clear(page.arp_page_sel)
-        -- end
       elseif menu == 10 then
-        if key1_hold then
-          local rnd_bank = page.rnd_page
-          local rnd_slot = page.rnd_page_sel[rnd_bank]
-          local state = tostring(rnd[rnd_bank][rnd_slot].playing)
-          rnd.transport(rnd_bank,rnd_slot,state == "false" and "on" or "off")
-          if state == "true" then
-            rnd.restore_default(rnd_bank,rnd_slot)
-          end
-        else
-          page.rnd_page_section = page.rnd_page_section == 1 and 2 or 1
-        end
+        _rnd.process_key(n,z)
       end
 
 
@@ -3848,42 +3720,14 @@ function key(n,z)
         else
           menu = "transport_config"
         end
-      -- elseif (menu == 2 or menu == 7 or menu == 9) and not key1_hold then
       elseif (menu == 2 or menu == 9) and not key1_hold then
-        -- key2_hold = true
         key2_hold_counter:start()
         key2_hold_and_modify = false
       elseif menu == 7 then
         _flow.process_key(n,z)
       elseif menu == 2 then
-        -- if page.loops.frame == 2 and key1_hold then
-        --   if page.loops.sel == 4 then
-        --     buff_flush()
-        --     -- print("press")
-        --   elseif page.loops.sel < 4 then
-        --     sync_clock_to_loop(bank[page.loops.sel][bank[page.loops.sel].id],"audio")
-        --   elseif page.loops.sel == 5 then
-        --     if page.loops.meta_sel < 4 then
-        --       -- THIS SHOULD CHECK TO SEE IF PAD LOCKED...
-        --       -- sync to next
-        --       local id = page.loops.meta_sel
-        --       local src_bank_num = id == 1 and 2 or 1
-        --       local src_bank     = bank[src_bank_num]
-        --       local src_pad      = src_bank[src_bank.id]
-        --       -- -- shift start/end by the difference between clips
-        --       local reasonable_max = bank[id][bank[id].id].mode == 1 and 8 or clip[bank[id][bank[id].id].clip].sample_length
-        --       if src_pad.end_point <= reasonable_max then
-        --         bank[id][bank[id].id].start_point = src_pad.start_point
-        --         bank[id][bank[id].id].end_point = src_pad.end_point
-        --         rightangleslice.sc.start_end( bank[id][bank[id].id], id )
-        --         -- softcut.position(id+1, bank[id][bank[id].id].start_point )
-        --       end
-        --     end
-        --   end
-        -- end
       end
-    -- elseif n == 2 and z == 0 and key2_hold == false and (menu == 2 or menu == 7 or menu == 9) and not key1_hold then
-  elseif n == 2 and z == 0 and key2_hold == false and (menu == 2 or menu == 9) and not key1_hold then
+    elseif n == 2 and z == 0 and key2_hold == false and (menu == 2 or menu == 9) and not key1_hold then
       key2_hold_counter:stop()
       menu = 1
     elseif menu == 7 then
@@ -3907,14 +3751,7 @@ function key(n,z)
           menu = 1
         end
       elseif menu == 10 then
-        if key1_hold then
-          for i = 1,#rnd.targets do
-            rnd.transport(page.rnd_page,i,"off")
-            rnd.restore_default(page.rnd_page,i)
-          end
-        else
-          menu = 1
-        end
+        _rnd.process_key(n,z)
       elseif menu == 6 then
         if key1_hold then
           if page.delay[page.delay.focus].menu_sel[page.delay[page.delay.focus].menu] == 4 then
@@ -3926,20 +3763,17 @@ function key(n,z)
           menu = 1
         end
       elseif menu == 2 then
-        -- if page.loops.frame == 2 and key1_hold then
-        --   if page.loops.sel == 4 then
-        --   elseif page.loops.sel < 4 then
-        --     sync_clock_to_loop(bank[page.loops.sel][bank[page.loops.sel].id],"audio")
-        --   end
-        -- end
       else
         menu = 1
       end
       if menu == 6 and page.delay[page.delay.focus].menu == 1 and page.delay[page.delay.focus].menu_sel[page.delay[page.delay.focus].menu] == 4 then
         -- just need a logic break
       elseif menu ~= 2 and menu ~= 8 then
-        if key1_hold == true then key1_hold = false end
+        if key1_hold == true then
+          key1_hold = false
+        end
       end
+
     end
 
     if n == 1 and z == 1 then
@@ -4003,49 +3837,6 @@ function key(n,z)
       end
       if menu == 7 then
         _flow.process_key(n,z)
-        -- if page.time_sel < 4 then
-        --   if key1_hold_and_modify == false then
-        --     local time_nav = page.time_sel
-        --     local id = time_nav
-        --     if midi_pat[id].play == 1 then
-        --       if midi_pat[id].clock ~= nil then
-        --         clock.cancel(midi_pat[id].clock)
-        --         print("pausing clock")
-        --         midi_pat[id].step = 1
-        --       end
-        --       midi_pat[id]:stop()
-        --     else
-        --       if midi_pat[id].count > 0 then
-        --         if midi_pat[id].playmode == 1 then
-        --           --midi_pat[id]:start()
-        --           start_pattern(midi_pat[id])
-        --         elseif midi_pat[id].playmode == 2 then
-        --           print("line 2387")
-        --           --midi_pat[id].clock = clock.run(synced_loop, midi_pat[id], "restart")
-        --           midi_pat[id].clock = clock.run(alt_synced_loop, midi_pat[id], "restart")
-        --         end
-        --       end
-        --     end
-        --     if grid_pat[id].count > 0 then
-        --       if grid_pat[id].quantize == 0 then
-        --         if grid_pat[id].play == 1 then
-        --           --grid_pat[id]:stop()
-        --           stop_pattern(grid_pat[id])
-        --         else
-        --           --grid_pat[id]:start()
-        --           start_pattern(grid_pat[id])
-        --         end
-        --       else
-        --         grid_pat[id].tightened_start = (grid_pat[id].tightened_start + 1)%2
-        --         grid_pat[id].step = grid_pat[id].start_point
-        --         quantized_grid_pat[id].current_step = grid_pat[id].start_point
-        --         quantized_grid_pat[id].sub_step = 1
-        --       end
-        --     end
-        --   else
-        --     key1_hold_and_modify = false
-        --   end
-        -- end
       end
     end
   end

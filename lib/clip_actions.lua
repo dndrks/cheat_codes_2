@@ -293,6 +293,35 @@ function ca.load_sample(file,sample)
   end
 end
 
+function ca.clear_sample(sample)
+  local old_min = clip[sample].min
+  local old_max = clip[sample].max
+  local min_max = {{1,97},{97,193},{193,289}}
+  clip[sample].length = 90
+  clip[sample].sample_length = 96
+  clip[sample].sample_rate = 48000
+  clip[sample].start_point = nil
+  clip[sample].end_point = nil
+  clip[sample].mode = 1
+  clip[sample].waveform_samples = {}
+  clip[sample].waveform_rendered = false
+  clip[sample].channel = 1
+  clip[sample].collage = false
+  clip[sample].min = min_max[sample][1]
+  clip[sample].max = min_max[sample][2]
+  for p = 1,16 do
+    for b = 1,3 do
+      if bank[b][p].mode == 2 and bank[b][p].clip == sample and pre_cc2_sample[b] == false then
+        ca.scale_loop_points(bank[b][p], old_min, old_max, clip[sample].min, clip[sample].max)
+      end
+    end
+  end
+  params:set("clip "..sample.." sample","-")
+  softcut.buffer_clear_region_channel(2,1+(96*(sample-1)),96)
+  update_waveform(2,clip[sample].min,clip[sample].max,128)
+  clip[sample].waveform_samples = waveform_samples
+end
+
 function ca.load_sample_into_live_window(file,sample,startpoint,endpoint)
   local old_min = startpoint
   local old_max = endpoint

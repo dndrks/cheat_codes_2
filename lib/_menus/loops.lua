@@ -41,6 +41,10 @@ function _loops.process_key(n,z)
       if #arc_pat[page.loops.sel][1].event > 0 then
         arc_pat[page.loops.sel][1]:clear()
       end
+    elseif page.loops.sel == 5 then
+      if params:get("clip "..page.loops.selected_clip_control.." sample") ~= "-" or clip[page.loops.selected_clip_control].collage then
+        _ca.clear_sample(page.loops.selected_clip_control)
+      end
     end
   elseif n == 2 and z == 1 and not key1_hold then
     key2_hold_counter:start()
@@ -605,9 +609,22 @@ function _loops.draw_menu()
         end
       end
       
-      screen.level(15)
-      screen.move(0,46)
-      screen.line(128,46)
+      screen.level(10)
+      if tab.key(page.loops.bank_controls,page.loops.selected_bank_control) < 11 then
+        screen.move(0,46)
+        screen.line(128,46)
+        -- screen.move(0,45)
+        -- screen.line(64,45)
+        screen.move(0,47)
+        screen.line(64,47)
+      else
+        screen.move(0,46)
+        screen.line(128,46)
+        -- screen.move(64,45)
+        -- screen.line(128,45)
+        screen.move(64,47)
+        screen.line(128,47)
+      end
       screen.stroke()
 
       if page.loops.zoomed_mode then
@@ -868,7 +885,6 @@ function _loops.draw_menu()
       end
       if key1_hold and params:get("clip "..page.loops.selected_clip_control.." sample") ~= "-" then
         screen.level(8)
-        -- screen.rect(0,14,128,7)
         screen.rect(0,12,128,57)
         screen.fill()
         screen.level(0)
@@ -886,19 +902,33 @@ function _loops.draw_menu()
         screen.move(64,41)
         screen.text_center("CLIP "..page.loops.selected_clip_control)
         screen.font_size(8)
+        screen.level(0)
+        screen.move(2,55)
+        screen.text("K2: clear sample")
         if clip[page.loops.selected_clip_control].original_samplerate == 48 then
-          screen.level(0)
-          screen.move(64,59)
           if clip[page.loops.selected_clip_control].original_bpm ~= params:get("clock_tempo") then
-            screen.text_center("K3: set project BPM to "..clip[page.loops.selected_clip_control].original_bpm)
+            screen.move(2,62)
+            screen.text("K3: set project BPM to "..clip[page.loops.selected_clip_control].original_bpm)
           else
+            screen.move(64,62)
             screen.text_center("project BPM matches clip bpm!")
           end
         else
-          screen.level(0)
-          screen.move(64,59)
+          screen.move(64,62)
           screen.text_center("sample rate is not 48khz :(")
         end
+      elseif key1_hold and clip[page.loops.selected_clip_control].collage then
+        screen.level(8)
+        screen.rect(0,12,128,57)
+        screen.fill()
+        screen.level(0)
+        screen.font_size(20)
+        screen.move(64,41)
+        screen.text_center("CLIP "..page.loops.selected_clip_control)
+        screen.font_size(8)
+        screen.level(0)
+        screen.move(2,55)
+        screen.text("K2: clear collage")
       end
     elseif page.loops.sel == 6 then
       for i = 1,4 do
