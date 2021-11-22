@@ -172,12 +172,18 @@ function _arps.draw_menu()
       screen.text("C: "..arp[_arps_.sel].conditional.A[_arps_.seq_position[_arps_.sel]]..
       ":"..
       arp[_arps_.sel].conditional.B[_arps_.seq_position[_arps_.sel]])
+      screen.level(page.arps.alt_view_sel == 3 and 15 or 3)
+      screen.move(99,52)
+      screen.text("R: "..arp[_arps_.sel].conditional.retrig_count[_arps_.seq_position[_arps_.sel]].."x")
+      screen.level(page.arps.alt_view_sel == 4 and 15 or 3)
+      screen.move(99,62)
+      screen.text("T: "..arp_paramset:string("arp_retrig_time_".._arps_.sel.."_".._arps_.seq_position[_arps_.sel]))
       screen.level(15)
-      screen.move(125,62)
+      screen.move(20,62)
       if page.arps.alt_view_sel == 1 then
-        screen.text_right("K3: set active to "..arp[_arps_.sel].prob[_arps_.seq_position[_arps_.sel]].."%")
+        screen.text("K3: active -> "..arp[_arps_.sel].prob[_arps_.seq_position[_arps_.sel]].."%")
       elseif page.arps.alt_view_sel == 2 then
-        screen.text_right("K3: set active to "..arp[_arps_.sel].conditional.A[_arps_.seq_position[_arps_.sel]]..
+        screen.text("K3: active -> "..arp[_arps_.sel].conditional.A[_arps_.seq_position[_arps_.sel]]..
         ":"..
         arp[_arps_.sel].conditional.B[_arps_.seq_position[_arps_.sel]])
       end
@@ -318,7 +324,7 @@ function _arps.process_encoder(n,d)
         _arps_.seq_position[_arps_.sel] = util.clamp(_arps_.seq_position[_arps_.sel]+d,1,128)
         _arps_.seq_page[_arps_.sel] = math.ceil(_arps_.seq_position[_arps_.sel]/32)
       else
-        _arps_.alt_view_sel = util.clamp(_arps_.alt_view_sel+d,1,2)
+        _arps_.alt_view_sel = util.clamp(_arps_.alt_view_sel+d,1,4)
       end
     elseif n == 3 then
       if not page.arps.alt then
@@ -334,6 +340,10 @@ function _arps.process_encoder(n,d)
           arp[_arps_.sel].prob[current] = util.clamp(arp[_arps_.sel].prob[current]+d,0,100)
         elseif _arps_.alt_view_sel == 2 then
           _arps.cycle_conditional(_arps_.sel,current,d)
+        elseif _arps_.alt_view_sel == 3 then
+          _arps.cycle_retrig_count(_arps_.sel,current,d)
+        elseif _arps_.alt_view_sel == 4 then
+          arp_paramset:delta("arp_retrig_time_".._arps_.sel.."_"..current,d)
         end
       end
     end
@@ -361,6 +371,10 @@ function _arps.cycle_conditional(target,step,d)
       arp[target].conditional.B[step] = current_B
     end
   end
+end
+
+function _arps.cycle_retrig_count(target,step,d)
+  arp[target].conditional.retrig_count[step] = util.clamp(arp[target].conditional.retrig_count[step]+d,0,128)
 end
 
 function _arps.check_for_first_touch()

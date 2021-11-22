@@ -576,6 +576,7 @@ function _loops.draw_menu()
           end
           screen.move(current_to_screen,19)
           screen.line_rel(0,19)
+          screen.text(params:get("SOS_enabled_"..page.loops.sel) == 1 and ">" or "")
           screen.stroke()
         end
 

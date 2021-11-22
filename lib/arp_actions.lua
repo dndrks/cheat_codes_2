@@ -4,21 +4,37 @@ arp = {}
 
 arp_clock = {}
 
+arp_paramset = paramset.new()
+local arp_retrig_lookup = 
+{
+  1/32,
+  1/24,
+  1/16,
+  1/12,
+  1/8,
+  1/6,
+  3/16,
+  1/4,
+  5/16,
+  1/3,
+  3/8,
+  2/3,
+  1/2,
+  3/4,
+  1,
+  4/3,
+  1.5,
+  2,
+  8/3,
+  3,
+  4,
+  6,
+  8,
+  16,
+  32
+}
+
 function arp_actions.init(target)
-    -- arp[target] = {}
-    -- arp[target].playing = false
-    -- arp[target].pause = false
-    -- arp[target].hold = false
-    -- arp[target].enabled = false
-    -- arp[target].time = 1/4
-    -- arp[target].step = 1
-    -- arp[target].notes = {}
-    -- arp[target].mode = "fwd"
-    -- arp[target].start_point = 1
-    -- arp[target].end_point = 1
-    -- arp[target].down = 0
-    -- arp[target].retrigger = true
-    -- arp_clock[target] = clock.run(arp_actions.arpeggiate,target)
     arp[target] = {}
     arp[target].playing = false
     arp[target].pause = false
@@ -32,10 +48,47 @@ function arp_actions.init(target)
     arp[target].conditional.cycle = 0
     arp[target].conditional.A = {}
     arp[target].conditional.B = {}
+    arp[target].conditional.retrig_clock = nil
+    arp[target].conditional.retrig_count = {}
+    arp[target].conditional.retrig_time = {}
     for i = 1,128 do
       arp[target].prob[i] = 100
       arp[target].conditional.A[i] = 1
       arp[target].conditional.B[i] = 1
+      arp[target].conditional.retrig_count[i] = 0
+      arp_paramset:add_option("arp_retrig_time_"..target.."_"..i,"",
+      {
+        "1/32",
+        "1/24",
+        "1/16",
+        "1/12",
+        "1/8",
+        "1/6",
+        "3/16",
+        "1/4",
+        "5/16",
+        "1/3",
+        "3/8",
+        "2/3",
+        "1/2",
+        "3/4",
+        "1",
+        "1.33",
+        "1.5",
+        "2",
+        "2.33",
+        "3",
+        "4",
+        "6",
+        "8",
+        "16",
+        "32"
+      },
+      9)
+      arp_paramset:set_action("arp_retrig_time_"..target.."_"..i, function(x)
+        arp[target].conditional.retrig_time[i] = arp_retrig_lookup[x]
+      end)
+      arp[target].conditional.retrig_time[i] = arp_retrig_lookup[arp_paramset:get("arp_retrig_time_"..target.."_"..i)]
     end
     arp[target].gate = {}
     arp[target].gate.active = false
@@ -363,22 +416,33 @@ end
 function arp_actions.resolve_step(target,step,last_pad)
   if last_pad ~= nil then
     local next_pad = arp[target].notes[wrap(step+1,arp[target].start_point,arp[target].end_point)]
-    -- print("killing "..tostring(last_pad)) -- do i care if this executes on the first run?
-    -- grid_actions.kill_note(target,last_pad)
-    -- grid_actions.add_held_key(target,arp[target].notes[step])
     cheat(target,bank[target].id)
-    -- print("playing "..bank[target].id)
+    arp_actions.retrig_step(target,step)
+
+    -- clock.run(function() for i = 1,3 do clock.sleep((clock.get_beat_sec()/3) / 6) cheat(target,bank[target].id) end end)
     if next_pad == nil then
-      -- print("forcing "..bank[target].id.." off")
-      -- arp_actions.timed_note_off(target,bank[target].id)
     end
   else
-    -- print("WEIRIIRIRIRIRD..."..arp[target].notes[step])
-    -- grid_actions.add_held_key(target,arp[target].notes[step])
     cheat(target,bank[target].id)
+    arp_actions.retrig_step(target,step)
+    -- clock.run(function() for i = 1,3 do clock.sleep((clock.get_beat_sec()/3) / 6) cheat(target,bank[target].id) end end)
     local this_last_pad = arp[target].notes[step]
-    -- print("the last one "..this_last_pad)
-    -- arp_actions.timed_note_off(target,this_last_pad)
+  end
+end
+
+function arp_actions.retrig_step(target,step)
+  if arp[target].conditional.retrig_clock ~= nil then
+    clock.cancel(arp[target].conditional.retrig_clock)
+  end
+  if arp[target].conditional.retrig_count[step] > 0 then
+    arp[target].conditional.retrig_clock = clock.run(
+      function()
+        for i = 1,arp[target].conditional.retrig_count[step] do
+          clock.sleep((clock.get_beat_sec() * arp[target].time)*arp[target].conditional.retrig_time[step])
+          cheat(target,bank[target].id)
+        end
+      end
+    )
   end
 end
 

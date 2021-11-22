@@ -21,13 +21,15 @@ function start_up.init()
     softcut.loop_end(i, 9)
     softcut.loop_end(1,32.99)
     softcut.loop(i, 1)
-    softcut.rec_level(1, 1)
-    -- softcut.pre_level(1, 0.25)
-    softcut.pre_level(1, 1)
+    if i == 1 then
+      softcut.rec_level(1, 1)
+      softcut.pre_level(1, 1)
+    else
+      softcut.pre_level(i+1,1)
+      softcut.rec_level(i+1,0)
+    end
     softcut.position(i, 1)
     softcut.phase_quant(i, 0.01)
-    -- softcut.phase_quant(i, 1/15)
-    -- softcut.rec_offset(i, -0.0003)
     softcut.enable(i, 1)
     softcut.rate_slew_time(4,0.2)
   end
@@ -92,7 +94,7 @@ function start_up.init()
   
   --params:add_separator()
   
-  params:add_group("loops + buffers", 68)
+  params:add_group("loops + buffers", 71)
 
   params:add_separator("clips")
   
@@ -233,9 +235,9 @@ function start_up.init()
     end)
   end
 
-  params:add_separator("SOS")
+  params:add_separator("SOUND ON SOUND (SOS)")
   for i = 1,3 do
-    params:add_binary("SOS_enabled_"..i,"SOS ["..bank_names[i].."]","toggle")
+    params:add_binary("SOS_enabled_"..i,"enable SOS ["..bank_names[i].."] (K3)","toggle")
     params:set_action("SOS_enabled_"..i, function(x)
       if all_loaded then
         _ca.SOS_voice_overwrite(bank[i][bank[i].id],x == 1 and true or false)
@@ -249,6 +251,7 @@ function start_up.init()
         softcut.pre_level(i+1,x)
       end
     end}
+    params:add_option("SOS_mode_"..i,"--> SOS mode",{"immediate","pad trig"},1)
     params:add_option("SOS_L_in_"..i, "--> SOS L input", {"off","on"},2)
     params:set_action("SOS_L_in_"..i, function(x)
       if params:get("SOS_enabled_"..i) == 1 then

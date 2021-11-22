@@ -140,40 +140,6 @@ function rec_ended_callback()
   -- end
 end
 
-SOS = {}
-
-function SOS.sync_to_recordhead(source,target)
-  -- expects source: x, target: bank[x][y]
-  if target.mode == 1 and target.clip == source then
-    softcut.loop_start(target.bank_id+1,rec[source].start_point)
-    softcut.loop_end(target.bank_id+1,rec[source].end_point)
-    -- softcut.voice_sync(target.bank_id,0,0.1)
-    softcut.position(target.bank_id+1,poll_position_new[1]+0.01)
-    softcut.loop(target.bank_id+1,1)
-    target.start_point = rec[source].start_point
-    target.end_point = rec[source].end_point
-    target.loop = true
-  end
-end
-
-function SOS.voice_overwrite(target)
-  -- this should just 1:1 replace the corresponding Live clip
-  softcut.pre_level(target.bank_id+1,1)
-  softcut.rec_level(target.bank_id+1,1)
-  softcut.level_input_cut(1,target.bank_id+1,1)
-  softcut.level_input_cut(2,target.bank_id+1,1)
-  softcut.rec(target.bank_id+1,1)
-end
-
-function SOS.voice_sync(source,target)
-  -- expects source: bank[x][y], target: bank[z][a]
-  softcut.loop_start(target.bank_id+1,source.start_point)
-  softcut.loop_end(target.bank_id+1,source.end_point)
-  softcut.position(target.bank_id+1,poll_position_new[source.bank_id+1])
-  target.start_point = source.start_point
-  target.end_point = source.end_point
-end
-
 function make_a_gif(filename,time)
   local steps = time*24
   local gif_step = 1
@@ -383,6 +349,7 @@ end
 envelope_rates = {["names"] = {}, ["values"] = {}}
 envelope_rates.names = {
   "1/32",
+  "1/24",
   "1/16",
   "1/12",
   "1/8",
@@ -406,6 +373,7 @@ envelope_rates.names = {
 }
 envelope_rates.values = {
   1/32,
+  1/24,
   1/16,
   1/12,
   1/8,
@@ -3303,6 +3271,9 @@ function cheat(b,i,silent)
   
   if all_loaded and silent == nil then
     if softcut_voices_are_paused[b] == true then
+      softcut.pre_level(b+1,1)
+      softcut.rec_level(b+1,0)
+      softcut.rec(b+1,1)
       softcut.play(b+1,1)
       softcut_voices_are_paused[b] = false
     end

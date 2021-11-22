@@ -1926,6 +1926,7 @@ end
 function grid_actions.kill_arp(i)
   page.arp_page_sel = i
   arp[i].hold = false
+  clock.cancel(arp[i].conditional.retrig_clock)
   if not arp[i].hold then
     if arp_clears == nil then
       arp_clears = {nil,nil,nil}
@@ -1939,6 +1940,8 @@ function grid_actions.kill_arp(i)
         arp[i].prob[j] = 100
         arp[i].conditional.A[j] = 1
         arp[i].conditional.B[j] = 1
+        arp[i].conditional.retrig_count[j] = 0
+        arp[i].conditional.retrig_time[j] = 1
       end
     else
       arp_clears[i] = clock.run(function()

@@ -4,6 +4,10 @@ local ca = clip_actions
 
 function ca.init()
   SOS = {}
+  for i = 1,3 do
+    SOS[i] = {}
+    SOS[i].queued = false
+  end
 end
 
 function ca.clip_table()
@@ -196,7 +200,9 @@ function ca.SOS_voice_overwrite(target,state)
     softcut.rec_level(target.bank_id+1,1)
     softcut.level_input_cut(1,target.bank_id+1,l_in*0.5)
     softcut.level_input_cut(2,target.bank_id+1,r_in*0.5)
-    softcut.rec(target.bank_id+1,1)
+    -- if not softcut_voices_are_paused[target] then
+    --   softcut.rec(target.bank_id+1,1)
+    -- end
     print("should rec..."..target.bank_id+1)
   else
     softcut.pre_level(target.bank_id+1,1)
