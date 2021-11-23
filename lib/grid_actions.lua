@@ -45,6 +45,9 @@ function grid_actions.init(x,y,z)
   if params:string("grid_size") == "128" and params:string("128_orientation") == "vertical" then
 
     if grid_page == 0 then
+
+      local nx = _t(x,y)[1]
+      local ny = _t(x,y)[2]
       
       for i = 1,3 do
         if grid_alt or bank[i].alt_lock then
@@ -315,50 +318,59 @@ function grid_actions.init(x,y,z)
         end
       end
       
+      -- ALL THE OLD ARC STUFF
+      -- for i = 8,6,-1 do
+      --   if x == 5 or x == 10 or x == 15 then
+      --     if y == i then
+      --       if not grid_alt then
+      --         if z == 1 then
+      --           table.insert(arc_switcher[x/5],y)
+      --           held_query[x/5] = #arc_switcher[x/5]
+      --         elseif z == 0 then
+      --           held_query[x/5] = held_query[x/5] - 1
+      --           if held_query[x/5] == 0 then
+      --             if #arc_switcher[x/5] == 1 then
+      --               if arc_switcher[x/5][1] == 8 then
+      --                 arc_param[x/5] = 1
+      --               elseif arc_switcher[x/5][1] == 7 then
+      --                 arc_param[x/5] = 2
+      --               elseif arc_switcher[x/5][1] == 6 then
+      --                 arc_param[x/5] = 3
+      --               end
+      --             elseif #arc_switcher[x/5] == 2 then
+      --               total = arc_switcher[x/5][1] + arc_switcher[x/5][2]
+      --               if total == 15 then
+      --                 arc_param[x/5] = 5
+      --               elseif total == 13 then
+      --                 arc_param[x/5] = 6
+      --               end
+      --             elseif #arc_switcher[x/5] == 3 then
+      --               arc_param[x/5] = 4
+      --             elseif #arc_switcher[x/5] > 3 then
+      --               arc_switcher[x/5] = {}
+      --             end
+      --             arc_switcher[x/5] = {}
+      --           end
+      --         end
+      --       elseif grid_alt then
+      --         if y == 8 then
+      --           -- sixteen_slices(x/5)
+      --         elseif y == 7 then
+      --           -- rec_to_pad(x/5)
+      --         elseif y == 6 then
+      --           -- pad_to_rec(x/5)
+      --         end
+      --       end
+      --     end
+      --   end
+      -- end
 
-      for i = 8,6,-1 do
-        if x == 5 or x == 10 or x == 15 then
-          if y == i then
-            if not grid_alt then
-              if z == 1 then
-                table.insert(arc_switcher[x/5],y)
-                held_query[x/5] = #arc_switcher[x/5]
-              elseif z == 0 then
-                held_query[x/5] = held_query[x/5] - 1
-                if held_query[x/5] == 0 then
-                  if #arc_switcher[x/5] == 1 then
-                    if arc_switcher[x/5][1] == 8 then
-                      arc_param[x/5] = 1
-                    elseif arc_switcher[x/5][1] == 7 then
-                      arc_param[x/5] = 2
-                    elseif arc_switcher[x/5][1] == 6 then
-                      arc_param[x/5] = 3
-                    end
-                  elseif #arc_switcher[x/5] == 2 then
-                    total = arc_switcher[x/5][1] + arc_switcher[x/5][2]
-                    if total == 15 then
-                      arc_param[x/5] = 5
-                    elseif total == 13 then
-                      arc_param[x/5] = 6
-                    end
-                  elseif #arc_switcher[x/5] == 3 then
-                    arc_param[x/5] = 4
-                  elseif #arc_switcher[x/5] > 3 then
-                    arc_switcher[x/5] = {}
-                  end
-                  arc_switcher[x/5] = {}
-                end
-              end
-            elseif grid_alt then
-              if y == 8 then
-                -- sixteen_slices(x/5)
-              elseif y == 7 then
-                -- rec_to_pad(x/5)
-              elseif y == 6 then
-                -- pad_to_rec(x/5)
-              end
-            end
-          end
+      if nx == 1 and (ny == 5 or ny == 10 or ny == 15) then
+        local current = util.round(ny/5)
+        if z == 1 and not grid_alt then
+          params:set("SOS_enabled_"..current, params:get("SOS_enabled_"..current) == 1 and 0 or 1)
+        elseif z == 1 and grid_alt then
+          _ca.SOS_erase(current)
         end
       end
       
@@ -1926,7 +1938,9 @@ end
 function grid_actions.kill_arp(i)
   page.arp_page_sel = i
   arp[i].hold = false
-  clock.cancel(arp[i].conditional.retrig_clock)
+  if arp[i].conditional.retrig_clock ~= nil then
+    clock.cancel(arp[i].conditional.retrig_clock)
+  end
   if not arp[i].hold then
     if arp_clears == nil then
       arp_clears = {nil,nil,nil}
