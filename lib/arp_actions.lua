@@ -4,12 +4,6 @@ arp = {}
 
 arp_clock = {}
 
--- arp_lattice = lattice:new{
---   auto = true,
---   meter = 4,
---   ppqn = 96
--- }
-
 function arp_actions.init(target)
     arp[target] = {}
     arp[target].playing = false
@@ -25,25 +19,7 @@ function arp_actions.init(target)
     arp[target].down = 0
     arp[target].retrigger = true
     arp_clock[target] = clock.run(arp_actions.arpeggiate,target)
-    -- arp[target].lattice = arp_lattice:new_pattern{
-    --   action = function() arp_actions.lattice_advance(target) end,
-    --   division = arp[target].time/4,
-    --   enabled = arp[target].enabled
-    -- }
-    -- clock.run(function() clock.sync(4) arp_lattice:start() end)
 end
-
--- function arp_actions.toggle_arp(target,enable)
---   if enable then
---     clock.run(function()
---       arp[target].lattice.phase = 0
---       clock.sync(arp[target].time)
---       arp[target].lattice:start()
---     end)
---   else
---     arp[target].lattice:stop()
---   end
--- end
 
 function arp_actions.find_index(tab,el)
     local rev = {}
@@ -93,36 +69,6 @@ function arp_actions.toggle(state,target)
     arp[i].playing = false
   end
 end
-
--- function arp_actions.lattice_advance(target)
---   if target == 1 then
---     print(clock.get_beats())
---     if transport.is_running then
---       if #arp[target].notes > 0 then
---         if arp[target].pause == false then
---           -- if arp[target].step == 1 then print("arp "..target, clock.get_beats()) end
---           if menu ~= 1 then screen_dirty = true end
---           if arp[target].mode == "fwd" then
---             arp_actions.forward(target)
---           elseif arp[target].mode == "bkwd" then
---             arp_actions.backward(target)
---           elseif arp[target].mode == "pend" then
---             arp_actions.pendulum(target)
---           elseif arp[target].mode == "rnd" then
---             arp_actions.random(target)
---           end
---           arp[target].playing = true
---           arp_actions.cheat(target,arp[target].step)
---           grid_dirty = true
---         else
---           arp[target].playing = false
---         end
---       else
---         arp[target].playing = false
---       end
---     end
---   end
--- end
 
 function arp_actions.arpeggiate(target)
   while true do

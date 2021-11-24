@@ -1,6 +1,6 @@
 -- cheat codes 2
 --          a sample playground
--- rev: 211113 - LTS3.1
+-- rev: 211124 - LTS4
 -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
 -- need help?
 -- please visit:
@@ -2137,7 +2137,7 @@ function alt_synced_loop(target,state,style,mod_table)
       -- print("arp thing")
       if grid_pat[tab.key(name_to_id,target.name)].play == 1 then
         grid_pat[tab.key(name_to_id,target.name)]:stop()
-        grid_pat[tab.key(name_to_id,target.name)]:clear()
+        -- grid_pat[tab.key(name_to_id,target.name)]:clear()
       end
       local destination = tab.key(name_to_id,target.name)
       local arp_start =
@@ -2240,9 +2240,16 @@ function start_pattern(target,start_type,style,mod_table)
             end
             if mod_table ~= nil then
               load_pattern(mod_table[1],mod_table[2])
-              target:start()
+              print("starting a pattern!", type_of_pattern_loaded[destination])
+              if type_of_pattern_loaded[destination] == "grid" then
+                if arp[destination].playing then
+                  arps.toggle("stop",destination)
+                end
+                target:start()
+              end
             else
               print("????")
+              print("starting a pattern2")
               target:start()
             end
           end
@@ -6040,7 +6047,9 @@ function reset_step_seq(i,val) -- TODO: funky on some...
 end
 
 function quick_save_pattern(i)
-  if grid_pat[i].count > 0 and grid_pat[i].rec == 0 then
+  if (grid_pat[i].count > 0 and grid_pat[i].rec == 0 and grid_pat[i].play == 1) -- if it's playing, then save pattern
+  or (grid_pat[i].count > 0 and grid_pat[i].rec == 0 and not arp[i].playing) -- if it's dormant and arp isn't playing, save pattern
+  then
     copy_entire_pattern(i)
     save_pattern(i,pattern_saver[i].save_slot+8*(i-1),"pattern")
     pattern_saver[i].saved[pattern_saver[i].save_slot] = 1
@@ -6049,7 +6058,9 @@ function quick_save_pattern(i)
       g:led(math.floor((i-1)*5)+1,9-pattern_saver[i].save_slot,15)
     end
     -- g:refresh()
-  elseif #arp[i].notes > 0 then
+  elseif (#arp[i].notes > 0 and arp[i].playing)
+  or (#arp[i].notes > 0 and not arp[i].playing and grid_pat[i].play == 0)
+  then
     save_pattern(i,pattern_saver[i].save_slot+8*(i-1),"arp")
     pattern_saver[i].saved[pattern_saver[i].save_slot] = 1
     pattern_saver[i].load_slot = pattern_saver[i].save_slot
@@ -6096,6 +6107,8 @@ function test_load(slot,destination,source)
     if pattern_saver[destination].load_slot ~= slot-((destination-1)*8) then
       pattern_saver[destination].load_slot = slot-((destination-1)*8)
     end
+
+    -- if it isn't a grid press:
     if grid_pat[destination].play == 1 and source ~= "from_grid" then
       grid_pat[destination]:clear()
     elseif arp[destination].playing and source ~= "from_grid" then
@@ -6108,6 +6121,7 @@ function test_load(slot,destination,source)
       -- quantized_grid_pat[destination].current_step = grid_pat[destination].start_point
       -- quantized_grid_pat[destination].sub_step = 1
     end
+
     if not transport.is_running then
       print("loading while transport is not running")
       load_pattern(slot,destination)
@@ -6120,9 +6134,24 @@ function test_load(slot,destination,source)
           start_pattern(grid_pat[destination],"jumpstart")
         end
         -- print("loading "..clock.get_beats())
-      elseif params:string("launch_quantization") == "next beat" and source == "from_grid" and type_of_pattern_loaded[destination] ~= "arp" and type_of_pattern_loaded[destination] ~= "euclid" then
-        -- print("going to start_pattern")
-        start_pattern(grid_pat[destination],"restart","delayed_load",{slot,destination})
+      elseif params:string("launch_quantization") == "next beat" then
+        if source == "from_grid"
+        and type_of_pattern_loaded[destination] ~= "arp"
+        and type_of_pattern_loaded[destination] ~= "euclid"
+        then
+          print("going to start grid pattern with delayed load")
+          start_pattern(grid_pat[destination],"restart","delayed_load",{slot,destination})
+        elseif source == "from_grid" then
+          print("dead zone...",type_of_pattern_loaded[destination])
+          load_pattern(slot,destination)
+          print("starting a pattern!!!", type_of_pattern_loaded[destination])
+          if type_of_pattern_loaded[destination] == "grid" then
+            if arp[destination].playing then
+              arps.toggle("stop",destination)
+            end
+            grid_pat[destination]:start()
+          end
+        end
       elseif params:string("launch_quantization") == "free" then
         if grid_pat[destination].play == 1 then
           grid_pat[destination]:clear()
@@ -6145,6 +6174,7 @@ function test_load(slot,destination,source)
         -- print("loading whatever...")
         start_pattern(grid_pat[destination],"restart","delayed_load",{slot,destination})
       elseif type_of_pattern_loaded[destination] == "arp" then
+        print("We've GOT AN ARP")
         if loading_arp_from_grid[destination] ~= nil then
           clock.cancel(loading_arp_from_grid[destination])
         end
@@ -6616,6 +6646,18 @@ function load_pattern(slot,destination,print_also)
       -- arp[destination] = tab.load(_path.data .. "cheat_codes_2/pattern"..selected_coll.."_"..slot..".data")
       ignore_external_timing = true
     end
+
+    if type_of_pattern_loaded[destination] == "grid" then
+      print("loading up a grid pattern")
+    elseif type_of_pattern_loaded[destination] == "arp" then
+      print("loading up an arp!")
+      if grid_pat[destination].play == 1 then
+        print("stopping pattern!")
+        stop_pattern(grid_pat[destination])
+        -- grid_pat[destination]:clear()
+      end
+    end
+
 
     io.close(file)
     if not ignore_external_timing then

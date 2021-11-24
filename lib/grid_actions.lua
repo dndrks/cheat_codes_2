@@ -54,39 +54,6 @@ function grid_actions.init(x,y,z)
         if z == 1 and x > 0 + (5*(i-1)) and x <= 4 + (5*(i-1)) and y >=5 then
           if bank[i].focus_hold == false then
             grid_actions.pad_down(i,(math.abs(y-9)+((x-1)*4))-(20*(i-1)))
-            -- if not grid_alt then
-            --   selected[i].x = x
-            --   selected[i].y = y
-            --   selected[i].id = (math.abs(y-9)+((x-1)*4))-(20*(i-1))
-            --   bank[i].id = selected[i].id
-            --   which_bank = i
-            --   if menu == 11 then
-            --     help_menu = "banks"
-            --   end
-            --   pad_clipboard = nil
-            --   if bank[i].quantize_press == 0 then
-            --     if arp[i].enabled and grid_pat[i].rec == 0 and not arp[i].pause then
-            --       if arp[i].down == 0 and params:string("arp_"..i.."_hold_style") == "last pressed" then
-            --         for j = #arp[i].notes,1,-1 do
-            --           table.remove(arp[i].notes,j)
-            --         end
-            --       end
-            --       arp[i].time = bank[i][bank[i].id].arp_time
-            --       arps.momentary(i, bank[i].id, "on")
-            --       arp[i].down = arp[i].down + 1
-            --     else
-            --       if rytm.track[i].k == 0 then
-            --         cheat(i, bank[i].id)
-            --       end
-            --       grid_pattern_watch(i)
-            --     end
-            --   else
-            --     table.insert(quantize_events[i],selected[i].id)
-            --   end
-            -- else
-            --   local released_pad = (math.abs(y-9)+((x-1)*4))-(20*(i-1))
-            --   arps.momentary(i, released_pad, "off")
-            -- end
           else
             if not grid_alt then
               bank[i].focus_pad = (math.abs(y-9)+((x-1)*4))-(20*(i-1))
@@ -107,16 +74,6 @@ function grid_actions.init(x,y,z)
         elseif z == 0 and x > 0 + (5*(i-1)) and x <= 4 + (5*(i-1)) and y >=5 then
           if not bank[i].focus_hold then
             grid_actions.pad_up(i,(math.abs(y-9)+((x-1)*4))-(20*(i-1)))
-            -- local released_pad = (math.abs(y-9)+((x-1)*4))-(20*(i-1))
-            -- if bank[i][released_pad].play_mode == "momentary" then
-            --   softcut.rate(i+1,0)
-            -- end
-            -- if (arp[i].enabled and not arp[i].hold) or (menu == 9 and not arp[i].hold) then
-            --   arps.momentary(i, released_pad, "off")
-            --   arp[i].down = arp[i].down - 1
-            -- elseif (arp[i].enabled and arp[i].hold and not arp[i].pause) or (menu == 9 and arp[i].hold and not arp[i].pause) then
-            --   arp[i].down = arp[i].down - 1
-            -- end
           end
         end
       end
@@ -1547,6 +1504,7 @@ function grid_actions.pad_down(i,p)
   else
     local released_pad = p
     arps.momentary(i, released_pad, "off")
+    -- print("removing arp note")
   end
 end
 
@@ -1556,10 +1514,14 @@ function grid_actions.pad_up(i,p)
     softcut.rate(i+1,0)
   end
   if (arp[i].enabled and not arp[i].hold) or (menu == 9 and not arp[i].hold) then
+    -- print("pad up 1")
     arps.momentary(i, released_pad, "off")
     arp[i].down = arp[i].down - 1
   elseif (arp[i].enabled and arp[i].hold and not arp[i].pause) or (menu == 9 and arp[i].hold and not arp[i].pause) then
-    arp[i].down = arp[i].down - 1
+    if not grid_alt then
+      -- print("pad up 2", grid_alt)
+      arp[i].down = arp[i].down - 1
+    end
   end
 end
 
