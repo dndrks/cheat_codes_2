@@ -1477,10 +1477,10 @@ function init()
           local pad = bank[page.loops.sel][bank[page.loops.sel].id]
           local min = pad.mode == 1 and live[pad.clip].min or clip[pad.clip].min
           local max = pad.mode == 1 and live[pad.clip].max or clip[pad.clip].max
-          update_waveform(1,key1_hold and pad.start_point or min,key1_hold and pad.end_point or max,128)
+          update_waveform(pad.mode,key1_hold and pad.start_point or min,key1_hold and pad.end_point or max,128)
         elseif (params:get("SOS_enabled_1") == 1 or params:get("SOS_enabled_2") == 1 or params:get("SOS_enabled_3") == 1 ) and page.loops.zoomed_mode then
           local pad = bank[page.loops.sel][bank[page.loops.sel].id]
-          update_waveform(1,pad.start_point,pad.end_point or max,128)
+          update_waveform(pad.mode,pad.start_point,pad.end_point or max,128)
         end
       -- need to draw LIVE here...
       end
@@ -3271,8 +3271,10 @@ function cheat(b,i,silent)
   
   if all_loaded and silent == nil then
     if softcut_voices_are_paused[b] == true then
-      softcut.pre_level(b+1,1)
-      softcut.rec_level(b+1,0)
+      if params:get("SOS_enabled_"..b) == 0 then
+        softcut.pre_level(b+1,1)
+        softcut.rec_level(b+1,0)
+      end
       softcut.rec(b+1,1)
       softcut.play(b+1,1)
       softcut_voices_are_paused[b] = false

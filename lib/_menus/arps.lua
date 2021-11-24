@@ -284,6 +284,9 @@ function _arps.process_encoder(n,d)
         local working = deci_to_int[tostring(rounded)]
         working = util.clamp(working+d,1,11)
         local int_to_deci = {0.125,1/6,0.25,1/3,0.5,2/3,1,4/3,2,8/3,4}
+        for i = 1,16 do
+          bank[id][i].arp_time = int_to_deci[working]
+        end
         arp[id].time = int_to_deci[working]
       elseif _arps_.param == 2 then
         local dir_to_int =

@@ -13,7 +13,7 @@ end
 function _loops.init()
   page.loops = {}
   page.loops.layer = "global" -- "global" or "clip" or "record"
-  page.loops.bank_controls = {"cheat_pad","start_point","end_point","rate","semitone","cent","glide","buffer","loop_state","auto_chop","stretch_mode","stretch_step","stretch_duration","stretch_fade"}
+  page.loops.bank_controls = {"cheat_pad","start_point","end_point","rate","semitone","cent","glide","buffer","loop_state","auto_chop","stretch_mode","stretch_step","stretch_duration","stretch_fade","SOS_enabled","SOS_feedback","SOS_L_in","SOS_R_in"}
   page.loops.selected_bank_control = "cheat_pad"
   page.loops.live_controls = {"segment","start_point","end_point","record","feedback","mode","duration","erase","random_rec"}
   page.loops.selected_live_control = "segment"
@@ -303,18 +303,6 @@ function _loops.process_encoder(n,d)
             softcut.rate(page.loops.sel+1, pad.rate*_loops.get_total_pitch_offset(page.loops.sel,pad.pad_id))
           end
         elseif page.loops.selected_bank_control == "semitone" then
-          -- local current_offset = (math.log(pad.offset)/math.log(0.5))*-12
-          -- current_offset = util.clamp(current_offset+d/32,-36,24)
-          -- if current_offset > -0.0001 and current_offset < 0.0001 then
-          --   current_offset = 0
-          -- end
-          -- pad.offset = math.pow(0.5, -current_offset / 12)
-          -- if key1_hold then
-          --   _loops.inherit_offset()
-          -- end
-          -- if bank[page.loops.sel].id == pad.pad_id then
-          --   softcut.rate(page.loops.sel+1, pad.rate*pad.offset)
-          -- end
           _loops.delta_offset(page.loops.sel,pad.pad_id,"semitone",d)
           if key1_hold then
             _loops.inherit_offset("semitone")
@@ -394,6 +382,14 @@ function _loops.process_encoder(n,d)
           params:delta("doughstretch_duration_"..page.loops.sel,d)
         elseif page.loops.selected_bank_control == "stretch_fade" then
           params:delta("doughstretch_fade_"..page.loops.sel,d)
+        elseif page.loops.selected_bank_control == "SOS_enabled" then
+          params:delta("SOS_enabled_"..page.loops.sel,d)
+        elseif page.loops.selected_bank_control == "SOS_feedback" then
+          params:delta("SOS_feedback_"..page.loops.sel,d)
+        elseif page.loops.selected_bank_control == "SOS_L_in" then
+          params:delta("SOS_L_in_"..page.loops.sel,d)
+        elseif page.loops.selected_bank_control == "SOS_R_in" then
+          params:delta("SOS_R_in_"..page.loops.sel,d)
         end
       elseif page.loops.sel == 4 then
         if page.loops.selected_live_control == "segment" then
@@ -611,19 +607,24 @@ function _loops.draw_menu()
       end
       
       screen.level(10)
+      screen.move(0,46)
+      screen.line(128,46)
       if tab.key(page.loops.bank_controls,page.loops.selected_bank_control) < 11 then
-        screen.move(0,46)
-        screen.line(128,46)
-        -- screen.move(0,45)
-        -- screen.line(64,45)
+        -- screen.move(0,46)
+        -- screen.line(128,46)
         screen.move(0,47)
-        screen.line(64,47)
-      else
-        screen.move(0,46)
-        screen.line(128,46)
+        screen.line(42,47)
+      elseif tab.key(page.loops.bank_controls,page.loops.selected_bank_control) < 15 then
+        -- screen.move(0,46)
+        -- screen.line(128,46)
         -- screen.move(64,45)
         -- screen.line(128,45)
-        screen.move(64,47)
+        screen.move(42,47)
+        screen.line(85,47)
+      else
+        -- screen.move(0,46)
+        -- screen.line(128,46)
+        screen.move(85,47)
         screen.line(128,47)
       end
       screen.stroke()
@@ -684,7 +685,7 @@ function _loops.draw_menu()
               screen.text_center(texts[sel])
             end
           end
-        else
+        elseif tab.key(page.loops.bank_controls,page.loops.selected_bank_control) < 15 then
           local textline_1 = "STRETCH: "..params:string("doughstretch_mode_"..page.loops.sel)
           -- local textline_2 = 
           -- dough_stretch[page.loops.sel].mode == "chi" and "FADE: 1/"..dough_stretch[page.loops.sel].fade_time
@@ -703,6 +704,23 @@ function _loops.draw_menu()
           screen.move(0,64)
           screen.text(textline_3 ~= nil and textline_3 or "")
           screen.level(sel == "stretch_fade" and 15 or 3)
+          screen.move(128,64)
+          screen.text_right(textline_4 ~= nil and textline_4 or "")
+        else
+          local textline_1 = "SOS: "..(params:get("SOS_enabled_"..page.loops.sel) == 1 and "on" or "off")
+          local textline_2 = "FEED: "..params:get("SOS_feedback_"..page.loops.sel)
+          local textline_3 = "L IN: "..params:string("SOS_L_in_"..page.loops.sel)
+          local textline_4 = "R IN: "..params:string("SOS_R_in_"..page.loops.sel)
+          screen.level(sel == "SOS_enabled" and 15 or 3)
+          screen.move(0,54)
+          screen.text(textline_1 ~= nil and textline_1 or "")
+          screen.level(sel == "SOS_feedback" and 15 or 3)
+          screen.move(128,54)
+          screen.text_right(textline_2 ~= nil and textline_2 or "")
+          screen.level(sel == "SOS_L_in" and 15 or 3)
+          screen.move(0,64)
+          screen.text(textline_3 ~= nil and textline_3 or "")
+          screen.level(sel == "SOS_R_in" and 15 or 3)
           screen.move(128,64)
           screen.text_right(textline_4 ~= nil and textline_4 or "")
         end

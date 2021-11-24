@@ -194,16 +194,17 @@ function ca.SOS_voice_overwrite(target,state)
   --expects source: bank[x][y], state: boolean
   if state then
     local feedback = params:get("SOS_feedback_"..target.bank_id)
-    local l_in = params:get("SOS_L_in_"..target.bank_id)
-    local r_in = params:get("SOS_R_in_"..target.bank_id)
+    local l_in = params:get("SOS_L_in_"..target.bank_id) == 2 and 1 or 0
+    local r_in = params:get("SOS_R_in_"..target.bank_id) == 2 and 1 or 0
     softcut.pre_level(target.bank_id+1,feedback)
     softcut.rec_level(target.bank_id+1,1)
+    -- sofcut.rec(1,1)
     softcut.level_input_cut(1,target.bank_id+1,l_in*0.5)
     softcut.level_input_cut(2,target.bank_id+1,r_in*0.5)
     -- if not softcut_voices_are_paused[target] then
     --   softcut.rec(target.bank_id+1,1)
     -- end
-    print("should rec..."..target.bank_id+1)
+    -- print("should rec..."..target.bank_id+1)
   else
     softcut.pre_level(target.bank_id+1,1)
     softcut.rec_level(target.bank_id+1,0)

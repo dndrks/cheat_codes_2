@@ -200,7 +200,9 @@ end
 function dough.derive_bpm(source)
   local dur = 0
   local pattern_id;
-  dur = source.original_length
+  if source.original_length ~= nil then
+    dur = source.original_length
+  end
   if dur > 0 then
     local quarter = dur/4
     local derived_bpm = 60/quarter
@@ -221,16 +223,18 @@ function dough.scale_sample_to_main(i)
   if bank[i][bank[i].id].mode == 2 then
     local sample_tempo = dough.derive_bpm(clip[bank[i][bank[i].id].clip])
     local proj_tempo = clock.get_tempo()
-    local scale = util.round(sample_tempo/proj_tempo * 100,0.01)
-    if clip[bank[i][bank[i].id].clip].sample_rate == 41000 then
-      scale = scale / ((scale * (48000/41000))/100)
+    if sample_tempo ~= nil and proj_tempo ~= nil then
+      local scale = util.round(sample_tempo/proj_tempo * 100,0.01)
+      if clip[bank[i][bank[i].id].clip].sample_rate == 41000 then
+        scale = scale / ((scale * (48000/41000))/100)
+      end
+      params:set("doughstretch_duration_"..i, 100)
+      params:set("doughstretch_step_"..i, scale)
+      -- dough_stretch[i].time = 100
+      -- dough_stretch[i].inc = scale
+      dough_stretch[i].fade_time = params:get("doughstretch_fade_"..i)
+      softcut.fade_time(i+1,dough_stretch[i].fade_time/100)
     end
-    params:set("doughstretch_duration_"..i, 100)
-    params:set("doughstretch_step_"..i, scale)
-    -- dough_stretch[i].time = 100
-    -- dough_stretch[i].inc = scale
-    dough_stretch[i].fade_time = params:get("doughstretch_fade_"..i)
-    softcut.fade_time(i+1,dough_stretch[i].fade_time/100)
   end
 end
 

@@ -94,7 +94,7 @@ function start_up.init()
   
   --params:add_separator()
   
-  params:add_group("loops + buffers", 71)
+  params:add_group("loops + buffers", 68)
 
   params:add_separator("clips")
   
@@ -251,23 +251,20 @@ function start_up.init()
         softcut.pre_level(i+1,x)
       end
     end}
-    params:add_option("SOS_mode_"..i,"--> SOS mode",{"immediate","pad trig"},1)
+    -- params:add_option("SOS_mode_"..i,"--> SOS mode",{"immediate","pad trig"},1) -- TODO: IS THIS NECESSARY??
     params:add_option("SOS_L_in_"..i, "--> SOS L input", {"off","on"},2)
     params:set_action("SOS_L_in_"..i, function(x)
       if params:get("SOS_enabled_"..i) == 1 then
-        local good_level;
-        if x == 1 then good_level = 0 else good_level = 0.5 end
-        -- softcut.level_input_cut(1,i+1,x-1)
+        local good_level = 0.5
+        if x == 1 then good_level = 0 end
         softcut.level_input_cut(1,i+1,good_level)
       end
     end)
-    params:add_option("SOS_R_in_"..i, "--> SOS R input", {"on","off"},1)
+    params:add_option("SOS_R_in_"..i, "--> SOS R input", {"off","on"},2)
     params:set_action("SOS_R_in_"..i, function(x)
       if params:get("SOS_enabled_"..i) == 1 then
-        -- softcut.level_input_cut(1,i+1,x-1)
-        local good_level;
-        if x == 1 then good_level = 0 else good_level = 0.5 end
-        -- softcut.level_input_cut(1,i+1,x-1)
+        local good_level = 0.5
+        if x == 1 then good_level = 0 end
         softcut.level_input_cut(2,i+1,good_level)
       end
     end)
