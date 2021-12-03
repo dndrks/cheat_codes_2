@@ -1365,6 +1365,7 @@ function grid_actions.init(x,y,z)
           pattern_saver[y].clock = clock.run(test_save,y)
           -- print("starting save "..pattern_saver[y].clock)
         elseif z == 0 then
+
           if pattern_saver[y].clock ~= nil then
             clock.cancel(pattern_saver[y].clock)
           end
@@ -1372,7 +1373,7 @@ function grid_actions.init(x,y,z)
           if not grid_alt and saved_pat == 1 then
             if pattern_saver[y].saved[x] == 1 then
               pattern_saver[y].load_slot = x
-              test_load(x+(8*(y-1)),y)
+              test_load(x+(8*(y-1)),y,"from_grid")
             end
           end
         end

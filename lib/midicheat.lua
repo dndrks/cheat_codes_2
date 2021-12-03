@@ -69,7 +69,7 @@ end
 function mc.adjust_bank_level(target,val)
   bank[target.bank_id].global_level = util.linlin(0,127,0,2,val)
   if target.envelope_mode == 2 or not target.enveloped then
-    softcut.level_slew_time(target.bank_id +1,1.0)
+    softcut.level_slew_time(target.bank_id +1,0.01)
     softcut.level(target.bank_id +1,target.level*bank[target.bank_id].global_level)
     softcut.level_cut_cut(target.bank_id +1,5,(target.left_delay_level*target.level)*bank[target.bank_id].global_level)
     softcut.level_cut_cut(target.bank_id +1,6,(target.right_delay_level*target.level)*bank[target.bank_id].global_level)
