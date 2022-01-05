@@ -86,6 +86,16 @@ default_vals =
   , target = 1
   , curve = "linear"
   }
+, ["bank level"] =
+  {
+    params_name = "bank level"
+  , enabled = false
+  , destructive = true
+  , min = 0
+  , max = 127
+  , target = 1
+  , curve = "linear"
+  }
 , ["filter tilt"] =
   {
     params_name = "filter tilt"
@@ -367,6 +377,7 @@ local parameter_names =
 , "current pad"
 , "rate"
 , "pan"
+, "bank level"
 , "filter tilt"
 , "start point"
 , "end point"

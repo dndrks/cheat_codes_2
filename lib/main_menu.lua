@@ -153,7 +153,12 @@ function main_menu.init()
         local mult = mults[params:get("live_buff_rate")]
         local display_live_start = string.format("%.4g",(util.round(rec[rec.focus].start_point,0.0001)-off)*mult)
         local display_live_end = string.format("%.4g",(rec[rec.focus].end_point-off)*mult)
-        screen.text_right("s: "..display_live_start.."s | e: "..display_live_end.."s")
+        -- screen.text_right("s: "..display_live_start.."s | e: "..display_live_end.."s")
+        if params:get("rec_loop_enc_resolution") <= 2 then
+          screen.text_right("s: "..display_live_start.."s | e: "..display_live_end.."s")
+        else
+          screen.text_right("duration: "..util.round((display_live_end - display_live_start)/clock.get_beat_sec(),0.01).." beats" )
+        end
       end
     end
 

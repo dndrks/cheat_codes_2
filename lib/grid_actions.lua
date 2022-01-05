@@ -1065,13 +1065,14 @@ function grid_actions.init(x,y,z)
                   else
                     if params:string("clock_source") == "internal" then
                       -- clock.internal.start(3.9)
+                      transport.pending = true
                       clock.internal.start(-0.1)
                     -- elseif params:string("clock_source") == "link" then
                     else
+                      transport.pending = true
                       transport.cycle = 1
                       clock.transport.start()
                     end
-                    transport.pending = true
                     -- clock.transport.start()
                   end
                 end
@@ -1399,12 +1400,13 @@ function grid_actions.arp_handler(i)
       clock.transport.stop()
     else
       if params:string("clock_source") == "internal" then
+        transport.pending = true
         clock.internal.start(-0.1)
       else
+        transport.pending = true
         transport.cycle = 1
         clock.transport.start()
       end
-      transport.pending = true
     end
   end
   if not arp[i].enabled then
@@ -1569,13 +1571,14 @@ function grid_actions.grid_pat_handler(i)
             else
               if params:string("clock_source") == "internal" then
                 -- clock.internal.start(3.9)
+                transport.pending = true
                 clock.internal.start(-0.1)
               -- elseif params:string("clock_source") == "link" then
               else
                 transport.cycle = 1
+                transport.pending = true
                 clock.transport.start()
               end
-              transport.pending = true
               -- clock.transport.start()
             end
           end

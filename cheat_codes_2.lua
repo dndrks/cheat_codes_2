@@ -1,6 +1,6 @@
 -- cheat codes 2
 --          a sample playground
--- rev: 211203 - LTS4.1
+-- rev: 220105 - LTS4.2
 -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
 -- need help?
 -- please visit:
@@ -898,6 +898,8 @@ function init()
     rec[i].queued = false
   end
 
+  rec.transport_queued = false
+
   params:add_group("GRID/ARC",6)
   params:add_option("LED_style","grid LED style",{"varibright","4-step","grayscale"},1)
   params:set_action("LED_style",
@@ -1406,7 +1408,7 @@ function init()
           rec_state_watcher:stop()
           rec.stopped = true
           grid_dirty = true
-          rec_ended_callback()
+          -- rec_ended_callback()
           -- if menu == 2 then
           --   if page.loops.sel ~= 5 then screen_dirty = true end
           --   -- print("stopped")
@@ -2210,12 +2212,13 @@ function start_pattern(target,start_type,style,mod_table)
       clock.transport.stop()
     else
       if params:string("clock_source") == "internal" then
+        transport.pending = true
         clock.internal.start(-0.1)
       else
+        transport.pending = true
         transport.cycle = 1
         clock.transport.start()
       end
-      transport.pending = true
     end
   end
   if transport.is_running then
@@ -3409,10 +3412,9 @@ function threshold_rec_handler()
   end
 end
 
-function toggle_buffer(i,untrue_alt)
+function toggle_buffer(i,untrue_alt,delayed)
 
   grid_dirty = true
-  
   local old_clip = rec.focus
 
   for j = 1,3 do
@@ -3423,49 +3425,62 @@ function toggle_buffer(i,untrue_alt)
 
   rec.focus = i
 
-  if rec[rec.focus].loop == 0 and params:string("one_shot_clock_div") == "threshold" and rec[rec.focus].queued then
-    softcut.level_slew_time(1,0)
-    softcut.fade_time(1,0)
-    one_shot_clock()
-  else
-    softcut.level_slew_time(1,0.05)
-    softcut.fade_time(1,0.01)
-    if rec[rec.focus].loop == 0 and not grid_alt then
-      if rec[rec.focus].state == 0 then
-        run_one_shot_rec_clock() -- this runs only if not recording
-      elseif rec[rec.focus].state == 1 and rec_state_watcher.is_running then -- can have both conditions, right?
-        cancel_one_shot_rec_clock()
+  if params:string("start_rec_loop_at_launch") == "no"
+  or (params:string("start_rec_loop_at_launch") == "yes" and transport.is_running)
+  or (params:string("start_rec_loop_at_launch") == "yes" and not transport.is_running and rec[rec.focus].state == 1)
+  then
+    if rec[rec.focus].loop == 0 and params:string("one_shot_clock_div") == "threshold" and rec[rec.focus].queued then
+      softcut.level_slew_time(1,0)
+      softcut.fade_time(1,0)
+      one_shot_clock()
+    else
+      softcut.level_slew_time(1,0.05)
+      softcut.fade_time(1,0.01)
+      if rec[rec.focus].loop == 0 and not grid_alt then
+        if rec[rec.focus].state == 0 then
+          run_one_shot_rec_clock() -- this runs only if not recording
+        elseif rec[rec.focus].state == 1 and rec_state_watcher.is_running then -- can have both conditions, right?
+          cancel_one_shot_rec_clock()
+        end
+      elseif rec[rec.focus].loop == 0 and (grid_alt and untrue_alt ~= nil) then
+        -- buff_flush()
+      elseif rec[rec.focus].loop == 1 and not grid_alt then
+        if one_shot_rec_clock ~= nil then
+          cancel_one_shot_rec_clock()
+        end
+        softcut.loop_start(1,rec[rec.focus].start_point)
+        softcut.loop_end(1,rec[rec.focus].end_point-0.01)
       end
-    elseif rec[rec.focus].loop == 0 and (grid_alt and untrue_alt ~= nil) then
-      -- buff_flush()
-    elseif rec[rec.focus].loop == 1 and not grid_alt then
-      if one_shot_rec_clock ~= nil then
-        cancel_one_shot_rec_clock()
-      end
-      softcut.loop_start(1,rec[rec.focus].start_point)
-      softcut.loop_end(1,rec[rec.focus].end_point-0.01)
     end
-  end
-  
-  rec.play_segment = rec.focus
-  softcut.loop(1,rec[rec.focus].loop)
-  if rec.stopped == true then
-    rec.stopped = false
+    
+    rec.play_segment = rec.focus
+    softcut.loop(1,rec[rec.focus].loop)
+    if rec.stopped == true then
+      rec.stopped = false
+      if rec[rec.focus].loop == 1 then
+        softcut.position(1,rec[rec.focus].start_point)
+      end
+    end
     if rec[rec.focus].loop == 1 then
-      softcut.position(1,rec[rec.focus].start_point)
+      if old_clip ~= rec.focus then rec[rec.focus].state = 0 end
+      buff_freeze()
+      if rec[rec.focus].clear == 1 then
+        rec[rec.focus].clear = 0
+      end
+    end
+    -- end
+    grid_dirty = true
+    update_waveform(1,key1_hold and rec[rec.focus].start_point or live[rec.focus].min,key1_hold and rec[rec.focus].end_point or live[rec.focus].max,128)
+    -- update_waveform(1,live[rec.focus].min,live[rec.focus].max,128)
+  else
+    if rec.transport_queued == nil then
+      rec.transport_queued = true
+      rec[rec.focus].queued = true
+    else
+      rec.transport_queued = not rec.transport_queued
+      rec[rec.focus].queued = false
     end
   end
-  if rec[rec.focus].loop == 1 then
-    if old_clip ~= rec.focus then rec[rec.focus].state = 0 end
-    buff_freeze()
-    if rec[rec.focus].clear == 1 then
-      rec[rec.focus].clear = 0
-    end
-  end
-  -- end
-  grid_dirty = true
-  update_waveform(1,key1_hold and rec[rec.focus].start_point or live[rec.focus].min,key1_hold and rec[rec.focus].end_point or live[rec.focus].max,128)
-  -- update_waveform(1,live[rec.focus].min,live[rec.focus].max,128)
 end
 
 function update_delays()
@@ -4600,9 +4615,9 @@ function grid_redraw()
         end
         
         if rec[rec.focus].clear == 0 then
-          g:led(16,8-rec.focus,rec[rec.focus].state == 1 and led_maps["live_rec"][edition] or (rec[rec.focus].queued and 15 or led_maps["live_pause"][edition]))
+          g:led(16,8-rec.focus,rec[rec.focus].state == 1 and led_maps["live_rec"][edition] or ((rec[rec.focus].queued or rec.transport_queued) and 15 or led_maps["live_pause"][edition]))
         elseif rec[rec.focus].clear == 1 then
-          g:led(16,8-rec.focus,rec[rec.focus].queued and 9 or led_maps["live_empty"][edition])
+          g:led(16,8-rec.focus,(rec[rec.focus].queued or rec.transport_queued) and 9 or led_maps["live_empty"][edition])
         end
       
       elseif grid_page == 1 then

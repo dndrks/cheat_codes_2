@@ -21,7 +21,7 @@ function tp.init()
     end
   end
   refresh_params_vports()
-  params:add_group("transport settings",59)
+  params:add_group("transport settings",60)
   params:add_separator("auto-start")
   params:add_option("start_transport_at_launch", "start at load (internal)?",{"no","yes"},1)
   -- params:set_action("start_transport_at_launch", function()
@@ -37,6 +37,7 @@ function tp.init()
   for i = 1,3 do
     params:add_option("start_pat_"..i.."_at_launch", "auto-start pat "..banks[i].."?",{"no","yes"},2)
   end
+  params:add_option("start_rec_loop_at_launch", "auto-reset Live rec?",{"no","yes"},1)
   params:add_separator("send MIDI transport?")
   for i = 1,16 do
     params:add_option("port_"..i.."_start_stop_out", vports[i],{"no","yes"},1)
@@ -108,8 +109,58 @@ function tp.start()
   end
   grid_dirty = true
   tp.start_clock = nil
-  tp.pending = false
-  viz_metro_advance = 1
+  
+  if params:string("clock_source") == "link" then
+    clock.run(
+      function()
+        clock.sync(1)
+        tp.pending = false
+        viz_metro_advance = 1
+        if rec.transport_queued then
+          tp.start_rec_from_transport()
+        end
+        print("starting trans")
+      end
+    )
+  else
+    tp.pending = false
+    viz_metro_advance = 1
+    if rec.transport_queued then
+      tp.start_rec_from_transport()
+    end
+    print("starting trans")
+  end
+end
+
+function tp.start_rec_from_transport()
+  softcut.level_slew_time(1,0)
+  softcut.fade_time(1,0)
+  if rec[rec.focus].state == 1 and rec_state_watcher.is_running then
+    rec_state_watcher:stop()
+  end
+  softcut.loop_start(1,rec[rec.focus].start_point-(params:get("one_shot_latency_offset")))
+  softcut.position(1,rec[rec.focus].start_point-((params:get("one_shot_latency_offset")-0.01))) -- TODO CLARIFY IF THIS IS REAL ANYMORE
+  softcut.loop_end(1,rec[rec.focus].end_point)
+  -- softcut.position(1,rec[rec.focus].start_point+0.01)
+  softcut.pre_level(1,params:get("live_rec_feedback_"..rec.focus))
+  softcut.rec_level(1,1)
+  rec.play_segment = rec.focus
+  rec[rec.focus].state = 1
+  rec.stopped = false
+  rec_state_watcher:start()
+  if rec[rec.focus].clear == 1 then rec[rec.focus].clear = 0 end
+  grid_dirty = true
+  rec.transport_queued = false
+  rec[rec.focus].queued = false
+end
+
+function tp.stop_rec_from_transport()
+  softcut.recpre_slew_time(1,0.05)
+  softcut.level_slew_time(1,0.05)
+  softcut.fade_time(1,0.01)
+  rec[rec.focus].state = 0
+  softcut.rec_level(1,rec[rec.focus].state)
+  softcut.pre_level(1,1)
 end
 
 function tp.start_from_midi_message()
@@ -137,6 +188,9 @@ function tp.start_from_midi_message()
   grid_dirty = true
   tp.start_clock = nil
   tp.pending = false
+  if rec.transport_queued then
+    tp.start_rec_from_transport()
+  end
 end
 
 function tp.start_midi()
@@ -202,6 +256,9 @@ function tp.stop()
   transport.status_icon.status = 1
   viz_metro_advance = 1
   grid_dirty = true
+  if params:string("start_rec_loop_at_launch") == "yes" then
+    tp.stop_rec_from_transport()
+  end
 end
 
 function tp.stop_from_midi_message()
@@ -231,7 +288,7 @@ end
 
 function tp.crow_toggle(v)
   if tp.is_running then
-    clock.transport.stop()
+    clock.transport.stop("crow")
   else
     if params:string("clock_source") == "internal" then
       clock.internal.start(-0.1)
@@ -245,7 +302,7 @@ end
 
 function tp.crow_toggle_now()
   if tp.is_running then
-    clock.transport.stop()
+    clock.transport.stop("crow")
   else
     tp.is_running = true
     transport.status_icon.status = 4
@@ -283,30 +340,85 @@ function clock.transport.start()
       tp.start()
       screen_dirty = true
     end
+  elseif all_loaded and params:string("clock_source") == "midi" then
+    local query_transport_in_state = {}
+    for i = 1,16 do
+      if params:string("port_"..i.."_start_stop_in") == "no" then
+        query_transport_in_state[i] = nil
+      else
+        query_transport_in_state[i] = "yes"
+      end
+    end
+    if next(query_transport_in_state) ~= nil then
+      tp.pending = true
+      tp.start()
+      screen_dirty = true
+    else
+      print("ignoring external MIDI transport on message")
+    end
   end
   tp.cycle = tp.cycle + 1
 end
 
-function clock.transport.stop()
+function clock.transport.stop(source)
   -- print("stopping clock")
-  tp.stop()
+  if params:string("clock_source") == "midi" then
+    if source == "manual" or source == "crow" then
+      tp.stop()
+    else
+      local query_transport_in_state = {}
+      for i = 1,16 do
+        if params:string("port_"..i.."_start_stop_in") == "no" then
+          query_transport_in_state[i] = nil
+        else
+          query_transport_in_state[i] = "yes"
+        end
+      end
+      if next(query_transport_in_state) ~= nil then
+        tp.stop()
+      else
+        print("ignoring external MIDI transport message")
+      end
+    end
+  else
+    tp.stop()
+  end
 end
 
 function tp.key(n,z)
   if n == 3 and z == 1 then
     if page.transport.focus == "TRANSPORT" then
       if tp.is_running then
-        clock.transport.stop()
+        clock.transport.stop("manual")
       else
         if params:string("clock_source") == "internal" then
           -- clock.internal.start(3.9)
+          tp.pending = true
           clock.internal.start(-0.1)
         -- elseif params:string("clock_source") == "link" then
-        else
+        elseif params:string("clock_source") ~= "midi" then
           tp.cycle = 1
+          tp.pending = true
           clock.transport.start()
+        else
+          local query_transport_in_state = {}
+          for i = 1,16 do
+            if params:string("port_"..i.."_start_stop_in") == "no" then
+              query_transport_in_state[i] = nil
+            else
+              query_transport_in_state[i] = "yes"
+            end
+          end
+          if next(query_transport_in_state) ~= nil then
+            tp.cycle = 1
+            tp.pending = true
+            clock.transport.start()
+          else
+            tp.pending = true
+            tp.start_from_midi_message()
+            screen_dirty = true
+          end
         end
-        tp.pending = true
         -- clock.transport.start()
       end
     elseif page.transport.focus == "TAP" then
