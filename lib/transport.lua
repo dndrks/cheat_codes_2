@@ -37,7 +37,7 @@ function tp.init()
   for i = 1,3 do
     params:add_option("start_pat_"..i.."_at_launch", "auto-start pat "..banks[i].."?",{"no","yes"},2)
   end
-  params:add_option("start_rec_loop_at_launch", "auto-reset Live rec?",{"no","yes"},1)
+  params:add_option("start_rec_loop_at_launch", "auto-start cued Live rec?",{"no","yes"},1)
   params:add_separator("send MIDI transport?")
   for i = 1,16 do
     params:add_option("port_"..i.."_start_stop_out", vports[i],{"no","yes"},1)
@@ -284,6 +284,9 @@ function tp.stop_from_midi_message()
   tp.is_running = false
   transport.status_icon.status = 1
   grid_dirty = true
+  if params:string("start_rec_loop_at_launch") == "yes" then
+    tp.stop_rec_from_transport()
+  end
 end
 
 function tp.crow_toggle(v)
