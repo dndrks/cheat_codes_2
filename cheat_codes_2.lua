@@ -1,6 +1,6 @@
 -- cheat codes 2
 --          a sample playground
--- rev: 220105 - LTS4.2
+-- rev: 220207 - LTS5
 -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
 -- need help?
 -- please visit:
@@ -3883,6 +3883,7 @@ function key(n,z)
 
         if key1_hold then
           rytm.reset_pattern(rytm.track_edit)
+          -- params:set("euclid_mute_"..rytm.track_edit,params:get("euclid_mute_"..rytm.track_edit) == 0 and 1 or 0)
         else
           rytm.screen_focus = rytm.screen_focus == "left" and "right" or "left"
         end

@@ -11,7 +11,7 @@ function euclid.reer(i)
 end
 
 function euclid.trig(target)
-  if euclid.track[target].s[euclid.track[target].pos] then
+  if euclid.track[target].s[euclid.track[target].pos] and not euclid.track[target].mute then
     if euclid.track[target].mode == "single" then
       cheat(target,euclid.rotate_pads(bank[target].id + euclid.track[target].pad_offset))
     elseif euclid.track[target].mode == "span" then
@@ -53,7 +53,8 @@ function euclid.init()
       auto_pad_offset = 0,
       mode = "single",
       clock_div = 1/2,
-      runner = 0
+      runner = 0,
+      mute = false
     }
   end
 
@@ -85,6 +86,84 @@ function euclid.super_clock()
       euclid.iter(i)
     end
     clock.sync(1/32)
+  end
+end
+
+function euclid.add_params()
+  params:add_group("euclid",3*10)
+  local banks = {"[a]","[b]","[c]"}
+  for i = 1,3 do
+    params:add_separator("bank "..banks[i])
+    params:add_number("euclid_pulses_"..i,"pulses",0,16,0)
+    params:set_action("euclid_pulses_"..i,function(x)
+      if all_loaded then
+        if x > rytm.track[i].n then
+          params:set("euclid_pulses_"..i,rytm.track[i].n)
+        end
+        rytm.track[i].k = params:get("euclid_pulses_"..i)
+        rytm.reer(i)
+      end
+    end)
+    params:add_number("euclid_duration_"..i,"duration",1,16,8)
+    params:set_action("euclid_duration_"..i,function(x)
+      if all_loaded then
+        if x < rytm.track[i].k then
+          params:set("euclid_pulses_"..i,x)
+        end
+        rytm.track[i].n = x
+        rytm.reer(i)
+      end
+    end)
+    params:add_number("euclid_rotation_"..i,"rotation",0,16,0)
+    params:set_action("euclid_rotation_"..i,function(x)
+      if all_loaded then
+        rytm.track[i].rotation = x
+        rytm.track[i].s = rytm.rotate_pattern(rytm.track[i].s, rytm.track[i].rotation)
+        rytm.reer(i)
+      end
+    end)
+    params:add_number("euclid_pad_offset_"..i,"offset",-15,15,0)
+    params:set_action("euclid_pad_offset_"..i,function(x)
+      if all_loaded then
+        rytm.track[i].pad_offset = x
+        rytm.reer(i)
+      end
+    end)
+    params:add_option("euclid_mode_"..i,"mode",{"single","span"},1)
+    params:set_action("euclid_mode_"..i,function(x)
+      if all_loaded then
+        rytm.track[i].mode = params:string("euclid_mode_"..i)
+        rytm.reer(i)
+      end
+    end)
+    params:add_option("euclid_clock_div_"..i,"clock rate",{"1/16","1/8","1/4","1/2","1"},2)
+    params:set_action("euclid_clock_div_"..i,function(x)
+      if all_loaded then
+        local translate_times = {0.25,0.5,1,2,4}
+        rytm.track[i].clock_div = translate_times[x]
+        rytm.reer(i)
+      end
+    end)
+    params:add_number("euclid_auto_rotation_"..i,"auto rotation step",0,16,0)
+    params:set_action("euclid_auto_rotation_"..i,function(x)
+      if all_loaded then
+        rytm.track[i].auto_rotation = x
+        rytm.reer(i)
+      end
+    end)
+    params:add_number("euclid_auto_offset_"..i,"auto offset step",-15,15,0)
+    params:set_action("euclid_auto_offset_"..i,function(x)
+      if all_loaded then
+        rytm.track[i].auto_pad_offset = x
+        rytm.reer(i)
+      end
+    end)
+    params:add_binary("euclid_mute_"..i,"mute","toggle")
+    params:set_action("euclid_mute_"..i, function(x)
+      if all_loaded then
+        euclid.toggle_mute(i)
+      end
+    end)
   end
 end
 
@@ -152,11 +231,11 @@ function euclid.toggle(state)
       clock.cancel(euclid.clock)
     end
     for target = 1,3 do
-      euclid.trig(target)
       euclid.reset[target] = true
       euclid.track[target].runner = 0
       euclid.track[target].pos = 1
       euclid.reset[target] = false
+      euclid.trig(target)
     end
     euclid.clock = clock.run(euclid.super_clock)
     screen.dirty = true
@@ -169,26 +248,6 @@ function euclid.toggle(state)
   end
   screen.dirty = true
 end
-
--- function euclid.toggle(state,target)
---   -- euclid.track[target].runner = 0
---   -- euclid.track[target].pos = 1
---   -- if state == "start" then
---   --   transport.euclid_clock:start()
---   -- elseif state == "stop" then
---   --   transport.euclid_clock:stop()
---   -- end
---   if state == "start" then
---     -- clock.cancel(euclid.clock)
---     -- euclid.trig(target)
---     -- euclid.clock = clock.run(euclid.super_clock)
---     euclid.reset_all_patterns() -- this is the only thing that works...but maybe euclid clock shouldn't be running at top...
---   elseif state == "stop" then
---     clock.cancel(euclid.clock)
---     -- euclid.trig(target)
---   end
---   screen.dirty = true
--- end
 
 function euclid.step(target)
   while true do
@@ -249,8 +308,14 @@ function euclid.restore_collection()
   for i = 1,3 do
     euclid.track[i].auto_rotation = euclid.track[i].auto_rotation == nil and 0 or euclid.track[i].auto_rotation
     euclid.track[i].auto_pad_offset = euclid.track[i].auto_pad_offset == nil and 0 or euclid.track[i].auto_pad_offset
-    -- euclid.reset_pattern(i)
+    if euclid.track[i].mute == nil then
+      euclid.track[i].mute = false
+    end
   end
+end
+
+function euclid.toggle_mute(i)
+  euclid.track[i].mute = not euclid.track[i].mute
 end
 
 return euclid

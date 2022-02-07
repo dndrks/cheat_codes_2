@@ -240,7 +240,7 @@ function start_up.init()
   
   --params:add_option("zilchmo_bind_rand","bind random zilchmo?", {"no","yes"}, 1)
   
-  params:add_group("timing + patterns + arps",27)
+  params:add_group("timing + patterns + arps",30)
   params:add_separator("quantization")
   for i = 1,3 do
     params:add_option("pattern_"..i.."_quantization", "live-quantize pads "..banks[i].."?", {"no", "yes"})
@@ -302,6 +302,20 @@ function start_up.init()
   for i = 1,3 do
     params:add_option("arp_"..i.."_hold_style", "arp "..i.." hold style", {"last pressed","additive"},1)
   end
+  for i = 1,3 do
+    params:add_option("arp_"..i.."_rate", "arp "..i.." rate", {"1/32","1/16t","1/16","1/8t","1/8","1/4t","1/4","1/2t","1/2","1t","1"}, 3)
+    local time_rates = { 1/8, 1/6, 1/4, 1/3, 1/2, 2/3, 1, 4/3, 2, 8/3, 4}
+    params:set_action("arp_"..i.."_rate",
+      function(x)
+        if all_loaded then
+          arp[i].time = time_rates[x]
+          for j = 1,16 do
+            bank[i][j].arp_time = time_rates[x]
+          end
+        end
+      end)
+  end
+
 
   params:add_trigger("arp_panic","arp reset (K3)")
   params:set_action("arp_panic",
@@ -737,6 +751,8 @@ params:add_separator("ALT key")
     slew_filter(i,slew_counter[i].prev_tilt,bank[i][bank[i].id].tilt,bank[i][bank[i].id].q,bank[i][bank[i].id].q,bank[i][bank[i].id].tilt_ease_time)
     end)
   end
+
+  rytm.add_params()
   
   params:add_group("delays",65)
 

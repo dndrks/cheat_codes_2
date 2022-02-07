@@ -1281,6 +1281,14 @@ function main_menu.init()
       screen.move(120, i*12 + 20)
       screen.text_center(rytm.track[i].pad_offset)
 
+      if rytm.track[i].mute then
+        screen.level(i == rytm.track_edit and 15 or 2)
+        for j = 0,128,6 do
+          screen.move(j, i*12 + 20)
+          screen.text("-")
+        end
+      end
+
     end
 
   elseif menu == 9 then
