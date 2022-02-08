@@ -308,9 +308,11 @@ function start_up.init()
     params:set_action("arp_"..i.."_rate",
       function(x)
         if all_loaded then
-          arp[i].time = time_rates[x]
-          for j = 1,16 do
-            bank[i][j].arp_time = time_rates[x]
+          if not arp[i].alt then
+            arp[i].time = time_rates[x]
+            for j = 1,16 do
+              bank[i][j].arp_time = time_rates[x]
+            end
           end
         end
       end)

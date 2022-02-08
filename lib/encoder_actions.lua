@@ -698,7 +698,7 @@ function encoder_actions.init(n,d)
         local working = deci_to_int[tostring(rounded)]
         working = util.clamp(working+d,1,11)
         local int_to_deci = {0.125,1/6,0.25,1/3,0.5,2/3,1,4/3,2,8/3,4}
-        if page.arp_alt[page.arp_page_sel] then
+        if arp[page.arp_page_sel].alt then
           bank[page.arp_page_sel][bank[page.arp_page_sel].id].arp_time = int_to_deci[working]
           focus_arp.time = bank[page.arp_page_sel][bank[page.arp_page_sel].id].arp_time
         else

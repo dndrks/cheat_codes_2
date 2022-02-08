@@ -1236,7 +1236,6 @@ function init()
   end
   page.arp_page_sel = 1
   page.arp_param = {1,1,1}
-  page.arp_alt = {false,false,false}
   page.arp_param_group = {}
   for i = 1,3 do
     page.arp_param_group[i] = 1
@@ -4064,7 +4063,7 @@ function key(n,z)
         key1_hold = true
       elseif menu == 9 then
         key1_hold = true
-        page.arp_alt[page.arp_page_sel] = not page.arp_alt[page.arp_page_sel]
+        arp[page.arp_page_sel].alt = not arp[page.arp_page_sel].alt
       else
         key1_hold = true
         if menu == 2 and page.loops.sel < 4 and page.loops.frame == 2 and not key2_hold then

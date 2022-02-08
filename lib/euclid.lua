@@ -311,6 +311,21 @@ function euclid.restore_collection()
     if euclid.track[i].mute == nil then
       euclid.track[i].mute = false
     end
+    params:set("euclid_pulses_"..i,euclid.track[i].k)
+    params:set("euclid_duration_"..i,euclid.track[i].n)
+    params:set("euclid_rotation_"..i,euclid.track[i].rotation)
+    params:set("euclid_pad_offset_"..i,euclid.track[i].pad_offset)
+    params:set("euclid_mode_"..i,euclid.track[i].mode == "single" and 1 or 2)
+    local translate_times = {0.25,0.5,1,2,4}
+    local restore_clock_div = tab.key(translate_times,euclid.track[i].clock_div)
+    params:set("euclid_clock_div_"..i,restore_clock_div)
+    params:set("euclid_auto_rotation_"..i,euclid.track[i].auto_rotation)
+    params:set("euclid_auto_offset_"..i,euclid.track[i].auto_pad_offset)
+    if euclid.track[i].mute then
+      params:set("euclid_mute_"..i,1)
+    else
+      params:set("euclid_mute_"..i,0)
+    end
   end
 end
 

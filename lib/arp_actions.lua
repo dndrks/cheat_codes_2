@@ -18,6 +18,7 @@ function arp_actions.init(target)
     arp[target].end_point = 1
     arp[target].down = 0
     arp[target].retrigger = true
+    arp[target].alt = false
     arp_clock[target] = clock.run(arp_actions.arpeggiate,target)
 end
 
@@ -204,6 +205,7 @@ end
 function arp_actions.restore_collection()
   for i = 1,3 do
     arp[i].down = arp[i].down == nil and 0 or arp[i].down
+    if arp[i].alt == nil then arp[i].alt = false end
   end
 end
 
