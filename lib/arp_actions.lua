@@ -206,6 +206,17 @@ function arp_actions.restore_collection()
   for i = 1,3 do
     arp[i].down = arp[i].down == nil and 0 or arp[i].down
     if arp[i].alt == nil then arp[i].alt = false end
+    -- below from https://www.rosettacode.org/wiki/Remove_duplicate_elements#Lua
+    local flags = {}
+    for j=1,16 do
+      if not flags[bank[i][j].arp_time] then
+        flags[bank[i][j].arp_time] = true
+      end
+    end
+    if tab.count(flags) > 1 then
+      arp[i].alt = true
+    end
+    --
   end
 end
 
