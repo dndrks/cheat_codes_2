@@ -5882,8 +5882,12 @@ function named_savestate(text)
         -- print("deleting name file")
         os.remove(_path.data .. 'cheat_codes_2/names/'..text..'.cc2')
       end
-      -- local bad_file = util.file_exists(_path.data.."cheat_codes_2/collection-"..text.."/")
       -- print(bad_file)
+    end
+    local bad_file = util.file_exists(_path.data.."cheat_codes_2/collection-"..text.."/")
+    if bad_file then
+      print("removing associated collection folder for misformatted name")
+      os.remove(_path.data.."cheat_codes_2/collection-"..text.."/")
     end
   end
   --/ midi_output_maps save
