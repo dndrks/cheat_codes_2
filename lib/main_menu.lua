@@ -1564,6 +1564,15 @@ function main_menu.init()
     screen.text_center("name is taken")
     screen.move(62,50)
     screen.text_center("will not save")
+  elseif menu == "cannot save screen" then
+    -- print("shoudl show cannot save menu")
+    screen.level(15)
+    screen.move(62,30)
+    screen.font_size(10)
+    screen.text_center("name is bad")
+    screen.move(62,50)
+    screen.text_center("will not save")
+    selected_coll = 0
   elseif menu == "MIDI_config" then
     mc.midi_config_redraw(page.midi_bank)
   elseif menu == "macro_config" then
@@ -1578,13 +1587,25 @@ end
 
 function save_screen(text)
   named_savestate(text)
-  menu = "save screen"
-  -- screen_dirty = true
-  clock.sleep(0.05)
-  screen_dirty = true
-  clock.sleep(1)
-  menu = 1
-  screen_dirty = true
+  local file = util.file_exists(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/patterns/midi3.data")
+  if file then
+    menu = "save screen"
+    -- screen_dirty = true
+    clock.sleep(0.05)
+    screen_dirty = true
+    clock.sleep(1)
+    menu = 1
+    screen_dirty = true
+    print("saved collection '"..text..'"')
+  else
+    if not save_fail_state then
+      -- print("save screen doesn't know, running from save screen")
+      save_fail_state = true
+      clock.run(cannot_save_screen,text)
+      _norns.key(1,1)
+      _norns.key(1,0)
+    end
+  end
 end
 
 function save_fail_screen(text)
@@ -1595,6 +1616,23 @@ function save_fail_screen(text)
   screen_dirty = true
   _norns.key(1,1)
   _norns.key(1,0)
+end
+
+function cannot_save_screen(text)
+  print("CANNOT SAVE COLLECTION WITH THAT NAME")
+  local return_to = menu
+  menu = "cannot save screen"
+  _norns.key(1,1)
+  _norns.key(1,0)
+  screen_dirty = true
+  clock.sleep(1)
+  menu = return_to
+  screen_dirty = true
+  _norns.key(1,1)
+  _norns.key(1,0)
+  
+  -- print("got to end of cannot save")
+  save_fail_state = false
 end
 
 function default_load_screen()

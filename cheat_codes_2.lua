@@ -1,6 +1,6 @@
 -- cheat codes 2
 --          a sample playground
--- rev: 220209 - LTS5
+-- rev: 220507 - LTS5.1
 -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
 -- need help?
 -- please visit:
@@ -1004,7 +1004,7 @@ function init()
     if Namesizer ~= nil then
       textentry.enter(pre_save,Namesizer.phonic_nonsense().."_"..Namesizer.phonic_nonsense())
     else
-      textentry.enter(pre_save)
+      textentry.enter(pre_save,nil)
     end
   end)
   params:add_separator("danger zone!")
@@ -5679,7 +5679,17 @@ function pre_save(text)
   for i in io.popen("ls "..name_filepath):lines() do
     if string.find(i,"%.cc2$") then table.insert(existing_names,name_filepath..i) end
   end
+  local concat = ""
+  for word in string.gmatch(text, "%S+") do
+    if concat == "" then
+      concat = word
+    else
+      concat = (concat.."-"..word)
+    end
+  end
+  text = concat
   if text ~= 'cancel' and text ~= nil and not tab.contains(existing_names,"/home/we/dust/data/cheat_codes_2/names/"..text..".cc2") then
+    print("attempting to save collection '"..text.."'")
     collection_save_clock = clock.run(save_screen,text)
     _norns.key(1,1)
     _norns.key(1,0)
@@ -5694,7 +5704,7 @@ function pre_save(text)
 end
 
 function named_savestate(text)
-  
+  save_fail_state = false
   local collection = text
   local dirname = _path.data.."cheat_codes_2/"
   -- local collection = tonumber(string.format("%.0f",params:get("collection")))
@@ -5707,143 +5717,175 @@ function named_savestate(text)
     os.execute("mkdir " .. dirname)
   end
   local name_file = io.open(_path.data .. "cheat_codes_2/names/"..collection..".cc2", "w+")
-  io.output(name_file)
-  io.write(collection)
-  io.close(name_file)
+  if name_file then
+    io.output(name_file)
+    io.write(collection)
+    io.close(name_file)
   
-  local dirname = _path.data.."cheat_codes_2/collection-"..collection.."/"
-  if os.rename(dirname, dirname) == nil then
-    os.execute("mkdir " .. dirname)
-  end
-
-  local dirnames = {"banks/","params/","arc-rec/","patterns/","step-seq/","arps/","euclid/","rnd/","delays/","rec/","misc/","midi_output_maps/","macros/"}
-  for i = 1,#dirnames do
-    local directory = _path.data.."cheat_codes_2/collection-"..collection.."/"..dirnames[i]
-    if os.rename(directory, directory) == nil then
-      os.execute("mkdir " .. directory)
+    local dirname = _path.data.."cheat_codes_2/collection-"..collection.."/"
+    if os.rename(dirname, dirname) == nil then
+      os.execute("mkdir " .. dirname)
     end
-  end
 
-  for i = 1,3 do
-    tab.save(bank[i],_path.data .. "cheat_codes_2/collection-"..collection.."/banks/"..i..".data")
-    tab.save(step_seq[i],_path.data .. "cheat_codes_2/collection-"..collection.."/step-seq/"..i..".data")
-    tab.save(arp[i],_path.data .. "cheat_codes_2/collection-"..collection.."/arps/"..i..".data")
-    tab.save(rytm.track[i],_path.data .. "cheat_codes_2/collection-"..collection.."/euclid/euclid"..i..".data")
-    tab.save(rnd[i],_path.data .. "cheat_codes_2/collection-"..collection.."/rnd/"..i..".data")
-    if params:get("collect_live") == 2 then
-      collect_samples(i,collection)
-    end
-  end
-
-  for i = 1,2 do
-    tab.save(delay[i],_path.data .. "cheat_codes_2/collection-"..collection.."/delays/delay"..(i == 1 and "L" or "R")..".data")
-  end
-  tab.save(delay_links,_path.data .. "cheat_codes_2/collection-"..collection.."/delays/delay-links.data")
-  
-  params:write(_path.data.."cheat_codes_2/collection-"..collection.."/params/all.pset")
-  
-  -- ultimately, i'll want to remember the mappings of specific devices for specific collections...
-  -- norns.pmap.rev[dev][ch][cc]
-  -- dev = vport ID...
-  -- so, see if there are any mappings and if not then ignore that shit...
-  -- otherwise, grab the device name
-  -- if the device is present, then the mapping can restore
-  -- if not, fuck it.
-  -- might also need to `norns.pmap.assign(name,m.dev,m.ch,m.cc)`
-
-  mc.save_mappings(collection)
-
-  tab.save(rec,_path.data .. "cheat_codes_2/collection-"..collection.."/rec/rec[rec.focus].data")
-
-  -- GRID pattern save
-  if selected_coll ~= collection then
-    meta_copy_coll(selected_coll,collection)
-  end
-  meta_shadow(collection)
-
-  selected_coll = collection
-  --/ GRID pattern save
-
-  -- MIDI pattern save
-  for i = 1,3 do
-    save_midi_pattern(i)
-  end
-  --/ MIDI pattern save
-
-  -- ARC rec save
-  local arc_rec_dirty = {false,false,false}
-  for i = 1,3 do
-    for j = 1,4 do
-      if arc_pat[i][j].count > 0 then
-        arc_rec_dirty[i] = true
+    local dirnames = {"banks/","params/","arc-rec/","patterns/","step-seq/","arps/","euclid/","rnd/","delays/","rec/","misc/","midi_output_maps/","macros/"}
+    for i = 1,#dirnames do
+      local directory = _path.data.."cheat_codes_2/collection-"..collection.."/"..dirnames[i]
+      if os.rename(directory, directory) == nil then
+        os.execute("mkdir " .. directory)
       end
     end
-    if arc_rec_dirty[i] then
-      save_arc_pattern(i)
-    else
-      local file = io.open(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/arc-rec/encoder-"..i..".data", "r")
-      if file then
-        io.input(file)
-        os.remove(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/arc-rec/encoder-"..i..".data")
-        io.close(file)
-      end
-    end
-  end
-  --/ ARC rec save
 
-  -- misc save
-  local file = io.open(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/misc/misc.data", "w+")
-  if file then
-    io.output(file)
-    io.write("clock_tempo: "..params:get("clock_tempo").."\n")
     for i = 1,3 do
-      io.write("pattern_"..i.."_playmode: "..grid_pat[i].playmode.."\n")
-      io.write("pattern_"..i.."_rec_clock_time: "..grid_pat[i].rec_clock_time.."\n")
-    end
-    io.close(file)
-  end
-
-  for i = 1,3 do
-    local directory = _path.data.."cheat_codes_2/collection-"..selected_coll.."/midi_output_maps/bank_"..i.."/"
-    if os.rename(directory, directory) == nil then
-      os.execute("mkdir " .. directory)
-    end
-  end
-  --/ misc save
-
-  -- midi_output_maps save
-  local mc_tables =
-  {
-    "midi_notes"
-  , "midi_notes_channels"
-  , "midi_notes_velocities"
-  , "midi_ccs"
-  , "midi_ccs_channels"
-  , "midi_ccs_values"
-  }
-  
-  for i = 1,3 do
-    for j = 1,#mc_tables do
-      local mc_filepath = _path.data .. "cheat_codes_2/collection-"..selected_coll.."/midi_output_maps/bank_"..i.."/"..mc_tables[j]..".data"
-      local file = io.open(mc_filepath, "w+")
-      if file then
-        io.output(file)
-        tab.save(mc[mc_tables[j]][i].entries,mc_filepath)
-        io.close(file)
+      tab.save(bank[i],_path.data .. "cheat_codes_2/collection-"..collection.."/banks/"..i..".data")
+      tab.save(step_seq[i],_path.data .. "cheat_codes_2/collection-"..collection.."/step-seq/"..i..".data")
+      tab.save(arp[i],_path.data .. "cheat_codes_2/collection-"..collection.."/arps/"..i..".data")
+      tab.save(rytm.track[i],_path.data .. "cheat_codes_2/collection-"..collection.."/euclid/euclid"..i..".data")
+      tab.save(rnd[i],_path.data .. "cheat_codes_2/collection-"..collection.."/rnd/"..i..".data")
+      if params:get("collect_live") == 2 then
+        collect_samples(i,collection)
       end
     end
-  end
 
-  for i = 1,8 do
-    local macro_filepath = _path.data .. "cheat_codes_2/collection-"..selected_coll.."/macros/"..i..".data"
-    local file = io.open(macro_filepath, "w+")
+    for i = 1,2 do
+      tab.save(delay[i],_path.data .. "cheat_codes_2/collection-"..collection.."/delays/delay"..(i == 1 and "L" or "R")..".data")
+    end
+    tab.save(delay_links,_path.data .. "cheat_codes_2/collection-"..collection.."/delays/delay-links.data")
+    
+    params:write(_path.data.."cheat_codes_2/collection-"..collection.."/params/all.pset")
+    
+    -- ultimately, i'll want to remember the mappings of specific devices for specific collections...
+    -- norns.pmap.rev[dev][ch][cc]
+    -- dev = vport ID...
+    -- so, see if there are any mappings and if not then ignore that shit...
+    -- otherwise, grab the device name
+    -- if the device is present, then the mapping can restore
+    -- if not, fuck it.
+    -- might also need to `norns.pmap.assign(name,m.dev,m.ch,m.cc)`
+
+    mc.save_mappings(collection)
+
+    tab.save(rec,_path.data .. "cheat_codes_2/collection-"..collection.."/rec/rec[rec.focus].data")
+
+    -- GRID pattern save
+    if selected_coll ~= collection then
+      meta_copy_coll(selected_coll,collection)
+    end
+    meta_shadow(collection)
+
+    selected_coll = collection
+    --/ GRID pattern save
+
+    -- MIDI pattern save
+    for i = 1,3 do
+      save_midi_pattern(i)
+    end
+    
+    -- local check_file = io.open(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/patterns/midi3.data", "w+")
+    local check_file = util.file_exists(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/patterns/midi3.data")
+    if not check_file then
+      save_fail_state = true
+      goto failed_save
+    end
+    --/ MIDI pattern save
+
+    -- ARC rec save
+    local arc_rec_dirty = {false,false,false}
+    for i = 1,3 do
+      for j = 1,4 do
+        if arc_pat[i][j].count > 0 then
+          arc_rec_dirty[i] = true
+        end
+      end
+      if arc_rec_dirty[i] then
+        save_arc_pattern(i)
+      else
+        local file = io.open(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/arc-rec/encoder-"..i..".data", "r")
+        if file then
+          io.input(file)
+          os.remove(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/arc-rec/encoder-"..i..".data")
+          io.close(file)
+        end
+      end
+    end
+    --/ ARC rec save
+
+    -- misc save
+    local file = io.open(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/misc/misc.data", "w+")
     if file then
       io.output(file)
-      tab.save(macro[i].params,macro_filepath)
+      io.write("clock_tempo: "..params:get("clock_tempo").."\n")
+      for i = 1,3 do
+        io.write("pattern_"..i.."_playmode: "..grid_pat[i].playmode.."\n")
+        io.write("pattern_"..i.."_rec_clock_time: "..grid_pat[i].rec_clock_time.."\n")
+      end
       io.close(file)
     end
-  end
 
+    for i = 1,3 do
+      local directory = _path.data.."cheat_codes_2/collection-"..selected_coll.."/midi_output_maps/bank_"..i.."/"
+      if os.rename(directory, directory) == nil then
+        os.execute("mkdir " .. directory)
+      end
+    end
+    --/ misc save
+
+    -- midi_output_maps save
+    local mc_tables =
+    {
+      "midi_notes"
+    , "midi_notes_channels"
+    , "midi_notes_velocities"
+    , "midi_ccs"
+    , "midi_ccs_channels"
+    , "midi_ccs_values"
+    }
+    
+    for i = 1,3 do
+      for j = 1,#mc_tables do
+        local mc_filepath = _path.data .. "cheat_codes_2/collection-"..selected_coll.."/midi_output_maps/bank_"..i.."/"..mc_tables[j]..".data"
+        local file = io.open(mc_filepath, "w+")
+        if file then
+          io.output(file)
+          tab.save(mc[mc_tables[j]][i].entries,mc_filepath)
+          io.close(file)
+        end
+      end
+    end
+
+    for i = 1,8 do
+      local macro_filepath = _path.data .. "cheat_codes_2/collection-"..selected_coll.."/macros/"..i..".data"
+      local file = io.open(macro_filepath, "w+")
+      if file then
+        io.output(file)
+        tab.save(macro[i].params,macro_filepath)
+        io.close(file)
+      end
+    end
+  else
+    -- print("bad name, runnign cannpt save from named_savestate")
+    save_fail_state = true
+    clock.run(cannot_save_screen,text)
+    _norns.key(1,1)
+    _norns.key(1,0)
+  end
+  ::failed_save::
+  if save_fail_state then
+    -- print("should delete file")
+    local name_filepath = _path.data.."cheat_codes_2/names/"
+    existing_names = {}
+    for i in io.popen("ls "..name_filepath):lines() do
+      if string.find(i,"%.cc2$") then table.insert(existing_names,name_filepath..i) end
+    end
+    if tab.contains(existing_names,'/home/we/dust/data/cheat_codes_2/names/'..text..'.cc2') then
+      table.remove(existing_names,tab.key(existing_names,'/home/we/dust/data/cheat_codes_2/names/'..text..'.cc2'))
+      if util.file_exists(_path.data .. 'cheat_codes_2/names/'..text..'.cc2') then
+        -- print("deleting name file")
+        os.remove(_path.data .. 'cheat_codes_2/names/'..text..'.cc2')
+      end
+      -- local bad_file = util.file_exists(_path.data.."cheat_codes_2/collection-"..text.."/")
+      -- print(bad_file)
+    end
+  end
   --/ midi_output_maps save
 
 end
@@ -6810,29 +6852,42 @@ end
 
 function save_midi_pattern(which)
   local file = io.open(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/patterns/midi"..which..".data", "w+")
-  io.output(file)
-  if midi_pat[which].count > 0 then
-    io.write("stored midi pattern: collection "..selected_coll..", pattern "..which.."\n")
-    io.write("total: "..midi_pat[which].count .. "\n")
-    for i = 1,midi_pat[which].count do
-      io.write("unquant time: "..midi_pat[which].time[i] .. "\n")
-      --io.write("quant duration: "..midi_pat[which].time_beats[i] .. "\n")
-      io.write("quant duration: 0.8".."\n")
-      io.write("target: "..midi_pat[which].event[i].target .. "\n")
-      io.write("note: "..midi_pat[which].event[i].note .. "\n")
+  if file then
+    io.output(file)
+    if midi_pat[which].count > 0 then
+      io.write("stored midi pattern: collection "..selected_coll..", pattern "..which.."\n")
+      io.write("total: "..midi_pat[which].count .. "\n")
+      for i = 1,midi_pat[which].count do
+        io.write("unquant time: "..midi_pat[which].time[i] .. "\n")
+        --io.write("quant duration: "..midi_pat[which].time_beats[i] .. "\n")
+        io.write("quant duration: 0.8".."\n")
+        io.write("target: "..midi_pat[which].event[i].target .. "\n")
+        io.write("note: "..midi_pat[which].event[i].note .. "\n")
+      end
+      io.write("metro props time: "..midi_pat[which].metro.props.time .. "\n")
+      io.write("metro prev time: "..midi_pat[which].prev_time .. "\n")
+      io.write("pattern start point: " .. midi_pat[which].start_point .. "\n")
+      io.write("pattern end point: " .. midi_pat[which].end_point .. "\n")
+      io.write("playmode: " .. midi_pat[which].playmode .. "\n")
+      io.write("random_pitch_range: " .. midi_pat[which].random_pitch_range .. "\n")
+      io.write("rec_clock_time: " .. midi_pat[which].rec_clock_time .. "\n")
+    else
+      io.write("no data present")
     end
-    io.write("metro props time: "..midi_pat[which].metro.props.time .. "\n")
-    io.write("metro prev time: "..midi_pat[which].prev_time .. "\n")
-    io.write("pattern start point: " .. midi_pat[which].start_point .. "\n")
-    io.write("pattern end point: " .. midi_pat[which].end_point .. "\n")
-    io.write("playmode: " .. midi_pat[which].playmode .. "\n")
-    io.write("random_pitch_range: " .. midi_pat[which].random_pitch_range .. "\n")
-    io.write("rec_clock_time: " .. midi_pat[which].rec_clock_time .. "\n")
+    io.close(file)
+    print("saved midi pattern "..which)
   else
-    io.write("no data present")
+    if which == 3 then
+      -- print("BAD FILENAME"..which)
+      if not save_fail_state then
+        save_fail_state = true
+        -- print("running cannot save from midi file creaiton")
+        clock.run(cannot_save_screen,text)
+        _norns.key(1,1)
+        _norns.key(1,0)
+      end
+    end
   end
-  io.close(file)
-  print("saved midi pattern "..which)
 end
 
 function load_midi_pattern(which)
