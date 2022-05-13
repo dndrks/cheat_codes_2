@@ -1459,8 +1459,8 @@ function grid_actions.index_to_grid_pos(val,columns,i)
   return {x,y}
 end
 
-function grid_actions.pad_down(i,p)
-  if not grid_alt then
+function grid_actions.pad_down(i,p,external_seq,silent)
+  if (not grid_alt and not external_seq) or external_seq then
     selected[i].x = grid_actions.index_to_grid_pos(p,4,i)[2] + (5*(i-1))
     selected[i].y = 9 - grid_actions.index_to_grid_pos(p,4,i)[1]
     selected[i].id = p
@@ -1501,15 +1501,19 @@ function grid_actions.pad_down(i,p)
         end
       end
     end
-    grid_pattern_watch(i)
+    if not silent then
+      grid_pattern_watch(i)
+    end
   else
     local released_pad = p
     arps.momentary(i, released_pad, "off")
     -- print("removing arp note")
   end
+  grid_dirty = true
+  screen_dirty = true
 end
 
-function grid_actions.pad_up(i,p)
+function grid_actions.pad_up(i,p,external_seq)
   local released_pad = p
   if bank[i][released_pad].play_mode == "momentary" then
     softcut.rate(i+1,0)
@@ -1519,11 +1523,13 @@ function grid_actions.pad_up(i,p)
     arps.momentary(i, released_pad, "off")
     arp[i].down = arp[i].down - 1
   elseif (arp[i].enabled and arp[i].hold and not arp[i].pause) or (menu == 9 and arp[i].hold and not arp[i].pause) then
-    if not grid_alt then
+    if (not grid_alt and not external_seq) or external_seq
       -- print("pad up 2", grid_alt)
       arp[i].down = arp[i].down - 1
     end
   end
+  grid_dirty = true
+  screen_dirty = true
 end
 
 function grid_actions.grid_pat_handler(i)
