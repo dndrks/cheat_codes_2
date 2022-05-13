@@ -75,7 +75,7 @@ function start_up.init()
   
   --params:add_separator()
   
-  params:add_group("loops + buffers", 33)
+  params:add_group("loops + buffers", 35)
 
   params:add_separator("clips")
   
@@ -89,6 +89,15 @@ function start_up.init()
   end
 
   params:add_separator("live")
+
+  for i = 1,2 do
+    params:add_control("incoming_level_"..i, (i == 1 and "(L)" or "(R)").." incoming audio level", controlspec.new(0,2,'lin',0.1,1,""))
+    params:set_action("incoming_level_"..i, function(x)
+      for j = 1,4 do
+        softcut.level_input_cut(i,j,x)
+      end
+    end)
+  end
 
   for i = 1,3 do
     -- params:add_option("rec_loop_"..i, "live "..i.." rec behavior", {"loop","1-shot","SOS"}, 1)

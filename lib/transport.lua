@@ -360,6 +360,11 @@ function clock.transport.start()
       print("ignoring external MIDI transport on message")
     end
   end
+  if all_loaded then
+    if user_script.transport_start ~= nil then
+      user_script.transport_start()
+    end
+  end
   tp.cycle = tp.cycle + 1
 end
 
@@ -385,6 +390,9 @@ function clock.transport.stop(source)
     end
   else
     tp.stop()
+  end
+  if user_script.transport_stop ~= nil then
+    user_script.transport_stop()
   end
 end
 

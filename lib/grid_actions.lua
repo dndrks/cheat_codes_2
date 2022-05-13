@@ -657,7 +657,6 @@ function grid_actions.init(x,y,z)
                 del.clear_bundle(target,bundle)
               else
                 del.restore_bundle(target,bundle)
-                delay[target].selected_bundle = bundle
               end
             end
           elseif z == 0 then
@@ -1325,7 +1324,6 @@ function grid_actions.init(x,y,z)
                 del.clear_bundle(target,bundle)
               else
                 del.restore_bundle(target,bundle)
-                delay[target].selected_bundle = bundle
               end
             end
           elseif z == 0 then

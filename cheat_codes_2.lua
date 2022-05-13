@@ -1,6 +1,6 @@
 -- cheat codes 2
 --          a sample playground
--- rev: 220507 - LTS5.1
+-- rev: 220512 - LTS6
 -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
 -- need help?
 -- please visit:
@@ -20,6 +20,10 @@ end
 
 if util.file_exists(_path.code.."namesizer") then
   Namesizer = include 'namesizer/lib/namesizer'
+end
+
+function grid.add(dev)
+  grid_dirty = true
 end
 
 local grid = util.file_exists(_path.code.."midigrid") and include "midigrid/lib/midigrid" or grid
@@ -2998,9 +3002,11 @@ function find_the_key(t,val)
 end
 
 function cheat(b,i)
+  b = util.round(b)
+  i = util.round(i)
   local pad = bank[b][i]
   if all_loaded then
-    mc.midi_note_from_pad(util.round(b),util.round(i))
+    mc.midi_note_from_pad(b,i)
     mc.route_midi_mod(b,i)
   end
   if env_counter[b].is_running then
@@ -3087,14 +3093,14 @@ function cheat(b,i)
       if slew_counter[b].slewedVal ~= nil and math.floor(slew_counter[b].slewedVal*10000) ~= math.floor(slew_counter[b].next_tilt*10000) then
         if math.floor(slew_counter[b].prev_tilt*10000) ~= math.floor(slew_counter[b].slewedVal*10000) then
           slew_counter[b].interrupted = 1
-          slew_filter(util.round(b),slew_counter[b].slewedVal,slew_counter[b].next_tilt,slew_counter[b].prev_q,slew_counter[b].next_q,pad.tilt_ease_time)
+          slew_filter(b,slew_counter[b].slewedVal,slew_counter[b].next_tilt,slew_counter[b].prev_q,slew_counter[b].next_q,pad.tilt_ease_time)
         else
           slew_counter[b].interrupted = 0
-          slew_filter(util.round(b),slew_counter[b].prev_tilt,slew_counter[b].next_tilt,slew_counter[b].prev_q,slew_counter[b].next_q,pad.tilt_ease_time)
+          slew_filter(b,slew_counter[b].prev_tilt,slew_counter[b].next_tilt,slew_counter[b].prev_q,slew_counter[b].next_q,pad.tilt_ease_time)
         end
       end
     elseif pad.tilt_ease_type == 2 then
-      slew_filter(util.round(b),slew_counter[b].prev_tilt,slew_counter[b].next_tilt,slew_counter[b].prev_q,slew_counter[b].next_q,pad.tilt_ease_time)
+      slew_filter(b,slew_counter[b].prev_tilt,slew_counter[b].next_tilt,slew_counter[b].prev_q,slew_counter[b].next_q,pad.tilt_ease_time)
     end
   end
   softcut.pan(b+1,pad.pan)
@@ -5748,6 +5754,7 @@ function named_savestate(text)
 
     for i = 1,2 do
       tab.save(delay[i],_path.data .. "cheat_codes_2/collection-"..collection.."/delays/delay"..(i == 1 and "L" or "R")..".data")
+      tab.save(delay_bundle[i],_path.data .. "cheat_codes_2/collection-"..collection.."/delays/delay_bundle"..(i == 1 and "L" or "R")..".data")
     end
     tab.save(delay_links,_path.data .. "cheat_codes_2/collection-"..collection.."/delays/delay-links.data")
     
@@ -5931,6 +5938,9 @@ function named_loadstate(path)
       if rec.play_segment == nil then rec.play_segment = rec.focus end
       softcut.loop_start(1,rec[rec.focus].start_point)
       softcut.loop_end(1,rec[rec.focus].end_point-0.01)
+      if rec[rec.focus].state == 1 then
+        rec[rec.focus].state = 0
+      end
     end
     for i = 1,3 do
       if tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/banks/"..i..".data") ~= nil then
@@ -6000,6 +6010,12 @@ function named_loadstate(path)
     for i = 1,2 do
       if tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/delays/delay"..(i == 1 and "L" or "R")..".data") ~= nil then
         delay[i] = tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/delays/delay"..(i == 1 and "L" or "R")..".data")
+        if util.file_exists(_path.data .. "cheat_codes_2/collection-"..collection.."/delays/delay_bundle"..(i == 1 and "L" or "R")..".data") then
+          delay_bundle[i] = tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/delays/delay_bundle"..(i == 1 and "L" or "R")..".data")
+          if delay_bundle[i][delay[i].selected_bundle].saved then
+            del.restore_bundle(i,delay[i].selected_bundle)
+          end
+        end
       end
     end
 
@@ -6076,6 +6092,14 @@ function named_loadstate(path)
     clock.run(reset_step_seq,i,4)
   end
     
+  if util.file_exists(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/user_script.lua") then
+    print("loading user_script.lua")
+    local user_script_filepath = (_path.data .. "cheat_codes_2/collection-"..selected_coll.."/user_script.lua")
+    user_script = dofile(user_script_filepath)
+    if user_script.init then
+      user_script.init()
+    end
+  end
 
   grid_dirty = true
 

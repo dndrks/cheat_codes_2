@@ -117,7 +117,7 @@ end
 
 function delays.build_bundle(target,slot)
   -- delay[target].saver_active = true -- declare this external to the function
-  clock.sleep(1)
+  clock.sleep(0.25)
   if delay[target].saver_active then
     local b = delay_bundle[target][slot]
     local delay_name = target == 1 and "delay L: " or "delay R: "
@@ -165,6 +165,7 @@ function delays.restore_bundle(target,slot)
     local delay_time = delay_rate_to_time + (41 + (30*(target-1)))
     delay[target].end_point = delay_time
     softcut.loop_end(target+4,delay[target].end_point)
+    delay[target].selected_bundle = slot
   else
     print(delay_name.."no data saved in slot "..slot)
   end
