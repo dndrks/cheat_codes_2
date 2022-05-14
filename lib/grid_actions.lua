@@ -1523,7 +1523,7 @@ function grid_actions.pad_up(i,p,external_seq)
     arps.momentary(i, released_pad, "off")
     arp[i].down = arp[i].down - 1
   elseif (arp[i].enabled and arp[i].hold and not arp[i].pause) or (menu == 9 and arp[i].hold and not arp[i].pause) then
-    if (not grid_alt and not external_seq) or external_seq
+    if (not grid_alt and not external_seq) or external_seq then
       -- print("pad up 2", grid_alt)
       arp[i].down = arp[i].down - 1
     end
