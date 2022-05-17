@@ -59,14 +59,14 @@ function grid_actions.init(x,y,z)
               bank[i].focus_pad = (math.abs(y-9)+((x-1)*4))-(20*(i-1))
               mc.mft_redraw(bank[i][bank[i].focus_pad],"all")
             elseif grid_alt then
-              if not pad_clipboard then
+              if not pad_clipboard or tab.count(pad_clipboard) == 0 then
                 pad_clipboard = {}
                 bank[i].focus_pad = (math.abs(y-9)+((x-1)*4))-(20*(i-1))
                 pad_copy(pad_clipboard, bank[i][bank[i].focus_pad])
               else
                 bank[i].focus_pad = (math.abs(y-9)+((x-1)*4))-(20*(i-1))
                 pad_copy(bank[i][bank[i].focus_pad], pad_clipboard)
-                pad_clipboard = nil
+                pad_clipboard = {}
               end
             end
           end
@@ -194,6 +194,13 @@ function grid_actions.init(x,y,z)
       
       if x == 16 and y == 8 then
         grid_alt = z == 1 and true or false
+        if grid_alt == false then
+          if pad_clipboard == nil then
+            pad_clipboard = {}
+          elseif tab.count(pad_clipboard) > 0 then
+            pad_clipboard = {}
+          end
+        end
         arc_alt = z
         if menu ~= 1 then screen_dirty = true end
       end
@@ -912,7 +919,7 @@ function grid_actions.init(x,y,z)
             selected[bank_64].id = (4*(y-4))+x
             b.id = selected[bank_64].id
             which_bank = bank_64
-            pad_clipboard = nil
+            pad_clipboard = {}
             if b.quantize_press == 0 then
               if arp[bank_64].enabled and grid_pat[bank_64].rec == 0 and not arp[bank_64].pause then
                 if arp[bank_64].down == 0 and params:string("arp_"..bank_64.."_hold_style") == "last pressed" then
@@ -961,7 +968,7 @@ function grid_actions.init(x,y,z)
             else
               b.focus_pad = (4*(y-4))+x
               pad_copy(b[b.focus_pad], pad_clipboard)
-              pad_clipboard = nil
+              pad_clipboard = {}
             end
           end
         end
@@ -1469,7 +1476,7 @@ function grid_actions.pad_down(i,p,external_seq,silent)
     if menu == 11 then
       help_menu = "banks"
     end
-    pad_clipboard = nil
+    pad_clipboard = {}
     if bank[i].quantize_press == 0 then
       if arp[i].enabled and grid_pat[i].rec == 0 and not arp[i].pause then
         if arp[i].down == 0 and params:string("arp_"..i.."_hold_style") == "last pressed" then
