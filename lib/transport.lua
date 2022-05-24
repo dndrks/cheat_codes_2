@@ -119,7 +119,7 @@ function tp.start()
         if rec.transport_queued then
           tp.start_rec_from_transport()
         end
-        print("starting trans")
+        print("starting transport via Link "..clock.get_beats())
       end
     )
   else
@@ -128,7 +128,7 @@ function tp.start()
     if rec.transport_queued then
       tp.start_rec_from_transport()
     end
-    print("starting trans")
+    print("starting transport "..clock.get_beats())
   end
 end
 
@@ -361,7 +361,7 @@ function clock.transport.start()
     end
   end
   if all_loaded then
-    if user_script.transport_start ~= nil then
+    if user_script ~= nil and user_script.transport_start ~= nil then
       user_script.transport_start()
     end
   end
@@ -385,13 +385,13 @@ function clock.transport.stop(source)
       if next(query_transport_in_state) ~= nil then
         tp.stop()
       else
-        print("ignoring external MIDI transport message")
+        print("ignoring external MIDI transport off message")
       end
     end
   else
     tp.stop()
   end
-  if user_script.transport_stop ~= nil then
+  if user_script ~= nil and user_script.transport_stop ~= nil then
     user_script.transport_stop()
   end
 end

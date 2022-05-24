@@ -1,6 +1,6 @@
 -- cheat codes 2
 --          a sample playground
--- rev: 220517 - LTS6.1
+-- rev: 220524 - LTS6.2
 -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
 -- need help?
 -- please visit:
