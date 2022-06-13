@@ -1,6 +1,6 @@
 -- cheat codes 2
 --          a sample playground
--- rev: 220524 - LTS6.2
+-- rev: 220613 - LTS6.3
 -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
 -- need help?
 -- please visit:
@@ -6012,7 +6012,7 @@ function named_loadstate(path)
         delay[i] = tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/delays/delay"..(i == 1 and "L" or "R")..".data")
         if util.file_exists(_path.data .. "cheat_codes_2/collection-"..collection.."/delays/delay_bundle"..(i == 1 and "L" or "R")..".data") then
           delay_bundle[i] = tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/delays/delay_bundle"..(i == 1 and "L" or "R")..".data")
-          if delay_bundle[i][delay[i].selected_bundle].saved then
+          if delay[i].selected_bundle ~= 0 and delay_bundle[i][delay[i].selected_bundle].saved then
             del.restore_bundle(i,delay[i].selected_bundle)
           end
         end
