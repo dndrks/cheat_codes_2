@@ -379,7 +379,7 @@ function lfos:add_params(parent_group, separator_name, silent)
       formatter = get_lfo_spec(group,i).formatter
     }
 
-    params:add_option("lfo position "..group.." "..i, "lfo position", {"from min", "from center", "from max", "from current"},1)
+    params:add_option("lfo position "..group.." "..i, "lfo position", {"from min", "from center", "from max"},1)
 
     params:add_option("lfo mode "..group.." "..i, "lfo mode", {"beats","free"},1)
     params:set_action("lfo mode "..group.." "..i,
