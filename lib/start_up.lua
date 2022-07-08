@@ -677,7 +677,7 @@ params:add_separator("ALT key")
       screen_dirty = true
     end)
     _lfos:register("pan "..i, 'bank LFOs')
-    params:add_control("pan slew "..i,"pan slew "..banks[i], controlspec.new(0.,200.,'lin',0.1,5.0))
+    params:add_control("pan slew "..i,"pan slew "..banks[i], controlspec.new(0.,200.,'lin',0.1,0.2))
     params:set_action("pan slew "..i, function(x) softcut.pan_slew_time(i+1,x) end)
     params:add_control("level "..i, "pad level "..banks[i], controlspec.new(0,127,'lin',1,64),
     function(param) return(util.round(util.linlin(0,127,0,199,param:get()),1).."%") end)
