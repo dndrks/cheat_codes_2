@@ -369,6 +369,9 @@ function Macro:pass_value(val)
       end
     end
   end
+  if menu == "macro_config" then
+    screen_dirty = true
+  end
 end
 
 local parameter_names = 
@@ -507,8 +510,15 @@ function Container:add_params()
   params:add_group("macros",8)
   for i = 1,8 do
     params:add_number("macro "..i, "macro "..i, 0,127,0)
-    params:set_action("macro "..i, function(x) if all_loaded then macro[i]:pass_value(x) end end)
+    params:set_action("macro "..i, 
+    function(x)
+      if all_loaded then
+        macro[i]:pass_value(x)
+      end
+    end)
+    _lfos:register("macro "..i, 'macro LFOs')
   end
+  _lfos:add_params('macro LFOs')
 end
 
 function Container:convert(prm,trg,indx,controlspec_type)

@@ -1,6 +1,6 @@
 -- cheat codes 2
 --          a sample playground
--- rev: 220613 - LTS6.3
+-- rev: 2200708 - LTS7
 -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
 -- need help?
 -- please visit:
@@ -26,7 +26,9 @@ function grid.add(dev)
   grid_dirty = true
 end
 
-local grid = util.file_exists(_path.code.."midigrid") and include "midigrid/lib/midigrid" or grid
+midigrid_present = util.file_exists(_path.code.."midigrid") and grid.vports[1].name ~= "none"
+
+local grid = midigrid_present and include "midigrid/lib/midigrid" or grid
 
 function push_to_cc2(encoder, d)
   -- translate the bank of 8 encoders to whatever params you want!
@@ -91,6 +93,8 @@ mc = include 'lib/midicheat'
 macros = include 'lib/macros'
 transport = include 'lib/transport'
 speed_dial = include 'lib/speed_dial'
+_lfos = include 'lib/lfos'
+_lfos.max_per_group = 9
 math.randomseed(os.time())
 variable_fade_time = 0.01
 splash_done = true
@@ -941,7 +945,7 @@ function init()
   params:add_option("midigrid?","midigrid?",{"no","yes"},1)
   params:set_action("midigrid?",
   function(x)
-    if x == 2 then
+    if x == 2 and midigrid_present then
       params:set("grid_size",2)
     end
     if all_loaded then
@@ -1295,7 +1299,6 @@ function init()
   --GRID
   selected = {}
   fingers = {}
-  counter_two = {}
   for i = 1,3 do
     selected[i] = {}
     selected[i].x = 1 + (5*(i-1))
@@ -1327,18 +1330,6 @@ function init()
     grid_p[sel].end_point = bank[sel][bank[sel].id].end_point
     grid_pat[sel]:watch(grid_p[sel])
   end
-
-  function record_arp()
-  end
-
-  counter_two = {}
-  counter_two.key_up = metro.init()
-  counter_two.key_up.time = 0.05
-  counter_two.key_up.count = 1
-  counter_two.key_up.event = function()
-    zilchmo(2,selected_zilchmo_bank)
-  end
-  counter_two.key_up:stop()
   
   quantized_grid_pat = {}
   for i = 1,3 do
@@ -2451,7 +2442,7 @@ function run_one_shot_rec_clock()
   one_shot_rec_clock = clock.run(one_shot_clock)
 end
 
-function cancel_one_shot_rec_clock()
+function cancel_one_shot_rec_clock(punch_out)
   if one_shot_rec_clock ~= nil then
     clock.cancel(one_shot_rec_clock)
   end
@@ -2465,6 +2456,9 @@ function cancel_one_shot_rec_clock()
     end
   end
   one_shot_rec_clock = nil
+  if punch_out then
+    rec[rec.focus].end_point = poll_position_new[1]
+  end
 end
 
 function one_shot_clock()
@@ -3430,6 +3424,14 @@ function toggle_buffer(i,untrue_alt,delayed)
 
   rec.focus = i
 
+  local punch_out = false
+
+  -- if params:string("rec_loop_"..rec.focus) == "1-shot" then
+    if params:string("one_shot_punch") == "yes" and rec[rec.focus].state == 1 then
+      punch_out = true
+    end
+  -- end
+
   if params:string("start_rec_loop_at_launch") == "no"
   or (params:string("start_rec_loop_at_launch") == "yes" and transport.is_running)
   or (params:string("start_rec_loop_at_launch") == "yes" and not transport.is_running and rec[rec.focus].state == 1)
@@ -3445,13 +3447,13 @@ function toggle_buffer(i,untrue_alt,delayed)
         if rec[rec.focus].state == 0 then
           run_one_shot_rec_clock() -- this runs only if not recording
         elseif rec[rec.focus].state == 1 and rec_state_watcher.is_running then -- can have both conditions, right?
-          cancel_one_shot_rec_clock()
+          cancel_one_shot_rec_clock(punch_out)
         end
       elseif rec[rec.focus].loop == 0 and (grid_alt and untrue_alt ~= nil) then
         -- buff_flush()
       elseif rec[rec.focus].loop == 1 and not grid_alt then
         if one_shot_rec_clock ~= nil then
-          cancel_one_shot_rec_clock()
+          cancel_one_shot_rec_clock(punch_out)
         end
         softcut.loop_start(1,rec[rec.focus].start_point)
         softcut.loop_end(1,rec[rec.focus].end_point-0.01)
@@ -5608,6 +5610,7 @@ function count_lines_in(file)
 end
 
 function persistent_state_restore()
+  all_loaded = false
   local file = io.open(_path.data .. "cheat_codes_2/persistent_state.data", "r")
   if file then
     io.input(file)

@@ -2,6 +2,8 @@ local midicheat = {}
 
 local mc = midicheat
 
+active_midi_notes = {{},{},{}}
+
 function mc.init()
   active_midi_notes = {{},{},{}}
   for i = 1,3 do

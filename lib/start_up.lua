@@ -1,5 +1,7 @@
 start_up = {}
 
+local frm = require 'formatters'
+
 function start_up.init()
   
   softcut.buffer_clear()
@@ -75,7 +77,7 @@ function start_up.init()
   
   --params:add_separator()
   
-  params:add_group("loops + buffers", 35)
+  params:add_group("loops + buffers", 36)
 
   params:add_separator("clips")
   
@@ -139,6 +141,7 @@ function start_up.init()
     end
   )
   params:add_control("one_shot_threshold","----> thresh",controlspec.new(1,1000,'exp',1,85,'amp/10k'))
+  params:add_option("one_shot_punch","--> 1-shot 'off' sets loop",{"no","yes"},1)
   params:add_control("one_shot_latency_offset","--> latency offset",controlspec.new(0,1,'lin',0.01,0,'s'))
 
   params:add_option("rec_loop_enc_resolution", "rec loop enc resolution", {"0.1","0.01","1/16","1/8","1/4","1/2","1 bar"}, 1)
@@ -449,7 +452,7 @@ function start_up.init()
     )
   end
 
-  params:add_group("mappable control",99)
+  params:add_group("mappable control",102)
 
   params:add_separator("save MIDI mappings")
 
@@ -652,16 +655,20 @@ params:add_separator("ALT key")
     params:add_option("rate "..i, "rate "..banks[i], macros.pad_rates, tab.key(macros.pad_rates,macros.default_pad_rate))
     params:set_action("rate "..i, function(x)
       x = util.clamp(1,#macros.pad_rates,util.round(x))
-      for p = (grid_alt and 1 or bank[i].id),(grid_alt and 16 or bank[i].id) do
-        bank[i][p].rate = macros.pad_rates[x]
+      if params:string("rate "..i.." destructive") == "yes" then
+        for p = (grid_alt and 1 or bank[i].id),(grid_alt and 16 or bank[i].id) do
+          bank[i][p].rate = macros.pad_rates[x]
+        end
       end
       if bank[i][bank[i].id].pause == false then
         softcut.rate(i+1, bank[i][bank[i].id].rate*bank[i][bank[i].id].offset)
       end
     end)
+    params:add_option("rate "..i.." destructive", "   destructive?", {"no","yes"}, 2)
     params:add_control("rate slew time "..i, "rate slew time "..banks[i], controlspec.new(0,3,'lin',0.01,0))
     params:set_action("rate slew time "..i, function(x) softcut.rate_slew_time(i+1,x) end)
-    params:add_control("pan "..i, "pan "..banks[i], controlspec.new(-1,1,'lin',0.01,0))
+    params:add_control("pan "..i, "pan "..banks[i], controlspec.new(-1,1,'lin',0.01,0),
+    frm.bipolar_as_pan_widget)
     params:set_action("pan "..i, function(x)
       softcut.pan(i+1,x)
       for p = (grid_alt and 1 or bank[i].id),(grid_alt and 16 or bank[i].id) do
@@ -669,20 +676,24 @@ params:add_separator("ALT key")
       end
       screen_dirty = true
     end)
+    _lfos:register("pan "..i, 'bank LFOs')
     params:add_control("pan slew "..i,"pan slew "..banks[i], controlspec.new(0.,200.,'lin',0.1,5.0))
     params:set_action("pan slew "..i, function(x) softcut.pan_slew_time(i+1,x) end)
-    params:add_control("level "..i, "pad level "..banks[i], controlspec.new(0,127,'lin',1,64))
+    params:add_control("level "..i, "pad level "..banks[i], controlspec.new(0,127,'lin',1,64),
+    function(param) return(util.round(util.linlin(0,127,0,199,param:get()),1).."%") end)
     params:set_action("level "..i, function(x)
       for p = (grid_alt and 1 or bank[i].id),(grid_alt and 16 or bank[i].id) do
         mc.adjust_pad_level(bank[i][p],x)
       end
       if all_loaded then mc.redraw(bank[i][bank[i].id]) end
       end)
-    params:add_control("bank level "..i, "bank level "..banks[i], controlspec.new(0,127,'lin',1,64))
+    params:add_control("bank level "..i, "bank level "..banks[i], controlspec.new(0,127,'lin',1,64,'',1/127),
+    function(param) return(util.round(util.linlin(0,127,0,199,param:get()),1).."%") end)
     params:set_action("bank level "..i, function(x)
       mc.adjust_bank_level(bank[i][bank[i].id],x)
       if all_loaded then mc.redraw(bank[i][bank[i].id]) end
       end)
+    _lfos:register("bank level "..i, 'bank LFOs')
     params:add_control("start point "..i, "start point "..banks[i], controlspec.new(0,127,'lin',1,0))
     params:set_action("start point "..i, function(x)
       mc.move_start(bank[i][bank[i].id],x)
@@ -750,7 +761,17 @@ params:add_separator("ALT key")
         end
       end
     }
-    params:add_control("filter tilt "..i, "filter tilt "..banks[i], controlspec.new(-1,1,'lin',0.01,0))
+    params:add_control("filter tilt "..i, "filter tilt "..banks[i], controlspec.new(-1,1,'lin',0.01,0),
+    function(param)
+      return(
+        param:get() < 0 and 
+          ("lp: "..util.round(util.linlin(-1,0,100,0,param:get()),1).."%")
+        or
+        (param:get() == 0 and "neutral" or
+          ("hp: "..util.round(util.linlin(0,1,0,100,param:get()),1).."%")
+        )
+      )
+    end)
     params:set_action("filter tilt "..i, function(x)
       for j = 1,16 do
         local target = bank[i][j]
@@ -759,9 +780,15 @@ params:add_separator("ALT key")
         end
         target.tilt = x
       end
-    slew_filter(i,slew_counter[i].prev_tilt,bank[i][bank[i].id].tilt,bank[i][bank[i].id].q,bank[i][bank[i].id].q,bank[i][bank[i].id].tilt_ease_time)
+      slew_filter(i,slew_counter[i].prev_tilt,bank[i][bank[i].id].tilt,bank[i][bank[i].id].q,bank[i][bank[i].id].q,bank[i][bank[i].id].tilt_ease_time)
+      if menu == 5 then
+        screen_dirty = true
+      end
     end)
+    _lfos:register("filter tilt "..i, 'bank LFOs')
   end
+
+  _lfos:add_params('bank LFOs',nil,true)
 
   rytm.add_params()
   
