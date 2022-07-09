@@ -1066,10 +1066,10 @@ function mc.key(n,z)
       page.midi_focus = d[util.wrap(old_focus + 1,1,3)]
     end
   elseif n == 2 and z == 1 then
-    key2_hold_counter:start()
+    key2_hold_counter = clock.run(count_key2)
     key2_hold_and_modify = false
   elseif n == 2 and z == 0 then
-    key2_hold_counter:stop()
+    clock.cancel(key2_hold_counter)
     if key2_hold == false then
       menu = 1
     end

@@ -1,6 +1,6 @@
 -- cheat codes 2
 --          a sample playground
--- rev: 2200708 - LTS7
+-- rev: 2200709 - LTS7.1
 -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
 -- need help?
 -- please visit:
@@ -756,10 +756,9 @@ end
 
 key1_hold = false
 key1_hold_and_modify = false
-key2_hold_counter = metro.init()
-key2_hold_counter.time = 0.25
-key2_hold_counter.count = 1
-key2_hold_counter.event = function()
+
+function count_key2()
+  clock.sleep(0.25)
   key2_hold = true
   screen_dirty = true
 end
@@ -1924,9 +1923,14 @@ function init()
   if g then grid_dirty = true end
   
   -- all_loaded = true
-  
-  metro_persistent_state_restore = metro.init(persistent_state_restore, 0.1, 1)
-  metro_persistent_state_restore:start()
+
+  clock.run(
+    function()
+      clock.sleep(0.1)
+      persistent_state_restore()
+      print("restoring persistent state data")
+    end
+  )
 
   hardware_redraw = metro.init(
     function()
@@ -3959,7 +3963,7 @@ function key(n,z)
         end
       elseif (menu == 2 or menu == 7 or menu == 9) and not key1_hold then
         -- key2_hold = true
-        key2_hold_counter:start()
+        key2_hold_counter = clock.run(count_key2)
         key2_hold_and_modify = false
       elseif menu == 2 then
         if page.loops.frame == 2 and key1_hold then
@@ -3989,7 +3993,7 @@ function key(n,z)
         end
       end
     elseif n == 2 and z == 0 and key2_hold == false and (menu == 2 or menu == 7 or menu == 9) and not key1_hold then
-      key2_hold_counter:stop()
+      clock.cancel(key2_hold_counter)
       menu = 1
     elseif n == 2 and z == 0 and key2_hold_and_modify then
       key2_hold = false

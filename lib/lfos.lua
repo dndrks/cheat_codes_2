@@ -48,10 +48,10 @@ local update_freq = 128
 local main_header_added = false
 local clock_action_appended = false
 local tempo_updater_clock;
-local lfos_all_loaded = false
+local lfos_all_loaded = {}
 
 local function lfo_params_visibility(state, group, i)
-  if lfos_all_loaded then
+  if lfos_all_loaded[group] then
     params[state](params, "lfo position "..group.." "..i)
     params[state](params, "lfo depth "..group.." "..i)
     params[state](params, "lfo mode "..group.." "..i)
@@ -80,11 +80,6 @@ local function return_param_to_baseline(group,i)
   -- when an LFO is turned off, the affected parameter will return to its pre-enabled value,
   --   if it was registered with 'param action'
   params:lookup_param(lfos.groups[group].targets[i]):bang()
-end
-
-local function build_new_lfo_group(parent_group)
-  lfos.groups[parent_group] = new_lfo_table()
-  table.insert(lfos.parent_strings, parent_group)
 end
 
 local function get_lfo_spec(group,i,bound)
@@ -222,7 +217,7 @@ end
 local function process_lfo(group)
   local delta = (1 / update_freq) * 2 * math.pi
   local lfo_parent = lfos.groups[group]
-  if lfos_all_loaded then
+  if lfos_all_loaded[group] then
     for i = 1,#lfo_parent.targets do
       
       local _t = i
@@ -304,7 +299,8 @@ end
 function lfos:register(param, parent_group, fn)
 
   if self.groups[parent_group] == nil then
-    build_new_lfo_group(parent_group)
+    lfos.groups[parent_group] = new_lfo_table()
+    table.insert(lfos.parent_strings, parent_group)
   end
   if #self.groups[parent_group].targets < self.max_per_group then
     table.insert(self.groups[parent_group].targets, param)
@@ -424,7 +420,7 @@ function lfos:add_params(parent_group, separator_name, silent)
     params:hide("lfo free "..group.." "..i)
   end
 
-  lfos_all_loaded = true
+  lfos_all_loaded[group] = true
   
   if not silent then
     params:bang()
