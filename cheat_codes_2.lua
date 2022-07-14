@@ -1,6 +1,6 @@
 -- cheat codes 2
 --          a sample playground
--- rev: 2200709 - LTS7.1
+-- rev: 2200713 - LTS7.2
 -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
 -- need help?
 -- please visit:
@@ -903,6 +903,7 @@ function init()
     rec[i].rate_offset = 1.0
     rec[i].waveform_samples = {}
     rec[i].queued = false
+    rec[i].last_purged = util.time()
   end
 
   rec.transport_queued = false
@@ -3375,18 +3376,37 @@ function buff_freeze()
 end
 
 function buff_flush()
+  local points = {{1,9},{9,17},{17,25}}
   softcut.buffer_clear_region_channel(1,rec[rec.focus].start_point, (rec[rec.focus].end_point-rec[rec.focus].start_point)+0.01)
   rec[rec.focus].state = 0
   rec[rec.focus].clear = 1
   softcut.rec_level(1,0)
   -- update_waveform(1,rec[rec.focus].start_point, rec[rec.focus].end_point,128)
+  grid_dirty = true
+  if buff_purge() then
+    softcut.buffer_clear_region_channel(1,points[rec.focus][1], (points[rec.focus][2]-points[rec.focus][1])+0.01)
+    if params:string("live_purge_resets_loop_"..rec.focus) == "yes" then
+      rec[rec.focus].start_point = points[rec.focus][1]
+      rec[rec.focus].end_point = points[rec.focus][2]
+      if poll_position_new[1] >= points[rec.focus][1] and poll_position_new[1] <= points[rec.focus][2] then
+        softcut.loop_start(1,rec[rec.focus].start_point)
+        softcut.loop_end(1,rec[rec.focus].end_point)
+      end
+    end
+  end
   if key1_hold then
     update_waveform(1,rec[rec.focus].start_point, rec[rec.focus].end_point,128)
   else
-    local points = {{1,9},{9,17},{17,25}}
     update_waveform(1,points[rec.focus][1],points[rec.focus][2],128)
   end
-  grid_dirty = true
+end
+
+function buff_purge()
+  if util.time() - rec[rec.focus].last_purged < 0.25 then
+    return true
+  else
+    rec[rec.focus].last_purged = util.time()
+  end
 end
 
 function buff_pause()

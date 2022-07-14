@@ -77,7 +77,7 @@ function start_up.init()
   
   --params:add_separator()
   
-  params:add_group("loops + buffers", 36)
+  params:add_group("loops + buffers", 39)
 
   params:add_separator("clips")
   
@@ -188,6 +188,10 @@ function start_up.init()
     local rate_offset = {0,-12,-24}
     params:set("offset",rate_offset[x])
   end)
+
+  for i = 1,3 do
+    params:add_option("live_purge_resets_loop_"..i, "purge resets loop "..i.."?", {"no","yes"}, 1)
+  end
   
   for i = 1,3 do
     params:add_control("random_rec_clock_prob_"..i, "rand rec "..i.." probability", controlspec.new(0, 100, 'lin', 1, 0, "%"))
