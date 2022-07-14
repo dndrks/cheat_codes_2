@@ -456,7 +456,7 @@ function start_up.init()
     )
   end
 
-  params:add_group("mappable control",102)
+  params:add_group("mappable control",105)
 
   params:add_separator("save MIDI mappings")
 
@@ -565,8 +565,18 @@ params:add_separator("ALT key")
           if not grid_alt then
             toggle_buffer(i)
           else
-            buff_flush()
+            buff_flush(rec.focus)
           end
+        end
+      end
+    }
+  end
+
+  for i = 1,3 do
+    params:add{type='binary',name="clear live "..i,id='clear_live_'..i,behavior='trigger',
+      action=function()
+        if all_loaded then
+          buff_flush(i)
         end
       end
     }

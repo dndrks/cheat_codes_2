@@ -272,7 +272,7 @@ function mc.zilch(target,note) -- expects (x,0-127)
       rightangleslice.actions[4]['2'][2](bank[target][i],target)
     end
   elseif note == 23 then
-    buff_flush()
+    buff_flush(rec.focus)
   end
 
   if params:get("midi_echo_enabled") == 2 then

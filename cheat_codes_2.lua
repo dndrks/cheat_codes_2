@@ -1,6 +1,6 @@
 -- cheat codes 2
 --          a sample playground
--- rev: 2200713 - LTS7.2
+-- rev: 2200714 - LTS7.2.1
 -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
 -- need help?
 -- please visit:
@@ -903,7 +903,7 @@ function init()
     rec[i].rate_offset = 1.0
     rec[i].waveform_samples = {}
     rec[i].queued = false
-    rec[i].last_purged = util.time()
+    rec[i].last_purged = 0
   end
 
   rec.transport_queued = false
@@ -3375,37 +3375,39 @@ function buff_freeze()
   end
 end
 
-function buff_flush()
+function buff_flush(segment)
   local points = {{1,9},{9,17},{17,25}}
-  softcut.buffer_clear_region_channel(1,rec[rec.focus].start_point, (rec[rec.focus].end_point-rec[rec.focus].start_point)+0.01)
-  rec[rec.focus].state = 0
-  rec[rec.focus].clear = 1
-  softcut.rec_level(1,0)
-  -- update_waveform(1,rec[rec.focus].start_point, rec[rec.focus].end_point,128)
+  softcut.buffer_clear_region_channel(1,rec[segment].start_point, (rec[segment].end_point-rec[segment].start_point)+0.01)
+  rec[segment].state = 0
+  rec[segment].clear = 1
+  if poll_position_new[1] >= points[segment][1] and poll_position_new[1] <= points[segment][2] then
+    softcut.rec_level(1,0)
+  end
+  -- update_waveform(1,rec[segment].start_point, rec[segment].end_point,128)
   grid_dirty = true
-  if buff_purge() then
-    softcut.buffer_clear_region_channel(1,points[rec.focus][1], (points[rec.focus][2]-points[rec.focus][1])+0.01)
-    if params:string("live_purge_resets_loop_"..rec.focus) == "yes" then
-      rec[rec.focus].start_point = points[rec.focus][1]
-      rec[rec.focus].end_point = points[rec.focus][2]
-      if poll_position_new[1] >= points[rec.focus][1] and poll_position_new[1] <= points[rec.focus][2] then
-        softcut.loop_start(1,rec[rec.focus].start_point)
-        softcut.loop_end(1,rec[rec.focus].end_point)
+  if buff_purge(segment) then
+    softcut.buffer_clear_region_channel(1,points[segment][1], (points[segment][2]-points[segment][1])+0.01)
+    if params:string("live_purge_resets_loop_"..segment) == "yes" then
+      rec[segment].start_point = points[segment][1]
+      rec[segment].end_point = points[segment][2]
+      if poll_position_new[1] >= points[segment][1] and poll_position_new[1] <= points[segment][2] then
+        softcut.loop_start(1,rec[segment].start_point)
+        softcut.loop_end(1,rec[segment].end_point)
       end
     end
   end
   if key1_hold then
-    update_waveform(1,rec[rec.focus].start_point, rec[rec.focus].end_point,128)
+    update_waveform(1,rec[segment].start_point, rec[segment].end_point,128)
   else
-    update_waveform(1,points[rec.focus][1],points[rec.focus][2],128)
+    update_waveform(1,points[segment][1],points[segment][2],128)
   end
 end
 
-function buff_purge()
-  if util.time() - rec[rec.focus].last_purged < 0.25 then
+function buff_purge(segment)
+  if util.time() - rec[segment].last_purged < 0.25 then
     return true
   else
-    rec[rec.focus].last_purged = util.time()
+    rec[segment].last_purged = util.time()
   end
 end
 
@@ -3988,7 +3990,7 @@ function key(n,z)
       elseif menu == 2 then
         if page.loops.frame == 2 and key1_hold then
           if page.loops.sel == 4 then
-            buff_flush()
+            buff_flush(rec.focus)
             -- print("press")
           elseif page.loops.sel < 4 then
             sync_clock_to_loop(bank[page.loops.sel][bank[page.loops.sel].id],"audio")
@@ -5965,6 +5967,9 @@ function named_loadstate(path)
       if rec.play_segment == nil then rec.play_segment = rec.focus end
       softcut.loop_start(1,rec[rec.focus].start_point)
       softcut.loop_end(1,rec[rec.focus].end_point-0.01)
+      for i = 1,3 do
+        rec[i].last_purged = 0
+      end
       if rec[rec.focus].state == 1 then
         rec[rec.focus].state = 0
       end

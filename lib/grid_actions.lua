@@ -292,7 +292,7 @@ function grid_actions.init(x,y,z)
               toggle_buffer(8-y)
             end
             if grid_alt then
-              buff_flush()
+              buff_flush(rec.focus)
             end
           end
         end
@@ -1200,7 +1200,7 @@ function grid_actions.init(x,y,z)
             toggle_buffer(x)
           end
           if grid_alt then
-            buff_flush()
+            buff_flush(rec.focus)
           end
         end
       end
