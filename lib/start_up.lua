@@ -232,7 +232,7 @@ function start_up.init()
   end
 
 
-  params:add_separator("global")
+  params:add_separator('bank_global_separator',"global")
   loop_enc_resolution = {}
 
   params:add_control("offset", "global pitch offset", controlspec.new(-24, 24, 'lin', 1, 0, "st"))
@@ -356,7 +356,7 @@ function start_up.init()
 
   params:add_group("pattern management",28)
   local banks = {"(a)", "(b)", "(c)"}
-  params:add_separator("save")
+  params:add_separator('pattern_save_separator', "save")
   for i = 1,3 do
     params:add_number("pattern_save_slot_"..i, "save slot "..banks[i],1,8,1)
     params:set_action("pattern_save_slot_"..i,

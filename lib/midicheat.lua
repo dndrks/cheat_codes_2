@@ -363,7 +363,7 @@ function mc.pad_to_note_params()
   for i = 1, #MU.SCALES do
     table.insert(mc_scale_names, string.lower(MU.SCALES[i].name))
   end
-  params:add_separator("global")
+  params:add_separator('pad_to_note_global_separator', "global")
   params:add_option("global_pad_to_midi_note_enabled", "MIDI output?", {"no","yes"},1)
   params:set_action("global_pad_to_midi_note_enabled",
   function(x)

@@ -1,6 +1,6 @@
 -- cheat codes 2
 --          a sample playground
--- rev: 2200714 - LTS7.2.1
+-- rev: 2200825 - LTS8
 -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
 -- need help?
 -- please visit:
@@ -5930,6 +5930,45 @@ function named_savestate(text)
 
 end
 
+function fix_all_the_bad_names(path,collection)
+
+  local filename = _path.data.."cheat_codes_2/collection-"..collection.."/params/all.pset"
+
+  local function unquote(s)
+    return s:gsub('^"', ''):gsub('"$', ''):gsub('\\"', '"')
+  end
+
+  local fd = io.open(filename, "r")
+  if fd then
+    io.close(fd)
+    already_assigned = {}
+    for line in io.lines(filename) do
+      local id, value = string.match(line, "(\".-\")%s*:%s*(.*)")
+      if id and value then
+        id = unquote(id)
+        local index = params.lookup[id]
+        if already_assigned[id] == nil then
+          if index and params.params[index] then
+            if tonumber(value) ~= nil then
+              params.params[index]:set(tonumber(value), silent)
+            elseif value == "-inf" then
+              params.params[index]:set(-math.huge, silent)
+            elseif value == "inf" then
+              params.params[index]:set(math.huge, silent)
+            elseif value then
+              params.params[index]:set(value, silent)
+            end
+            already_assigned[id] = true
+          end
+        end
+      end
+    end
+  end
+
+  -- params:read(_path.data.."cheat_codes_2/collection-"..collection.."/params/all.pset")
+
+end
+
 function named_loadstate(path)
   local file = io.open(path, "r")
   if file then
@@ -5959,7 +5998,7 @@ function named_loadstate(path)
     _norns.key(1,0)
     screen_dirty = true
     -- all_loaded = false
-    params:read(_path.data.."cheat_codes_2/collection-"..collection.."/params/all.pset")
+    fix_all_the_bad_names(path,collection)
     -- persistent_state_restore()
     if tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/rec/rec[rec.focus].data") ~= nil then
       rec = tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/rec/rec[rec.focus].data")

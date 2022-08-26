@@ -340,7 +340,7 @@ function lfos:add_params(parent_group, separator_name, silent)
 
     self.groups[group].param_types[i] = params:lookup_param(self.groups[group].targets[i]).t
 
-    params:add_separator(params:lookup_param(self.groups[group].targets[i]).name)
+    params:add_separator('lfo_'..params:lookup_param(self.groups[group].targets[i]).name..'_separator',params:lookup_param(self.groups[group].targets[i]).name)
 
     params:add_option("lfo "..group.." "..i,"lfo",{"off","on"},1)
     params:set_action("lfo "..group.." "..i,function(x)
