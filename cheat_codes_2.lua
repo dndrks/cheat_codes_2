@@ -1,6 +1,6 @@
 -- cheat codes 2
 --          a sample playground
--- rev: 2200825 - LTS8
+-- rev: 2200825 - LTS8b
 -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
 -- need help?
 -- please visit:
@@ -98,6 +98,7 @@ _lfos.max_per_group = 9
 math.randomseed(os.time())
 variable_fade_time = 0.01
 splash_done = true
+actively_loading_collection = false
 
 macro = {}
 for i = 1,8 do
@@ -1009,10 +1010,13 @@ function init()
   params:add_option("collect_live","collect Live buffers?",{"no","yes"})
   params:add_trigger("save", "save new collection")
   params:set_action("save", function(x)
-    if Namesizer ~= nil then
-      textentry.enter(pre_save,Namesizer.phonic_nonsense().."_"..Namesizer.phonic_nonsense())
-    else
-      textentry.enter(pre_save,nil)
+    if not actively_loading_collection then
+      print('entering collection save menu')
+      if Namesizer ~= nil then
+        textentry.enter(pre_save,Namesizer.phonic_nonsense().."_"..Namesizer.phonic_nonsense())
+      else
+        textentry.enter(pre_save,nil)
+      end
     end
   end)
   params:add_separator("danger zone!")
@@ -5709,32 +5713,34 @@ function pre_delete(text)
 end
 
 function pre_save(text)
-  local name_filepath = _path.data.."cheat_codes_2/names/"
-  existing_names = {}
-  for i in io.popen("ls "..name_filepath):lines() do
-    if string.find(i,"%.cc2$") then table.insert(existing_names,name_filepath..i) end
-  end
-  local concat = ""
-  for word in string.gmatch(text, "%S+") do
-    if concat == "" then
-      concat = word
-    else
-      concat = (concat.."-"..word)
+  if text ~= nil then
+    local name_filepath = _path.data.."cheat_codes_2/names/"
+    existing_names = {}
+    for i in io.popen("ls "..name_filepath):lines() do
+      if string.find(i,"%.cc2$") then table.insert(existing_names,name_filepath..i) end
     end
-  end
-  text = concat
-  if text ~= 'cancel' and text ~= nil and not tab.contains(existing_names,"/home/we/dust/data/cheat_codes_2/names/"..text..".cc2") then
-    print("attempting to save collection '"..text.."'")
-    collection_save_clock = clock.run(save_screen,text)
-    _norns.key(1,1)
-    _norns.key(1,0)
-  elseif text == 'cancel' or text == nil then
-    print("canceled, nothing saved")
-  elseif tab.contains(existing_names,"/home/we/dust/data/cheat_codes_2/names/"..text..".cc2") then
-    print(text.." already used, will not overwrite")
-    clock.run(save_fail_screen,text)
-    _norns.key(1,1)
-    _norns.key(1,0)
+    local concat = ""
+    for word in string.gmatch(text, "%S+") do
+      if concat == "" then
+        concat = word
+      else
+        concat = (concat.."-"..word)
+      end
+    end
+    text = concat
+    if text ~= 'cancel' and text ~= nil and not tab.contains(existing_names,"/home/we/dust/data/cheat_codes_2/names/"..text..".cc2") then
+      print("attempting to save collection '"..text.."'")
+      collection_save_clock = clock.run(save_screen,text)
+      _norns.key(1,1)
+      _norns.key(1,0)
+    elseif text == 'cancel' or text == nil then
+      print("canceled, nothing saved")
+    elseif tab.contains(existing_names,"/home/we/dust/data/cheat_codes_2/names/"..text..".cc2") then
+      print(text.." already used, will not overwrite")
+      clock.run(save_fail_screen,text)
+      _norns.key(1,1)
+      _norns.key(1,0)
+    end
   end
 end
 
@@ -5972,6 +5978,7 @@ end
 function named_loadstate(path)
   local file = io.open(path, "r")
   if file then
+    actively_loading_collection = true
     splash_done = false
     print("loading...")
     for j = 1,3 do
@@ -6141,6 +6148,8 @@ function named_loadstate(path)
         end
       end
       io.close(file)
+      print('loaded')
+      actively_loading_collection = false
     end
 
   else
