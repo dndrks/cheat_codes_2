@@ -440,6 +440,7 @@ function start_up.init()
       end
     )
   end
+  
   params:add_separator("delete")
   for i = 1,3 do
     params:add_number("pattern_del_slot_"..i, "delete slot "..banks[i],1,8,1)
@@ -458,17 +459,17 @@ function start_up.init()
 
   params:add_group("mappable control",105)
 
-  params:add_separator("save MIDI mappings")
+  params:add_separator('save_midi_mappings_sep', "save MIDI mappings")
 
   params:add{type='binary',name="save mappings",id='save_mappings',behavior='momentary', allow_pmap=false,
   action=function(x)
-    if all_loaded and x == 1 then
-      norns.pmap.write()
-    end
   end
   }
+  params:hide('save_midi_mappings_sep')
+  params:hide('save_mappings')
+  _menu.rebuild_params()
 
-params:add_separator("ALT key")
+  params:add_separator("ALT key")
 
   params:add{type='binary',name="ALT key",id='alt_key',behavior='momentary',
   action=function(x)
@@ -806,7 +807,7 @@ params:add_separator("ALT key")
 
   rytm.add_params()
   
-  params:add_group("delays",65)
+  params:add_group("delays",75)
 
   params:add_separator("manage delay audio")
   params:add{type = "trigger", id = "save_left_delay", name = "** save L delay", action = function() del.save_delay(1) end}
@@ -1003,6 +1004,82 @@ params:add_separator("ALT key")
         params:set("delay "..sides[i-3]..": rate", macros.delay_rates[x])
       end
     end)
+
+    params:hide('delay rate '..i-3)
+    params:set_action("delay rate "..i-3, function(x)
+      if all_loaded then
+        params:set("delay "..sides[i-3]..": rate", macros.delay_rates[x])
+      end
+    end)
+
+    params:add{
+      type='control',
+      id='delay output '..i-3,
+      name='delay output '..i-3,
+      controlspec=controlspec.def{
+        min=0.00,
+        max=1.0,
+        warp='lin',
+        step=0.0001,
+        default=1,
+        quantum=0.0001,
+        wrap=false,
+      },
+    }
+    params:hide('delay output '..i-3)
+    params:set_action('delay output '..i-3, function(x)
+      if all_loaded then
+        params:set("delay "..sides[i-3]..": global level",x)
+      end
+    end)
+
+    local banks = {"a","b","c"}
+
+    for j = 1,3 do
+      params:add{
+        type='control',
+        id='delay input '..banks[j]..' '..i-3,
+        name='delay input '..banks[j]..' '..i-3,
+        controlspec=controlspec.def{
+          min=0.00,
+          max=1.0,
+          warp='lin',
+          step=0.0001,
+          default=1,
+          quantum=0.0001,
+          wrap=false,
+        },
+      }
+      params:hide('delay input '..banks[j]..' '..i-3)
+      params:set_action('delay input '..banks[j]..' '..i-3, function(x)
+        if all_loaded then
+          local banks = {"a","b","c"}
+          params:set("delay "..sides[i-3]..": ("..banks[j]..") send", x)
+        end
+      end)
+    end
+
+    params:add{
+      type='control',
+      id='delay input ext '..i-3,
+      name='delay input ext '..i-3,
+      controlspec=controlspec.def{
+        min=0.00,
+        max=1.0,
+        warp='lin',
+        step=0.0001,
+        default=1,
+        quantum=0.0001,
+        wrap=false,
+      },
+    }
+    params:hide('delay input ext '..i-3)
+    params:set_action('delay input ext '..i-3, function(x)
+      if all_loaded then
+        params:set("delay "..sides[i-3]..": external input", x)
+      end
+    end)
+    
     ---/
   end
 

@@ -284,8 +284,9 @@ function mc.zilch(target,note) -- expects (x,0-127)
 end
 
 function mc.pass_midi_device_mappings()
-  local midi_device_mappings = {{},{},{},{}}
-  for i = 1,4 do
+  local midi_device_mappings = {}
+  for i = 1,16 do
+    midi_device_mappings[i] = {}
     for j = 1,16 do
       midi_device_mappings[i][j] = norns.pmap.rev[i][j]
     end
@@ -295,7 +296,7 @@ end
 
 function mc.pass_midi_devices_present_during_mapping()
   local midi_devices_present_during_mapping = {}
-  for i = 1,4 do
+  for i = 1,16 do
     midi_devices_present_during_mapping[i] = midi.vports[i].name
   end
   return midi_devices_present_during_mapping
@@ -316,35 +317,50 @@ function mc.deep_copy(orig)
   return copy
 end
 
-function mc.match_mapping_to_device()
-  local old_mapped_devices = tab.load(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/params/mapped-devices.txt")
-  local switched = {false,false,false,false}
-  local switched_to = {nil,nil,nil,nil}
-  local abandoned = {false,false,false,false}
-  for i = 1,4 do
-    for j = 1,4 do
-      if old_mapped_devices[i] == midi.vports[j].name then
-        norns.pmap.rev[j] = mc.deep_copy(norns.pmap.rev[i])
-        switched[i] = true
-        switched_to[i] = j
-        for k = 1,16 do
-          norns.pmap.rev[i][k] = {}
-        end
-      end
-    end
+function mc.write_mappings(collection)
+  local function quote(s)
+    return '"'..s:gsub('"', '\\"')..'"'
   end
+  local filename = _path.data.."cheat_codes_2/collection-"..collection.."/params/mappings.pmap"
+  print(">> saving PMAP for collection: "..collection..' at '..filename)
+  local fd = io.open(filename, "w+")
+  io.output(fd)
+  local line = ""
   for k,v in pairs(norns.pmap.data) do
-    if switched[norns.pmap.data[k].dev] then
-      norns.pmap.data[k].dev = switched_to[norns.pmap.data[k].dev]
-      norns.pmap.assign(k,norns.pmap.data[k].dev,norns.pmap.data[k].ch,norns.pmap.data[k].cc)
+    line = string.format('%s:"{', quote(tostring(k)))
+    for x,y in pairs(v) do
+      line = line..x.."="..tostring(y)..", "
     end
+    line = line:sub(1,-3)..'}"\n'
+    --print(line)
+    io.write(line)
+    line=""
   end
+  io.close(fd)
 end
 
-function mc.save_mappings(collection)
-  tab.save(mc.pass_midi_device_mappings(),_path.data.."cheat_codes_2/collection-"..collection.."/params/mappings.txt")
-  tab.save(norns.pmap.data,_path.data.."cheat_codes_2/collection-"..collection.."/params/map-data.txt")
-  tab.save(mc.pass_midi_devices_present_during_mapping(),_path.data.."cheat_codes_2/collection-"..collection.."/params/mapped-devices.txt")
+function mc.read_mappings(collection)
+  local function unquote(s)
+    return s:gsub('^"', ''):gsub('"$', ''):gsub('\\"', '"')
+  end
+  local filename = _path.data.."cheat_codes_2/collection-"..collection.."/params/mappings.pmap"
+  print(">> reading PMAP for collection: "..collection..' from '..filename)
+  local fd = io.open(filename, "r")
+  if fd then
+    io.close(fd)
+    for line in io.lines(filename) do
+      --local name, value = string.match(line, "(\".-\")%s*:%s*(.*)")
+      local name, value = string.match(line, "(\".-\")%s*:%s*(.*)")
+      if name and value and tonumber(value)==nil then
+        --print(unquote(name) .. " : " .. unquote(value))
+        local x = load("return "..unquote(value))
+        norns.pmap.data[unquote(name)] = x()
+      end
+    end
+    norns.pmap.refresh()
+  else
+    print("CC2 mappings at "..filename.." not read, using defaults.")
+  end
 end
 
 local vports = {}

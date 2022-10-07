@@ -627,7 +627,6 @@ function grid_actions.init(x,y,z)
             del.set_value(6-y, x-3, "feedback")
           end
         elseif x == 9 then
-          -- if grid.alt_delay then
           if grid_alt then
             del.quick_action(6-y, "clear")
           end
@@ -636,7 +635,6 @@ function grid_actions.init(x,y,z)
       elseif y == 1 or y == 8 then
         if x >= 10 and x <=14 then
           if z == 1 then
-            -- del.set_value(y == 8 and 1 or 2,x-9,grid.alt_delay == true and "send all" or "send")
             del.set_value(y == 8 and 1 or 2,x-9,grid_alt == true and "send all" or "send")
           end
         elseif x == 15 then
@@ -659,7 +657,6 @@ function grid_actions.init(x,y,z)
               delay[target].saver_active = true
               clock.run(del.build_bundle,target,bundle)
             elseif saved_already then
-              -- if grid.alt_delay then
               if grid_alt then
                 del.clear_bundle(target,bundle)
               else
@@ -792,8 +789,6 @@ function grid_actions.init(x,y,z)
       end
 
       if x == 16 and y == 8 then
-        -- grid.alt_delay = not grid.alt_delay
-        -- grid_alt = not grid_alt
         grid_alt = z == 1 and true or false
       end
 
@@ -1326,7 +1321,6 @@ function grid_actions.init(x,y,z)
               delay[target].saver_active = true
               clock.run(del.build_bundle,target,bundle)
             elseif saved_already then
-              -- if grid.alt_delay then
               if grid_alt then
                 del.clear_bundle(target,bundle)
               else

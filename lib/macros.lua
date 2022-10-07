@@ -188,6 +188,56 @@ default_vals =
   , target = 1
   , curve = "linear"
   }
+, ["delay output"] =
+  {
+    params_name = "delay output"
+  , enabled = false
+  , destructive = true
+  , min = 0
+  , max = 1
+  , target = 1
+  , curve = "linear"
+  }
+, ["delay input a"] =
+  {
+    params_name = "delay input a"
+  , enabled = false
+  , destructive = true
+  , min = 0
+  , max = 1
+  , target = 1
+  , curve = "linear"
+  }
+, ["delay input b"] =
+  {
+    params_name = "delay input b"
+  , enabled = false
+  , destructive = true
+  , min = 0
+  , max = 1
+  , target = 1
+  , curve = "linear"
+  }
+, ["delay input c"] =
+  {
+    params_name = "delay input c"
+  , enabled = false
+  , destructive = true
+  , min = 0
+  , max = 1
+  , target = 1
+  , curve = "linear"
+  }
+, ["delay input ext"] =
+  {
+    params_name = "delay input ext"
+  , enabled = false
+  , destructive = true
+  , min = 0
+  , max = 1
+  , target = 1
+  , curve = "linear"
+  }
 , ["macro"] =
   {
     params_name = "macro"
@@ -390,6 +440,11 @@ local parameter_names =
 , "delay free time"
 , "delay rate"
 , "delay pan"
+, "delay input a"
+, "delay input b"
+, "delay input c"
+, "delay input ext"
+, "delay output"
 , "macro"
 , "w/curve"
 , "w/ramp"

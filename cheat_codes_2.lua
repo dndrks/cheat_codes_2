@@ -1,6 +1,6 @@
 -- cheat codes 2
 --          a sample playground
--- rev: 2200825 - LTS8b
+-- rev: 221007 - LTS9
 -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
 -- need help?
 -- please visit:
@@ -26,9 +26,9 @@ function grid.add(dev)
   grid_dirty = true
 end
 
-midigrid_present = util.file_exists(_path.code.."midigrid") and grid.vports[1].name ~= "none"
+midigrid_present = util.file_exists(_path.code.."midigrid") and grid.vports[1].name == 'none'
 
-local grid = midigrid_present and include "midigrid/lib/midigrid" or grid
+grid_device = midigrid_present and include "midigrid/lib/mg_128" or grid
 
 function push_to_cc2(encoder, d)
   -- translate the bank of 8 encoders to whatever params you want!
@@ -768,8 +768,6 @@ key2_hold = false
 key2_hold_and_modify = false
 
 grid_alt = false
--- grid.alt_pp = 0
--- grid.alt_delay = false
 grid_loop_mod = 0
 
 local function crow_flush()
@@ -946,9 +944,6 @@ function init()
   params:add_option("midigrid?","midigrid?",{"no","yes"},1)
   params:set_action("midigrid?",
   function(x)
-    if x == 2 and midigrid_present then
-      params:set("grid_size",2)
-    end
     if all_loaded then
       persistent_state_save()
     end
@@ -4250,22 +4245,22 @@ function redraw()
 end
 
 --GRID
-g = grid.connect()
+g = grid_device.connect()
 
 function get_grid_connected()
-  if grid.is_midigrid ~= nil and grid.is_midigrid == true then
+  if grid_device.is_midigrid ~= nil and grid_device.is_midigrid == true then
     params:set("midigrid?",2)
   end
-  if g.device == nil and grid == nil then
+  if g.device == nil and grid_device == nil then
     return false
-  elseif g.device ~= nil or (grid ~= nil and params:string("midigrid?") == "yes") then
+  elseif g.device ~= nil or (grid_device ~= nil and params:string("midigrid?") == "yes") then
     return true
   else
     return false
   end
 end
 
-function grid.add(dev)
+function grid_device.add(dev)
   grid_dirty = true
 end
 
@@ -5804,7 +5799,7 @@ function named_savestate(text)
     -- if not, fuck it.
     -- might also need to `norns.pmap.assign(name,m.dev,m.ch,m.cc)`
 
-    mc.save_mappings(collection)
+    mc.write_mappings(collection)
 
     tab.save(rec,_path.data .. "cheat_codes_2/collection-"..collection.."/rec/rec[rec.focus].data")
 
@@ -6059,7 +6054,7 @@ function named_loadstate(path)
       }
 
       for j = 1,#mc_tables do
-        if tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/midi_output_maps/bank_"..i.."/"..mc_tables[j]..".data") ~= nil then
+        if util.file_exists(_path.data .. "cheat_codes_2/collection-"..collection.."/midi_output_maps/bank_"..i.."/"..mc_tables[j]..".data") then
           mc[mc_tables[j]][i].entries = tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/midi_output_maps/bank_"..i.."/"..mc_tables[j]..".data")
         end
       end
@@ -6068,7 +6063,7 @@ function named_loadstate(path)
         reload_collected_samples(_path.dust.."audio/cc2_live-audio/"..collection.."/".."cc2_"..collection.."-"..i..".wav",i)
       end
       
-      if tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/euclid/euclid"..i..".data") ~= nil then
+      if util.file_exists(_path.data .. "cheat_codes_2/collection-"..collection.."/euclid/euclid"..i..".data") then
         rytm.track[i] = tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/euclid/euclid"..i..".data")
         if rytm.track[i].runner == nil then rytm.track[i].runner = 0 end
       end
@@ -6161,10 +6156,29 @@ function named_loadstate(path)
 
   ping_midi_devices()
   if file then
-    if tab.load(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/params/mappings.txt") ~= nil then
+    if util.file_exists(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/params/mappings.txt") then
       norns.pmap.rev = tab.load(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/params/mappings.txt")
+      print('>>>>'..#norns.pmap.rev)
+      if #norns.pmap.rev < 16 then
+        print('less than 16')
+        for i = #norns.pmap.rev+1,16 do
+          norns.pmap.rev[i] = {}
+          for j = 1,16 do
+            --norns.pmap.rev[dev][ch][cc]
+            norns.pmap.rev[i][j] = {}
+          end
+        end
+      end
       norns.pmap.data = tab.load(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/params/map-data.txt")
-      -- BUT, i want the device to be present or reassigned...
+      print('clearing old mapping files, creating new PMAPs...')
+      mc.write_mappings(selected_coll)
+      os.execute('rm -r '.._path.data .. "cheat_codes_2/collection-"..selected_coll.."/params/mappings.txt")
+      norns.pmap.clear()
+      mc.read_mappings(selected_coll)
+    else
+      print('no prev data file for mapping')
+      norns.pmap.clear()
+      mc.read_mappings(selected_coll)
     end
   end
 
