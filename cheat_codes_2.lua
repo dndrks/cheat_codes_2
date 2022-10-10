@@ -7,6 +7,11 @@
 -- l.llllllll.co/cheat-codes-2
 -- -------------------------------
 
+if tonumber(norns.version.update) < 220802 then
+  norns.script.clear()
+  norns.script.load('code/cheat_codes_2/lib/fail_state.lua')
+end
+
 if util.file_exists(_path.code.."passthrough") then
   local passthru = include 'passthrough/lib/passthrough'
   passthru.init()
