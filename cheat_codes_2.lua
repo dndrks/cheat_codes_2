@@ -101,21 +101,62 @@ speed_dial = include 'lib/speed_dial'
 _lfos = include 'lib/lfos'
 _lfos.max_per_group = 9
 math.randomseed(os.time())
-variable_fade_time = 0.01
 splash_done = true
 actively_loading_collection = false
+cc_json = include 'lib/cc_json'
 
 macro = {}
 for i = 1,8 do
   macro[i] = macros.new_macro()
 end
 
-function rec_ended_callback()
-  -- for i = 1,3 do
-  --   if bank[i].id == 1 then
-  --     cheat(i,1)
-  --   end
-  -- end
+cursors = {}
+detecting_onsets_popup = {}
+
+osc_fun={
+  progressbar=function(args)
+    -- print(args[1],tonumber(args[2]))
+    detecting_onsets_popup = {state = true, percent = args[2]}
+  end,
+  aubiodone=function(args)
+    local id=tonumber(args[1])
+    stuff=args[2]
+    local data=cc_json.parse(stuff)
+    if data==nil then
+      print("error getting onset data!")
+      do return end
+    end
+    if data.error~=nil then
+      print("error getting onset data: "..data.error)
+      do return end
+    end
+    if data.result==nil then
+      print("no onset results!")
+      do return end
+    end
+    cursors[id] = data.result
+    if not util.file_exists(_path.data..'/cheat_codes_2/cursors/') then
+      util.make_dir(_path.data..'/cheat_codes_2/cursors/')
+    end
+    tab.save(data.result,_path.data..'/cheat_codes_2/cursors/'..params:string('clip '..id..' sample')..'.cursors')
+    params:hide('detect_onsets_'..id)
+    params:show('clear_onsets_'..id)
+    detecting_onsets_popup = {state = false, percent = nil}
+    _menu.rebuild_params()
+    print(id)
+  end,
+}
+
+function detect_onsets(id,file)
+  if util.file_exists(_path.data..'/cheat_codes_2/cursors/'..params:string('clip '..id..' sample')..'.cursors') then
+    cursors[id] = tab.load(_path.data..'/cheat_codes_2/cursors/'..params:string('clip '..id..' sample')..'.cursors')
+    params:hide('detect_onsets_'..id)
+    params:show('clear_onsets_'..id)
+    detecting_onsets_popup = {state = false, percent = nil}
+    _menu.rebuild_params()
+  else
+    os.execute(_path.code.."zxcvbn/lib/aubiogo/aubiogo --id "..id.." --filename '"..file.."' --num 16 &")
+  end
 end
 
 SOS = {}
@@ -2638,6 +2679,15 @@ function globally_clocked()
 end
 
 osc_in = function(path, args, from)
+
+  if string.sub(path,1,1)=="/" then
+    path=string.sub(path,2)
+  end
+  print(path)
+  if osc_fun[path] ~= 'progressbar' or 'aubiodone' then
+    osc_fun[path](args)
+  end
+
   if osc_communication ~= true then
     params:set("osc_IP",from[1])
     params:set("osc_port",from[2])
@@ -3563,6 +3613,12 @@ function load_sample(file,sample)
         end
       end
     end
+    if util.file_exists(_path.code.."zxcvbn/lib/aubiogo/aubiogo") then
+      params:show('detect_onsets_'..sample)
+      params:hide('clear_onsets_'..sample)
+      _menu.rebuild_params()
+    end
+    cursors[sample] = {}
   end
   for i = 1,3 do
     pre_cc2_sample[i] = false
@@ -4246,6 +4302,22 @@ function redraw()
   screen.level(15)
   screen.font_size(8)
   main_menu.init()
+  if detecting_onsets_popup.state then
+    screen.rect(7,11,113,44)
+    screen.level(15)
+    screen.fill()
+    screen.rect(8,12,111,42)
+    screen.level(0)
+    screen.fill()
+    screen.level(15)
+    screen.font_size(8)
+    screen.move(64,24)
+    screen.text_center('detecting onsets:')
+    screen.font_size(15)
+    screen.move(64,42)
+    screen.text_center(detecting_onsets_popup.percent..'%')
+    screen.font_size(8)
+  end
   screen.update()
 end
 
@@ -6040,7 +6112,7 @@ function named_loadstate(path)
       if tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/rnd/"..i..".data") ~= nil then
         rnd[i] = tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/rnd/"..i..".data")
         for j = 1,#rnd[i] do
-          rnd[i][j].lattice = rnd_lattice:new_pattern{
+          rnd[i][j].lattice = rnd_lattice:new_sprocket{
             action = function() rnd.lattice_advance(i,j) end,
             division = rnd[i][j].time/4,
             enabled = true

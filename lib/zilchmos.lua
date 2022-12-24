@@ -136,9 +136,23 @@ function zilchmos.start_end_default( pad )
     pad.start_point = (s_p+(duration/16) * (pad.pad_id-1))
     pad.end_point = (s_p+((duration/16) * (pad.pad_id)))
   else
+    local _ft = (params:get("loop_fade_time_"..pad.bank_id)/1000) + 0.07
     duration = pad.mode == 1 and 8 or clip[pad.clip].sample_length
-    pad.start_point = ((duration/16)*(pad.pad_id-1)) + clip[pad.clip].min
-    pad.end_point = pad.start_point + (duration/16)
+    if #cursors[pad.clip] ~= 0 then
+      if cursors[pad.bank_id][pad.pad_id]+1 >= clip[pad.clip].max then
+        pad.start_point = clip[pad.clip].max - (clip[pad.clip].max*0.05)
+      else
+        pad.start_point = util.clamp(cursors[pad.bank_id][pad.pad_id]+ clip[pad.clip].min - _ft,clip[pad.clip].min,clip[pad.clip].max)
+      end
+      if pad.pad_id ~= 16 then
+        pad.end_point = util.clamp(cursors[pad.bank_id][pad.pad_id+1]+ clip[pad.clip].min - _ft,clip[pad.clip].min,clip[pad.clip].max)
+      else
+        pad.end_point = clip[pad.clip].max - _ft
+      end
+    else
+      pad.start_point = ((duration/16)*(pad.pad_id-1)) + clip[pad.clip].min
+      pad.end_point = pad.start_point + (duration/16)
+    end
   end
 end
 

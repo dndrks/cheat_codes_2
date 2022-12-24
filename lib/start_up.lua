@@ -77,15 +77,44 @@ function start_up.init()
   
   --params:add_separator()
   
-  params:add_group("loops + buffers", 39)
+  params:add_group("loops + buffers", util.file_exists(_path.code.."zxcvbn/lib/aubiogo/aubiogo") and 45 or 39)
 
   params:add_separator("clips")
   
   for i = 1,3 do
     params:add_file("clip "..i.." sample", "clip "..i.." sample")
     params:set_action("clip "..i.." sample", function(file) load_sample(file,i) end)
-  end
+    if util.file_exists(_path.code.."zxcvbn/lib/aubiogo/aubiogo") then
+      params:add{
+        type = "trigger",
+        id = "detect_onsets_"..i,
+        name = "detect onsets in clip "..i.." [K3]",
+        action = function()
+          if params:get('clip '..i..' sample') ~= '-' and params:get('clip '..i..' sample') ~= _path.audio then
+            _norns.key(1,1)
+            _norns.key(1,0)
+            detect_onsets(i,params:get('clip '..i..' sample'))
+          end
+        end
+      }
 
+      params:add{
+        type = "trigger",
+        id = "clear_onsets_"..i,
+        name = "clear onsets from clip "..i.." [K3]",
+        action = function()
+          params:show('detect_onsets_'..i)
+          params:hide("clear_onsets_"..i)
+          _menu.rebuild_params()
+          cursors[i] = {}
+        end
+      }
+      params:hide("detect_onsets_"..i)
+      params:hide("clear_onsets_"..i)
+      _menu.rebuild_params()
+    end
+  end
+  
   for i = 1,3 do
     params:add{type = "trigger", id = "save_buffer"..i, name = "save live buffer "..i.." [K3]", action = function() save_sample(i) end}	
   end
