@@ -145,6 +145,9 @@ osc_fun={
     params:show('clear_onsets_'..id)
     detecting_onsets_popup = {state = false, percent = nil, id = nil}
     detected_onsets_popup = {state = true, id = id}
+    for i = 1,16 do
+      rightangleslice.start_end_default(bank[id][i])
+    end
     clock.run(clear_detected_onsets_popup)
     _menu.rebuild_params()
     -- print(id)
@@ -163,6 +166,9 @@ function detect_onsets(id,file)
     params:show('clear_onsets_'..id)
     detecting_onsets_popup = {state = false, percent = nil, id = nil}
     detected_onsets_popup = {state = true, id = id}
+    for i = 1,16 do
+      rightangleslice.start_end_default(bank[id][i])
+    end
     clock.run(clear_detected_onsets_popup)
     _menu.rebuild_params()
   else
