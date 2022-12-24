@@ -71,25 +71,40 @@ function arp_actions.toggle(state,target)
   end
 end
 
+function arp_actions.process(target)
+  if arp[target].mode == "fwd" then
+    arp_actions.forward(target)
+  elseif arp[target].mode == "bkwd" then
+    arp_actions.backward(target)
+  elseif arp[target].mode == "pend" then
+    arp_actions.pendulum(target)
+  elseif arp[target].mode == "rnd" then
+    arp_actions.random(target)
+  end
+  arp_actions.cheat(target,arp[target].step)
+  grid_dirty = true
+  screen_dirty = true
+end
+
 function arp_actions.arpeggiate(target)
   while true do
     clock.sync(bank[target][bank[target].id].arp_time)
     if transport.is_running then
       if #arp[target].notes > 0 then
         if arp[target].pause == false then
-          -- if arp[target].step == 1 then print("arp "..target, clock.get_beats()) end
           if menu ~= 1 then screen_dirty = true end
-          if arp[target].mode == "fwd" then
-            arp_actions.forward(target)
-          elseif arp[target].mode == "bkwd" then
-            arp_actions.backward(target)
-          elseif arp[target].mode == "pend" then
-            arp_actions.pendulum(target)
-          elseif arp[target].mode == "rnd" then
-            arp_actions.random(target)
+
+          if params:get("arp_"..target.."_swing") > 50 and arp[target].step % 2 == 1 then
+            local base_time = (clock.get_beat_sec() * arp[target].time)
+            local swung_time =  base_time*util.linlin(50,100,0,1,params:get("arp_"..target.."_swing"))
+            clock.run(function()
+              clock.sleep(swung_time)
+              arp_actions.process(target)
+            end)
+          else
+            arp_actions.process(target,source)
           end
           arp[target].playing = true
-          arp_actions.cheat(target,arp[target].step)
           grid_dirty = true
         else
           arp[target].playing = false

@@ -141,13 +141,13 @@ function zilchmos.start_end_default( pad )
     duration = clip[pad.clip].sample_length
     local time_offset = 32*(pad.clip-1)
     if #cursors[pad.clip] ~= 0 then
-      if cursors[pad.bank_id][pad.pad_id] + 1 + time_offset >= clip[pad.clip].max then
+      if cursors[pad.clip][pad.pad_id] + 1 + time_offset >= clip[pad.clip].max then
         pad.start_point = clip[pad.clip].max - (clip[pad.clip].max*0.05)
       else
-        pad.start_point = util.clamp(util.round(cursors[pad.bank_id][pad.pad_id],0.001) + clip[pad.clip].min - _ft,clip[pad.clip].min,clip[pad.clip].max)
+        pad.start_point = util.clamp(util.round(cursors[pad.clip][pad.pad_id],0.001) + clip[pad.clip].min - _ft,clip[pad.clip].min,clip[pad.clip].max)
       end
       if pad.pad_id ~= 16 then
-        pad.end_point = util.clamp(util.round(cursors[pad.bank_id][pad.pad_id+1],0.001)+ clip[pad.clip].min - _ft,clip[pad.clip].min,clip[pad.clip].max)
+        pad.end_point = util.clamp(util.round(cursors[pad.clip][pad.pad_id+1],0.001)+ clip[pad.clip].min - _ft,clip[pad.clip].min,clip[pad.clip].max)
       else
         pad.end_point = clip[pad.clip].max - _ft
       end
