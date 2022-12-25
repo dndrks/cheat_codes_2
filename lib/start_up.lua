@@ -77,15 +77,44 @@ function start_up.init()
   
   --params:add_separator()
   
-  params:add_group("loops + buffers", 39)
+  params:add_group("loops + buffers", util.file_exists(_path.code.."zxcvbn/lib/aubiogo/aubiogo") and 45 or 39)
 
   params:add_separator("clips")
   
   for i = 1,3 do
     params:add_file("clip "..i.." sample", "clip "..i.." sample")
     params:set_action("clip "..i.." sample", function(file) load_sample(file,i) end)
-  end
+    if util.file_exists(_path.code.."zxcvbn/lib/aubiogo/aubiogo") then
+      params:add{
+        type = "trigger",
+        id = "detect_onsets_"..i,
+        name = "detect onsets in clip "..i.." [K3]",
+        action = function()
+          if params:get('clip '..i..' sample') ~= '-' and params:get('clip '..i..' sample') ~= _path.audio then
+            _norns.key(1,1)
+            _norns.key(1,0)
+            detect_onsets(i,params:get('clip '..i..' sample'))
+          end
+        end
+      }
 
+      params:add{
+        type = "trigger",
+        id = "clear_onsets_"..i,
+        name = "clear onsets from clip "..i.." [K3]",
+        action = function()
+          params:show('detect_onsets_'..i)
+          params:hide("clear_onsets_"..i)
+          _menu.rebuild_params()
+          cursors[i] = {}
+        end
+      }
+      params:hide("detect_onsets_"..i)
+      params:hide("clear_onsets_"..i)
+      _menu.rebuild_params()
+    end
+  end
+  
   for i = 1,3 do
     params:add{type = "trigger", id = "save_buffer"..i, name = "save live buffer "..i.." [K3]", action = function() save_sample(i) end}	
   end
@@ -256,7 +285,7 @@ function start_up.init()
   
   --params:add_option("zilchmo_bind_rand","bind random zilchmo?", {"no","yes"}, 1)
   
-  params:add_group("timing + patterns + arps",30)
+  params:add_group("timing + patterns + arps",39)
   params:add_separator("quantization")
   for i = 1,3 do
     params:add_option("pattern_"..i.."_quantization", "live-quantize pads "..banks[i].."?", {"no", "yes"})
@@ -331,11 +360,20 @@ function start_up.init()
             end
           end
         end
-      end)
+      end
+    )
+  end
+  for i = 1,3 do
+    params:add_number("arp_"..i.."_swing", "arp "..i.." swing", 50,100,50,function(param)return param:get()..'%' end)
+    params:add_option("arp_"..i.."_swing_style", "--> style", {'even steps', 'cumulative'}, 1)
+  end
+
+  for i = 1,3 do
+    params:add_option("arp_"..i.."_disengage", "arp "..i.." disengage style", {'reset','pause'}, 1)
   end
 
 
-  params:add_trigger("arp_panic","arp reset (K3)")
+  params:add_trigger("arp_panic","arp panic (K3)")
   params:set_action("arp_panic",
     function (x)
       if all_loaded == true then

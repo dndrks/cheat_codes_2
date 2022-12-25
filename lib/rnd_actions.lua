@@ -31,7 +31,7 @@ function rnd.init(t)
       rnd[t][i].filter_min = -1
       rnd[t][i].filter_max = 1
       rnd[t][i].mode = "non-destructive"
-      rnd[t][i].lattice = rnd_lattice:new_pattern{
+      rnd[t][i].lattice = rnd_lattice:new_sprocket{
         action = function() rnd.lattice_advance(t,i) end,
         division = rnd[t][i].time/4,
         enabled = true
@@ -260,7 +260,7 @@ function rnd.loadstate()
       rnd[i] = tab.load(_path.data .. "cheat_codes_2/rnd/collection-"..collection.."/"..i..".data")
       for j = 1,#rnd[i] do
         if rnd[i][j].lattice == nil then
-          rnd[i][j].lattice = rnd_lattice:new_pattern{
+          rnd[i][j].lattice = rnd_lattice:new_sprocket{
             action = function() rnd.lattice_advance(i,j) end,
             division = rnd[i][j].time/4,
             enabled = true

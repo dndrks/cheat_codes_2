@@ -1,13 +1,13 @@
 -- cheat codes 2
 --          a sample playground
--- rev: 221007 - LTS9
+-- rev: 221225 - LTS10
 -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
 -- need help?
 -- please visit:
 -- l.llllllll.co/cheat-codes-2
 -- -------------------------------
 
-if tonumber(norns.version.update) < 220802 then
+if tonumber(norns.version.update) < 221214 then
   norns.script.clear()
   norns.script.load('code/cheat_codes_2/lib/fail_state.lua')
 end
@@ -101,21 +101,87 @@ speed_dial = include 'lib/speed_dial'
 _lfos = include 'lib/lfos'
 _lfos.max_per_group = 9
 math.randomseed(os.time())
-variable_fade_time = 0.01
 splash_done = true
 actively_loading_collection = false
+cc_json = include 'lib/cc_json'
 
 macro = {}
 for i = 1,8 do
   macro[i] = macros.new_macro()
 end
 
-function rec_ended_callback()
-  -- for i = 1,3 do
-  --   if bank[i].id == 1 then
-  --     cheat(i,1)
-  --   end
-  -- end
+-- thank you zack (@infinitedigits) for pioneering aubiogo on norns!!!
+cursors = {{},{},{}}
+detecting_onsets_popup = {}
+detected_onsets_popup = {}
+
+osc_fun={
+  progressbar=function(args)
+    -- print(args[1],tonumber(args[2]))
+    detecting_onsets_popup = {state = true, percent = args[2], id = tonumber(string.match(args[1],"%d+"))}
+  end,
+  aubiodone=function(args)
+    local id=tonumber(args[1])
+    stuff=args[2]
+    local data=cc_json.parse(stuff)
+    if data==nil then
+      print("error getting onset data!")
+      do return end
+    end
+    if data.error~=nil then
+      print("error getting onset data: "..data.error)
+      do return end
+    end
+    if data.result==nil then
+      print("no onset results!")
+      do return end
+    end
+    cursors[id] = data.result
+    if not util.file_exists(_path.data..'/cheat_codes_2/cursors/') then
+      util.make_dir(_path.data..'/cheat_codes_2/cursors/')
+    end
+    tab.save(data.result,_path.data..'/cheat_codes_2/cursors/'..params:string('clip '..id..' sample')..'.cursors')
+    params:hide('detect_onsets_'..id)
+    params:show('clear_onsets_'..id)
+    detecting_onsets_popup = {state = false, percent = nil, id = nil}
+    detected_onsets_popup = {state = true, id = id}
+    for b = 1,3 do
+      for i = 1,16 do
+        if bank[b][i].mode == 2 and bank[b][i].clip == id then
+          rightangleslice.start_end_default(bank[b][i])
+        end
+      end
+    end
+    clock.run(clear_detected_onsets_popup)
+    _menu.rebuild_params()
+    -- print(id)
+  end,
+}
+
+function clear_detected_onsets_popup()
+  clock.sleep(clip[detected_onsets_popup.id].sample_rate < 48000 and 2 or 1)
+  detected_onsets_popup = {state = false, id = nil}
+end
+
+function detect_onsets(id,file)
+  if util.file_exists(_path.data..'/cheat_codes_2/cursors/'..params:string('clip '..id..' sample')..'.cursors') then
+    cursors[id] = tab.load(_path.data..'/cheat_codes_2/cursors/'..params:string('clip '..id..' sample')..'.cursors')
+    params:hide('detect_onsets_'..id)
+    params:show('clear_onsets_'..id)
+    detecting_onsets_popup = {state = false, percent = nil, id = nil}
+    detected_onsets_popup = {state = true, id = id}
+    for b = 1,3 do
+      for i = 1,16 do
+        if bank[b][i].mode == 2 and bank[b][i].clip == id then
+          rightangleslice.start_end_default(bank[b][i])
+        end
+      end
+    end
+    clock.run(clear_detected_onsets_popup)
+    _menu.rebuild_params()
+  else
+    os.execute(_path.code.."zxcvbn/lib/aubiogo/aubiogo --id "..id.." --filename '"..file.."' --num 16 &")
+  end
 end
 
 SOS = {}
@@ -2638,6 +2704,15 @@ function globally_clocked()
 end
 
 osc_in = function(path, args, from)
+
+  if string.sub(path,1,1)=="/" then
+    path=string.sub(path,2)
+  end
+  print(path)
+  if osc_fun[path] ~= 'progressbar' or 'aubiodone' then
+    osc_fun[path](args)
+  end
+
   if osc_communication ~= true then
     params:set("osc_IP",from[1])
     params:set("osc_port",from[2])
@@ -3546,12 +3621,13 @@ function load_sample(file,sample)
   local old_min = clip[sample].min
   local old_max = clip[sample].max
   if file ~= "-" then
-    local ch, len = audio.file_info(file)
+    local ch, len, sr = audio.file_info(file)
     if len/48000 < 32 then
       clip[sample].sample_length = len/48000
     else
       clip[sample].sample_length = 32
     end
+    clip[sample].sample_rate = sr
     softcut.buffer_clear_region_channel(2,1+(32*(sample-1)),32)
     softcut.buffer_read_mono(file, 0, 1+(32*(sample-1)),clip[sample].sample_length + 0.05, 1, 2)
     -- softcut.buffer_read_mono(file, 0, 1+(32*(sample-1)),clip[sample].sample_length, 1, 2)
@@ -3563,6 +3639,12 @@ function load_sample(file,sample)
         end
       end
     end
+    if util.file_exists(_path.code.."zxcvbn/lib/aubiogo/aubiogo") then
+      params:show('detect_onsets_'..sample)
+      params:hide('clear_onsets_'..sample)
+      _menu.rebuild_params()
+    end
+    cursors[sample] = {}
   end
   for i = 1,3 do
     pre_cc2_sample[i] = false
@@ -4246,6 +4328,53 @@ function redraw()
   screen.level(15)
   screen.font_size(8)
   main_menu.init()
+  if detecting_onsets_popup.state then
+    screen.rect(1,11,127,44)
+    screen.level(15)
+    screen.fill()
+    screen.rect(2,12,125,42)
+    screen.level(0)
+    screen.fill()
+    screen.level(15)
+    screen.font_size(8)
+    screen.move(64,25)
+    screen.text_center('detecting onsets:')
+    screen.font_size(15)
+    if clip[detecting_onsets_popup.id].sample_rate < 48000 then
+      screen.move(64,42)
+    else
+      screen.move(64,44)
+    end
+    screen.text_center(detecting_onsets_popup.percent..'%')
+    screen.font_size(8)
+    if clip[detecting_onsets_popup.id].sample_rate < 48000 then
+      screen.move(64,52)
+      screen.text_center('use 48khz for best results')
+    end
+  elseif detected_onsets_popup.state then
+    screen.rect(1,11,127,44)
+    screen.level(15)
+    screen.fill()
+    screen.rect(2,12,125,42)
+    screen.level(0)
+    screen.fill()
+    screen.level(15)
+    screen.font_size(8)
+    screen.move(64,28)
+    screen.font_size(15)
+    screen.text_center('onsets')
+    if detected_onsets_popup.id ~= nil and clip[detected_onsets_popup.id].sample_rate < 48000 then
+      screen.move(64,42)
+    else
+      screen.move(64,45)
+    end
+    screen.text_center('detected!')
+    screen.font_size(8)
+    if detected_onsets_popup.id ~= nil and clip[detected_onsets_popup.id].sample_rate < 48000 then
+      screen.move(64,52)
+      screen.text_center('use 48khz for best results')
+    end
+  end
   screen.update()
 end
 
@@ -5768,7 +5897,7 @@ function named_savestate(text)
       os.execute("mkdir " .. dirname)
     end
 
-    local dirnames = {"banks/","params/","arc-rec/","patterns/","step-seq/","arps/","euclid/","rnd/","delays/","rec/","misc/","midi_output_maps/","macros/"}
+    local dirnames = {"banks/","params/","arc-rec/","patterns/","step-seq/","arps/","euclid/","rnd/","delays/","rec/","misc/","midi_output_maps/","macros/","cursors/"}
     for i = 1,#dirnames do
       local directory = _path.data.."cheat_codes_2/collection-"..collection.."/"..dirnames[i]
       if os.rename(directory, directory) == nil then
@@ -5903,6 +6032,17 @@ function named_savestate(text)
         io.close(file)
       end
     end
+
+    for i = 1,3 do
+      local cursor_filepath = _path.data .. "cheat_codes_2/collection-"..selected_coll.."/cursors/"..i..".data"
+      local file = io.open(cursor_filepath, "w+")
+      if file then
+        io.output(file)
+        tab.save(cursors[i],cursor_filepath)
+        io.close(file)
+      end
+    end
+
   else
     -- print("bad name, runnign cannpt save from named_savestate")
     save_fail_state = true
@@ -6040,7 +6180,7 @@ function named_loadstate(path)
       if tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/rnd/"..i..".data") ~= nil then
         rnd[i] = tab.load(_path.data .. "cheat_codes_2/collection-"..collection.."/rnd/"..i..".data")
         for j = 1,#rnd[i] do
-          rnd[i][j].lattice = rnd_lattice:new_pattern{
+          rnd[i][j].lattice = rnd_lattice:new_sprocket{
             action = function() rnd.lattice_advance(i,j) end,
             division = rnd[i][j].time/4,
             enabled = true
@@ -6158,6 +6298,20 @@ function named_loadstate(path)
     collection_loaded = false
     clock.run(load_fail_screen)
   end
+
+  for i = 1,3 do
+    local dirname = _path.data .. "cheat_codes_2/collection-"..selected_coll.."/cursors/"..i..".data"
+    if os.rename(dirname, dirname) ~= nil then
+      cursors[i] = tab.load(dirname)
+      if #cursors[i] > 0 then
+        params:hide('detect_onsets_'..i)
+        params:show('clear_onsets_'..i)
+        detecting_onsets_popup = {state = false, percent = nil}
+        _menu.rebuild_params()
+      end
+    end
+  end
+
 
   ping_midi_devices()
   if file then
