@@ -285,7 +285,7 @@ function start_up.init()
   
   --params:add_option("zilchmo_bind_rand","bind random zilchmo?", {"no","yes"}, 1)
   
-  params:add_group("timing + patterns + arps",33)
+  params:add_group("timing + patterns + arps",39)
   params:add_separator("quantization")
   for i = 1,3 do
     params:add_option("pattern_"..i.."_quantization", "live-quantize pads "..banks[i].."?", {"no", "yes"})
@@ -365,10 +365,15 @@ function start_up.init()
   end
   for i = 1,3 do
     params:add_number("arp_"..i.."_swing", "arp "..i.." swing", 50,100,50,function(param)return param:get()..'%' end)
+    params:add_option("arp_"..i.."_swing_style", "--> style", {'even steps', 'cumulative'}, 1)
+  end
+
+  for i = 1,3 do
+    params:add_option("arp_"..i.."_disengage", "arp "..i.." disengage style", {'reset','pause'}, 1)
   end
 
 
-  params:add_trigger("arp_panic","arp reset (K3)")
+  params:add_trigger("arp_panic","arp panic (K3)")
   params:set_action("arp_panic",
     function (x)
       if all_loaded == true then

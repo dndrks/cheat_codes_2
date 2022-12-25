@@ -4,6 +4,8 @@ arp = {}
 
 arp_clock = {}
 
+local swing_step = {1,1,1}
+
 function arp_actions.init(target)
     arp[target] = {}
     arp[target].playing = false
@@ -52,14 +54,17 @@ end
 function arp_actions.toggle(state,target)
   local i = target
   if state == "start" then
-    local arp_start =
-    {
-      ["fwd"] = arp[i].start_point - 1
-    , ["bkwd"] = arp[i].end_point + 1
-    , ["pend"] = arp[i].start_point
-    , ["rnd"] = arp[i].start_point - 1
-    }
-    arp[i].step = arp_start[arp[i].mode]
+    if params:string("arp_"..i.."_disengage") == 'reset' then
+      local arp_start =
+      {
+        ["fwd"] = arp[i].start_point - 1
+      , ["bkwd"] = arp[i].end_point + 1
+      , ["pend"] = arp[i].start_point
+      , ["rnd"] = arp[i].start_point - 1
+      }
+      arp[i].step = arp_start[arp[i].mode]
+      swing_step[i] = arp[i].step
+    end
     arp[i].pause = false
     arp[i].playing = true
     if arp[i].mode == "pend" then
@@ -81,6 +86,7 @@ function arp_actions.process(target)
   elseif arp[target].mode == "rnd" then
     arp_actions.random(target)
   end
+  swing_step[target] = swing_step[target] + 1
   arp_actions.cheat(target,arp[target].step)
   grid_dirty = true
   screen_dirty = true
@@ -94,7 +100,7 @@ function arp_actions.arpeggiate(target)
         if arp[target].pause == false then
           if menu ~= 1 then screen_dirty = true end
 
-          if params:get("arp_"..target.."_swing") > 50 and arp[target].step % 2 == 1 then
+          if params:get("arp_"..target.."_swing") > 50 and (params:string("arp_"..target.."_swing_style") == 'even steps' and arp[target].step % 2 == 1 or swing_step[target]%2 == 1) then
             local base_time = (clock.get_beat_sec() * arp[target].time)
             local swung_time =  base_time*util.linlin(50,100,0,1,params:get("arp_"..target.."_swing"))
             clock.run(function()
@@ -183,6 +189,7 @@ function arp_actions.clear(target)
     arp[target].pause = false
     arp[target].hold = false
     arp[target].step = 1
+    swing_step[target] = 1
     arp[target].notes = {}
     arp[target].start_point = 1
     arp[target].end_point = 1

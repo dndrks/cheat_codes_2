@@ -1,6 +1,6 @@
 -- cheat codes 2
 --          a sample playground
--- rev: 221224 - LTS10
+-- rev: 221225 - LTS10
 -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
 -- need help?
 -- please visit:
@@ -145,8 +145,12 @@ osc_fun={
     params:show('clear_onsets_'..id)
     detecting_onsets_popup = {state = false, percent = nil, id = nil}
     detected_onsets_popup = {state = true, id = id}
-    for i = 1,16 do
-      rightangleslice.start_end_default(bank[id][i])
+    for b = 1,3 do
+      for i = 1,16 do
+        if bank[b][i].mode == 2 and bank[b][i].clip == id then
+          rightangleslice.start_end_default(bank[b][i])
+        end
+      end
     end
     clock.run(clear_detected_onsets_popup)
     _menu.rebuild_params()
@@ -166,8 +170,12 @@ function detect_onsets(id,file)
     params:show('clear_onsets_'..id)
     detecting_onsets_popup = {state = false, percent = nil, id = nil}
     detected_onsets_popup = {state = true, id = id}
-    for i = 1,16 do
-      rightangleslice.start_end_default(bank[id][i])
+    for b = 1,3 do
+      for i = 1,16 do
+        if bank[b][i].mode == 2 and bank[b][i].clip == id then
+          rightangleslice.start_end_default(bank[b][i])
+        end
+      end
     end
     clock.run(clear_detected_onsets_popup)
     _menu.rebuild_params()
