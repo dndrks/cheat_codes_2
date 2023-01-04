@@ -1,6 +1,6 @@
 -- cheat codes 2
 --          a sample playground
--- rev: 221225 - LTS10
+-- rev: 230103 - LTS10.1
 -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
 -- need help?
 -- please visit:
@@ -3194,11 +3194,20 @@ function cheat(b,i)
   --   end
   -- end
   --dangerous??
-  local rate_array = {-4.0,-2.0,-1.0,-0.5,-0.25,-0.125,0.125,0.25,0.5,1.0,2.0,4.0}
-  local s = {}
-  for k,v in pairs(rate_array) do
-    s[v]=k
-  end
+  local s = {
+    [-4.0] = 1,
+    [-2.0] = 2,
+    [-1.0] = 3,
+    [-0.5] = 4,
+    [-0.25] = 5,
+    [-0.125] = 6,
+    [0.125] = 7,
+    [0.25] = 8,
+    [0.5] = 9,
+    [1.0] = 10,
+    [2.0] = 11,
+    [4.0] = 12
+  }
   if pad.fifth == false then
     if s[pad.rate] ~= nil then
       params:set("rate "..tonumber(string.format("%.0f",b)),s[pad.rate],true) -- TODO: confirm silent update is good...
@@ -3380,20 +3389,17 @@ function easing_slew(i)
   slew_counter[i].slewedQ = slew_counter[i].ease(slew_counter[i].current,slew_counter[i].beginQ,slew_counter[i].changeQ,slew_counter[i].duration)
   slew_counter[i].current = slew_counter[i].current + 0.01
   if grid_alt and all_loaded then
-    try_tilt_process(i,bank[i].id,slew_counter[i].slewedVal,slew_counter[i].slewedQ)
+    process_tilt("pad",i,bank[i].id,slew_counter[i].slewedVal,slew_counter[i].slewedQ)
   elseif all_loaded then
-    for j = 1,16 do
-      try_tilt_process(i,j,slew_counter[i].slewedVal,slew_counter[i].slewedQ)
-    end
+    process_tilt("bank",i,nil,slew_counter[i].slewedVal,slew_counter[i].slewedQ)
   end
   if menu == 5 then
     if menu ~= 1 then screen_dirty = true end
   end
 end
 
-function try_tilt_process(b,i,t,rq)
+local function local_tilt(b,i,t,rq)
   if util.round(t*100) < 0 then
-    local trill = math.abs(t)
     bank[b][i].cf_lp = math.abs(t)
     bank[b][i].cf_dry = 1+t
     if util.round(t*100) >= -24 then
@@ -3404,12 +3410,6 @@ function try_tilt_process(b,i,t,rq)
       bank[b][i].cf_exp_dry = 0
     end
     bank[b][i].cf_fc = util.linexp(0,1,16000,10,bank[b][i].cf_lp)
-    params:set("filter "..b.." cutoff",bank[b][i].cf_fc)
-    params:set("filter "..b.." lp", math.abs(bank[b][i].cf_exp_dry-1))
-    params:set("filter "..b.." dry", bank[b][i].cf_exp_dry)
-    if params:get("filter "..b.." hp") ~= 0 then
-      params:set("filter "..b.." hp", 0)
-    end
     if bank[b][i].cf_hp ~= 0 then
       bank[b][i].cf_hp = 0
     end
@@ -3418,12 +3418,6 @@ function try_tilt_process(b,i,t,rq)
     bank[b][i].cf_fc = util.linexp(0,1,10,12000,bank[b][i].cf_hp)
     bank[b][i].cf_dry = 1-t
     bank[b][i].cf_exp_dry = (util.linexp(0,1,1,101,bank[b][i].cf_dry)-1)/100
-    params:set("filter "..b.." cutoff",bank[b][i].cf_fc)
-    params:set("filter "..b.." hp", math.abs(bank[b][i].cf_exp_dry-1))
-    params:set("filter "..b.." dry", bank[b][i].cf_exp_dry)
-    if params:get("filter "..b.." lp") ~= 0 then
-      params:set("filter "..b.." lp", 0)
-    end
     if bank[b][i].cf_lp ~= 0 then
       bank[b][i].cf_lp = 0
     end
@@ -3433,6 +3427,33 @@ function try_tilt_process(b,i,t,rq)
     bank[b][i].cf_hp = 0
     bank[b][i].cf_dry = 1
     bank[b][i].cf_exp_dry = 1
+  end
+end
+
+function process_tilt(style,b,i,t,rq)
+  if style == "pad" then
+    local_tilt(b,i,t,rq)
+  elseif style == "bank" then
+    for j = 1,16 do
+      local_tilt(b,j,t,rq)
+    end
+  end
+  local focused_pad = style == "pad" and i or bank[b].id
+  if util.round(t*100) < 0 then
+    params:set("filter "..b.." cutoff",bank[b][focused_pad].cf_fc)
+    params:set("filter "..b.." lp", math.abs(bank[b][focused_pad].cf_exp_dry-1))
+    params:set("filter "..b.." dry", bank[b][focused_pad].cf_exp_dry)
+    if params:get("filter "..b.." hp") ~= 0 then
+      params:set("filter "..b.." hp", 0)
+    end
+  elseif util.round(t*100) > 0 then
+    params:set("filter "..b.." cutoff",bank[b][focused_pad].cf_fc)
+    params:set("filter "..b.." hp", math.abs(bank[b][focused_pad].cf_exp_dry-1))
+    params:set("filter "..b.." dry", bank[b][focused_pad].cf_exp_dry)
+    if params:get("filter "..b.." lp") ~= 0 then
+      params:set("filter "..b.." lp", 0)
+    end
+  elseif util.round(t*100) == 0 then
     params:set("filter "..b.." cutoff",12000)
     params:set("filter "..b.." lp", 0)
     params:set("filter "..b.." hp", 0)
