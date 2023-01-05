@@ -1,6 +1,6 @@
 -- cheat codes 2
 --          a sample playground
--- rev: 221225 - LTS10
+-- rev: 230104 - LTS10.1
 -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
 -- need help?
 -- please visit:
@@ -2705,148 +2705,151 @@ end
 
 osc_in = function(path, args, from)
 
-  if string.sub(path,1,1)=="/" then
-    path=string.sub(path,2)
-  end
-  print(path)
-  if osc_fun[path] ~= 'progressbar' or 'aubiodone' then
-    osc_fun[path](args)
-  end
-
-  if osc_communication ~= true then
-    params:set("osc_IP",from[1])
-    params:set("osc_port",from[2])
-    osc_communication = true
-  end
-  for i = 1,3 do
-    local target = bank[i][bank[i].id]
-    if path:find('^'.."/pad_sel_"..i) then
-      local pad_target = tonumber(path:match("^.*%_(.*)"))
-      if args[1] == 1 then
-        grid_actions.pad_down(i,pad_target)
-      elseif args[1] == 0 then
-        grid_actions.pad_up(i,pad_target)
-      end
-    elseif path:find('^'.."/grid_pat_"..i) then
-      if args[1] == 1 then
-        grid_actions.grid_pat_handler(i)
-      end
-    elseif path:find('^'.."/arp_"..i) then
-      if args[1] == 1 then
-        if not grid_alt then
-          grid_actions.arp_handler(i)
-        else
-          grid_actions.kill_arp(i)
+  if path == '/progressbar' or path == '/aubiodone' then
+    if string.sub(path,1,1)=="/" then
+      path=string.sub(path,2)
+    end
+    if osc_fun[path] ~= 'progressbar' or 'aubiodone' then
+      osc_fun[path](args)
+    end
+    return
+  else
+    if osc_communication ~= true then
+      params:set("osc_IP",from[1])
+      params:set("osc_port",from[2])
+      osc_communication = true
+    end
+    for i = 1,3 do
+      local target = bank[i][bank[i].id]
+      -- if path:find('^'.."/pad_sel_"..i) then
+      if string.match(path,"/pad_sel_"..i) then
+        local pad_target = tonumber(path:match("^.*%_(.*)"))
+        if args[1] == 1 then
+          grid_actions.pad_down(i,pad_target)
+        elseif args[1] == 0 then
+          grid_actions.pad_up(i,pad_target)
         end
-      end
-    elseif path == "/randomize_this_bank_"..i then
-      random_grid_pat(i,3)
-      for j = 2,16 do
-        bank[i][j].start_point = (math.random(10,30)/10)+(8*(bank[i][j].clip-1))
-        bank[i][j].end_point = bank[i][j].start_point + (math.random(10,60)/10)
-        bank[i][j].pan = math.random(-100,100)/100
-      end
-      grid_pat[i]:rec_stop()
-      grid_pat[i]:stop()
-      grid_pat[i].tightened_start = 0
-
-    elseif path == "/pad_rate_"..i then
-      target.rate = args[1]
-      softcut.rate(i+1,target.rate)
-    elseif path == "/bank_rate_"..i then
-      for j = 1,16 do
-        bank[i][j].rate = args[1]
-      end
-      softcut.rate(i+1,target.rate)
-    elseif path == "/pad_rev_"..i then
-      target.rate = target.rate * - 1
-      softcut.rate(i+1,target.rate)
-    elseif path == "/bank_rev_"..i then
-      local direction;
-      if target.rate > 0 then
-        direction = 1
-      else
-        direction = -1
-      end
-      for j = 1,16 do
-        bank[i][j].rate = math.abs(bank[i][j].rate)*(-1*direction)
-      end
-      softcut.rate(i+1,target.rate)
-    elseif path == "/bank_rand_rate_"..i then
-      for j = 1,16 do
-        bank[i][j].rate = math.pow(2,math.random(-3,2))*((math.random(1,2)*2)-3)
-      end
-      softcut.rate(i+1,target.rate)
-    elseif path == "/sixteenths_"..i then
-      for j = 1,16 do
-        local pad = bank[i][j]
-        local duration = pad.mode == 1 and 8 or clip[pad.clip].sample_length
-        local s_p = pad.mode == 1 and live[pad.clip].min or clip[pad.clip].min
-        pad.end_point = pad.start_point + (clock.get_beat_sec()/4)
-      end
-      softcut.loop_start(i+1,target.start_point)
-      softcut.loop_end(i+1,target.end_point)
-    elseif path == "/chop_"..i then
-      for j = 1,16 do
-        local duration;
-        local pad = bank[i][j]
-        if pad.mode == 1 then
-          --slice within bounds
-          duration = rec[rec.focus].end_point-rec[rec.focus].start_point
-          local s_p = rec[rec.focus].start_point+(8*(pad.clip-1))
-          pad.start_point = (s_p+(duration/16) * (pad.pad_id-1))
-          pad.end_point = (s_p+((duration/16) * (pad.pad_id)))
-        else
-          duration = pad.mode == 1 and 8 or clip[pad.clip].sample_length
-          pad.start_point = ((duration/16)*(pad.pad_id-1)) + clip[pad.clip].min
-          pad.end_point = pad.start_point + (duration/16)
+      elseif string.match(path,"/grid_pat_"..i) then
+        if args[1] == 1 then
+          grid_actions.grid_pat_handler(i)
         end
-      end
-      softcut.loop_start(i+1,target.start_point)
-      softcut.loop_end(i+1,target.end_point)
-    elseif path == "/rand_loop_points_"..i then
-      for j = 1,16 do
-        local duration, max_end, min_start;
-        local pad = bank[i][j]
-        if pad.mode == 1 and pad.clip == rec.focus then
-          duration = rec[rec.focus].end_point-rec[rec.focus].start_point
-          max_end = math.floor(pad.end_point * 100)-10
-          if max_end < math.floor(rec[rec.focus].start_point * 100) then
+      elseif string.match(path,"/arp_"..i) then
+        if args[1] == 1 then
+          if not grid_alt then
+            grid_actions.arp_handler(i)
+          else
+            grid_actions.kill_arp(i)
+          end
+        end
+      elseif path == "/randomize_this_bank_"..i then
+        random_grid_pat(i,3)
+        for j = 2,16 do
+          bank[i][j].start_point = (math.random(10,30)/10)+(8*(bank[i][j].clip-1))
+          bank[i][j].end_point = bank[i][j].start_point + (math.random(10,60)/10)
+          bank[i][j].pan = math.random(-100,100)/100
+        end
+        grid_pat[i]:rec_stop()
+        grid_pat[i]:stop()
+        grid_pat[i].tightened_start = 0
+
+      elseif path == "/pad_rate_"..i then
+        target.rate = args[1]
+        softcut.rate(i+1,target.rate)
+      elseif path == "/bank_rate_"..i then
+        for j = 1,16 do
+          bank[i][j].rate = args[1]
+        end
+        softcut.rate(i+1,target.rate)
+      elseif path == "/pad_rev_"..i then
+        target.rate = target.rate * - 1
+        softcut.rate(i+1,target.rate)
+      elseif path == "/bank_rev_"..i then
+        local direction;
+        if target.rate > 0 then
+          direction = 1
+        else
+          direction = -1
+        end
+        for j = 1,16 do
+          bank[i][j].rate = math.abs(bank[i][j].rate)*(-1*direction)
+        end
+        softcut.rate(i+1,target.rate)
+      elseif path == "/bank_rand_rate_"..i then
+        for j = 1,16 do
+          bank[i][j].rate = math.pow(2,math.random(-3,2))*((math.random(1,2)*2)-3)
+        end
+        softcut.rate(i+1,target.rate)
+      elseif path == "/sixteenths_"..i then
+        for j = 1,16 do
+          local pad = bank[i][j]
+          local duration = pad.mode == 1 and 8 or clip[pad.clip].sample_length
+          local s_p = pad.mode == 1 and live[pad.clip].min or clip[pad.clip].min
+          pad.end_point = pad.start_point + (clock.get_beat_sec()/4)
+        end
+        softcut.loop_start(i+1,target.start_point)
+        softcut.loop_end(i+1,target.end_point)
+      elseif path == "/chop_"..i then
+        for j = 1,16 do
+          local duration;
+          local pad = bank[i][j]
+          if pad.mode == 1 then
+            --slice within bounds
+            duration = rec[rec.focus].end_point-rec[rec.focus].start_point
+            local s_p = rec[rec.focus].start_point+(8*(pad.clip-1))
+            pad.start_point = (s_p+(duration/16) * (pad.pad_id-1))
+            pad.end_point = (s_p+((duration/16) * (pad.pad_id)))
+          else
+            duration = pad.mode == 1 and 8 or clip[pad.clip].sample_length
+            pad.start_point = ((duration/16)*(pad.pad_id-1)) + clip[pad.clip].min
+            pad.end_point = pad.start_point + (duration/16)
+          end
+        end
+        softcut.loop_start(i+1,target.start_point)
+        softcut.loop_end(i+1,target.end_point)
+      elseif path == "/rand_loop_points_"..i then
+        for j = 1,16 do
+          local duration, max_end, min_start;
+          local pad = bank[i][j]
+          if pad.mode == 1 and pad.clip == rec.focus then
+            duration = rec[rec.focus].end_point-rec[rec.focus].start_point
+            max_end = math.floor(pad.end_point * 100)-10
+            if max_end < math.floor(rec[rec.focus].start_point * 100) then
+              min_start = math.floor(((duration*(pad.clip-1))+1) * 100)
+            else
+              min_start = math.floor(rec[rec.focus].start_point * 100) -- this sucks...
+            end
+          elseif pad.mode == 2 then
+            max_end = math.floor(pad.end_point * 100)
+            min_start = math.floor(clip[pad.clip].min * 100)
+          else
+            duration = pad.mode == 1 and 8 or math.modf(clip[pad.clip].sample_length)
+            max_end = math.floor(pad.end_point * 100)
             min_start = math.floor(((duration*(pad.clip-1))+1) * 100)
-          else
-            min_start = math.floor(rec[rec.focus].start_point * 100) -- this sucks...
           end
-        elseif pad.mode == 2 then
-          max_end = math.floor(pad.end_point * 100)
-          min_start = math.floor(clip[pad.clip].min * 100)
-        else
-          duration = pad.mode == 1 and 8 or math.modf(clip[pad.clip].sample_length)
-          max_end = math.floor(pad.end_point * 100)
-          min_start = math.floor(((duration*(pad.clip-1))+1) * 100)
-        end
-        pad.start_point = math.random(min_start,max_end)/100
-        if pad.mode == 1 and pad.clip == rec.focus then
-          duration = rec[rec.focus].end_point-rec[rec.focus].start_point
-          max_end = math.floor(rec[rec.focus].end_point*100)
-          if pad.start_point > rec[rec.focus].start_point then
-            min_start = math.floor(pad.start_point * 100)+10
+          pad.start_point = math.random(min_start,max_end)/100
+          if pad.mode == 1 and pad.clip == rec.focus then
+            duration = rec[rec.focus].end_point-rec[rec.focus].start_point
+            max_end = math.floor(rec[rec.focus].end_point*100)
+            if pad.start_point > rec[rec.focus].start_point then
+              min_start = math.floor(pad.start_point * 100)+10
+            else
+              min_start = math.floor(rec[rec.focus].start_point * 100)
+            end
+          elseif pad.mode == 2 then
+            max_end = math.floor(clip[pad.clip].max * 100)
+            min_start = math.floor(pad.start_point * 100)
           else
-            min_start = math.floor(rec[rec.focus].start_point * 100)
+            duration = util.round(clip[pad.clip].sample_length)
+            max_end = math.floor(((duration*pad.clip)+1) * 100)
+            min_start = math.floor(pad.start_point * 100)
           end
-        elseif pad.mode == 2 then
-          max_end = math.floor(clip[pad.clip].max * 100)
-          min_start = math.floor(pad.start_point * 100)
-        else
-          duration = util.round(clip[pad.clip].sample_length)
-          max_end = math.floor(((duration*pad.clip)+1) * 100)
-          min_start = math.floor(pad.start_point * 100)
+          pad.end_point = math.random(min_start,max_end)/100
         end
-        pad.end_point = math.random(min_start,max_end)/100
+        softcut.loop_start(i+1,target.start_point)
+        softcut.loop_end(i+1,target.end_point)
+      elseif path == "/filter_cut_bank_"..i then
+        encoder_actions.set_filter_cutoff(i,args[1])
       end
-      softcut.loop_start(i+1,target.start_point)
-      softcut.loop_end(i+1,target.end_point)
-    elseif path == "/filter_cut_bank_"..i then
-      encoder_actions.set_filter_cutoff(i,args[1])
     end
   end
   grid_dirty = true
@@ -3194,11 +3197,20 @@ function cheat(b,i)
   --   end
   -- end
   --dangerous??
-  local rate_array = {-4.0,-2.0,-1.0,-0.5,-0.25,-0.125,0.125,0.25,0.5,1.0,2.0,4.0}
-  local s = {}
-  for k,v in pairs(rate_array) do
-    s[v]=k
-  end
+  local s = {
+    [-4.0] = 1,
+    [-2.0] = 2,
+    [-1.0] = 3,
+    [-0.5] = 4,
+    [-0.25] = 5,
+    [-0.125] = 6,
+    [0.125] = 7,
+    [0.25] = 8,
+    [0.5] = 9,
+    [1.0] = 10,
+    [2.0] = 11,
+    [4.0] = 12
+  }
   if pad.fifth == false then
     if s[pad.rate] ~= nil then
       params:set("rate "..tonumber(string.format("%.0f",b)),s[pad.rate],true) -- TODO: confirm silent update is good...
@@ -3380,20 +3392,17 @@ function easing_slew(i)
   slew_counter[i].slewedQ = slew_counter[i].ease(slew_counter[i].current,slew_counter[i].beginQ,slew_counter[i].changeQ,slew_counter[i].duration)
   slew_counter[i].current = slew_counter[i].current + 0.01
   if grid_alt and all_loaded then
-    try_tilt_process(i,bank[i].id,slew_counter[i].slewedVal,slew_counter[i].slewedQ)
+    process_tilt("pad",i,bank[i].id,slew_counter[i].slewedVal,slew_counter[i].slewedQ)
   elseif all_loaded then
-    for j = 1,16 do
-      try_tilt_process(i,j,slew_counter[i].slewedVal,slew_counter[i].slewedQ)
-    end
+    process_tilt("bank",i,nil,slew_counter[i].slewedVal,slew_counter[i].slewedQ)
   end
   if menu == 5 then
     if menu ~= 1 then screen_dirty = true end
   end
 end
 
-function try_tilt_process(b,i,t,rq)
+local function local_tilt(b,i,t,rq)
   if util.round(t*100) < 0 then
-    local trill = math.abs(t)
     bank[b][i].cf_lp = math.abs(t)
     bank[b][i].cf_dry = 1+t
     if util.round(t*100) >= -24 then
@@ -3404,12 +3413,6 @@ function try_tilt_process(b,i,t,rq)
       bank[b][i].cf_exp_dry = 0
     end
     bank[b][i].cf_fc = util.linexp(0,1,16000,10,bank[b][i].cf_lp)
-    params:set("filter "..b.." cutoff",bank[b][i].cf_fc)
-    params:set("filter "..b.." lp", math.abs(bank[b][i].cf_exp_dry-1))
-    params:set("filter "..b.." dry", bank[b][i].cf_exp_dry)
-    if params:get("filter "..b.." hp") ~= 0 then
-      params:set("filter "..b.." hp", 0)
-    end
     if bank[b][i].cf_hp ~= 0 then
       bank[b][i].cf_hp = 0
     end
@@ -3418,12 +3421,6 @@ function try_tilt_process(b,i,t,rq)
     bank[b][i].cf_fc = util.linexp(0,1,10,12000,bank[b][i].cf_hp)
     bank[b][i].cf_dry = 1-t
     bank[b][i].cf_exp_dry = (util.linexp(0,1,1,101,bank[b][i].cf_dry)-1)/100
-    params:set("filter "..b.." cutoff",bank[b][i].cf_fc)
-    params:set("filter "..b.." hp", math.abs(bank[b][i].cf_exp_dry-1))
-    params:set("filter "..b.." dry", bank[b][i].cf_exp_dry)
-    if params:get("filter "..b.." lp") ~= 0 then
-      params:set("filter "..b.." lp", 0)
-    end
     if bank[b][i].cf_lp ~= 0 then
       bank[b][i].cf_lp = 0
     end
@@ -3433,6 +3430,33 @@ function try_tilt_process(b,i,t,rq)
     bank[b][i].cf_hp = 0
     bank[b][i].cf_dry = 1
     bank[b][i].cf_exp_dry = 1
+  end
+end
+
+function process_tilt(style,b,i,t,rq)
+  if style == "pad" then
+    local_tilt(b,i,t,rq)
+  elseif style == "bank" then
+    for j = 1,16 do
+      local_tilt(b,j,t,rq)
+    end
+  end
+  local focused_pad = style == "pad" and i or bank[b].id
+  if util.round(t*100) < 0 then
+    params:set("filter "..b.." cutoff",bank[b][focused_pad].cf_fc)
+    params:set("filter "..b.." lp", math.abs(bank[b][focused_pad].cf_exp_dry-1))
+    params:set("filter "..b.." dry", bank[b][focused_pad].cf_exp_dry)
+    if params:get("filter "..b.." hp") ~= 0 then
+      params:set("filter "..b.." hp", 0)
+    end
+  elseif util.round(t*100) > 0 then
+    params:set("filter "..b.." cutoff",bank[b][focused_pad].cf_fc)
+    params:set("filter "..b.." hp", math.abs(bank[b][focused_pad].cf_exp_dry-1))
+    params:set("filter "..b.." dry", bank[b][focused_pad].cf_exp_dry)
+    if params:get("filter "..b.." lp") ~= 0 then
+      params:set("filter "..b.." lp", 0)
+    end
+  elseif util.round(t*100) == 0 then
     params:set("filter "..b.." cutoff",12000)
     params:set("filter "..b.." lp", 0)
     params:set("filter "..b.." hp", 0)
@@ -3932,7 +3956,7 @@ function key(n,z)
             end
             if page.time_page_sel[time_nav] == 2 then
               -- if g.device ~= nil then
-              if get_grid_connected() then
+              if get_grid_connected() or osc_communication then
                 random_grid_pat(id,2)
               else
                 shuffle_midi_pat(id)
@@ -3940,7 +3964,7 @@ function key(n,z)
             elseif page.time_page_sel[time_nav] == 4 then
               if not key1_hold then
                 -- if g.device ~= nil then
-                if get_grid_connected() then
+                if get_grid_connected() or osc_communication then
                   random_grid_pat(id,3)
                 else
                   random_midi_pat(id)

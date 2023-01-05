@@ -1062,7 +1062,12 @@ function main_menu.init()
     for i = 1,3 do
       screen.level(page_line == i and 15 or 3)
       -- local pattern = g.device ~= nil and grid_pat[i] or midi_pat[i]
-      local pattern = get_grid_connected() and grid_pat[i] or midi_pat[i]
+      local pattern
+      if get_grid_connected() or osc_communication then
+        pattern = grid_pat[i]
+      else
+        pattern =  midi_pat[i]
+      end
       screen.move(10+(20*(i-1)),25)
       screen.text("P"..i)
       screen.move(5+(20*(i-1)),25)
@@ -1075,8 +1080,12 @@ function main_menu.init()
     end
     
     if page.time_sel < 4 then
-      -- local pattern = g.device ~= nil and grid_pat[page_line] or midi_pat[page_line]
-      local pattern = get_grid_connected() and grid_pat[page_line] or midi_pat[page_line]
+      local pattern
+      if get_grid_connected() or osc_communication then
+        pattern = grid_pat[page_line]
+      else
+        pattern =  midi_pat[page_line]
+      end
       if pattern.sync_hold ~= nil and pattern.sync_hold then
         local show_me_beats = clock.get_beats() % 4
         local show_me_frac = math.fmod(clock.get_beats(),1)

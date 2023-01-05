@@ -567,7 +567,7 @@ function start_up.init()
       action=function()
         if all_loaded then
           -- if g.device ~= nil then
-          if get_grid_connected() then
+          if get_grid_connected() or osc_communication then
             random_grid_pat(i,3)
           else
             random_midi_pat(i)
@@ -584,7 +584,7 @@ function start_up.init()
         if all_loaded then
           if x == 1 then
             -- if g.device ~= nil then
-            if get_grid_connected() then
+            if get_grid_connected() or osc_communication then
               random_grid_pat(id,2)
             else
               shuffle_midi_pat(id)
