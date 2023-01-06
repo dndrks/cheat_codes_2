@@ -186,17 +186,19 @@ function arp_actions.cheat(target,step)
 end
 
 function arp_actions.clear(target)
-    arp[target].playing = false
-    arp[target].pause = false
-    arp[target].hold = false
-    arp[target].step = 1
-    swing_step[target] = 1
-    arp[target].notes = {}
-    arp[target].start_point = 1
-    arp[target].end_point = 1
-    clock.cancel(arp_clock[target])
-    arp_clock[target] = nil
-    arp_clock[target] = clock.run(arp_actions.arpeggiate,target)
+  arp[target].hold = false
+  arp[target].playing = false
+  arp[target].pause = false
+  arp[target].step = 1
+  swing_step[target] = 1
+  arp[target].notes = {}
+  arp[target].start_point = 1
+  arp[target].end_point = 1
+  clock.cancel(arp_clock[target])
+  arp_clock[target] = nil
+  arp_clock[target] = clock.run(arp_actions.arpeggiate,target)
+  arp[target].down = 0
+  arp[target].enabled = false
 end
 
 function arp_actions.savestate()

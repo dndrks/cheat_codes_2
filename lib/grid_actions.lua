@@ -1431,12 +1431,7 @@ end
 
 function grid_actions.kill_arp(i)
   page.arp_page_sel = i
-  arp[i].hold = false
-  if not arp[i].hold then
-    arps.clear(i)
-  end
-  arp[i].down = 0
-  arp[i].enabled = false
+  arps.clear(i)
 end
 
 function grid_actions.toggle_pad_loop(i)

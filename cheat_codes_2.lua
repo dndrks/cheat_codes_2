@@ -2227,8 +2227,9 @@ function alt_synced_loop(target,state,style,mod_table)
     elseif type_of_pattern_loaded[tab.key(name_to_id,target.name)] == "grid" then
       -- print("grid thing")
       if arp[tab.key(name_to_id,target.name)].playing and source ~= "from_grid" then
-        arp[tab.key(name_to_id,target.name)].pause = true
-        arp[tab.key(name_to_id,target.name)].playing = false
+        -- arp[tab.key(name_to_id,target.name)].pause = true
+        -- arp[tab.key(name_to_id,target.name)].playing = false
+        arps.clear(tab.key(name_to_id,target.name))
       end
       target:start()
       print("starting from alt sync "..clock.get_beats())
@@ -6474,8 +6475,9 @@ function test_load(slot,destination,source)
     if grid_pat[destination].play == 1 and source ~= "from_grid" then
       grid_pat[destination]:clear()
     elseif arp[destination].playing and source ~= "from_grid" then
-      arp[destination].pause = true
-      arp[destination].playing = false
+      -- arp[destination].pause = true
+      -- arp[destination].playing = false
+      arps.clear(destination)
     elseif grid_pat[destination].tightened_start == 1 then -- not relevant?
       print("why does this happen? tell dan it happened: 2917107")
       -- grid_pat[destination].tightened_start = 0
@@ -6487,6 +6489,11 @@ function test_load(slot,destination,source)
     if not transport.is_running then
       print("loading while transport is not running")
       load_pattern(slot,destination)
+      if type_of_pattern_loaded[destination] == "arp" then
+        grid_pat[destination]:clear()
+      elseif type_of_pattern_loaded[destination] == "grid" then
+        arps.clear(destination)
+      end
     else
       -- print("test_load is running...",slot,destination,source,pattern_saver[destination].saved[slot-((destination-1)*8)])
       if source ~= "from_grid" then
@@ -6518,8 +6525,9 @@ function test_load(slot,destination,source)
         if grid_pat[destination].play == 1 then
           grid_pat[destination]:clear()
         elseif arp[destination].playing then
-          arp[destination].pause = true
-          arp[destination].playing = false
+          -- arp[destination].pause = true
+          -- arp[destination].playing = false
+          arps.clear(destination)
         end
         load_pattern(slot,destination)
         start_pattern(grid_pat[destination],"jumpstart")
