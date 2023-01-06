@@ -700,7 +700,7 @@ function encoder_actions.init(n,d)
         , ["2.6667"] = 10  -- 1T
         , ["4.0"] = 11 -- 1
         }
-        local rounded = util.round(focus_arp.time,0.0001)
+        local rounded = arp[page.arp_page_sel].alt and util.round(bank[id][bank[id].id].arp_time,0.0001) or util.round(focus_arp.time,0.0001)
         local working = deci_to_int[tostring(rounded)]
         working = util.clamp(working+d,1,11)
         local int_to_deci = {0.125,1/6,0.25,1/3,0.5,2/3,1,4/3,2,8/3,4}

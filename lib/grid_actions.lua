@@ -735,9 +735,9 @@ function grid_actions.init(x,y,z)
                 local xval = {9,4,-1}
                 local released_pad = (math.abs((y + 2)-9)+(((x - xval[id])-1)*4))-(20*(id-1))
                 arps.momentary(id, released_pad, "off")
-                arp[id].down = arp[id].down - 1
+                arp[id].down = util.clamp(arp[id].down - 1,0,math.huge)
               elseif arp[id].enabled and arp[id].hold then
-                arp[id].down = arp[id].down - 1
+                arp[id].down = util.clamp(arp[id].down - 1,0,math.huge)
               end
             end
           end
@@ -976,9 +976,9 @@ function grid_actions.init(x,y,z)
           end
           if (arp[bank_64].enabled and not arp[bank_64].hold) or (menu == 9 and not arp[bank_64].hold) then
             arps.momentary(bank_64, released_pad, "off")
-            arp[bank_64].down = arp[bank_64].down - 1
+            arp[bank_64].down = util.clamp(arp[bank_64].down - 1,0,math.huge)
           elseif (arp[bank_64].enabled and arp[bank_64].hold and not arp[bank_64].pause) or (menu == 9 and arp[bank_64].hold and not arp[bank_64].pause) then
-            arp[bank_64].down = arp[bank_64].down - 1
+            arp[bank_64].down = util.clamp(arp[bank_64].down - 1,0,math.huge)
           end
         end
       end
@@ -1522,11 +1522,11 @@ function grid_actions.pad_up(i,p,external_seq)
   if (arp[i].enabled and not arp[i].hold) or (menu == 9 and not arp[i].hold) then
     -- print("pad up 1")
     arps.momentary(i, released_pad, "off")
-    arp[i].down = arp[i].down - 1
+    arp[i].down = util.clamp(arp[i].down - 1,0,math.huge)
   elseif (arp[i].enabled and arp[i].hold and not arp[i].pause) or (menu == 9 and arp[i].hold and not arp[i].pause) then
     if (not grid_alt and not external_seq) or external_seq then
       -- print("pad up 2", grid_alt)
-      arp[i].down = arp[i].down - 1
+      arp[i].down = util.clamp(arp[i].down - 1,0,math.huge)
     end
   end
   grid_dirty = true

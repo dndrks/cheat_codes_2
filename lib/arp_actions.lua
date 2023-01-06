@@ -101,7 +101,8 @@ function arp_actions.arpeggiate(target)
           if menu ~= 1 then screen_dirty = true end
 
           if params:get("arp_"..target.."_swing") > 50 and (params:string("arp_"..target.."_swing_style") == 'even steps' and arp[target].step % 2 == 1 or swing_step[target]%2 == 1) then
-            local base_time = (clock.get_beat_sec() * arp[target].time)
+            -- local base_time = (clock.get_beat_sec() * arp[target].time)
+            local base_time = (clock.get_beat_sec() * bank[target][bank[target].id].arp_time)
             local swung_time =  base_time*util.linlin(50,100,0,1,params:get("arp_"..target.."_swing"))
             clock.run(function()
               clock.sleep(swung_time)

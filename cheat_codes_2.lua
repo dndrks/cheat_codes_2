@@ -1,6 +1,6 @@
 -- cheat codes 2
 --          a sample playground
--- rev: 230104 - LTS10.1
+-- rev: 230105 - LTS10.2
 -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
 -- need help?
 -- please visit:
@@ -6687,6 +6687,10 @@ function save_pattern(source,slot,style)
     --/GIRAFFE
     print("saved pattern "..source.." to slot "..slot)
   elseif style == "arp" then
+    arp[source].pad_times = {}
+    for i = 1,16 do
+      arp[source].pad_times[i] = bank[source][i].arp_time
+    end
     tab.save(arp[source],_path.data .. "cheat_codes_2/collection-"..selected_coll.."/patterns/"..slot..".data")
     print("saved arp "..source.." to slot "..slot)
   end
@@ -7003,6 +7007,15 @@ function load_pattern(slot,destination,print_also)
       type_of_pattern_loaded[destination] = "arp"
       -- print("it's an arp!")
       arp[destination] = tab.load(_path.data .. "cheat_codes_2/collection-"..selected_coll.."/patterns/"..slot..".data")
+      if arp[destination].pad_times ~= nil then
+        for i = 1,#arp[destination].pad_times do
+          bank[destination][i].arp_time = arp[destination].pad_times[i]
+        end
+      else
+        for i = 1,16 do
+          bank[destination][i].arp_time = arp[destination].time
+        end
+      end
       -- arp[destination].pause = true
       -- arp[destination].playing = false
       -- arp[destination] = tab.load(_path.data .. "cheat_codes_2/pattern"..selected_coll.."_"..slot..".data")
