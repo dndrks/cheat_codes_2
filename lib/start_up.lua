@@ -305,7 +305,7 @@ function start_up.init()
       end
     end
     )
-    params:add_number("pattern_"..i.."_quantization_num",'  > num', 1,16,1)
+    params:add_number("pattern_"..i.."_quantization_num",'  > num', 1,64,1)
     params:add_number("pattern_"..i.."_quantization_denum",'  > denum',1,64,16)
   end
   params:add_option("launch_quantization", "patterns launch at:", {"next beat", "next bar","free"},3)
