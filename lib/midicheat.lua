@@ -809,6 +809,12 @@ function mc.midi_note_from_pad(b,p)
         crow.ii.jf.vtrigger(jf_chan,velocity)
       end
     end
+    if mc.get_midi("midi_notes",b,p) ~= "-" and mc.get_midi("midi_notes_velocities",b,p) ~= "-" and mc.get_midi("midi_notes_channels",b,p) ~= "-" then
+      local player = params:lookup_param("nb_"..b):get_player()
+      local note_num = mc.get_midi("midi_notes",b,p)
+      local vel = mc.get_midi("midi_notes_velocities",b,p)
+      player:play_note(note_num, util.linlin(0,127,0,1,vel), bank[b][p].arp_time)
+    end
   end
 end
 
