@@ -16,6 +16,7 @@ a sample playground for norns
 - Midi Fighter Twister ([template](https://llllllll.co/uploads/short-url/so1QoxfHVWn29a4YNkybdVEIQgi.mfs))
 - Max for Live ([device](https://llllllll.co/uploads/short-url/cckkpyWjH3ywfaHfYzOmV27GS3m.amxd))
 - crow for pad-to-trigger or Just Friends + w/ note output
+- [any of the `nb` library mods](https://llllllll.co/t/n-b-et-al-v0-1/60374)
 
 ### [documentation](https://github.com/dndrks/cheat-codes-docs/raw/main/assets/images/pdf/cheat_codes_2.pdf)
 
