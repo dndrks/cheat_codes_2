@@ -104,6 +104,7 @@ math.randomseed(os.time())
 splash_done = true
 actively_loading_collection = false
 cc_json = include 'lib/cc_json'
+nb = include 'lib/nb/lib/nb'
 
 macro = {}
 for i = 1,8 do
@@ -1050,12 +1051,20 @@ function init()
   end
   params:add_option("crow output 4", "crow out 4",{"none","transport pulse","transport gate"},1)
   params:set_action("crow output 4",
-    function(x)
-      if all_loaded then
-        persistent_state_save()
-      end
-    end)
-  
+  function(x)
+    if all_loaded then
+      persistent_state_save()
+    end
+  end)
+
+  nb:init()
+  params:add_separator('nb params')
+  local bank_names = {'A', 'B', 'C'}
+  for i = 1,3 do
+    nb:add_param("nb_"..i, "bank "..bank_names[i]) -- adds a voice selector param to your script.
+  end
+  nb:add_player_params() -- Adds the parameters for the selected voices to your script.
+
   params:add_separator("cheat codes params")
   
   params:add_group("collections (load/save)",8)
@@ -1582,7 +1591,9 @@ function init()
   crow_init()
   
   task_id = clock.run(globally_clocked)
-  pad_press_quant = clock.run(pad_clock)
+  pad_press_quantA = clock.run(pad_clock,1)
+  pad_press_quantB = clock.run(pad_clock,2)
+  pad_press_quantC = clock.run(pad_clock,3)
   random_rec = clock.run(random_rec_clock)
   
   if params:string("clock_source") == "internal" then
@@ -2484,12 +2495,10 @@ end
 
 ---
 
-function pad_clock()
+function pad_clock(i)
   while true do
-    clock.sync(1/4)
-    for i = 1,3 do
-      cheat_clock_synced(i)
-    end
+    clock.sync(params:get("pattern_"..i.."_quantization_num")/(params:get("pattern_"..i.."_quantization_denum")/4))
+    cheat_clock_synced(i)
   end
 end
 
@@ -3940,7 +3949,9 @@ function key(n,z)
           key2_hold_and_modify = true
         else
           if time_nav >= 1 and time_nav < 4 then
-            if g.device == nil and grid_pat[time_nav].count == 0 then
+            if get_grid_connected() or osc_communication then
+              grid_actions.grid_pat_handler(id)
+            else
               if page.time_page_sel[time_nav] == 1 then
                 if midi_pat[time_nav].playmode < 3 then
                   if midi_pat[time_nav].rec == 0 then

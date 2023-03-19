@@ -1613,6 +1613,7 @@ function grid_actions.grid_pat_handler(i)
     help_menu = "grid patterns"
     which_bank = i
   end
+  grid_dirty = true
 end
 
 return grid_actions
