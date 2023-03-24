@@ -12,7 +12,7 @@ if tonumber(norns.version.update) < 221214 then
   norns.script.load('code/cheat_codes_2/lib/fail_state-update.lua')
 end
 
-if not util.file_exists(_path.code..'cheat_codes_2/lib/nb/lib/nb') then
+if not util.file_exists(_path.code..'cheat_codes_2/lib/nb/lib/') then
   norns.script.clear()
   norns.script.load('code/cheat_codes_2/lib/fail_state-nb.lua')
 end
