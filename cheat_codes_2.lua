@@ -1,6 +1,6 @@
 -- cheat codes 2
 --          a sample playground
--- rev: 230319 - LTS11
+-- rev: 230716 - LTS12
 -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
 -- need help?
 -- please visit:
@@ -993,13 +993,20 @@ function init()
       persistent_state_save()
     end
   end)
-  params:add_option("grid_size","grid size",{"128","64"},1)
+  params:add_option("grid_size","grid size",{"128/256","64"},1)
   params:set_action("grid_size",
   function(x)
-    grid_dirty = true
-    if x == 2 then
+    if x == 1 then
+      if g.cols * g.rows == 256 then
+        g:rotation(3)
+      else
+        g:rotation(params:get('vert rotation') == 1 and 0 or 2)
+      end
+    elseif x == 2 then
+      g:rotation(params:get('vert rotation') == 1 and 0 or 2)
       params:set("LED_style",2)
     end
+    grid_dirty = true
     if all_loaded then
       persistent_state_save()
     end
@@ -1009,7 +1016,7 @@ function init()
   function(x)
     if x == 1 then
       g:rotation(0)
-    else
+    elseif x == 2 then
       g:rotation(2)
     end
     grid_dirty = true
@@ -2067,6 +2074,10 @@ function init()
   audio.level_eng_cut(util.dbamp(-math.huge))
   norns.state.mix.cut_input_eng = -math.huge
   clock.run(metronome_audio)
+  if g.cols * g.rows == 256 then
+    g:rotation(3)
+    grid_dirty = true
+  end
 end
 
 ---
@@ -4661,7 +4672,7 @@ end
 function grid_redraw()
   -- if g.device ~= nil then
   if get_grid_connected() then
-    if params:string("grid_size") == "128" then
+    if params:string("grid_size") == "128/256" then
       g:all(0)
       local edition = params:get("LED_style")
       
@@ -6433,7 +6444,7 @@ function quick_save_pattern(i)
     save_pattern(i,pattern_saver[i].save_slot+8*(i-1),"pattern")
     pattern_saver[i].saved[pattern_saver[i].save_slot] = 1
     pattern_saver[i].load_slot = pattern_saver[i].save_slot
-    if params:string("grid_size") == "128" then
+    if params:string("grid_size") == "128/256" then
       g:led(math.floor((i-1)*5)+1,9-pattern_saver[i].save_slot,15)
     end
     -- g:refresh()
@@ -6443,13 +6454,13 @@ function quick_save_pattern(i)
     save_pattern(i,pattern_saver[i].save_slot+8*(i-1),"arp")
     pattern_saver[i].saved[pattern_saver[i].save_slot] = 1
     pattern_saver[i].load_slot = pattern_saver[i].save_slot
-    if params:string("grid_size") == "128" then
+    if params:string("grid_size") == "128/256" then
       g:led(math.floor((i-1)*5)+1,9-pattern_saver[i].save_slot,15)
     end
     -- g:refresh()
   else
     print("no pattern data to save")
-    if params:string("grid_size") == "128" then
+    if params:string("grid_size") == "128/256" then
       g:led(math.floor((i-1)*5)+1,9-pattern_saver[i].save_slot,0)
     end
     -- g:refresh()
@@ -6469,7 +6480,7 @@ function quick_delete_pattern(i)
 end
 
 function test_save(i)
-  clock.sleep(0.25)
+  clock.sleep(pattern_saver[i].saved[pattern_saver[i].save_slot] == 1 and 0.75 or 0.25)
   pattern_saver[i].active = true
   if pattern_saver[i].active then
     if not grid_alt then

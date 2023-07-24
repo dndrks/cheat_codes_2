@@ -37,7 +37,7 @@ function grid_actions.init(x,y,z)
   
   if osc_communication == true then osc_communication = false end
   
-  if params:string("grid_size") == "128" then
+  if params:string("grid_size") == "128/256" then
 
     if grid_page == 0 then
       
