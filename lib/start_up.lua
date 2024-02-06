@@ -76,6 +76,8 @@ function start_up.init()
   softcut.enable(6, 1)
   
   --params:add_separator()
+
+  local banks = {"(a)","(b)","(c)"}
   
   params:add_group("loops + buffers", util.file_exists(_path.code.."zxcvbn/lib/aubiogo/aubiogo") and 48 or 42)
 
@@ -132,11 +134,11 @@ function start_up.init()
   
   for i = 2, 4 do
     params:add_control(
-      "voice_" .. (i-1) .. "_to_live",
-      "voice " .. (i-1) .. " to live: level",
+      "bank_" .. (banks[i-1]) .. "_to_live",
+      "bank " .. (banks[i-1]) .. " to live: level",
       controlspec.new(0, 2, "lin", 0.1, 0, "")
     )
-    params:set_action("voice_" .. (i-1) .. "_to_live", function(x)
+    params:set_action("bank_" .. (banks[i-1]) .. "_to_live", function(x)
       softcut.level_cut_cut(i, 1, x)
     end)
   end
@@ -236,8 +238,6 @@ function start_up.init()
   for i = 1,3 do
     params:add_control("random_rec_clock_prob_"..i, "rand rec "..i.." probability", controlspec.new(0, 100, 'lin', 1, 0, "%"))
   end
-
-  local banks = {"(a)","(b)","(c)"}
 
   params:add_separator("banks")
   for i = 1,3 do
