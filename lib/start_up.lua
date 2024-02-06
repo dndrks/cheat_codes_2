@@ -77,7 +77,7 @@ function start_up.init()
   
   --params:add_separator()
   
-  params:add_group("loops + buffers", util.file_exists(_path.code.."zxcvbn/lib/aubiogo/aubiogo") and 45 or 39)
+  params:add_group("loops + buffers", util.file_exists(_path.code.."zxcvbn/lib/aubiogo/aubiogo") and 48 or 42)
 
   params:add_separator("clips")
   
@@ -127,6 +127,17 @@ function start_up.init()
       for j = 1,4 do
         softcut.level_input_cut(i,j,x)
       end
+    end)
+  end
+  
+  for i = 2, 4 do
+    params:add_control(
+      "voice_" .. (i-1) .. "_to_live",
+      "voice " .. (i-1) .. " to live: level",
+      controlspec.new(0, 2, "lin", 0.1, 0, "")
+    )
+    params:set_action("voice_" .. (i-1) .. "_to_live", function(x)
+      softcut.level_cut_cut(i, 1, x)
     end)
   end
 
