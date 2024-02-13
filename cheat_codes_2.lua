@@ -7,7 +7,7 @@
 -- l.llllllll.co/cheat-codes-2
 -- -------------------------------
 
-if tonumber(norns.version.update) < 221214 then
+if tonumber(norns.version.update) < 231114 then
   norns.script.clear()
   norns.script.load('code/cheat_codes_2/lib/fail_state-update.lua')
 end
@@ -110,6 +110,11 @@ splash_done = true
 actively_loading_collection = false
 cc_json = include 'lib/cc_json'
 nb = include 'lib/nb/lib/nb'
+_r = require 'reflection'
+_newpat = include 'lib/new_patterns'
+_newpat.init()
+
+final_boss = true
 
 macro = {}
 for i = 1,8 do
@@ -511,140 +516,139 @@ local snakes =
 }
 
 function random_grid_pat(which,mode)
-  print(mode)
-
-  local pattern = grid_pat[which]
-
-  -- if pattern.playmode == 1 then
-  --   pattern.playmode = 2
-  --   pattern.rec_clock_time = 8
-  -- end
-  
-  if mode == 1 then
-    for i = #pattern.time,2,-1 do
-      local j = math.random(i)
-      pattern.time[i], pattern.time[j] = pattern.time[j], pattern.time[i]
-    end
-  elseif mode == 2 then
-    stop_pattern(pattern)
-    for i = #pattern.event,2,-1 do
-      local j = math.random(i)
-      local original, shuffled = pattern.event[i], pattern.event[j]
-      if original ~= "pause" and shuffled ~= "pause" then
-        original.id, shuffled.id = shuffled.id, original.id
-        original.rate, shuffled.rate = shuffled.rate, original.rate
-        original.loop, shuffled.loop = shuffled.loop, original.loop
-        original.mode, shuffled.mode = shuffled.mode, original.mode
-        original.pause, shuffled.pause = shuffled.pause, original.pause
-        original.start_point, shuffled.start_point = shuffled.start_point, original.start_point
-        original.clip, shuffled.clip = shuffled.clip, original.clip
-        original.end_point = original.end_point
-        original.rate_adjusted, shuffled.rate_adjusted = shuffled.rate_adjusted, original.rate_adjusted
-        original.y, shuffled.y = shuffled.y, original.y
-        original.x, shuffled.x = shuffled.x, original.x
-        original.action, shuffled.action = shuffled.action, original.action
-        original.i, shuffled.i = shuffled.i, original.i
-        original.previous_rate, shuffled.previous_rate = shuffled.previous_rate, original.previous_rate
-        original.row, shuffled.row = shuffled.row, original.row
-        original.con, shuffled.con = shuffled.con, original.con
-        original.bank, shuffled.bank = shuffled.bank, original.bank
-      else
-        original, shuffled = shuffled, original
-      end
-    end
-  elseif mode == 3 then
-    local auto_pat = params:get("random_patterning_"..which)
-    if auto_pat ~= 1 then
-      -- params:set("pattern_"..which.."_quantization", 2)
-      local vals_to_dur = {4,8,16,32,64,math.random(4,32)}
-      local note_val = params:get("rand_pattern_"..which.."_note_length")
-      pattern.rec_clock_time = vals_to_dur[note_val]
-    end
-    if pattern.playmode == 3 or pattern.playmode == 4 then
-      pattern.playmode = 2
-    end
-    local potential_total = pattern.rec_clock_time*4
-    -- local count = auto_pat == 1 and math.random(2,24) or 16
-    local count = auto_pat == 1 and (pattern.rec_clock_time * 4) or 16
-    if pattern.count > 0 or pattern.rec == 1 then
-      pattern:rec_stop()
-      stop_pattern(pattern)
-      pattern.tightened_start = 0
-      pattern:clear()
-      pattern_saver[which].load_slot = 0
-    end
-    for i = 1,count do
-      pattern.event[i] = {}
-      local constructed = pattern.event[i]
-      constructed.id = auto_pat == 1 and math.random(1,16) or snakes[auto_pat-1][i]
-      local assigning_pad = bank[which][constructed.id]
-      local new_rates = 
-      { [1] = math.pow(2,math.random(-3,-1))*((math.random(1,2)*2)-3)
-      , [2] = math.pow(2,math.random(-1,1))*((math.random(1,2)*2)-3)
-      , [3] = math.pow(2,math.random(1,2))*((math.random(1,2)*2)-3)
-      , [4] = math.pow(2,math.random(-2,2))*((math.random(1,2)*2)-3)
-      , [5] = assigning_pad.rate
-      }
-      constructed.rate = new_rates[pattern.random_pitch_range]
-      local pre_rate = assigning_pad.rate
-      assigning_pad.rate = constructed.rate
-      local new_levels = 
-      { [0.125] = 1.75
-      , [0.25]  = 1.5
-      , [0.5]   = 1.25
-      , [1.0]   = 1.0
-      , [2.0]   = 0.75
-      , [4.0]   = 0.5
-      }
-      if pre_rate == assigning_pad.rate then
-        assigning_pad.level = assigning_pad.level
-      else
-        assigning_pad.level = assigning_pad.level == 0 and 0 or new_levels[math.abs(constructed.rate)]
-      end
-      constructed.loop = assigning_pad.loop
-      constructed.mode = assigning_pad.mode
-      constructed.pause = assigning_pad.pause
-      constructed.start_point = (math.random(10,75)/10)+(8*(assigning_pad.clip-1))
-      constructed.clip = assigning_pad.clip
-      constructed.end_point = constructed.start_point + (math.random(1,15)/10)
-      constructed.rate_adjusted = false
-      assigning_pad.fifth = false
-      constructed.x = (5*(which-1)+1)+(math.ceil(constructed.id/4)-1)
-      if (constructed.id % 4) ~= 0 then
-        constructed.y = 9-(constructed.id % 4)
-      else
-        constructed.y = 5
-      end
-      constructed.action = "pads"
-      constructed.i = which
-
-      local tempo = clock.get_beat_sec()
-      local divisors = { 4,2,1,0.5,0.25,math.pow(2,math.random(-2,2)) }
-      local note_length = (tempo / divisors[params:get("rand_pattern_"..which.."_note_length")])
-      pattern.time[i] = note_length
-      pattern.time_beats[i] = pattern.time[i] / tempo
-      pattern:calculate_quantum(i)
-
-    end
-    pattern.count = count
-    pattern.start_point = 1
-    pattern.end_point = count
-  end
-  midi_clock_linearize(which)
-  if pattern.quantize == 0 then
-    if pattern.auto_snap == 1 then
-      print("auto-snap")
-      snap_to_bars(which,how_many_bars(which))
-    end
-    start_pattern(pattern)
-    pattern.loop = 1
+  if final_boss then
+    local pattern = g_pattern[which]
+    -- boof, you go in and shuffle a pattern which has discrete note_offs, then what??
   else
-    pattern.loop = 1
-    if pattern.count > 0 then
-      pattern.tightened_start = 1
+    print(mode)
+    local pattern = grid_pat[which]
+    
+    if mode == 1 then
+      for i = #pattern.time,2,-1 do
+        local j = math.random(i)
+        pattern.time[i], pattern.time[j] = pattern.time[j], pattern.time[i]
+      end
+    elseif mode == 2 then
+      stop_pattern(pattern)
+      for i = #pattern.event,2,-1 do
+        local j = math.random(i)
+        local original, shuffled = pattern.event[i], pattern.event[j]
+        if original ~= "pause" and shuffled ~= "pause" then
+          original.id, shuffled.id = shuffled.id, original.id
+          original.rate, shuffled.rate = shuffled.rate, original.rate
+          original.loop, shuffled.loop = shuffled.loop, original.loop
+          original.mode, shuffled.mode = shuffled.mode, original.mode
+          original.pause, shuffled.pause = shuffled.pause, original.pause
+          original.start_point, shuffled.start_point = shuffled.start_point, original.start_point
+          original.clip, shuffled.clip = shuffled.clip, original.clip
+          original.end_point = original.end_point
+          original.rate_adjusted, shuffled.rate_adjusted = shuffled.rate_adjusted, original.rate_adjusted
+          original.y, shuffled.y = shuffled.y, original.y
+          original.x, shuffled.x = shuffled.x, original.x
+          original.action, shuffled.action = shuffled.action, original.action
+          original.i, shuffled.i = shuffled.i, original.i
+          original.previous_rate, shuffled.previous_rate = shuffled.previous_rate, original.previous_rate
+          original.row, shuffled.row = shuffled.row, original.row
+          original.con, shuffled.con = shuffled.con, original.con
+          original.bank, shuffled.bank = shuffled.bank, original.bank
+        else
+          original, shuffled = shuffled, original
+        end
+      end
+    elseif mode == 3 then
+      local auto_pat = params:get("random_patterning_"..which)
+      if auto_pat ~= 1 then
+        -- params:set("pattern_"..which.."_quantization", 2)
+        local vals_to_dur = {4,8,16,32,64,math.random(4,32)}
+        local note_val = params:get("rand_pattern_"..which.."_note_length")
+        pattern.rec_clock_time = vals_to_dur[note_val]
+      end
+      if pattern.playmode == 3 or pattern.playmode == 4 then
+        pattern.playmode = 2
+      end
+      local potential_total = pattern.rec_clock_time*4
+      -- local count = auto_pat == 1 and math.random(2,24) or 16
+      local count = auto_pat == 1 and (pattern.rec_clock_time * 4) or 16
+      if pattern.count > 0 or pattern.rec == 1 then
+        pattern:rec_stop()
+        stop_pattern(pattern)
+        pattern.tightened_start = 0
+        pattern:clear()
+        pattern_saver[which].load_slot = 0
+      end
+      for i = 1,count do
+        pattern.event[i] = {}
+        local constructed = pattern.event[i]
+        constructed.id = auto_pat == 1 and math.random(1,16) or snakes[auto_pat-1][i]
+        local assigning_pad = bank[which][constructed.id]
+        local new_rates = 
+        { [1] = math.pow(2,math.random(-3,-1))*((math.random(1,2)*2)-3)
+        , [2] = math.pow(2,math.random(-1,1))*((math.random(1,2)*2)-3)
+        , [3] = math.pow(2,math.random(1,2))*((math.random(1,2)*2)-3)
+        , [4] = math.pow(2,math.random(-2,2))*((math.random(1,2)*2)-3)
+        , [5] = assigning_pad.rate
+        }
+        constructed.rate = new_rates[pattern.random_pitch_range]
+        local pre_rate = assigning_pad.rate
+        assigning_pad.rate = constructed.rate
+        local new_levels = 
+        { [0.125] = 1.75
+        , [0.25]  = 1.5
+        , [0.5]   = 1.25
+        , [1.0]   = 1.0
+        , [2.0]   = 0.75
+        , [4.0]   = 0.5
+        }
+        if pre_rate == assigning_pad.rate then
+          assigning_pad.level = assigning_pad.level
+        else
+          assigning_pad.level = assigning_pad.level == 0 and 0 or new_levels[math.abs(constructed.rate)]
+        end
+        constructed.loop = assigning_pad.loop
+        constructed.mode = assigning_pad.mode
+        constructed.pause = assigning_pad.pause
+        constructed.start_point = (math.random(10,75)/10)+(8*(assigning_pad.clip-1))
+        constructed.clip = assigning_pad.clip
+        constructed.end_point = constructed.start_point + (math.random(1,15)/10)
+        constructed.rate_adjusted = false
+        assigning_pad.fifth = false
+        constructed.x = (5*(which-1)+1)+(math.ceil(constructed.id/4)-1)
+        if (constructed.id % 4) ~= 0 then
+          constructed.y = 9-(constructed.id % 4)
+        else
+          constructed.y = 5
+        end
+        constructed.action = "pads"
+        constructed.i = which
+
+        local tempo = clock.get_beat_sec()
+        local divisors = { 4,2,1,0.5,0.25,math.pow(2,math.random(-2,2)) }
+        local note_length = (tempo / divisors[params:get("rand_pattern_"..which.."_note_length")])
+        pattern.time[i] = note_length
+        pattern.time_beats[i] = pattern.time[i] / tempo
+        pattern:calculate_quantum(i)
+
+      end
+      pattern.count = count
+      pattern.start_point = 1
+      pattern.end_point = count
+    end
+    midi_clock_linearize(which)
+    if pattern.quantize == 0 then
       if pattern.auto_snap == 1 then
         print("auto-snap")
         snap_to_bars(which,how_many_bars(which))
+      end
+      start_pattern(pattern)
+      pattern.loop = 1
+    else
+      pattern.loop = 1
+      if pattern.count > 0 then
+        pattern.tightened_start = 1
+        if pattern.auto_snap == 1 then
+          print("auto-snap")
+          snap_to_bars(which,how_many_bars(which))
+        end
       end
     end
   end
@@ -1461,7 +1465,7 @@ function init()
 
   function draw_waveform()
     if menu == 2 then
-      local rec_on = 0;
+      local rec_on = 0
       for i = 1,3 do
         if rec[i].state == 1 then
           rec_on = i
@@ -1670,7 +1674,7 @@ function init()
         end
       end
       if params:get("midi_control_enabled") == 2 and j == params:get("midi_control_device") then
-        local received_ch;
+        local received_ch
         -- local b_ch = {}
         for i = 1,3 do
           if d.ch == params:get("bank_"..i.."_midi_channel") then
@@ -2085,7 +2089,7 @@ end
 function ping_midi_devices()
   mft_connected = false
   ec4_connected = false
-  local midi_dev_max;
+  local midi_dev_max
   for k,v in pairs(midi.devices) do
     midi_dev_max = midi.devices[k].id
   end
@@ -2117,7 +2121,7 @@ end
 
 function sync_clock_to_loop(source,style)
   local dur = 0
-  local pattern_id;
+  local pattern_id
   if style == "audio" then
     dur = source.end_point-source.start_point
   elseif style == "pattern" then
@@ -2682,14 +2686,16 @@ function globally_clocked()
       screen_dirty = true
     end
     update_tempo()
-    -- step_sequence()
+
     for i = 1,3 do
-      -- step_sequence(i)
-      if grid_pat[i].led == nil then
-        grid_pat[i].led = 0
+			local target_pat = final_boss and g_pattern[i] or grid_pat[i]
+
+      if target_pat.led == nil then
+        target_pat.led = 0
         grid_dirty = true
       end
-      if grid_pat[i].rec == 1 then
+      
+      if final_boss and target_pat.rec_enabled == 1 or target_pat.rec == 1 then
         local blink = math.fmod(clock.get_beats(),1)
         if blink <= 0.25 then
           blink = 1
@@ -2701,10 +2707,10 @@ function globally_clocked()
           blink = 4
         end
         if blink == 1 then
-          grid_pat[i].led = 1
+          target_pat.led = 1
           grid_dirty = true
         else
-          grid_pat[i].led = 0
+          target_pat.led = 0
           grid_dirty = true
         end
       end
@@ -2790,7 +2796,7 @@ osc_in = function(path, args, from)
         target.rate = target.rate * - 1
         softcut.rate(i+1,target.rate)
       elseif path == "/bank_rev_"..i then
-        local direction;
+        local direction
         if target.rate > 0 then
           direction = 1
         else
@@ -2816,7 +2822,7 @@ osc_in = function(path, args, from)
         softcut.loop_end(i+1,target.end_point)
       elseif path == "/chop_"..i then
         for j = 1,16 do
-          local duration;
+          local duration
           local pad = bank[i][j]
           if pad.mode == 1 then
             --slice within bounds
@@ -2834,7 +2840,7 @@ osc_in = function(path, args, from)
         softcut.loop_end(i+1,target.end_point)
       elseif path == "/rand_loop_points_"..i then
         for j = 1,16 do
-          local duration, max_end, min_start;
+          local duration, max_end, min_start
           local pad = bank[i][j]
           if pad.mode == 1 and pad.clip == rec.focus then
             duration = rec[rec.focus].end_point-rec[rec.focus].start_point
@@ -3265,7 +3271,7 @@ function cheat(b,i)
 
   -- redraw waveform if it's zoomed in and the pad changes
   if menu == 2 and page.loops.sel == b and page.loops.frame == 2 and not key2_hold and key1_hold then
-    local focused_pad;
+    local focused_pad
     if bank[page.loops.sel].focus_hold then
       focused_pad = bank[page.loops.sel].focus_pad
     elseif grid_pat[page.loops.sel].play == 0 and midi_pat[page.loops.sel].play == 0 and not arp[page.loops.sel].playing and rytm.track[page.loops.sel].k == 0 then
@@ -3880,7 +3886,7 @@ function key(n,z)
           if page.loops.sel < 4 then
             local id = page.loops.sel
             if page.loops.frame == 2 then
-              local which_pad;
+              local which_pad
               if bank[id].focus_hold then
                 which_pad = bank[id].focus_pad
               elseif grid_pat[id].play == 0 and midi_pat[id].play == 0 and not arp[id].playing and rytm.track[id].k == 0 then
@@ -4239,7 +4245,7 @@ function key(n,z)
       else
         key1_hold = true
         if menu == 2 and page.loops.sel < 4 and page.loops.frame == 2 and not key2_hold then
-          local focused_pad;
+          local focused_pad
           if bank[page.loops.sel].focus_hold then
             focused_pad = bank[page.loops.sel].focus_pad
           elseif grid_pat[page.loops.sel].play == 0 and midi_pat[page.loops.sel].play == 0 and not arp[page.loops.sel].playing and rytm.track[page.loops.sel].k == 0 then
@@ -4702,24 +4708,41 @@ function grid_redraw()
         end
         
         for i = 1,3 do
-          local target = grid_pat[i]
-          if target.rec == 1 then
-            g:led(2+(5*(i-1)),1,(9*target.led))
-          elseif (target.quantize == 0 and target.play == 1) or (target.quantize == 1 and target.tightened_start == 1) then
-            if target.overdub == 0 then
-              g:led(2+(5*(i-1)),1,9)
-            else
-              g:led(2+(5*(i-1)),1,15)
-            end
-          elseif target.count > 0 then
-            g:led(2+(5*(i-1)),1,5)
+          if final_boss then
+						local target = g_pattern[i]
+						if target.rec_enabled == 1 then
+							g:led(2 + (5 * (i - 1)), 1, (9 * target.led))
+            elseif target.play == 1 then
+							if target.overdubbing == 0 then
+								g:led(2 + (5 * (i - 1)), 1, 9)
+							else
+								g:led(2 + (5 * (i - 1)), 1, 15)
+							end
+						elseif target.count > 0 then
+							g:led(2 + (5 * (i - 1)), 1, 5)
+						else
+							g:led(2 + (5 * (i - 1)), 1, 3)
+						end
           else
-            g:led(2+(5*(i-1)),1,3)
+            local target = grid_pat[i]
+            if target.rec == 1 then
+              g:led(2+(5*(i-1)),1,(9*target.led))
+            elseif (target.quantize == 0 and target.play == 1) or (target.quantize == 1 and target.tightened_start == 1) then
+              if target.overdub == 0 then
+                g:led(2+(5*(i-1)),1,9)
+              else
+                g:led(2+(5*(i-1)),1,15)
+              end
+            elseif target.count > 0 then
+              g:led(2+(5*(i-1)),1,5)
+            else
+              g:led(2+(5*(i-1)),1,3)
+            end
           end
         end
         
         for i = 1,3 do
-          local a_p; -- this will index the arc encoder recorders
+          local a_p -- this will index the arc encoder recorders
           if arc_param[i] == 1 or arc_param[i] == 2 or arc_param[i] == 3 then
             a_p = 1
           else
@@ -5141,7 +5164,7 @@ function grid_redraw()
         end
 
         --arc recorders
-        local a_p; -- this will index the arc encoder recorders
+        local a_p -- this will index the arc encoder recorders
         if arc_param[bank_64] == 1 or arc_param[bank_64] == 2 or arc_param[bank_64] == 3 then
           a_p = 1
         else
@@ -5476,7 +5499,7 @@ function grid_pattern_execute(entry)
   if entry ~= nil then
     if entry ~= "pause" then
       local i = entry.i
-      local a_p; -- this will index the arc encoder recorders
+      local a_p -- this will index the arc encoder recorders
         if arc_param[i] == 1 or arc_param[i] == 2 or arc_param[i] == 3 then
           a_p = 1
         else
@@ -5655,9 +5678,9 @@ end
 arc_redraw = function()
   a:all(0)
   local which_pad = nil
-  local this_bank;	
-  local arc_min;	
-  local arc_max;	
+  local this_bank
+  local arc_min
+  local arc_max
   for i = 1,(params:string("arc_size") == 4 and 3 or 1) do	
     i = (params:string("arc_size") == 4 and i or bank_64)	
     local which_enc = params:string("arc_size") == 4 and i or 1	
@@ -5716,7 +5739,7 @@ arc_redraw = function()
       end
     end
     if arc_param[i] == 5 then
-      local level_to_led;
+      local level_to_led
       if key1_hold or bank[i].alt_lock or grid_alt then
         level_to_led = bank[i].global_level
       else
@@ -7262,7 +7285,7 @@ function load_midi_pattern(which)
       midi_pat[which].prev_time = tonumber(string.match(io.read(), ': (.*)'))
       midi_pat[which].start_point = tonumber(string.match(io.read(), ': (.*)'))
       midi_pat[which].end_point = tonumber(string.match(io.read(), ': (.*)'))
-      local full_param, first, second;
+      local full_param, first, second
       for i = 1,3 do
         full_param = io.read()
         first = full_param:match("(.+):")

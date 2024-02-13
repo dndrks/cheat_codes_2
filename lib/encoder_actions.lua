@@ -83,7 +83,7 @@ function encoder_actions.init(n,d)
             -- else
             --   which_pad = bank[id].focus_pad
             -- end
-            local which_pad;
+            local which_pad
             if bank[id].focus_hold then
               which_pad = bank[id].focus_pad
             elseif grid_pat[id].play == 0 and midi_pat[id].play == 0 and not arp[id].playing and rytm.track[id].k == 0 then
@@ -151,7 +151,7 @@ function encoder_actions.init(n,d)
       page.main_sel = util.clamp(page.main_sel+d,1,9)
     elseif menu == 2 then
 
-      local focused_pad;
+      local focused_pad
       local id = page.loops.sel
 
       if id < 4 then -- if banks
@@ -291,7 +291,7 @@ function encoder_actions.init(n,d)
       local pattern_page = page.time_sel
 
       if pattern_page < 4 then
-        page_line[pattern_page] = util.clamp(page_line[pattern_page]+d,1,6)
+        page_line[pattern_page] = util.clamp(page_line[pattern_page]+d,1,final_boss and 4 or 6)
         if page_line[pattern_page] < 4 then
           page.time_scroll[pattern_page] = 1
         elseif page_line[pattern_page] < 7 then
@@ -362,7 +362,7 @@ function encoder_actions.init(n,d)
     
     if menu == 2 then
 
-      local focused_pad;
+      local focused_pad
       local id = page.loops.sel
 
       if id < 4 then -- if banks
@@ -465,7 +465,7 @@ function encoder_actions.init(n,d)
             ea.delta_delay_param(delay_name,"mode",d)
             -- params:delta("delay "..delay_name..": mode",d)
           elseif item == 2 then
-            local divisor;
+            local divisor
             if delay[page.delay.focus].mode == "free" and key1_hold then
               divisor = 3
             elseif delay[page.delay.focus].mode == "free" and not key1_hold then
@@ -590,7 +590,11 @@ function encoder_actions.init(n,d)
       local pattern
 
       if get_grid_connected() or osc_communication then
-        pattern = grid_pat[pattern_page]
+        if final_boss then
+          pattern = g_pattern[pattern_page]
+        else
+          pattern = grid_pat[pattern_page]
+        end
       else
         pattern =  midi_pat[pattern_page]
       end
@@ -601,15 +605,13 @@ function encoder_actions.init(n,d)
         elseif page_line[pattern_page] == 1 then
           if pattern.rec ~= 1 then
             if not key1_hold then
-              if pattern.play == 1 then -- actually, we won't want to allow change...
-                -- local pre_adjust_mode = pattern.playmode
-                -- pattern.playmode = util.clamp(pattern.playmode+d,1,2)
-                -- if pattern.playmode ~= pre_adjust_mode then
-                --   stop_pattern(pattern)
-                --   start_pattern(pattern)
-                -- end
+              if pattern.play == 1 then
               else
-                pattern.playmode = util.clamp(pattern.playmode+d,1,2)
+                if final_boss then
+                  params:delta('record_duration_pattern_'..pattern_page, d)
+                else
+                  pattern.playmode = util.clamp(pattern.playmode+d,1,2)
+                end
               end
             elseif key1_hold and pattern.playmode == 2 then
               key1_hold_and_modify = true
@@ -1144,7 +1146,7 @@ end
 
 function ea.move_rec_start(d)
   local lbr = {1,2,4}
-  local res;
+  local res
   if params:get("rec_loop_enc_resolution") == 1 then
     res = key1_hold and d/100 or d/10
   else
@@ -1180,7 +1182,7 @@ end
 
 function ea.move_rec_end(d)
   local lbr = {1,2,4}
-  local res;
+  local res
   if params:get("rec_loop_enc_resolution") == 1 then
     res = key1_hold and d/100 or d/10
   else

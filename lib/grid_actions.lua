@@ -152,10 +152,16 @@ function grid_actions.init(x,y,z)
       end
 
       
-      for k = 1,1 do
-        for i = 1,3 do
-          if z == 0 and x == (k+1)+(5*(i-1)) and y<=k then
-            grid_actions.grid_pat_handler(i)
+      if y == 1 and ((x == 2) or (x == 7) or (x == 12)) then
+        if final_boss then
+          if z == 1 then
+            local id = x == 2 and 1 or (x == 7 and 2 or x == 12 and 3)
+            _newpat.pattern_key(id)
+          end
+        else
+          if z == 0 then
+            local id = x == 2 and 1 or (x == 7 and 2 or x == 12 and 3)
+            grid_actions.grid_pat_handler(id)
           end
         end
       end
@@ -163,7 +169,7 @@ function grid_actions.init(x,y,z)
       for i = 4,2,-1 do
         if x == 16 and y == i and z == 0 then
           local current = math.abs(y-5)
-          local a_p; -- this will index the arc encoder recorders
+          local a_p -- this will index the arc encoder recorders
           if arc_param[current] == 1 or arc_param[current] == 2 or arc_param[current] == 3 then
             a_p = 1
           else
@@ -884,7 +890,7 @@ function grid_actions.init(x,y,z)
       --arc recorders
       if x == 8 and y == 3 and z == 0 then
         local current = bank_64
-        local a_p; -- this will index the arc encoder recorders
+        local a_p -- this will index the arc encoder recorders
         if arc_param[current] == 1 or arc_param[current] == 2 or arc_param[current] == 3 then
           a_p = 1
         else
@@ -1499,6 +1505,12 @@ function grid_actions.pad_down(i,p,external_seq,silent)
     end
     if not silent then
       grid_pattern_watch(i)
+			local to_record = {
+				["event"] = "pad down",
+				["i"] = i,
+				["id"] = p,
+			}
+			g_pattern[i]:watch(to_record)
     end
   else
     local released_pad = p
@@ -1510,6 +1522,12 @@ function grid_actions.pad_down(i,p,external_seq,silent)
 end
 
 function grid_actions.pad_up(i,p,external_seq)
+	local to_record = {
+		["event"] = "pad up",
+		["i"] = i,
+		["id"] = p,
+	}
+	g_pattern[i]:watch(to_record)
   local released_pad = p
   if bank[i][released_pad].play_mode == "momentary" then
     softcut.rate(i+1,0)

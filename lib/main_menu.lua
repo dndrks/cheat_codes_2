@@ -132,7 +132,7 @@ function main_menu.init()
       screen.move(128,10)
 
       if page.loops.sel < 4 then
-        local pad;
+        local pad
         if bank[page.loops.sel].focus_hold then
           pad = bank[page.loops.sel][bank[page.loops.sel].focus_pad]
         elseif grid_pat[page.loops.sel].play == 0 and midi_pat[page.loops.sel].play == 0 and not arp[page.loops.sel].playing and rytm.track[page.loops.sel].k == 0 then
@@ -165,7 +165,7 @@ function main_menu.init()
     -- waveform testing
     if page.loops.sel < 4 then
 
-      local pad;
+      local pad
       if bank[page.loops.sel].focus_hold then
         pad = bank[page.loops.sel][bank[page.loops.sel].focus_pad]
       elseif page.loops.frame == 1 then
@@ -212,7 +212,7 @@ function main_menu.init()
       else
         screen.level(screen_levels[1])
         screen.move(0,40)
-        local which_pad;
+        local which_pad
         if bank[page.loops.sel].focus_hold then
           which_pad = bank[page.loops.sel].focus_pad
         elseif page.loops.frame == 1 then
@@ -511,8 +511,8 @@ function main_menu.init()
 
     elseif page.loops.sel == 5 then
       for i = 1,4 do
-        local id;
-        local options;
+        local id
+        local options
         screen.line_width(1)
         if i < 4 then
           if bank[i].focus_hold then
@@ -1064,7 +1064,8 @@ function main_menu.init()
       -- local pattern = g.device ~= nil and grid_pat[i] or midi_pat[i]
       local pattern
       if get_grid_connected() or osc_communication then
-        pattern = grid_pat[i]
+				-- pattern = grid_pat[i]
+				pattern = g_pattern[i]
       else
         pattern =  midi_pat[i]
       end
@@ -1073,8 +1074,8 @@ function main_menu.init()
       screen.move(5+(20*(i-1)),25)
       screen.level(3)
       if pattern.play == 1 then
-        screen.text(pattern.overdub == 0 and (">") or "o")
-      elseif pattern.play == 0 and pattern.count > 0 and pattern.rec == 0 then
+        screen.text((final_boss and pattern.overdubbing == 0 or pattern.overdub == 0) and (">") or "o")
+      elseif pattern.play == 0 and pattern.count > 0 and (final_boss and pattern.rec_enabled == 0 or pattern.rec == 0) then
         screen.text("x")
       end
     end
@@ -1082,11 +1083,12 @@ function main_menu.init()
     if page.time_sel < 4 then
       local pattern
       if get_grid_connected() or osc_communication then
-        pattern = grid_pat[page_line]
+        -- pattern = grid_pat[page_line]
+        pattern = g_pattern[page_line]
       else
         pattern =  midi_pat[page_line]
       end
-      if pattern.sync_hold ~= nil and pattern.sync_hold then
+      if pattern.sync_hold ~= nil and pattern.sync_hold then -- irrelevant
         local show_me_beats = clock.get_beats() % 4
         local show_me_frac = math.fmod(clock.get_beats(),1)
         if show_me_frac <= 0.25 then
@@ -1119,14 +1121,13 @@ function main_menu.init()
             screen.level(time_page[page_line] == j and 15 or 3)
             screen.move(10,40+(10*(j-1)))
             screen.text(p_options[j])
-            local mode_options = {"loose","bars: "..string.format("%.4g", pattern.rec_clock_time/4),"quant","quant+trim"}
-            local show_state = pattern.play == 1 and pattern.step or mode_options[pattern.playmode]
+            local show_state = pattern.play == 1 and pattern.current_step or params:string('record_duration_pattern_'..page_line)
             local fine_options = {show_state, pattern.count > 0 and pattern.rec == 0 and "[K3]" or "(no pat!)", params:string("sync_clock_to_pattern_"..page_line)}
             screen.move(80,40+(10*(j-1)))
             screen.text(fine_options[j])
           end
         elseif page.time_scroll[page_line] == 2 then
-          for j = 4,6 do
+          for j = 4, final_boss and 4 or 6 do
             screen.level(time_page[page_line] == j and 15 or 3)
             screen.move(10,40+(10*(j-4)))
             screen.text(p_options[j])
