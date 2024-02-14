@@ -110,7 +110,7 @@ splash_done = true
 actively_loading_collection = false
 cc_json = include 'lib/cc_json'
 nb = include 'lib/nb/lib/nb'
-_r = require 'reflection'
+_r = include 'lib/reflection'
 _newpat = include 'lib/new_patterns'
 _newpat.init()
 

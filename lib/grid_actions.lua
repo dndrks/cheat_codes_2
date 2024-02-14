@@ -1510,7 +1510,8 @@ function grid_actions.pad_down(i,p,external_seq,silent)
 				["i"] = i,
 				["id"] = p,
 			}
-			g_pattern[i]:watch(to_record)
+			g_pattern[i].pad_down_events[p] = g_pattern[i]:watch(to_record)
+      g_pattern[i].pad_down_counter[p] = {complete = false, time = util.time(), duration = 0}
     end
   else
     local released_pad = p
@@ -1522,14 +1523,15 @@ function grid_actions.pad_down(i,p,external_seq,silent)
 end
 
 function grid_actions.pad_up(i,p,external_seq)
-	local to_record = {
-		["event"] = "pad up",
-		["i"] = i,
-		["id"] = p,
-	}
-	g_pattern[i]:watch(to_record)
+  if not external_seq and g_pattern[i].rec == 1 then
+    local prev_time = g_pattern[i].pad_down_counter[p].time
+    local down_id = g_pattern[i].pad_down_events[p][1]
+    local ind = g_pattern[i].pad_down_events[p][2]
+    g_pattern[i].event[down_id][ind].duration = util.time() - prev_time
+  end
   local released_pad = p
-  if bank[i][released_pad].play_mode == "momentary" then
+  if bank[i][released_pad].play_mode == "momentary" and released_pad == bank[i].id then
+		-- print("pad " .. released_pad .. " released!")
     softcut.rate(i+1,0)
   end
   if (arp[i].enabled and not arp[i].hold) or (menu == 9 and not arp[i].hold) then

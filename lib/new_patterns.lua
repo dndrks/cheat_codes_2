@@ -55,13 +55,13 @@ local function initialize_parameters(i)
 		end
 	end)
 
-	params:add_option("play_after_rec_" .. i, "play after recording?", { "no", "yes" }, 1)
+	params:add_option("play_after_rec_" .. i, "play after recording?", { "no", "yes" }, 2)
 	params:set_action("play_after_rec_" .. i, function(x)
 		pat.play_after_rec[i] = x == 2
 		grid_dirty = true
 	end)
 
-	params:add_option("loop_pattern_" .. i, "loop playback?", { "no", "yes" }, 1)
+	params:add_option("loop_pattern_" .. i, "loop playback?", { "no", "yes" }, 2)
 	params:set_action("loop_pattern_" .. i, function(x)
 		g_pattern[i]:set_loop(x - 1)
 		grid_dirty = true
@@ -171,6 +171,12 @@ function pat.init()
     g_pattern[i].random_pitch_range = 5
     g_pattern[i].process = pattern_execute
     g_pattern[i].start_point = 1
+    g_pattern[i].pad_down_counter = {}
+		g_pattern[i].pad_down_events = {}
+    for j = 1,16 do
+      g_pattern[i].pad_down_counter[j] = {complete = false, time = 0, duration = 0}
+      g_pattern[i].pad_down_events[j] = false
+    end
     
     g_pattern[i].start_callback = function() -- user-script callback
       print("playback started", i, clock.get_beats())
@@ -303,9 +309,17 @@ function pattern_execute(data)
   if data.event == "pad down" then
     g_pattern[data.i].current_step = g_pattern[data.i].current_step + 1
 		grid_actions.pad_down(data.i, data.id, true, true)
-    print(g_pattern[data.i].current_step)
+    -- print(g_pattern[data.i].current_step)
+    -- print(data.duration)
+    clock.run(
+      function()
+        clock.sleep(data.duration)
+			  grid_actions.pad_up(data.i, data.id, true)
+        -- print("pad up", data.i, data.id, true)
+      end
+    )
   elseif data.event == "pad up" then
-		grid_actions.pad_up(data.i, data.id, true)
+		-- grid_actions.pad_up(data.i, data.id, true)
   end
 
   if data.event == "flip_to_fkprm" then
