@@ -1186,15 +1186,23 @@ function ea.move_rec_end(d)
   else
     res = d/rec_loop_enc_resolution
   end
-  if d <= 0 and util.round(rec[rec.focus].start_point,0.01) < util.round(rec[rec.focus].end_point + ((res)/lbr[params:get("live_buff_rate")]),0.01) then
-    rec[rec.focus].end_point = util.clamp(rec[rec.focus].end_point+((res)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.focus-1))),(9+(8*(rec.focus-1))))
+  local min_end_point = 1+(8*(rec.focus-1))
+  local max_end_point = 9+(8*(rec.focus-1))
+  local resolved_res = res / lbr[params:get("live_buff_rate")]
+  local new_end_point = rec[rec.focus].end_point + resolved_res
+  if params:get("rec_loop_enc_resolution") >= 3 then
+    -- When quantizing the loop endpoint, and the user tries to make it very small
+    -- let it only go to one quantization value at minimum
+    -- (instead of the very beginning of the loop)
+    min_end_point = rec[rec.focus].start_point + 1 / (rec_loop_enc_resolution * lbr[params:get("live_buff_rate")])
+  end
+  if d <= 0 and util.round(rec[rec.focus].start_point, 0.01) < util.round(new_end_point, 0.01) then
+    rec[rec.focus].end_point = util.clamp(new_end_point, min_end_point, max_end_point)
   elseif d > 0 then
-    if rec[rec.focus].end_point+((res)/lbr[params:get("live_buff_rate")]) <= 9+(8*(rec.focus-1)) then -- FIXME: weak point?
-      rec[rec.focus].end_point = util.clamp(rec[rec.focus].end_point+((res)/lbr[params:get("live_buff_rate")]),(1+(8*(rec.focus-1))),(9+(8*(rec.focus-1))))
-    else
-      if params:get("rec_loop_enc_resolution") < 3 then
-        rec[rec.focus].end_point = 9+(8*(rec.focus-1))
-      end
+    if new_end_point <= max_end_point then -- FIXME: weak point?
+      rec[rec.focus].end_point = util.clamp(new_end_point, min_end_point, max_end_point)
+    elseif params:get("rec_loop_enc_resolution") < 3 then
+      rec[rec.focus].end_point = max_end_point
     end
   end
   if rec.play_segment == rec.focus then
