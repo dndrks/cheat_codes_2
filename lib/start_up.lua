@@ -79,7 +79,7 @@ function start_up.init()
 
   local banks = {"(a)","(b)","(c)"}
   
-  params:add_group("loops + buffers", util.file_exists(_path.code.."zxcvbn/lib/aubiogo/aubiogo") and 48 or 42)
+  params:add_group("loops + buffers", util.file_exists(_path.code.."zxcvbn/lib/aubiogo/aubiogo") and 49 or 43)
 
   params:add_separator("clips")
   
@@ -293,6 +293,10 @@ function start_up.init()
   params:set_action("preview_clip_change", function() if all_loaded then persistent_state_save() end end)
   params:add_option("visual_metro", "visual metronome?", {"yes","no"},2)
   params:set_action("visual_metro", function() if all_loaded then persistent_state_save() end end)
+	params:add_option("tempo_resize", "enc: tempo auto-resize?", { "yes", "no" }, 1)
+	params:set_action("tempo_resize", function(x)
+		tempo_resize = x == 1
+	end)
   
   --params:add_option("zilchmo_bind_rand","bind random zilchmo?", {"no","yes"}, 1)
   
@@ -444,14 +448,14 @@ function start_up.init()
             table.insert(saved_pool,j)
           end
         end
-        local current_pattern;
+        local current_pattern
         if tab.count(saved_pool) > 0 and pattern_saver[i].load_slot == 0 then
           current_pattern = saved_pool[1]
         else
           current_pattern = tab.key(saved_pool,pattern_saver[i].load_slot)
         end
         if current_pattern ~= nil then
-          local slick;
+          local slick
           if tab.count(saved_pool) > 0 and pattern_saver[i].load_slot == 0 then
             slick = saved_pool[1]
           else
@@ -472,14 +476,14 @@ function start_up.init()
             table.insert(saved_pool,j)
           end
         end
-        local current_pattern;
+        local current_pattern
         if tab.count(saved_pool) > 0 and pattern_saver[i].load_slot == 0 then
           current_pattern = saved_pool[1]
         else
           current_pattern = tab.key(saved_pool,pattern_saver[i].load_slot)
         end
         if current_pattern ~= nil then
-          local slick;
+          local slick
           if tab.count(saved_pool) > 0 and pattern_saver[i].load_slot == 0 then
             slick = saved_pool[1]
           else

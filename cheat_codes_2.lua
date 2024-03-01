@@ -1,6 +1,6 @@
 -- cheat codes 2
 --          a sample playground
--- rev: 240206 - LTS13
+-- rev: 240301 - LTS13.1
 -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
 -- need help?
 -- please visit:
@@ -2928,18 +2928,11 @@ function update_tempo()
   local d_pat = params:get("quant_div_pats")
   local interval = (60/t) / d
   local interval_pats = (60/t) / d_pat
-  if pre_bpm ~= bpm then
+  if pre_bpm ~= bpm and tempo_resize then
     compare_rec_resolution(params:get("rec_loop_enc_resolution"))
     for i = 1,3 do
       compare_loop_resolution(i,params:get("loop_enc_resolution_"..i))
     end
-    if math.abs(pre_bpm - bpm) >= 1 then
-      --print("a change in time!")
-    end
-  end
-  for i = 1,3 do
-    --quantizer[i].time = interval
-    --grid_pat_quantizer[i].time = interval_pats
   end
 end
 
