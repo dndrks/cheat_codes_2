@@ -1,6 +1,6 @@
 -- cheat codes 2
 --          a sample playground
--- rev: 240301 - LTS13.1
+-- rev: 240206 - LTS13
 -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
 -- need help?
 -- please visit:
@@ -1461,7 +1461,7 @@ function init()
 
   function draw_waveform()
     if menu == 2 then
-      local rec_on = 0;
+      local rec_on = 0
       for i = 1,3 do
         if rec[i].state == 1 then
           rec_on = i
@@ -1670,7 +1670,7 @@ function init()
         end
       end
       if params:get("midi_control_enabled") == 2 and j == params:get("midi_control_device") then
-        local received_ch;
+        local received_ch
         -- local b_ch = {}
         for i = 1,3 do
           if d.ch == params:get("bank_"..i.."_midi_channel") then
@@ -2085,7 +2085,7 @@ end
 function ping_midi_devices()
   mft_connected = false
   ec4_connected = false
-  local midi_dev_max;
+  local midi_dev_max
   for k,v in pairs(midi.devices) do
     midi_dev_max = midi.devices[k].id
   end
@@ -2117,7 +2117,7 @@ end
 
 function sync_clock_to_loop(source,style)
   local dur = 0
-  local pattern_id;
+  local pattern_id
   if style == "audio" then
     dur = source.end_point-source.start_point
   elseif style == "pattern" then
@@ -2610,7 +2610,7 @@ function compare_rec_resolution(x)
     , [7] = (1/(clock.get_beat_sec()))/4
     }
   rec_loop_enc_resolution = resolutions[x]
-  if x > 2 then
+  if x > 2 and tempo_resize then
     local lbr = {1,2,4}
     rec[rec.focus].end_point = rec[rec.focus].start_point + (((1/rec_loop_enc_resolution)*current_mult)/lbr[params:get("live_buff_rate")])
     softcut.loop_start(1,rec[rec.focus].start_point)
@@ -2632,12 +2632,14 @@ function compare_loop_resolution(target,x)
       , [7] = (1/(clock.get_beat_sec()))/4
       }
     loop_enc_resolution[pad.bank_id] = resolutions[x]
-    if x > 2 then
+    if x > 2 and tempo_resize then
       pad.end_point = pad.start_point + (((1/loop_enc_resolution[pad.bank_id])))
     end
   end
-  softcut.loop_start(target+1,bank[target][bank[target].id].start_point)
-  softcut.loop_end(target+1,bank[target][bank[target].id].end_point)
+  if tempo_resize then
+    softcut.loop_start(target+1,bank[target][bank[target].id].start_point)
+    softcut.loop_end(target+1,bank[target][bank[target].id].end_point)
+  end
   if menu ~= 1 then screen_dirty = true end
 end
 
@@ -2790,7 +2792,7 @@ osc_in = function(path, args, from)
         target.rate = target.rate * - 1
         softcut.rate(i+1,target.rate)
       elseif path == "/bank_rev_"..i then
-        local direction;
+        local direction
         if target.rate > 0 then
           direction = 1
         else
@@ -2816,7 +2818,7 @@ osc_in = function(path, args, from)
         softcut.loop_end(i+1,target.end_point)
       elseif path == "/chop_"..i then
         for j = 1,16 do
-          local duration;
+          local duration
           local pad = bank[i][j]
           if pad.mode == 1 then
             --slice within bounds
@@ -2834,7 +2836,7 @@ osc_in = function(path, args, from)
         softcut.loop_end(i+1,target.end_point)
       elseif path == "/rand_loop_points_"..i then
         for j = 1,16 do
-          local duration, max_end, min_start;
+          local duration, max_end, min_start
           local pad = bank[i][j]
           if pad.mode == 1 and pad.clip == rec.focus then
             duration = rec[rec.focus].end_point-rec[rec.focus].start_point
@@ -2928,7 +2930,7 @@ function update_tempo()
   local d_pat = params:get("quant_div_pats")
   local interval = (60/t) / d
   local interval_pats = (60/t) / d_pat
-  if pre_bpm ~= bpm and tempo_resize then
+  if pre_bpm ~= bpm then
     compare_rec_resolution(params:get("rec_loop_enc_resolution"))
     for i = 1,3 do
       compare_loop_resolution(i,params:get("loop_enc_resolution_"..i))
@@ -3258,7 +3260,7 @@ function cheat(b,i)
 
   -- redraw waveform if it's zoomed in and the pad changes
   if menu == 2 and page.loops.sel == b and page.loops.frame == 2 and not key2_hold and key1_hold then
-    local focused_pad;
+    local focused_pad
     if bank[page.loops.sel].focus_hold then
       focused_pad = bank[page.loops.sel].focus_pad
     elseif grid_pat[page.loops.sel].play == 0 and midi_pat[page.loops.sel].play == 0 and not arp[page.loops.sel].playing and rytm.track[page.loops.sel].k == 0 then
@@ -3873,7 +3875,7 @@ function key(n,z)
           if page.loops.sel < 4 then
             local id = page.loops.sel
             if page.loops.frame == 2 then
-              local which_pad;
+              local which_pad
               if bank[id].focus_hold then
                 which_pad = bank[id].focus_pad
               elseif grid_pat[id].play == 0 and midi_pat[id].play == 0 and not arp[id].playing and rytm.track[id].k == 0 then
@@ -4232,7 +4234,7 @@ function key(n,z)
       else
         key1_hold = true
         if menu == 2 and page.loops.sel < 4 and page.loops.frame == 2 and not key2_hold then
-          local focused_pad;
+          local focused_pad
           if bank[page.loops.sel].focus_hold then
             focused_pad = bank[page.loops.sel].focus_pad
           elseif grid_pat[page.loops.sel].play == 0 and midi_pat[page.loops.sel].play == 0 and not arp[page.loops.sel].playing and rytm.track[page.loops.sel].k == 0 then
@@ -4712,7 +4714,7 @@ function grid_redraw()
         end
         
         for i = 1,3 do
-          local a_p; -- this will index the arc encoder recorders
+          local a_p -- this will index the arc encoder recorders
           if arc_param[i] == 1 or arc_param[i] == 2 or arc_param[i] == 3 then
             a_p = 1
           else
@@ -5134,7 +5136,7 @@ function grid_redraw()
         end
 
         --arc recorders
-        local a_p; -- this will index the arc encoder recorders
+        local a_p -- this will index the arc encoder recorders
         if arc_param[bank_64] == 1 or arc_param[bank_64] == 2 or arc_param[bank_64] == 3 then
           a_p = 1
         else
@@ -5469,7 +5471,7 @@ function grid_pattern_execute(entry)
   if entry ~= nil then
     if entry ~= "pause" then
       local i = entry.i
-      local a_p; -- this will index the arc encoder recorders
+      local a_p -- this will index the arc encoder recorders
         if arc_param[i] == 1 or arc_param[i] == 2 or arc_param[i] == 3 then
           a_p = 1
         else
@@ -5648,9 +5650,9 @@ end
 arc_redraw = function()
   a:all(0)
   local which_pad = nil
-  local this_bank;	
-  local arc_min;	
-  local arc_max;	
+  local this_bank
+  local arc_min
+  local arc_max
   for i = 1,(params:string("arc_size") == 4 and 3 or 1) do	
     i = (params:string("arc_size") == 4 and i or bank_64)	
     local which_enc = params:string("arc_size") == 4 and i or 1	
@@ -5709,7 +5711,7 @@ arc_redraw = function()
       end
     end
     if arc_param[i] == 5 then
-      local level_to_led;
+      local level_to_led
       if key1_hold or bank[i].alt_lock or grid_alt then
         level_to_led = bank[i].global_level
       else
@@ -7255,7 +7257,7 @@ function load_midi_pattern(which)
       midi_pat[which].prev_time = tonumber(string.match(io.read(), ': (.*)'))
       midi_pat[which].start_point = tonumber(string.match(io.read(), ': (.*)'))
       midi_pat[which].end_point = tonumber(string.match(io.read(), ': (.*)'))
-      local full_param, first, second;
+      local full_param, first, second
       for i = 1,3 do
         full_param = io.read()
         first = full_param:match("(.+):")
