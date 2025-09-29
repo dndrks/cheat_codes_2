@@ -414,7 +414,7 @@ function lfos:add_params(parent_group, separator_name, silent)
       end
     )
     params:add_option("lfo shape "..group.." "..i, "lfo shape", {"sine","square","random"},1)
-    params:add_trigger("lfo reset "..group.." "..i, "reset lfo")
+    params:add_binary("lfo reset "..group.." "..i, "reset lfo", "trigger")
     params:set_action("lfo reset "..group.." "..i, function(x) reset_lfo_phase(group,i) end)
     params:add_option("lfo reset target "..group.." "..i, "reset lfo to", {"floor","ceiling"}, 1)
     params:hide("lfo free "..group.." "..i)

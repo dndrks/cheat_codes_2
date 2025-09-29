@@ -1528,14 +1528,14 @@ function grid_actions.pad_up(i,p,external_seq)
   screen_dirty = true
 end
 
-function grid_actions.grid_pat_handler(i)
+function grid_actions.grid_pat_handler(i, from_params)
   if grid_pat[i].quantize == 0 then -- still relevant
     if bank[i].alt_lock and not grid_alt then
       if grid_pat[i].play == 1 then
         grid_pat[i].overdub = grid_pat[i].overdub == 0 and 1 or 0
       end
     else
-      if grid_alt then -- still relevant
+      if grid_alt and not from_params then -- still relevant
         if grid_pat[i].rec == 1 then
           -- grid_actions.rec_stop(i)
           grid_pat[i]:rec_stop()

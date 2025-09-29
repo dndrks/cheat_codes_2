@@ -300,7 +300,7 @@ function start_up.init()
   
   --params:add_option("zilchmo_bind_rand","bind random zilchmo?", {"no","yes"}, 1)
   
-  params:add_group("timing + patterns + arps",45)
+  params:add_group("timing + patterns + arps",49)
   params:add_separator("quantization")
   for i = 1,3 do
     params:add_option("pattern_"..i.."_quantization", "live-quantize pads "..banks[i].."?", {"no", "yes"})
@@ -324,7 +324,8 @@ function start_up.init()
     params:add_number("pattern_"..i.."_quantization_denum",'  > denum',1,64,16)
   end
   params:add_option("launch_quantization", "patterns launch at:", {"next beat", "next bar","free"},3)
-  -- params:hide("launch_quantization")
+	-- params:hide("launch_quantization")
+
   params:add_separator("patterns")
   params:add_option("zilchmo_patterning", "grid pat style", { "classic", "rad sauce" })
   params:set_action("zilchmo_patterning", function() if all_loaded then persistent_state_save() end end)
@@ -334,6 +335,7 @@ function start_up.init()
     params:add_option("sync_clock_to_pattern_"..i, "sync bpm to free pat "..i.."?", { "no", "yes" })
     params:set_action("sync_clock_to_pattern_"..i, function() if all_loaded then persistent_state_save() end end)
   end
+
   params:add_separator("random patterns")
   for i = 1,3 do
     params:add_option("random_patterning_"..i,"rand pat "..i.." style", 
@@ -360,6 +362,14 @@ function start_up.init()
   for i = 1,3 do
     params:add_option("rand_pattern_"..i.."_note_length", "rand pat "..i.." note length", {"1/16", "1/8", "1/4", "1/2", "1", "rand"},6)
   end
+
+	params:add_separator("pattern button (grid only)")
+	for i = 1, 3 do
+		params:add_binary("grid_pat_button_" .. i, "pattern button: bank " .. i, "trigger")
+		params:set_action("grid_pat_button_" .. i, function()
+			grid_actions.grid_pat_handler(i, true)
+		end)
+	end
 
   params:add_separator("arps (grid only)")
   for i = 1,3 do
@@ -410,7 +420,7 @@ function start_up.init()
   params:add_number("metronome_one_beat_pitch","1-beat pitch",30,1200,600)
   params:add_number("metronome_alt_beat_pitch","alt pitch",30,1200,300)
 
-  params:add_group("pattern management",28)
+  params:add_group("meta-pattern management",28)
   local banks = {"(a)", "(b)", "(c)"}
   params:add_separator('pattern_save_separator', "save")
   for i = 1,3 do
@@ -420,7 +430,7 @@ function start_up.init()
         pattern_saver[i].save_slot = x
       end
     )
-    params:add_trigger("pattern_save_"..i, "save (K3)")
+    params:add_binary("pattern_save_"..i, "save (K3)", "trigger")
     params:set_action("pattern_save_"..i,
       function()
         quick_save_pattern(i)
@@ -430,7 +440,7 @@ function start_up.init()
   params:add_separator("manual load")
   for i = 1,3 do
     params:add_number("pattern_load_slot_"..i, "load slot "..banks[i],1,8,1)
-    params:add_trigger("pattern_load_"..i, "load (K3)")
+    params:add_binary("pattern_load_"..i, "load (K3)", "trigger")
     params:set_action("pattern_load_"..i,
       function()
         test_load(params:get("pattern_load_slot_"..i)+(8*(i-1)),i,"from_grid")
@@ -439,7 +449,7 @@ function start_up.init()
   end
   params:add_separator("iterative load")
   for i = 1,3 do
-    params:add_trigger("pattern_load_next"..i, "load next "..banks[i].." pattern (K3)")
+    params:add_binary("pattern_load_next"..i, "load next "..banks[i].." pattern (K3)", "trigger")
     params:set_action("pattern_load_next"..i,
       function()
         local saved_pool = {}
@@ -467,7 +477,7 @@ function start_up.init()
         end
       end
     )
-    params:add_trigger("pattern_load_prev"..i, "load prev "..banks[i].." pattern (K3)")
+    params:add_binary("pattern_load_prev"..i, "load prev "..banks[i].." pattern (K3)", "trigger")
     params:set_action("pattern_load_prev"..i,
       function()
         local saved_pool = {}
@@ -505,7 +515,7 @@ function start_up.init()
         pattern_saver[i].save_slot = x
       end
     )
-    params:add_trigger("pattern_del_"..i, "delete (K3)")
+    params:add_binary("pattern_del_"..i, "delete (K3)", "trigger")
     params:set_action("pattern_del_"..i,
       function()
         quick_delete_pattern(i)
@@ -863,7 +873,7 @@ function start_up.init()
 
   rytm.add_params()
   
-  params:add_group("delays",75)
+  params:add_group("delays",77)
 
   params:add_separator("manage delay audio")
   params:add{type = "trigger", id = "save_left_delay", name = "** save L delay", action = function() del.save_delay(1) end}
@@ -972,6 +982,11 @@ function start_up.init()
     params:add_control("delay "..sides[i-3]..": pan", "delay "..sides[i-3]..": pan", controlspec.new(-1,1,'lin',0.01,(i == 4 and -1 or 1)))
     params:set_action("delay "..sides[i-3]..": pan", function(x)
       softcut.pan(i+1,x)
+    end)
+    params:add_control("delay "..sides[i-3] .. ": send to live", "delay "..sides[i-3] .. ": send to live", controlspec.new(0,100,'lin',0,0,'%'))
+    params:set_action("delay "..sides[i-3] .. ": send to live",
+    function(x)
+      softcut.level_cut_cut(i+1,1,x/100)
     end)
     params:add{type = "trigger", id = "save_delay_"..sides[i-3], name = "***** save delay "..sides[i-3].." ***** [K3]", action = function() del.save_delay(i-3) end}	
 

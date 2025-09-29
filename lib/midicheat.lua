@@ -654,12 +654,9 @@ function mc.pad_to_note_params()
       crow.ii.wsyn.lpg_symmetry(val)
     end
   }
-  params:add{
-    type = "trigger",
-    id = "wsyn_randomize",
-    name = "Randomize",
-    allow_pmap = false,
-    action = function()
+  params:add_binary("wysn_randomize", "Randomize", "trigger")
+  params:set_action("wysn_randomize",
+    function()
       params:set("w/curve", math.random(-50, 50)/10)
       params:set("w/ramp", math.random(-50, 50)/10)
       params:set("w/fm index", math.random(0, 50)/10)
@@ -669,7 +666,7 @@ function mc.pad_to_note_params()
       params:set("w/lpg time", math.random(-50, 50)/10)
       params:set("w/lpg symm", math.random(-50, 50)/10)
     end
-  }
+  )
 
   function wsyn_init()
     crow.ii.wsyn.ar_mode(params:get("wsyn_ar_mode") - 1)

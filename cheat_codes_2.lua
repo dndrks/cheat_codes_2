@@ -1,13 +1,13 @@
 -- cheat codes 2
 --          a sample playground
--- rev: 240301 - LTS13.2
+-- rev: 250929 - LTS13.3
 -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
 -- need help?
 -- please visit:
 -- l.llllllll.co/cheat-codes-2
 -- -------------------------------
 
-if tonumber(norns.version.update) < 221214 then
+if tonumber(norns.version.update) < 250406 then
   norns.script.clear()
   norns.script.load('code/cheat_codes_2/lib/fail_state-update.lua')
 end
