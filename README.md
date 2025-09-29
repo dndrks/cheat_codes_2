@@ -4,7 +4,7 @@ a sample playground for norns
 
 ### hard requirements:
 
-- norns (221214 or later)
+- norns (250406 or later)
 
 ### encouraged (any or all):
 
